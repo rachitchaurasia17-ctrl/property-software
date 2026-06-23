@@ -30,7 +30,7 @@
   const area = () => PM.areas.find(a => a.id === state.areaId) || PM.areas[0];
   const num = (n) => typeof n === 'number' && Number.isFinite(n);
   const rectOk = (o) => o && ['x','y','w','h'].every(k => num(o[k]));
-  const activeCategories = () => PM.categoriesFor(DS);
+  const activeCategories = () => PM.categoriesFor(DS).filter(c => c.id !== 'green');
   const catById = (id) => activeCategories().find(c => c.id === id) || PM.categoryById(id);
   const keyRoads = () => (DS.keyRoads || []).filter(r => r && r.clientVisible !== false && r.id && r.name && r.easyD && Array.isArray(r.labelAt));
   const mapBlocks = () => (DS.blocks || []).filter(b => b && b.clientVisible !== false && b.id && b.name && b.cat && rectOk(b));
@@ -381,30 +381,33 @@
   /* ---------- RIGHT PANEL ---------- */
   function panelHTML() {
     if (state.section === 'props' && state.propView === 'sector') return sectorPanelHTML();
-    if (state.catId) return catItemsPanelHTML();
-    return catListPanelHTML();
-  }
-  function catListPanelHTML() {
-    return `<div class="head"><div class="eyebrow">Location masterplan</div><div class="title-xl serif">${esc(area().name)}</div>
-        <div class="quick"><button class="quick-btn" id="qAllMaps">⤺ View All Maps</button><button class="quick-btn" id="qAllSectors">▦ View All Sector Maps</button></div></div>
-      <div class="scroll">
-        ${activeCategories().filter(c => catCount(c.id)).map(c => `<button class="cat-btn" data-cat="${c.id}">
-          <span class="cat-ico" style="background:${hexA(c.color, .14)};border:1px solid ${hexA(c.color, .45)}"><i style="background:${c.color}"></i></span>
-          <span class="lab"><b>${esc(c.label)}</b><span>${catCount(c.id)} item${catCount(c.id) === 1 ? '' : 's'}</span></span><span class="chev">›</span></button>`).join('')}
-      </div>`;
-  }
-  function catItemsPanelHTML() {
-    const c = catById(state.catId); const items = catItems(state.catId);
-    const sel = state.itemId && items.some(i => i.id === state.itemId) ? state.itemId : null;
+    
     return `<div class="head" style="padding-bottom:14px">
-        <button class="backlink" id="backCats">‹ All categories</button>
-        <div class="cat-head"><span class="cat-ico" style="background:${hexA(c.color, .12)};border:1px solid ${hexA(c.color, .3)}"><i style="background:${c.color}"></i></span><div class="t" style="color:#0B1A36;">${esc(c.label)}</div></div></div>
+        <div class="eyebrow">Official masterplan proof layer</div>
+        <div class="title-xl serif">${esc(area().name)}</div>
+        <div class="quick"><button class="quick-btn" id="qAllMaps">⤺ View All Maps</button><button class="quick-btn" id="qAllSectors">▦ View All Sector Maps</button></div>
+      </div>
       <div class="scroll">
-        ${sel ? previewCardHTML(sel) : ''}
-        ${items.map(i => `<button class="item-btn ${i.id === sel ? 'sel' : ''}" data-item="${i.id}" data-kind="${i.kind}">
-          <span class="item-dot" style="width:13px;height:${i.kind === 'line' ? '4px' : '13px'};border-radius:${i.kind === 'line' ? '3px' : '50%'};background:${i.color}"></span>
-          <span class="lab"><b>${esc(i.name)}</b><span>${esc(i.sub)}</span></span>
-          <span class="chev">${i.kind === 'block' ? '→' : '›'}</span></button>`).join('')}
+        <div style="font-size:12.5px;font-weight:700;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">Map Layers</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px">
+          ${activeCategories().filter(c => catCount(c.id)).map(c => `
+            <button class="layer-pill ${state.catId === c.id ? 'act' : ''}" data-cat="${c.id}">
+              <i style="background:${c.color}"></i> ${esc(c.label)} <span class="cnt">${catCount(c.id)}</span>
+            </button>`).join('')}
+        </div>
+
+        ${state.catId ? `
+          <div style="font-size:12.5px;font-weight:700;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">${esc(catById(state.catId).label)}</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:28px">
+            ${catItems(state.catId).map(i => `
+              <button class="item-btn ${state.itemId === i.id ? 'sel' : ''}" data-item="${i.id}" data-kind="${i.kind}">
+                <span class="item-dot" style="width:13px;height:${i.kind === 'line' ? '4px' : '13px'};border-radius:${i.kind === 'line' ? '3px' : '50%'};background:${i.color || catColor(i.cat)}"></span>
+                <span class="lab"><b>${esc(i.name)}</b>${i.sub ? `<span>${esc(i.sub)}</span>` : ''}</span>
+              </button>`).join('')}
+          </div>
+        ` : ''}
+
+        ${state.itemId ? previewCardHTML(state.itemId) : ''}
       </div>`;
   }
   function previewCardHTML(id) {
