@@ -41,16 +41,16 @@ window.PM.registerDataset('tricity-aerotropolis', {
     { id:'ac-102', area:'Aerocity', cat:'sectors', name:'Sector 102 Alpha', svgId:'SECTOR-Aerocity-Sector-102-Alpha', x:300, y:445, w:135, h:115 },
     { id:'ac-82c', area:'Aerocity', cat:'sectors', name:'Sector 82-C', svgId:'SECTOR-Aerocity-Sector-82-C', x:300, y:445, w:135, h:115 },
 
-    { id:'at-a', area:'Aerocity', cat:'blocks', name:'Block A', svgId:'BLOCK-Aerotropolis-Block-A', color:'#E3B87A', x:660, y:430, w:150, h:120 },
-    { id:'at-b', area:'Aerocity', cat:'blocks', name:'Block B', svgId:'BLOCK-Aerotropolis-Block-B', color:'#7AB9E3', x:825, y:430, w:150, h:120 },
-    { id:'at-c', area:'Aerocity', cat:'blocks', name:'Block C', svgId:'BLOCK-Aerotropolis-Block-C', color:'#86C58B', x:660, y:565, w:150, h:120 },
-    { id:'at-d', area:'Aerocity', cat:'blocks', name:'Block D', svgId:'BLOCK-Aerotropolis-Block-D', color:'#DF8A96', x:825, y:565, w:150, h:120 },
-    { id:'at-e', area:'Aerocity', cat:'blocks', name:'Block E', svgId:'BLOCK-Aerotropolis-Block-E', color:'#A88CDB', x:825, y:565, w:150, h:120 },
-    { id:'at-f', area:'Aerocity', cat:'blocks', name:'Block F', svgId:'BLOCK-Aerotropolis-Block-F', color:'#6CC8BB', x:825, y:565, w:150, h:120 },
-    { id:'at-g', area:'Aerocity', cat:'blocks', name:'Block G', svgId:'BLOCK-Aerotropolis-Block-G', color:'#F1A376', x:825, y:565, w:150, h:120 },
-    { id:'at-h', area:'Aerocity', cat:'blocks', name:'Block H', svgId:'BLOCK-Aerotropolis-Block-H', color:'#7D8BD6', x:825, y:565, w:150, h:120 },
-    { id:'at-i', area:'Aerocity', cat:'blocks', name:'Block I', svgId:'BLOCK-Aerotropolis-Block-I', color:'#ACCA67', x:825, y:565, w:150, h:120 },
-    { id:'at-j', area:'Aerocity', cat:'blocks', name:'Block J', svgId:'BLOCK-Aerotropolis-Block-J', color:'#EB8C81', x:825, y:565, w:150, h:120 }
+    { id:'at-a', area:'Aerocity', cat:'blocks', name:'Block A', svgId:'BLOCK-Aerotropolis-Block-A', color:'#E0B04A', x:660, y:430, w:150, h:120 }, // warm gold
+    { id:'at-b', area:'Aerocity', cat:'blocks', name:'Block B', svgId:'BLOCK-Aerotropolis-Block-B', color:'#6BB6EB', x:825, y:430, w:150, h:120 }, // sky blue
+    { id:'at-c', area:'Aerocity', cat:'blocks', name:'Block C', svgId:'BLOCK-Aerotropolis-Block-C', color:'#81C784', x:660, y:565, w:150, h:120 }, // mint green
+    { id:'at-d', area:'Aerocity', cat:'blocks', name:'Block D', svgId:'BLOCK-Aerotropolis-Block-D', color:'#E57373', x:825, y:565, w:150, h:120 }, // rose
+    { id:'at-e', area:'Aerocity', cat:'blocks', name:'Block E', svgId:'BLOCK-Aerotropolis-Block-E', color:'#B39DDB', x:825, y:565, w:150, h:120 }, // violet
+    { id:'at-f', area:'Aerocity', cat:'blocks', name:'Block F', svgId:'BLOCK-Aerotropolis-Block-F', color:'#4DB6AC', x:825, y:565, w:150, h:120 }, // teal
+    { id:'at-g', area:'Aerocity', cat:'blocks', name:'Block G', svgId:'BLOCK-Aerotropolis-Block-G', color:'#FFB74D', x:825, y:565, w:150, h:120 }, // amber orange
+    { id:'at-h', area:'Aerocity', cat:'blocks', name:'Block H', svgId:'BLOCK-Aerotropolis-Block-H', color:'#7986CB', x:825, y:565, w:150, h:120 }, // indigo
+    { id:'at-i', area:'Aerocity', cat:'blocks', name:'Block I', svgId:'BLOCK-Aerotropolis-Block-I', color:'#AED581', x:825, y:565, w:150, h:120 }, // olive/lime
+    { id:'at-j', area:'Aerocity', cat:'blocks', name:'Block J', svgId:'BLOCK-Aerotropolis-Block-J', color:'#FF8A65', x:825, y:565, w:150, h:120 }  // coral
   ],
 
   zones: [
