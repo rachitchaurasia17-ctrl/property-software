@@ -12,7 +12,7 @@ window.PM = {
     original:    '/public/plotmap-assets/aerotropolis-original-web.jpg', // web display (2600px)
     originalFull:'/public/plotmap-assets/aerotropolis-original.png',     // full-res proof / download
     overlay:     '/public/plotmap-assets/aerotropolis-overlays.svg',
-    sector:      '/_design/property-inventory-map-platform/project/sector-map.jpg'
+    sector:      '/public/plotmap-assets/sector-map.jpg'
   },
 
   /* ---- AREA SWITCHER (Phase 1: Aerocity + Aerotropolis live) ---- */
