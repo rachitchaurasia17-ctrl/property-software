@@ -38,23 +38,6 @@
   const mapPins = () => (DS.pins || []).filter(p => p && p.clientVisible !== false && p.id && p.name && p.cat && Array.isArray(p.at) && p.at.length === 2);
   const mapProperties = () => (DS.properties || []).filter(p => p && p.clientVisible !== false && p.id && p.plotNumber && p.blockId && blockById(p.blockId));
   const readySectorMaps = () => (DS.sectorMaps || []).filter(s => s && s.status === 'ready' && (s.asset || DS.assets.sector));
-  const activeArea = () => area().focusArea || area().name;
-  const belongsToActiveArea = (o) => {
-    const aa = activeArea();
-    if (!o || !aa) return true;
-    if (o.area) return o.area === aa;
-    if (Array.isArray(o.areas)) return o.areas.includes(aa);
-    if (Array.isArray(o.related)) return o.related.some(x => String(x).includes(aa));
-    if (o.cat === 'aerocity-blk') return aa === 'Aerocity';
-    if (o.cat === 'aerot-blk') return aa === 'Aerotropolis';
-    return true;
-  };
-  const scopedRoads = () => keyRoads().filter(belongsToActiveArea);
-  const scopedBlocks = () => mapBlocks().filter(belongsToActiveArea);
-  const scopedZones = () => mapZones().filter(belongsToActiveArea);
-  const scopedPins = () => mapPins().filter(belongsToActiveArea);
-  const scopedProperties = () => mapProperties().filter(p => p.area === activeArea());
-  const scopedSectorMaps = () => readySectorMaps().filter(s => s.area === activeArea());
   const roadById = (id) => keyRoads().find(r => r.id === id);
   const zoneById = (id) => mapZones().find(z => z.id === id);
   const pinById = (id) => mapPins().find(p => p.id === id);
@@ -63,7 +46,7 @@
   const propsInBlock = (bid) => mapProperties().filter(p => p.blockId === bid);
   const sectorMapById = (id) => readySectorMaps().find(s => s.id === id);
   const sectorMapForProperty = (p) => p && readySectorMaps().find(s => s.area === p.area && s.block === p.block);
-  const activeSectorMap = () => sectorMapById(state.sectorBlock) || sectorMapForProperty(propById(state.selectedId)) || scopedSectorMaps()[0] || readySectorMaps()[0] || null;
+  const activeSectorMap = () => sectorMapById(state.sectorBlock) || sectorMapForProperty(propById(state.selectedId)) || readySectorMaps()[0] || null;
   const hasSectorMap = (p) => !!sectorMapForProperty(p);
   const itemObj = (id) => roadById(id) || zoneById(id) || pinById(id) || blockById(id);
   const driverName = (id) => (itemObj(id) || {}).name || id;
@@ -81,8 +64,8 @@
   function itemKindOf(id) { if (roadById(id)) return 'line'; if (zoneById(id)) return 'zone'; if (pinById(id)) return 'pin'; if (blockById(id)) return 'block'; return 'pin'; }
   function catItems(catId) {
     const c = catById(catId) || {};
-    if (catId === 'roads' || c.kind === 'line') return scopedRoads().map(r => ({ id: r.id, name: r.name, sub: 'Key road', kind: 'line', color: c.color || '#16356A', photos: r.photos }));
-    return scopedBlocks().filter(b => b.cat === catId).map(b => ({ id: b.id, name: b.name, sub: `${b.area} · ${propsInBlock(b.id).length} available`, kind: 'block', color: c.color || catColor(catId) }))
+    if (catId === 'roads' || c.kind === 'line') return keyRoads().map(r => ({ id: r.id, name: r.name, sub: 'Key road', kind: 'line', color: c.color || '#16356A', photos: r.photos }));
+    return mapBlocks().filter(b => b.cat === catId).map(b => ({ id: b.id, name: b.name, sub: `${b.area} · ${propsInBlock(b.id).length} available`, kind: 'block', color: c.color || catColor(catId) }))
       .concat(mapZones().filter(z => z.cat === catId).map(z => ({ id: z.id, name: z.name, sub: c.label, kind: 'zone', color: c.color, photos: z.photos })))
       .concat(mapPins().filter(p => p.cat === catId).map(p => ({ id: p.id, name: p.name, sub: c.label, kind: 'pin', color: c.color, photos: p.photos })));
   }
