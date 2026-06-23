@@ -1,57 +1,120 @@
-# Adding a new masterplan to PlotMap
+# Adding A New Masterplan To PlotMap
 
-PlotMap's Easy Map is a **reusable engine**. Aerocity/Aerotropolis
-(`datasets/tricity.dataset.js`) is the first example. Adding a new city is data-only —
-no engine changes.
+PlotMap is a framework-free SPA. The Easy Map is a reusable engine, and
+Aerocity/Aerotropolis (`datasets/tricity.dataset.js`) is the golden dataset
+pattern. Adding a city should be data/assets work, not an `app.js` rewrite.
 
 ## Steps
 
-1. **Create a dataset file** `datasets/<city>.dataset.js`:
+1. Create `app/plotmap/datasets/<city>.dataset.js`.
 
    ```js
    window.PM.registerDataset('<dataset-id>', {
      name: 'My City',
-     EASY_W: 1440, EASY_H: 960,        // Easy Map design canvas
-     IMG_W: 4599,  IMG_H: 3069,        // original image / overlay geometry space
+     EASY_W: 1440, EASY_H: 960,
+     IMG_W: 4599, IMG_H: 3069,
+     categories: ['roads','commercial','green'],
      assets: {
-       original:   '/public/.../mycity-original-web.jpg', // Original-Map proof image
-       overlayGeo: '/app/plotmap/<city>.geo.json',        // road geometry for Original highlights (optional)
-       sector:     '/public/.../mycity-sector.jpg'         // sector-map proof image
+       original: '/public/plotmap-assets/mycity/original.jpg',
+       overlayGeo: '/app/plotmap/mycity.geo.json',
+       sector: '/public/plotmap-assets/mycity/sector-fallback.jpg'
      },
-     keyRoads: [ /* { id, name, easyD, labelAt, cyanIdx?, mapsUrl?, related?, photos? } */ ],
-     blocks:   [ /* { id, area, cat:'aerocity-blk'|'aerot-blk', name, x,y,w,h } */ ],
-     zones:    [ /* { id, cat, name, x,y,w,h, dashed?, pins?, mapsUrl?, related? } */ ],
-     pins:     [ /* { id, cat, name, at:[x,y], mapsUrl?, related? } */ ],
-     properties:[/* { id, plotNumber, size, area, block, blockId, plotType, roadFacing, availability, near:[], plotAt:[%,%] } */ ],
-     sectorMaps:[ /* { id, area, block, name, status:'ready'|'soon' } */ ],
-     filters:  { type:{...}, area:{...}, location:{...}, size:{...} }
+     keyRoads: [],
+     blocks: [],
+     zones: [],
+     pins: [],
+     properties: [],
+     sectorMaps: [],
+     filters: { type:{}, area:{}, location:{}, size:{} }
    });
    ```
 
-   - **Easy Map geometry** (`easyD` paths, block/zone `x,y,w,h`) is authored in the
-     `EASY_W × EASY_H` design canvas — a clean, premium schematic, *not* the raw overlay SVG.
-   - **`cyanIdx`** on a road links it to a path in `overlayGeo` so the **Original Map**
-     can highlight the real road over the official image. Omit if you have no overlay geometry.
-   - **`cat`** values must be one of `PM.categories` ids in `data.js` (shared taxonomy / colors).
-   - **No price fields** — client-facing only.
+2. Add the script to `app/plotmap/index.html` after `data.js`.
 
-2. **Register it** by adding the script to `index.html` (after `data.js`):
    ```html
    <script src="./datasets/<city>.dataset.js"></script>
    ```
 
-3. **Point an area at it** in `data.js` → `PM.areas`:
+3. Point an area at it in `data.js`.
+
    ```js
-   { id:'mycity', name:'My City', live:true, hook:'…', dataset:'<dataset-id>' }
+   { id:'mycity', name:'My City', live:true, hook:'Airport Road', dataset:'<dataset-id>' }
    ```
-   (Set `live:false, dataset:null` for "Coming soon".)
 
-That's it. The engine renders the Easy Map, Original Map, categories → select-first
-preview → photos/details, property tags + filters, sector-map proof, smooth zoom,
-presentation mode — all from the dataset.
+## Dataset Contract
 
-## Generating overlay geometry (optional)
-If you have an overlay SVG (Figma export) aligned to the original image, extract its
-paths by stroke colour into `<city>.geo.json`:
-`{ "viewBox": "0 0 W H", "cyan": ["M…"], "red": [...], "black": [...] }`
-(cyan = key roads → referenced by `cyanIdx`).
+- `categories`: ordered list of shared category ids from `PM.categories`.
+- `assets.original`: official proof layer for Original Map.
+- `assets.overlayGeo`: optional extracted geometry for Original Map road highlights.
+- `assets.sector`: fallback sector proof image.
+- `keyRoads`: named, clickable, sidebar-visible roads only.
+- `blocks`, `zones`, `pins`: verified client-facing items only.
+- `sectorMaps`: use `status:'ready'` plus `asset` only when the map should appear in the client UI.
+- `properties`: client presentation fields only.
+
+The app filters incomplete items before rendering. Missing ids, names, category ids,
+or required geometry make an item invisible rather than guessed.
+
+## Key Roads Vs Internal Roads
+
+Key roads are named, clickable, sidebar-visible, category-listed, and highlighted
+on the Original Map when selected. `cyanIdx` must come from a verified overlay
+export/order.
+
+Internal roads are background-only. Keep them unnamed, non-clickable, out of the
+sidebar, below key roads visually, and do not treat them as missing data.
+
+## SVG / Figma Conventions
+
+Figma/SVG provides geometry. Dataset/config provides meaning.
+
+Recommended SVG ids:
+
+- `ROAD-Airport-Road`, `ROAD-PR-7-Road`
+- `BLOCK-...`
+- `ZONE-...`
+- `PIN-...`
+- `SECTOR-...`
+
+Group background-only internal road paths under `internal roads`.
+
+## Sector Maps
+
+`View All Maps` switches between city/masterplan/area datasets through `PM.areas`.
+`View All Sector Maps` lists ready sector/block maps inside the selected dataset.
+
+Ready sector maps should look like:
+
+```js
+{
+  id:'sm-example',
+  area:'Example Area',
+  block:'Block A',
+  name:'Example Area - Block A',
+  asset:'/public/plotmap-assets/example/block-a.jpg',
+  status:'ready'
+}
+```
+
+If a sector map image is not available, leave it `status:'planned'` or omit it.
+The client UI hides it.
+
+## Safety Checks
+
+Run this before shipping client-facing changes:
+
+```sh
+node tools/audit-plotmap.js
+```
+
+The audit scans PlotMap runtime files and datasets for client-facing price language
+and technical validation words such as `verify`, `missing`, `unmatched`, and `debug`.
+
+## Handoff Notes
+
+Antigravity/Codex should wire new maps by adding assets, registering a dataset,
+and filling verified categories/items. Do not rebuild PlotMap in React, add a
+build step, or hardcode per-city behavior into `app.js`.
+
+Claude or another visual-polish pass can later improve Easy Map styling, label
+placement, and presentation polish after the data contract is wired.
