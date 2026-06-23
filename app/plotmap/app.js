@@ -258,14 +258,19 @@
     } else if (kind === 'original') {
       l.querySelectorAll('.o-road, .o-road-case').forEach(p => { 
         const id = p.getAttribute('data-roadpath'); 
-        const on = relate(id, 'line'); 
         const inCat = !!cat && cat === 'roads';
         const isSel = selIds.has(id);
-        p.classList.toggle('soft', !isSel && inCat);
-        p.classList.toggle('cat-act', false); // replaced by solid .act
-        p.classList.toggle('hide', !isSel && !inCat); 
-        p.classList.toggle('show', isSel || inCat);
-        p.classList.toggle('act', isSel);
+        if (hasSel) {
+          p.classList.toggle('act', isSel);
+          p.classList.toggle('show', isSel);
+          p.classList.toggle('soft', false);
+          p.classList.toggle('hide', !isSel);
+        } else {
+          p.classList.toggle('act', inCat);
+          p.classList.toggle('show', inCat);
+          p.classList.toggle('soft', false);
+          p.classList.toggle('hide', !inCat);
+        }
       });
       l.querySelectorAll('.o-block, .o-zone').forEach(p => { 
         const id = p.getAttribute('data-itempath'); 
@@ -335,7 +340,7 @@
     root.className = state.present ? 'present' : '';
     root.innerHTML = planHTML(); bindPlan(); bindMap(); buildMap();
   }
-  function resetPlan(extra) { return Object.assign({ section: 'master', mapMode: 'original', showProps: false, catId: null, selectedIds: new Set(), itemOpen: false, propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, areaMenuOpen: false, filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set() }, secQ: '', secArea: 'all' }, extra || {}); }
+  function resetPlan(extra) { return Object.assign({ section: 'master', mapMode: 'original', showProps: false, catId: null, selectedIds: new Set(), previewIdx: 0, itemOpen: false, propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, areaMenuOpen: false, filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set() }, secQ: '', secArea: 'all' }, extra || {}); }
 
   /* ---------- AREA SELECT ---------- */
   function areaSelectHTML() {
@@ -439,63 +444,56 @@
 
   function previewCardHTML() {
     const ids = Array.from(state.selectedIds);
-    if (ids.length === 1) {
-      const id = ids[0];
-      const kind = itemKindOf(id);
-      const it = itemObj(id);
-      const cat = catById(itemCategory(id)) || { label: 'Value driver', color: '#16356A' };
-      const hasPhotos = it.photos !== false;
-
-      let metaLine = '';
-      if (kind === 'block') {
-        const props = propsInBlock(id);
-        metaLine = `${props.length} available propert${props.length === 1 ? 'y' : 'ies'}`;
-      } else {
-        metaLine = it.sub || `Official ${cat.label.toLowerCase()}`;
-      }
-
-      return `<div class="preview-card" style="margin-top:12px; border:none; padding:0; box-shadow:none; background:transparent;">
-        <div class="pc-cat" style="color:${cat.color}">${esc(cat.label)}</div>
-        <div class="pc-name" style="font-size:24px; margin-bottom:6px;">${esc(it.name)}</div>
-        <div class="pc-desc" style="color:#6A6150; font-size:14px; margin-bottom:16px;">${esc(metaLine)}</div>
-        
-        <div class="pc-photo-area" style="width:100%; height:180px; border-radius:12px; background:${hasPhotos ? PM.grads[itemCategory(id)] || '#A0AAB5' : '#F4EFE6'}; display:flex; align-items:center; justify-content:center; margin-bottom:16px; position:relative; overflow:hidden;">
-          ${hasPhotos ? `
-             <span style="color:rgba(255,255,255,0.9); font-weight:600; font-size:14px; position:relative; z-index:2">Preview Available</span>
-          ` : `
-             <span style="color:#A89F89; font-weight:600; font-size:13px;">Photos/context can be added here</span>
-          `}
-        </div>
-
-        <div class="pc-actions" style="display:flex; gap:8px;">
-          ${hasPhotos ? `<button class="btn-primary" data-photos="${id}" style="flex:1;">View Gallery</button>` : ''}
-          ${kind === 'block' ? `<button class="pc-ghost" data-viewprops="${id}" style="flex:1;">Properties</button>` : ''}
-          <button class="pc-ghost" data-focus="${id}" style="${hasPhotos || kind === 'block' ? 'flex:none; padding:0 16px;' : 'flex:1;'}">Focus Map</button>
-          ${it.mapsUrl ? `<a href="${it.mapsUrl}" target="_blank" rel="noopener" class="pc-ghost" style="flex:none; padding:0 16px; text-decoration:none; display:flex; align-items:center;">Map</a>` : ''}
-        </div>
-      </div>`;
+    if (ids.length === 0) return '';
+    
+    let idx = state.previewIdx || 0;
+    if (idx < 0 || idx >= ids.length) {
+      idx = Math.max(0, ids.length - 1);
+      state.previewIdx = idx;
     }
     
-    // Multiple items selected
-    let roadsCount = 0, blocksCount = 0, zonesCount = 0;
-    ids.forEach(id => {
-      const k = itemKindOf(id);
-      if (k === 'line') roadsCount++;
-      else if (k === 'block') blocksCount++;
-      else zonesCount++;
-    });
-    
-    const parts = [];
-    if (roadsCount) parts.push(`${roadsCount} road${roadsCount>1?'s':''}`);
-    if (blocksCount) parts.push(`${blocksCount} block${blocksCount>1?'s':''}`);
-    if (zonesCount) parts.push(`${zonesCount} zone${zonesCount>1?'s':''}`);
-    
+    const id = ids[idx];
+    const kind = itemKindOf(id);
+    const it = itemObj(id);
+    const cat = catById(itemCategory(id)) || { label: 'Value driver', color: '#16356A' };
+    const hasPhotos = it.photos !== false;
+
+    let metaLine = '';
+    if (kind === 'block') {
+      const props = propsInBlock(id);
+      metaLine = `${props.length} available propert${props.length === 1 ? 'y' : 'ies'}`;
+    } else {
+      metaLine = it.sub || `Official ${cat.label.toLowerCase()}`;
+    }
+
+    let navHTML = '';
+    if (ids.length > 1) {
+       navHTML = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; background:#F8FAFC; padding:6px 12px; border-radius:8px; border:1px solid #EBE1CC;">
+         <button id="prevItemBtn" style="border:none; background:none; cursor:pointer; font-size:22px; line-height:1; color:#16356A; font-weight:700; padding:0 8px;">&lsaquo;</button>
+         <span style="font-size:12.5px; font-weight:650; color:#3F3A30;">Item ${idx + 1} of ${ids.length}</span>
+         <button id="nextItemBtn" style="border:none; background:none; cursor:pointer; font-size:22px; line-height:1; color:#16356A; font-weight:700; padding:0 8px;">&rsaquo;</button>
+       </div>`;
+    }
+
     return `<div class="preview-card" style="margin-top:12px; border:none; padding:0; box-shadow:none; background:transparent;">
-      <div class="pc-cat" style="color:#A89F89">MULTIPLE SELECTION</div>
-      <div class="pc-name" style="font-size:24px; margin-bottom:6px;">Context Overview</div>
-      <div class="pc-desc" style="color:#6A6150; font-size:14px; margin-bottom:16px;">${parts.join(', ')} selected</div>
-      <div class="pc-photo-area" style="width:100%; height:140px; border-radius:12px; background:#F4EFE6; display:flex; align-items:center; justify-content:center; margin-bottom:16px; position:relative; overflow:hidden;">
-        <span style="color:#A89F89; font-weight:600; font-size:13px;">Photos/context can be added here</span>
+      ${navHTML}
+      <div class="pc-cat" style="color:${cat.color}">${esc(cat.label)}</div>
+      <div class="pc-name" style="font-size:24px; margin-bottom:6px;">${esc(it.name)}</div>
+      <div class="pc-desc" style="color:#6A6150; font-size:14px; margin-bottom:16px;">${esc(metaLine)}</div>
+      
+      <div class="pc-photo-area" style="width:100%; height:180px; border-radius:12px; background:${hasPhotos ? PM.grads[itemCategory(id)] || '#A0AAB5' : '#F4EFE6'}; display:flex; align-items:center; justify-content:center; margin-bottom:16px; position:relative; overflow:hidden;">
+        ${hasPhotos ? `
+           <span style="color:rgba(255,255,255,0.9); font-weight:600; font-size:14px; position:relative; z-index:2">Preview Available</span>
+        ` : `
+           <span style="color:#A89F89; font-weight:600; font-size:13px;">Photos/context can be added here</span>
+        `}
+      </div>
+
+      <div class="pc-actions" style="display:flex; gap:8px;">
+        ${hasPhotos ? `<button class="btn-primary" data-photos="${id}" style="flex:1;">View Gallery</button>` : ''}
+        ${kind === 'block' ? `<button class="pc-ghost" data-viewprops="${id}" style="flex:1;">Properties</button>` : ''}
+        <button class="pc-ghost" data-focus="${id}" style="${hasPhotos || kind === 'block' ? 'flex:none; padding:0 16px;' : 'flex:1;'}">Focus Map</button>
+        ${it.mapsUrl ? `<a href="${it.mapsUrl}" target="_blank" rel="noopener" class="pc-ghost" style="flex:none; padding:0 16px; text-decoration:none; display:flex; align-items:center;">Map</a>` : ''}
       </div>
     </div>`;
   }
@@ -652,6 +650,10 @@
     on('clearAllItems', () => { state.selectedIds.clear(); render(); });
     each('[data-unsel]', b => b.addEventListener('click', e => { e.stopPropagation(); state.selectedIds.delete(b.getAttribute('data-unsel')); render(); }));
     
+    // Preview card pagination
+    on('prevItemBtn', () => { state.previewIdx = (state.previewIdx - 1 + state.selectedIds.size) % state.selectedIds.size; render(); });
+    on('nextItemBtn', () => { state.previewIdx = (state.previewIdx + 1) % state.selectedIds.size; render(); });
+    
     each('[data-focus]', b => b.addEventListener('click', () => focusItem(b.getAttribute('data-focus'))));
     each('[data-viewprops]', b => b.addEventListener('click', () => { const bl = blockById(b.getAttribute('data-viewprops')); Object.assign(state, { section: 'props', propView: 'browse', filters: { type: new Set(), area: new Set(bl ? [bl.area] : []), location: new Set(), size: new Set() } }); render(); }));
     each('[data-blocksector]', b => b.addEventListener('click', () => { const bl = blockById(b.getAttribute('data-blocksector')); const sm = bl && readySectorMaps().find(s => s.area === bl.area && s.block === bl.name); if (sm) openSectorHub(sm.id); }));
@@ -699,8 +701,12 @@
   function selectItem(id, kind) {
     if (state.selectedIds.has(id)) {
        state.selectedIds.delete(id);
+       if (state.previewIdx >= state.selectedIds.size) {
+           state.previewIdx = Math.max(0, state.selectedIds.size - 1);
+       }
     } else {
        state.selectedIds.add(id);
+       state.previewIdx = state.selectedIds.size - 1;
     }
     state.itemOpen = false;
     state.catId = itemCategory(id);
