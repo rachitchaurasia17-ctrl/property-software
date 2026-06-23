@@ -43,6 +43,11 @@
   const pinById = (id) => mapPins().find(p => p.id === id);
   const blockById = (id) => mapBlocks().find(b => b.id === id);
   const propById = (id) => mapProperties().find(p => p.id === id);
+  const scopedRoads = () => { const f = area().focusArea; return f ? keyRoads().filter(r => !r.related || r.related.includes(f) || r.related.some(x => x.includes(f))) : keyRoads(); };
+  const scopedBlocks = () => { const f = area().focusArea; return f ? mapBlocks().filter(b => b.area === f) : mapBlocks(); };
+  const scopedZones = () => { const f = area().focusArea; return f ? mapZones().filter(z => !z.related || z.related.includes(f) || z.related.some(x => x.includes(f))) : mapZones(); };
+  const scopedPins = () => { const f = area().focusArea; return f ? mapPins().filter(p => !p.related || p.related.includes(f) || p.related.some(x => x.includes(f))) : mapPins(); };
+  const scopedProperties = () => { const f = area().focusArea; return f ? mapProperties().filter(p => p.area === f) : mapProperties(); };
   const propsInBlock = (bid) => mapProperties().filter(p => p.blockId === bid);
   const sectorMapById = (id) => readySectorMaps().find(s => s.id === id);
   const sectorMapForProperty = (p) => p && readySectorMaps().find(s => s.area === p.area && s.block === p.block);
