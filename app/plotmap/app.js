@@ -299,11 +299,12 @@
         g.classList.toggle('show', isSel || (on && !g.classList.contains('hide')));
       });
       const sp = l.querySelector('#oSpot'); if (sp) { sp.innerHTML = '';
+        let linesD = '';
         if (hasSel) {
+           const lines = Array.from(selIds).filter(sel => itemKindOf(sel) === 'line');
+           linesD = lines.map(sel => GEO.paths[roadById(sel).svgId]).filter(Boolean).join(' ');
            selIds.forEach(sel => {
-             const k = itemKindOf(sel);
-             if (k === 'line') { const d = GEO.paths[roadById(sel).svgId]; if(d) sp.insertAdjacentHTML('beforeend', `<path d="${d}" filter="url(#eglow)" style="fill:none;stroke:#2BD0E6;stroke-width:44;opacity:.4;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#0B2552;stroke-width:28;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#fff;stroke-width:14;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#2BD0E6;stroke-width:8;stroke-linecap:round"/>`); }
-             else if (k === 'pin') {
+             if (itemKindOf(sel) === 'pin') {
                const it = itemObj(sel); let cx = 0, cy = 0;
                if (it.at) { cx = (it.at[0] / EW) * IW; cy = (it.at[1] / EH) * IH; }
                const c = catColor(it.cat);
@@ -311,10 +312,10 @@
              }
            });
         } else if (cat === 'roads') {
-           catItems('roads').forEach(item => {
-             const d = GEO.paths[item.svgId];
-             if (d) sp.insertAdjacentHTML('beforeend', `<path d="${d}" filter="url(#eglow)" style="fill:none;stroke:#2BD0E6;stroke-width:44;opacity:.4;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#0B2552;stroke-width:28;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#fff;stroke-width:14;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#2BD0E6;stroke-width:8;stroke-linecap:round"/>`);
-           });
+           linesD = catItems('roads').map(item => GEO.paths[item.svgId]).filter(Boolean).join(' ');
+        }
+        if (linesD) {
+           sp.insertAdjacentHTML('afterbegin', `<path d="${linesD}" filter="url(#eglow)" style="fill:none;stroke:#2BD0E6;stroke-width:44;opacity:.4;stroke-linecap:round;stroke-linejoin:round"/><path d="${linesD}" style="fill:none;stroke:#0B2552;stroke-width:28;stroke-linecap:round;stroke-linejoin:round"/><path d="${linesD}" style="fill:none;stroke:#fff;stroke-width:14;stroke-linecap:round;stroke-linejoin:round"/><path d="${linesD}" style="fill:none;stroke:#2BD0E6;stroke-width:8;stroke-linecap:round;stroke-linejoin:round"/>`);
         }
       }
       l.classList.toggle('dimmed', !!(hasSel || cat));
