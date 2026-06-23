@@ -9,6 +9,7 @@ window.PM.registerDataset('tricity-aerotropolis', {
   name: 'Aerocity / Aerotropolis',
   EASY_W: 1440, EASY_H: 960,        // Easy Map design canvas
   IMG_W: 4599, IMG_H: 3069,         // Original PNG / overlay space
+  categories: ['roads','aerocity-blk','aerot-blk','commercial','institutions','it','medical','green','growth','entry'],
 
   assets: {
     original:   '/public/plotmap-assets/aerotropolis-original-web.jpg',
@@ -19,15 +20,15 @@ window.PM.registerDataset('tricity-aerotropolis', {
 
   /* KEY ROADS: easyD = clean path (design space); cyanIdx -> overlay geometry (Original) */
   keyRoads: [
-    { id:'airport-road', name:'Airport Road', cyanIdx:6, easyD:'M 70 250 C 470 215 980 225 1370 205', labelAt:[770,205], photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=Airport+Road+Mohali', related:['Aerocity','IT City Side','Aerotropolis'] },
-    { id:'pr7',  name:'PR-7 Road',  cyanIdx:4, easyD:'M 585 110 L 600 910', labelAt:[600,150], vertical:true, photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=PR7+Road+Mohali', related:['Aerocity','Sector 66B'] },
+    { id:'airport-road', name:'Airport Road', cyanIdx:0, easyD:'M 70 250 C 470 215 980 225 1370 205', labelAt:[770,205], photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=Airport+Road+Mohali', related:['Aerocity','IT City Side','Aerotropolis'] },
+    { id:'pr7',  name:'PR-7 Road',  cyanIdx:5, easyD:'M 585 110 L 600 910', labelAt:[600,150], vertical:true, photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=PR7+Road+Mohali', related:['Aerocity','Sector 66B'] },
     { id:'mohali-sirhind', name:'Mohali–Sirhind Road', cyanIdx:3, easyD:'M 960 110 L 985 910', labelAt:[985,150], vertical:true, photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=Mohali+Sirhind+Road', related:['Aerotropolis Blocks'] },
     { id:'pr8',  name:'PR-8 Road',  cyanIdx:2, easyD:'M 70 705 C 470 685 980 690 1370 705', labelAt:[300,690], photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=PR8+Road+Mohali', related:['Aerotropolis Blocks'] },
-    { id:'bharatmala', name:'Bharatmala / Zirakpur–Banur Corridor', verify:true, cyanIdx:5, easyD:'M 70 880 L 1370 690', labelAt:[1010,765], photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=Zirakpur+Banur+Highway', related:['Aerotropolis','Future Growth'] },
-    { id:'pr11', name:'PR-11 Road', cyanIdx:8, easyD:'M 70 560 C 360 552 760 556 1370 545', labelAt:[1180,548], photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=PR11+Road+Mohali', related:['Aerocity'] },
-    { id:'pr12', name:'PR-12 Road', cyanIdx:1, easyD:'M 1180 120 L 1205 900', labelAt:[1205,160], vertical:true, photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=PR12+Road+Mohali', related:['Aerotropolis'] },
+    { id:'bharatmala', name:'Bharatmala / Zirakpur–Banur Corridor', label:'Bharatmala Corridor', internalNote:'confirm source label before expanding beyond demo', cyanIdx:4, easyD:'M 70 880 L 1370 690', labelAt:[1010,765], photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=Zirakpur+Banur+Highway', related:['Aerotropolis','Future Growth'] },
+    { id:'pr11', name:'PR-11 Road', cyanIdx:1, easyD:'M 70 560 C 360 552 760 556 1370 545', labelAt:[1180,548], photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=PR11+Road+Mohali', related:['Aerocity'] },
+    { id:'pr12', name:'PR-12 Road', cyanIdx:6, easyD:'M 1180 120 L 1205 900', labelAt:[1205,160], vertical:true, photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=PR12+Road+Mohali', related:['Aerotropolis'] },
     { id:'railway', name:'Mohali Railway Station Road', cyanIdx:7, easyD:'M 1010 255 C 1130 380 1210 560 1290 880', labelAt:[1235,720], photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=Mohali+Railway+Station', related:['Aerocity'] },
-    { id:'aerocity-link', name:'Aerocity Link Road', cyanIdx:0, easyD:'M 300 430 L 940 430', labelAt:[420,430], photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=Aerocity+Mohali', related:['Aerocity Blocks'] }
+    { id:'pr5', name:'PR-5 Road', cyanIdx:8, easyD:'M 300 430 L 940 430', labelAt:[420,430], photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=PR5+Road+Mohali', related:['Aerocity Blocks'] }
   ],
 
   blocks: [
@@ -70,14 +71,14 @@ window.PM.registerDataset('tricity-aerotropolis', {
   ],
 
   sectorMaps: [
-    { id:'sm-ac-a', area:'Aerocity', block:'Block A', name:'Aerocity — Block A', status:'ready' },
-    { id:'sm-ac-b', area:'Aerocity', block:'Block B', name:'Aerocity — Block B', status:'ready' },
-    { id:'sm-ac-c', area:'Aerocity', block:'Block C', name:'Aerocity — Block C', status:'ready' },
-    { id:'sm-ac-1', area:'Aerocity', block:'Pocket 1', name:'Aerocity — Pocket 1', status:'ready' },
-    { id:'sm-at-a', area:'Aerotropolis', block:'Block A', name:'Aerotropolis — Block A', status:'ready' },
-    { id:'sm-at-b', area:'Aerotropolis', block:'Block B', name:'Aerotropolis — Block B', status:'ready' },
-    { id:'sm-at-c', area:'Aerotropolis', block:'Block C', name:'Aerotropolis — Block C', status:'soon' },
-    { id:'sm-at-d', area:'Aerotropolis', block:'Block D', name:'Aerotropolis — Block D', status:'soon' }
+    { id:'sm-ac-a', area:'Aerocity', block:'Block A', name:'Aerocity — Block A', asset:'/public/plotmap-assets/sector-map.jpg', status:'ready' },
+    { id:'sm-ac-b', area:'Aerocity', block:'Block B', name:'Aerocity — Block B', asset:'/public/plotmap-assets/sector-map.jpg', status:'ready' },
+    { id:'sm-ac-c', area:'Aerocity', block:'Block C', name:'Aerocity — Block C', asset:'/public/plotmap-assets/sector-map.jpg', status:'ready' },
+    { id:'sm-ac-1', area:'Aerocity', block:'Pocket 1', name:'Aerocity — Pocket 1', asset:'/public/plotmap-assets/sector-map.jpg', status:'ready' },
+    { id:'sm-at-a', area:'Aerotropolis', block:'Block A', name:'Aerotropolis — Block A', asset:'/public/plotmap-assets/sector-map.jpg', status:'ready' },
+    { id:'sm-at-b', area:'Aerotropolis', block:'Block B', name:'Aerotropolis — Block B', asset:'/public/plotmap-assets/sector-map.jpg', status:'ready' },
+    { id:'sm-at-c', area:'Aerotropolis', block:'Block C', name:'Aerotropolis — Block C', status:'planned' },
+    { id:'sm-at-d', area:'Aerotropolis', block:'Block D', name:'Aerotropolis — Block D', status:'planned' }
   ],
 
   filters: {

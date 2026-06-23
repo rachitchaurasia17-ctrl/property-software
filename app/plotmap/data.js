@@ -44,6 +44,24 @@ window.PM = {
 
   /* ---- dataset registry (filled by datasets/*.dataset.js) ---- */
   datasets: {},
-  registerDataset(id, ds) { ds.id = id; this.datasets[id] = ds; return ds; },
-  datasetFor(areaId) { const a = this.areas.find(x => x.id === areaId); return a && a.dataset ? this.datasets[a.dataset] : null; }
+  categoryById(id) { return this.categories.find(c => c.id === id); },
+  categoriesFor(ds) {
+    const ids = ds && Array.isArray(ds.categories) && ds.categories.length
+      ? ds.categories
+      : this.categories.map(c => c.id);
+    return ids.map(c => typeof c === 'string' ? this.categoryById(c) : c).filter(Boolean);
+  },
+  registerDataset(id, ds) {
+    ds.id = id;
+    ds.assets = Object.assign({ original:null, overlay:null, overlayGeo:null, sector:null }, ds.assets || {});
+    ds.categories = Array.isArray(ds.categories) && ds.categories.length ? ds.categories : this.categories.map(c => c.id);
+    ['keyRoads','blocks','zones','pins','properties','sectorMaps'].forEach(k => { if (!Array.isArray(ds[k])) ds[k] = []; });
+    if (!ds.filters) ds.filters = {};
+    this.datasets[id] = ds;
+    return ds;
+  },
+  datasetFor(areaId) {
+    const a = this.areas.find(x => x.id === areaId);
+    return a && a.dataset ? this.datasets[a.dataset] : null;
+  }
 };

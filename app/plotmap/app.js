@@ -28,13 +28,43 @@
 
   /* ---------- lookups ---------- */
   const area = () => PM.areas.find(a => a.id === state.areaId) || PM.areas[0];
-  const catById = (id) => PM.categories.find(c => c.id === id);
-  const roadById = (id) => DS.keyRoads.find(r => r.id === id);
-  const zoneById = (id) => DS.zones.find(z => z.id === id);
-  const pinById = (id) => DS.pins.find(p => p.id === id);
-  const blockById = (id) => DS.blocks.find(b => b.id === id);
-  const propById = (id) => DS.properties.find(p => p.id === id);
-  const propsInBlock = (bid) => DS.properties.filter(p => p.blockId === bid);
+  const num = (n) => typeof n === 'number' && Number.isFinite(n);
+  const rectOk = (o) => o && ['x','y','w','h'].every(k => num(o[k]));
+  const activeCategories = () => PM.categoriesFor(DS);
+  const catById = (id) => activeCategories().find(c => c.id === id) || PM.categoryById(id);
+  const keyRoads = () => (DS.keyRoads || []).filter(r => r && r.clientVisible !== false && r.id && r.name && r.easyD && Array.isArray(r.labelAt));
+  const mapBlocks = () => (DS.blocks || []).filter(b => b && b.clientVisible !== false && b.id && b.name && b.cat && rectOk(b));
+  const mapZones = () => (DS.zones || []).filter(z => z && z.clientVisible !== false && z.id && z.name && z.cat && rectOk(z));
+  const mapPins = () => (DS.pins || []).filter(p => p && p.clientVisible !== false && p.id && p.name && p.cat && Array.isArray(p.at) && p.at.length === 2);
+  const mapProperties = () => (DS.properties || []).filter(p => p && p.clientVisible !== false && p.id && p.plotNumber && p.blockId && blockById(p.blockId));
+  const readySectorMaps = () => (DS.sectorMaps || []).filter(s => s && s.status === 'ready' && (s.asset || DS.assets.sector));
+  const activeArea = () => area().focusArea || area().name;
+  const belongsToActiveArea = (o) => {
+    const aa = activeArea();
+    if (!o || !aa) return true;
+    if (o.area) return o.area === aa;
+    if (Array.isArray(o.areas)) return o.areas.includes(aa);
+    if (Array.isArray(o.related)) return o.related.some(x => String(x).includes(aa));
+    if (o.cat === 'aerocity-blk') return aa === 'Aerocity';
+    if (o.cat === 'aerot-blk') return aa === 'Aerotropolis';
+    return true;
+  };
+  const scopedRoads = () => keyRoads().filter(belongsToActiveArea);
+  const scopedBlocks = () => mapBlocks().filter(belongsToActiveArea);
+  const scopedZones = () => mapZones().filter(belongsToActiveArea);
+  const scopedPins = () => mapPins().filter(belongsToActiveArea);
+  const scopedProperties = () => mapProperties().filter(p => p.area === activeArea());
+  const scopedSectorMaps = () => readySectorMaps().filter(s => s.area === activeArea());
+  const roadById = (id) => keyRoads().find(r => r.id === id);
+  const zoneById = (id) => mapZones().find(z => z.id === id);
+  const pinById = (id) => mapPins().find(p => p.id === id);
+  const blockById = (id) => mapBlocks().find(b => b.id === id);
+  const propById = (id) => mapProperties().find(p => p.id === id);
+  const propsInBlock = (bid) => mapProperties().filter(p => p.blockId === bid);
+  const sectorMapById = (id) => readySectorMaps().find(s => s.id === id);
+  const sectorMapForProperty = (p) => p && readySectorMaps().find(s => s.area === p.area && s.block === p.block);
+  const activeSectorMap = () => sectorMapById(state.sectorBlock) || sectorMapForProperty(propById(state.selectedId)) || scopedSectorMaps()[0] || readySectorMaps()[0] || null;
+  const hasSectorMap = (p) => !!sectorMapForProperty(p);
   const itemObj = (id) => roadById(id) || zoneById(id) || pinById(id) || blockById(id);
   const driverName = (id) => (itemObj(id) || {}).name || id;
   const catColor = (id) => (catById(id) || {}).color || '#16356A';
@@ -50,12 +80,11 @@
   }
   function itemKindOf(id) { if (roadById(id)) return 'line'; if (zoneById(id)) return 'zone'; if (pinById(id)) return 'pin'; if (blockById(id)) return 'block'; return 'pin'; }
   function catItems(catId) {
-    if (catId === 'roads') return DS.keyRoads.map(r => ({ id: r.id, name: r.name + (r.verify ? '  · verify' : ''), sub: 'Key road', kind: 'line', color: '#16356A', photos: true }));
-    if (catId === 'aerocity-blk') return DS.blocks.filter(b => b.area === 'Aerocity').map(b => ({ id: b.id, name: b.name, sub: 'Aerocity · ' + propsInBlock(b.id).length + ' available', kind: 'block', color: '#2E5A86' }));
-    if (catId === 'aerot-blk') return DS.blocks.filter(b => b.area === 'Aerotropolis').map(b => ({ id: b.id, name: b.name, sub: 'Aerotropolis · ' + propsInBlock(b.id).length + ' available', kind: 'block', color: '#3F6B4A' }));
     const c = catById(catId) || {};
-    return DS.zones.filter(z => z.cat === catId).map(z => ({ id: z.id, name: z.name, sub: c.label, kind: 'zone', color: c.color, photos: z.photos }))
-      .concat(DS.pins.filter(p => p.cat === catId).map(p => ({ id: p.id, name: p.name, sub: c.label, kind: 'pin', color: c.color, photos: p.photos })));
+    if (catId === 'roads' || c.kind === 'line') return scopedRoads().map(r => ({ id: r.id, name: r.name, sub: 'Key road', kind: 'line', color: c.color || '#16356A', photos: r.photos }));
+    return scopedBlocks().filter(b => b.cat === catId).map(b => ({ id: b.id, name: b.name, sub: `${b.area} · ${propsInBlock(b.id).length} available`, kind: 'block', color: c.color || catColor(catId) }))
+      .concat(mapZones().filter(z => z.cat === catId).map(z => ({ id: z.id, name: z.name, sub: c.label, kind: 'zone', color: c.color, photos: z.photos })))
+      .concat(mapPins().filter(p => p.cat === catId).map(p => ({ id: p.id, name: p.name, sub: c.label, kind: 'pin', color: c.color, photos: p.photos })));
   }
   const catCount = (id) => catItems(id).length;
   const inCatItem = (id) => state.catId && catItems(state.catId).some(i => i.id === id);
@@ -113,7 +142,7 @@
     l.style.width = LW + 'px'; l.style.height = LH + 'px';
     l.className = 'maplayer ' + kind;
     if (kind === 'original') l.innerHTML = `<img class="orig" src="${DS.assets.original}" alt="Official masterplan">` + origSVG();
-    else if (kind === 'sector') l.innerHTML = `<div class="sector-wrap" style="width:${LW}px;height:${LH}px;background-image:url('${DS.assets.sector}')"></div><div id="proofG"></div>`;
+    else if (kind === 'sector') { const sm = activeSectorMap(); const sectorAsset = (sm && sm.asset) || DS.assets.sector; l.innerHTML = `<div class="sector-wrap" style="width:${LW}px;height:${LH}px;background-image:url('${sectorAsset}')"></div><div id="proofG"></div>`; }
     else l.innerHTML = easySVG();
     builtSig = sig; updateMapOverlays();
     if (fresh) requestAnimationFrame(fit); else applyT(false);
@@ -125,10 +154,10 @@
       'M 200 120 L 200 880', 'M 1240 120 L 1240 880', 'M 120 350 L 1330 350',
       'M 120 820 L 1330 820', 'M 760 120 L 770 900', 'M 430 120 L 440 900'
     ].map(d => `<path d="${d}" class="in-road"/>`).join('');
-    const roads = DS.keyRoads.map(r => `<path d="${r.easyD}" class="e-road-casing"/>`).join('')
-      + DS.keyRoads.map(r => `<path d="${r.easyD}" class="e-road" data-roadpath="${r.id}"/>`).join('')
-      + DS.keyRoads.map(r => `<path d="${r.easyD}" class="e-road-hit" data-hit="line:${r.id}"/>`).join('');
-    const zones = DS.zones.map(z => {
+    const roads = keyRoads().map(r => `<path d="${r.easyD}" class="e-road-casing"/>`).join('')
+      + keyRoads().map(r => `<path d="${r.easyD}" class="e-road" data-roadpath="${r.id}"/>`).join('')
+      + keyRoads().map(r => `<path d="${r.easyD}" class="e-road-hit" data-hit="line:${r.id}"/>`).join('');
+    const zones = mapZones().map(z => {
       const c = catColor(z.cat);
       return `<g class="e-zone" data-hit="zone:${z.id}" data-zid="${z.id}">
         <rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="18" fill="${hexA(c, .16)}" stroke="${hexA(c, .55)}" stroke-width="2" ${z.dashed ? 'stroke-dasharray="11 8"' : ''} class="zfill"/>
@@ -136,7 +165,7 @@
         ${(z.pins || []).map(p => `<g><circle cx="${p.at[0]}" cy="${p.at[1]}" r="4.5" fill="${c}"/><text x="${p.at[0]}" y="${p.at[1] + 20}" class="e-sublabel" text-anchor="middle">${esc(p.name)}</text></g>`).join('')}
       </g>`;
     }).join('');
-    const blocks = DS.blocks.map(b => {
+    const blocks = mapBlocks().map(b => {
       const c = catColor(b.cat);
       return `<g class="e-block" data-hit="block:${b.id}" data-bid="${b.id}">
         <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="14" fill="${hexA(c, .2)}" stroke="${hexA(c, .7)}" stroke-width="2" class="bfill"/>
@@ -144,8 +173,8 @@
         <text x="${b.x + b.w / 2}" y="${b.y + b.h / 2 + 24}" class="e-bsub" text-anchor="middle">${esc(b.area)}</text>
       </g>`;
     }).join('');
-    const roadLabels = DS.keyRoads.map(r => `<g class="e-rlabel-g" data-roadlabel="${r.id}"><text x="${r.labelAt[0]}" y="${r.labelAt[1]}" class="e-rlabel" text-anchor="middle">${esc(r.name.replace(' / Zirakpur–Banur Corridor', ''))}</text></g>`).join('');
-    const pins = DS.pins.map(p => {
+    const roadLabels = keyRoads().map(r => `<g class="e-rlabel-g" data-roadlabel="${r.id}"><text x="${r.labelAt[0]}" y="${r.labelAt[1]}" class="e-rlabel" text-anchor="middle">${esc(r.label || r.name)}</text></g>`).join('');
+    const pins = mapPins().map(p => {
       const c = catColor(p.cat);
       return `<g class="e-pin" data-hit="${itemKindOf(p.id)}:${p.id}" data-pid="${p.id}">
         <circle cx="${p.at[0]}" cy="${p.at[1]}" r="8" fill="${c}" stroke="#fff" stroke-width="2.5"/>
@@ -169,7 +198,7 @@
 
   /* ---------- ORIGINAL MAP overlay (real geometry highlights) ---------- */
   function origSVG() {
-    const roadOf = {}; DS.keyRoads.forEach(r => roadOf[r.cyanIdx] = r.id);
+    const roadOf = {}; keyRoads().forEach(r => { if (num(r.cyanIdx) && GEO.cyan[Number(r.cyanIdx)]) roadOf[Number(r.cyanIdx)] = r.id; });
     const lines = GEO.cyan.map((d, i) => `<path d="${d}" class="o-road" data-roadpath="${roadOf[i] || ''}"/>`).join('');
     const hits = GEO.cyan.map((d, i) => roadOf[i] ? `<path d="${d}" class="o-hit" data-hit="line:${roadOf[i]}"/>` : '').join('');
     return `<svg class="easy-svg orig-ov" viewBox="${GEO.viewBox}" preserveAspectRatio="xMidYMid meet"><g id="oRoads">${lines}</g><g id="oSpot"></g><g id="oHit">${hits}</g></svg>`;
@@ -202,13 +231,13 @@
       const sp = l.querySelector('#oSpot'); if (sp) { sp.innerHTML = '';
         if (sel && selKind === 'line') { const d = GEO.cyan[roadById(sel).cyanIdx]; sp.innerHTML = `<path d="${d}" filter="url(#eglow)" style="fill:none;stroke:#28C8E0;stroke-width:34;opacity:.5;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#0B2552;stroke-width:22;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#fff;stroke-width:13;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#2BD0E6;stroke-width:6.5;stroke-linecap:round"/>`; }
       }
-      l.classList.toggle('dimmed', !!sel);
+      l.classList.toggle('dimmed', !!(sel || cat));
     }
   }
   function renderTags() {
     const g = layer() && layer().querySelector('#tagG'); if (!g) return;
     if (!(state.mapMode === 'easy' && state.showProps && state.section === 'master')) { g.innerHTML = ''; return; }
-    g.innerHTML = DS.properties.map(p => { const b = blockById(p.blockId) || { x: 700, y: 480, w: 120, h: 100 };
+    g.innerHTML = mapProperties().map(p => { const b = blockById(p.blockId) || { x: 700, y: 480, w: 120, h: 100 };
       const x = b.x + b.w / 2, y = b.y + 14;
       return `<button class="ptag ${p.id === state.previewId ? 'sel' : ''}" data-tag="${p.id}" style="left:${x}px;top:${y}px">
         <span class="no">${esc(p.plotNumber)}</span><span class="sz">${esc(p.size)}</span><span class="av">Available</span></button>`;
@@ -298,7 +327,7 @@
     return `<div class="head"><div class="eyebrow">Location masterplan</div><div class="title-xl serif">${esc(area().name)}</div>
         <div class="quick"><button class="quick-btn" id="qAllMaps">⤺ View All Maps</button><button class="quick-btn" id="qAllSectors">▦ View All Sector Maps</button></div></div>
       <div class="scroll">
-        ${PM.categories.map(c => `<button class="cat-btn" data-cat="${c.id}">
+        ${activeCategories().filter(c => catCount(c.id)).map(c => `<button class="cat-btn" data-cat="${c.id}">
           <span class="cat-ico" style="background:${hexA(c.color, .14)};border:1px solid ${hexA(c.color, .45)}"><i style="background:${c.color}"></i></span>
           <span class="lab"><b>${esc(c.label)}</b><span>${catCount(c.id)} item${catCount(c.id) === 1 ? '' : 's'}</span></span><span class="chev">›</span></button>`).join('')}
       </div>`;
@@ -330,7 +359,7 @@
     const ph = photosFor(kind === 'line' ? 'line' : kind, photoKeyOf(id, kind), 3);
     return `<div class="preview-card">
       <div class="pc-cat" style="color:${cat.color}">${esc(cat.label)}</div>
-      <div class="pc-name">${esc(it.name)}${it.verify ? ' <span style="font-size:12px;color:#B6504A">· verify</span>' : ''}</div>
+      <div class="pc-name">${esc(it.name)}</div>
       <div class="pc-strip">${ph.map((p, i) => `<button class="pc-thumb" data-lb="${i}"><span class="ph-fill" style="background:${p.grad};position:absolute;inset:0"></span><span class="ph-tex" style="position:absolute;inset:0"></span></button>`).join('')}</div>
       ${it.related && it.related.length ? `<div class="pc-rel">${it.related.map(r => `<span>${esc(r)}</span>`).join('')}</div>` : ''}
       <div class="pc-actions"><button class="pc-primary" data-photos="${id}">View Photos</button><button class="pc-ghost" data-details="${id}">View Details</button></div>
@@ -363,7 +392,7 @@
         ${p.near.length ? `<div class="rel-h">Nearby value drivers</div><div style="display:flex;flex-wrap:wrap;gap:8px">${p.near.map(n => `<span class="driver-chip">◆ ${esc(driverName(n))}</span>`).join('')}</div>` : ''}
         <button class="btn-ghost wfull" id="areaContext" style="height:48px;margin-top:20px;color:#16356A">Show Area Context →</button>
         <button class="btn-ghost wfull" id="backMaster2" style="height:46px;margin-top:10px">Back to Masterplan</button></div>`;
-    const b = state.sectorBlock ? DS.sectorMaps.find(s => s.id === state.sectorBlock) : null;
+    const b = activeSectorMap();
     return `<div class="head" style="padding-bottom:14px">
         <button class="backlink" id="backToSectors">‹ All sector maps</button>
         <div class="serif" style="font-size:26px;font-weight:560;margin-top:10px">${b ? esc(b.name) : 'Sector Map'}</div>
@@ -374,13 +403,14 @@
   function previewHTML() {
     const p = propById(state.previewId); if (!p) return '';
     const g = PM.grads.property[hash(p.id) % PM.grads.property.length];
+    const sectorAction = hasSectorMap(p) ? `<button class="btn-ghost" style="padding:0 14px;height:44px;font-size:13px" data-sector="${p.id}">On Sector Map</button>` : '';
     return `<div class="preview">
       <div class="pv-ph"><span class="ph-fill" style="background:${g};position:absolute;inset:0"></span><span class="ph-tex" style="position:absolute;inset:0"></span><span class="ph-soon" style="position:absolute;left:0;right:0;bottom:10px;text-align:center;color:rgba(255,255,255,.8);font-size:11px;font-weight:650">Photo coming soon</span></div>
       <div class="pbody">
         <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:22px;font-weight:800;letter-spacing:-.5px">${esc(p.size)}</span><span class="tagchip">Plot ${esc(p.plotNumber)}</span></div>
         <div style="font-size:13px;color:#7C7565;font-weight:600;margin-top:6px">${esc(p.block)} · ${esc(p.plotType)} · ${esc(p.roadFacing)}</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">${p.near.map(n => `<span class="near-mini">◆ ${esc(driverName(n))}</span>`).join('')}</div>
-        <div style="display:flex;gap:8px;margin-top:14px"><button class="btn-primary" style="flex:1;height:44px;font-size:13.5px" data-details-prop="${p.id}">View Details</button><button class="btn-ghost" style="padding:0 14px;height:44px;font-size:13px" data-sector="${p.id}">On Sector Map</button></div>
+        <div style="display:flex;gap:8px;margin-top:14px"><button class="btn-primary" style="flex:1;height:44px;font-size:13.5px" data-details-prop="${p.id}">View Details</button>${sectorAction}</div>
         <button class="linklike" id="closePreview">Close</button></div></div>`;
   }
 
@@ -399,7 +429,7 @@
     return true;
   }
   function browseHTML() {
-    const list = DS.properties.filter(matchProp);
+    const list = mapProperties().filter(matchProp);
     const active = ['type', 'area', 'location', 'size'].reduce((n, k) => n + state.filters[k].size, 0);
     const grp = (key) => { const g = DS.filters[key]; return `<div class="fgroup"><div class="fglabel">${g.label}</div><div class="fchips">${g.values.map(v => { const val = v.val || v, lab = v.label || v; const on = state.filters[key].has(val); return `<button class="fchip ${on ? 'on' : ''}" data-fk="${key}" data-fv="${esc(val)}">${esc(lab)}</button>`; }).join('')}</div></div>`; };
     return `<div class="full-in">
@@ -411,6 +441,7 @@
   }
   function cardHTML(p) {
     const g = PM.grads.property[hash(p.id) % PM.grads.property.length]; const near = p.near.map(n => driverName(n))[0];
+    const sectorAction = hasSectorMap(p) ? `<button class="btn-primary" style="flex:1;height:48px;font-size:14px" data-sector="${p.id}">View on Sector Map</button>` : '';
     return `<div class="pcard">
       <div class="ph-wrap" data-details-prop="${p.id}"><span class="ph-fill" style="background:${g};position:absolute;inset:0"></span><span class="ph-tex" style="position:absolute;inset:0"></span><span class="ph-cam"></span><span class="ph-soon" style="position:absolute;left:0;right:0;bottom:13px;text-align:center;color:rgba(255,255,255,.8);font-size:11px;font-weight:650">Photo coming soon</span>
         <span class="av-badge"><span style="width:7px;height:7px;border-radius:50%;background:#1C8A57"></span>Available</span>${near ? `<span class="near-badge">◆ ${esc(near)}</span>` : ''}</div>
@@ -418,12 +449,13 @@
         <div style="font-size:16px;font-weight:700;color:#2E2A22;margin-top:9px">${esc(p.block)} · Plot ${esc(p.plotNumber)}</div>
         <div style="font-size:13.5px;color:#7C7565;font-weight:580;margin-top:5px">${esc(p.area)} · ${esc(p.plotType)} · ${esc(p.roadFacing)}</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:11px">${p.near.map(n => `<span class="near-mini">◆ ${esc(driverName(n))}</span>`).join('')}</div>
-        <div style="display:flex;gap:9px;margin-top:15px"><button class="btn-primary" style="flex:1;height:48px;font-size:14px" data-sector="${p.id}">View on Sector Map</button><button class="btn-ghost" style="padding:0 16px;height:48px;font-size:14px" data-details-prop="${p.id}">Details</button></div></div></div>`;
+        <div style="display:flex;gap:9px;margin-top:15px">${sectorAction}<button class="btn-ghost" style="padding:0 16px;height:48px;font-size:14px" data-details-prop="${p.id}">Details</button></div></div></div>`;
   }
   function detailHTML() {
     const p = propById(state.selectedId); if (!p) return browseHTML();
     const ph = photosFor('property', p.id, 4);
     const meta = [['Plot type', p.plotType], ['Road facing', p.roadFacing], ['Block / pocket', p.block], ['Sector / area', p.area], ['Plot number', p.plotNumber], ['Availability', p.availability]];
+    const sectorAction = hasSectorMap(p) ? `<button class="btn-primary" style="flex:1;height:56px;font-size:16px" data-sector="${p.id}">View on Sector Map</button>` : '';
     return `<div class="full-in" style="max-width:1040px;padding-top:0;animation:riseIn .22s ease">
       <div class="detail-head"><button class="backlink" id="backBrowse" style="font-size:14px;padding:8px 0">‹ Back to properties</button></div>
       <div style="display:grid;grid-template-columns:1.12fr 1fr;gap:30px;margin-top:8px;align-items:start">
@@ -435,15 +467,16 @@
           <div class="meta-box">${meta.map(([k, v]) => `<div class="meta-row"><span class="k">${k}</span><span class="v">${esc(v)}</span></div>`).join('')}</div>
           <div class="rel-h">Nearby landmarks &amp; value drivers</div>
           <div style="display:flex;flex-wrap:wrap;gap:8px">${p.near.map(n => `<span class="driver-chip">◆ ${esc(driverName(n))}</span>`).join('')}</div>
-          <div style="display:flex;gap:11px;margin-top:24px"><button class="btn-primary" style="flex:1;height:56px;font-size:16px" data-sector="${p.id}">View on Sector Map</button><button class="btn-ghost" style="flex:1;height:56px;font-size:15px;color:#16356A" data-areacontext="${p.id}">Show Area Context</button></div>
+          <div style="display:flex;gap:11px;margin-top:24px">${sectorAction}<button class="btn-ghost" style="flex:1;height:56px;font-size:15px;color:#16356A" data-areacontext="${p.id}">Show Area Context</button></div>
           <button class="btn-ghost wfull" style="height:46px;margin-top:11px;color:#7C7565;font-weight:640" id="sendLater">Send Details Later</button></div></div></div>`;
   }
   function sectorsHubHTML() {
     const q = state.secQ.trim().toLowerCase();
-    let list = DS.sectorMaps.filter(s => s.area === 'Aerocity' || s.area === 'Aerotropolis');
+    let list = readySectorMaps();
     if (state.secArea !== 'all') list = list.filter(s => s.area === state.secArea);
     if (q) list = list.filter(s => (s.name + ' ' + s.block).toLowerCase().includes(q));
-    const chips = [['all', 'All'], ['Aerocity', 'Aerocity'], ['Aerotropolis', 'Aerotropolis']];
+    const areas = [...new Set(readySectorMaps().map(s => s.area))];
+    const chips = [['all', 'All']].concat(areas.map(a => [a, a]));
     return `<div class="full-in">
       <div class="eyebrow">Exact plot proof</div>
       <div class="serif" style="font-size:40px;font-weight:560;letter-spacing:-1px;line-height:1.02;margin-top:6px">Sector Maps</div>
@@ -453,12 +486,12 @@
     </div>`;
   }
   function secCardHTML(s) {
-    const ready = s.status === 'ready';
-    const accent = s.area === 'Aerocity' ? '#2E5A86' : '#3F6B4A';
+    const block = mapBlocks().find(b => b.area === s.area && b.name === s.block);
+    const accent = catColor(block ? block.cat : 'roads');
     return `<div class="seccard">
-      <div class="sec-thumb" style="--a:${accent}"><span class="sec-grid"></span><span class="sec-big">${esc(s.block.replace(/[^A-Z0-9]/gi, '').slice(-2))}</span><span class="sec-tag ${ready ? 'ready' : 'soon'}">${ready ? 'Ready' : 'Coming soon'}</span></div>
+      <div class="sec-thumb" style="--a:${accent}"><span class="sec-grid"></span><span class="sec-big">${esc(s.block.replace(/[^A-Z0-9]/gi, '').slice(-2))}</span><span class="sec-tag ready">Ready</span></div>
       <div class="sec-body"><div class="sec-name">${esc(s.block)}</div><div class="sec-area">${esc(s.area)}</div>
-        <button class="${ready ? 'btn-primary' : 'btn-ghost'} wfull" style="height:44px;margin-top:11px;font-size:13.5px" ${ready ? `data-opensec="${s.id}"` : 'disabled'}>${ready ? 'Open Sector Map' : 'Coming soon'}</button></div></div>`;
+        <button class="btn-primary wfull" style="height:44px;margin-top:11px;font-size:13.5px" data-opensec="${s.id}">Open Sector Map</button></div></div>`;
   }
   function lightboxHTML() {
     const lb = state.lightbox; const ph = lb.photos[lb.index];
@@ -499,7 +532,7 @@
     each('[data-photos]', b => b.addEventListener('click', () => { state.itemId = b.getAttribute('data-photos'); openLightbox(0); }));
     each('[data-details]', b => b.addEventListener('click', () => { state.itemId = b.getAttribute('data-details'); state.itemOpen = true; render(); }));
     each('[data-viewprops]', b => b.addEventListener('click', () => { const bl = blockById(b.getAttribute('data-viewprops')); Object.assign(state, { section: 'props', propView: 'browse', filters: { type: new Set(), area: new Set(bl ? [bl.area] : []), location: new Set(), size: new Set() } }); render(); }));
-    each('[data-blocksector]', b => b.addEventListener('click', () => { const bl = blockById(b.getAttribute('data-blocksector')); const sm = DS.sectorMaps.find(s => s.area === bl.area && s.block === bl.name) || DS.sectorMaps[0]; openSectorHub(sm.id); }));
+    each('[data-blocksector]', b => b.addEventListener('click', () => { const bl = blockById(b.getAttribute('data-blocksector')); const sm = bl && readySectorMaps().find(s => s.area === bl.area && s.block === bl.name); if (sm) openSectorHub(sm.id); }));
 
     const lay = el('maplayer');
     if (lay) lay.addEventListener('click', e => {
@@ -537,7 +570,7 @@
     on('lbNext', e => { e.stopPropagation(); state.lightbox.index = (state.lightbox.index + 1) % state.lightbox.photos.length; render(); });
   }
   function zoomBtn(f) { const r = wrap().getBoundingClientRect(); zoomAt(r.left + wrap().clientWidth / 2, r.top + wrap().clientHeight / 2, f); }
-  function focusProps() { const ps = DS.properties; if (!ps.length) return; const cx = ps.reduce((s, p) => { const b = blockById(p.blockId) || { x: 700, w: 100 }; return s + b.x + b.w / 2; }, 0) / ps.length; const cy = ps.reduce((s, p) => { const b = blockById(p.blockId) || { y: 500, h: 100 }; return s + b.y + b.h / 2; }, 0) / ps.length; setTimeout(() => focusBox(cx, cy, 760, 520, 1.7), 60); }
+  function focusProps() { const ps = mapProperties(); if (!ps.length) return; const cx = ps.reduce((s, p) => { const b = blockById(p.blockId) || { x: 700, w: 100 }; return s + b.x + b.w / 2; }, 0) / ps.length; const cy = ps.reduce((s, p) => { const b = blockById(p.blockId) || { y: 500, h: 100 }; return s + b.y + b.h / 2; }, 0) / ps.length; setTimeout(() => focusBox(cx, cy, 760, 520, 1.7), 60); }
   function toggleProps() { state.showProps = !state.showProps; state.previewId = null; refreshControls(); updateMapOverlays(); if (state.showProps) focusProps(); else fit(); }
   function clearFilters() { state.filters = { type: new Set(), area: new Set(), location: new Set(), size: new Set() }; render(); }
 
@@ -556,8 +589,14 @@
     each('.preview [data-sector]', b => b.addEventListener('click', () => openSector(b.getAttribute('data-sector'))));
   }
   function openDetail(id) { Object.assign(state, { section: 'props', propView: 'detail', selectedId: id, previewId: null }); render(); }
-  function openSector(id) { Object.assign(state, { section: 'props', propView: 'sector', selectedId: id, previewId: null, sectorFrom: state.section }); builtSig = ''; render(); }
-  function openSectorHub(smId) { Object.assign(state, { section: 'props', propView: 'sector', selectedId: null, sectorBlock: smId, previewId: null }); builtSig = ''; render(); }
+  function openSector(id) {
+    const p = propById(id), sm = sectorMapForProperty(p);
+    if (!p || !sm) return;
+    Object.assign(state, { section: 'props', propView: 'sector', selectedId: id, sectorBlock: sm.id, previewId: null, sectorFrom: state.section });
+    builtSig = '';
+    render();
+  }
+  function openSectorHub(smId) { if (!sectorMapById(smId)) return; Object.assign(state, { section: 'props', propView: 'sector', selectedId: null, sectorBlock: smId, previewId: null }); builtSig = ''; render(); }
   function showAreaContext(id) { const p = propById(id); Object.assign(state, { section: 'master', mapMode: 'easy', showProps: true, selectedId: id, itemId: null, itemKind: null, itemOpen: false, previewId: id }); builtSig = ''; render(); if (p) { const b = blockById(p.blockId); if (b) setTimeout(() => focusBox(b.x + b.w / 2, b.y + b.h / 2, b.w, b.h, 1.7), 80); } }
   function openLightbox(idx) {
     let photos, name;
