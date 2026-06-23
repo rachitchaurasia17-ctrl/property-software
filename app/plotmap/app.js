@@ -64,10 +64,10 @@
   function itemKindOf(id) { if (roadById(id)) return 'line'; if (zoneById(id)) return 'zone'; if (pinById(id)) return 'pin'; if (blockById(id)) return 'block'; return 'pin'; }
   function catItems(catId) {
     const c = catById(catId) || {};
-    if (catId === 'roads' || c.kind === 'line') return keyRoads().map(r => ({ id: r.id, name: r.name, sub: 'Key road', kind: 'line', color: c.color || '#16356A', photos: r.photos }));
-    return mapBlocks().filter(b => b.cat === catId).map(b => ({ id: b.id, name: b.name, sub: `${b.area} · ${propsInBlock(b.id).length} available`, kind: 'block', color: c.color || catColor(catId) }))
-      .concat(mapZones().filter(z => z.cat === catId).map(z => ({ id: z.id, name: z.name, sub: c.label, kind: 'zone', color: c.color, photos: z.photos })))
-      .concat(mapPins().filter(p => p.cat === catId).map(p => ({ id: p.id, name: p.name, sub: c.label, kind: 'pin', color: c.color, photos: p.photos })));
+    if (catId === 'roads' || c.kind === 'line') return scopedRoads().map(r => ({ id: r.id, name: r.name, sub: 'Key road', kind: 'line', color: c.color || '#16356A', photos: r.photos }));
+    return scopedBlocks().filter(b => b.cat === catId).map(b => ({ id: b.id, name: b.name, sub: `${b.area} · ${propsInBlock(b.id).length} available`, kind: 'block', color: c.color || catColor(catId) }))
+      .concat(scopedZones().filter(z => z.cat === catId).map(z => ({ id: z.id, name: z.name, sub: c.label, kind: 'zone', color: c.color, photos: z.photos })))
+      .concat(scopedPins().filter(p => p.cat === catId).map(p => ({ id: p.id, name: p.name, sub: c.label, kind: 'pin', color: c.color, photos: p.photos })));
   }
   const catCount = (id) => catItems(id).length;
   const inCatItem = (id) => state.catId && catItems(state.catId).some(i => i.id === id);
@@ -137,10 +137,10 @@
       'M 200 120 L 200 880', 'M 1240 120 L 1240 880', 'M 120 350 L 1330 350',
       'M 120 820 L 1330 820', 'M 760 120 L 770 900', 'M 430 120 L 440 900'
     ].map(d => `<path d="${d}" class="in-road"/>`).join('');
-    const roads = keyRoads().map(r => `<path d="${r.easyD}" class="e-road-casing"/>`).join('')
-      + keyRoads().map(r => `<path d="${r.easyD}" class="e-road" data-roadpath="${r.id}"/>`).join('')
-      + keyRoads().map(r => `<path d="${r.easyD}" class="e-road-hit" data-hit="line:${r.id}"/>`).join('');
-    const zones = mapZones().map(z => {
+    const roads = scopedRoads().map(r => `<path d="${r.easyD}" class="e-road-casing"/>`).join('')
+      + scopedRoads().map(r => `<path d="${r.easyD}" class="e-road" data-roadpath="${r.id}"/>`).join('')
+      + scopedRoads().map(r => `<path d="${r.easyD}" class="e-road-hit" data-hit="line:${r.id}"/>`).join('');
+    const zones = scopedZones().map(z => {
       const c = catColor(z.cat);
       return `<g class="e-zone" data-hit="zone:${z.id}" data-zid="${z.id}">
         <rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="18" fill="${hexA(c, .16)}" stroke="${hexA(c, .55)}" stroke-width="2" ${z.dashed ? 'stroke-dasharray="11 8"' : ''} class="zfill"/>
@@ -148,7 +148,7 @@
         ${(z.pins || []).map(p => `<g><circle cx="${p.at[0]}" cy="${p.at[1]}" r="4.5" fill="${c}"/><text x="${p.at[0]}" y="${p.at[1] + 20}" class="e-sublabel" text-anchor="middle">${esc(p.name)}</text></g>`).join('')}
       </g>`;
     }).join('');
-    const blocks = mapBlocks().map(b => {
+    const blocks = scopedBlocks().map(b => {
       const c = catColor(b.cat);
       return `<g class="e-block" data-hit="block:${b.id}" data-bid="${b.id}">
         <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="14" fill="${hexA(c, .2)}" stroke="${hexA(c, .7)}" stroke-width="2" class="bfill"/>
@@ -156,8 +156,8 @@
         <text x="${b.x + b.w / 2}" y="${b.y + b.h / 2 + 24}" class="e-bsub" text-anchor="middle">${esc(b.area)}</text>
       </g>`;
     }).join('');
-    const roadLabels = keyRoads().map(r => `<g class="e-rlabel-g" data-roadlabel="${r.id}"><text x="${r.labelAt[0]}" y="${r.labelAt[1]}" class="e-rlabel" text-anchor="middle">${esc(r.label || r.name)}</text></g>`).join('');
-    const pins = mapPins().map(p => {
+    const roadLabels = scopedRoads().map(r => `<g class="e-rlabel-g" data-roadlabel="${r.id}"><text x="${r.labelAt[0]}" y="${r.labelAt[1]}" class="e-rlabel" text-anchor="middle">${esc(r.label || r.name)}</text></g>`).join('');
+    const pins = scopedPins().map(p => {
       const c = catColor(p.cat);
       return `<g class="e-pin" data-hit="${itemKindOf(p.id)}:${p.id}" data-pid="${p.id}">
         <circle cx="${p.at[0]}" cy="${p.at[1]}" r="8" fill="${c}" stroke="#fff" stroke-width="2.5"/>
@@ -182,9 +182,10 @@
   /* ---------- ORIGINAL MAP overlay (real geometry highlights) ---------- */
   function origSVG() {
     const roadOf = {}; keyRoads().forEach(r => { if (num(r.cyanIdx) && GEO.cyan[Number(r.cyanIdx)]) roadOf[Number(r.cyanIdx)] = r.id; });
+    const casing = GEO.cyan.map((d, i) => `<path d="${d}" class="o-road-case" data-roadpath="${roadOf[i] || ''}"/>`).join('');
     const lines = GEO.cyan.map((d, i) => `<path d="${d}" class="o-road" data-roadpath="${roadOf[i] || ''}"/>`).join('');
     const hits = GEO.cyan.map((d, i) => roadOf[i] ? `<path d="${d}" class="o-hit" data-hit="line:${roadOf[i]}"/>` : '').join('');
-    return `<svg class="easy-svg orig-ov" viewBox="${GEO.viewBox}" preserveAspectRatio="xMidYMid meet"><g id="oRoads">${lines}</g><g id="oSpot"></g><g id="oHit">${hits}</g></svg>`;
+    return `<svg class="easy-svg orig-ov" viewBox="${GEO.viewBox}" preserveAspectRatio="xMidYMid meet"><g id="oRoadCase">${casing}</g><g id="oRoads">${lines}</g><g id="oSpot"></g><g id="oHit">${hits}</g></svg>`;
   }
 
   /* ---------- overlays: highlight / declutter / spotlight ---------- */
@@ -210,9 +211,15 @@
       }
       renderTags();
     } else if (kind === 'original') {
-      l.querySelectorAll('.o-road').forEach(p => { const id = p.getAttribute('data-roadpath'); const on = relate(id, 'line'); p.classList.toggle('soft', !!cat && cat === 'roads' && on && !sel); p.classList.toggle('hide', sel ? id !== sel : (cat ? !on : true)); });
+      l.querySelectorAll('.o-road, .o-road-case').forEach(p => { 
+        const id = p.getAttribute('data-roadpath'); 
+        const on = relate(id, 'line'); 
+        p.classList.toggle('soft', !!cat && cat === 'roads' && on && !sel); 
+        p.classList.toggle('hide', sel ? id !== sel : (cat ? !on : true)); 
+        p.classList.toggle('show', on && !p.classList.contains('hide'));
+      });
       const sp = l.querySelector('#oSpot'); if (sp) { sp.innerHTML = '';
-        if (sel && selKind === 'line') { const d = GEO.cyan[roadById(sel).cyanIdx]; sp.innerHTML = `<path d="${d}" filter="url(#eglow)" style="fill:none;stroke:#28C8E0;stroke-width:34;opacity:.5;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#0B2552;stroke-width:22;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#fff;stroke-width:13;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#2BD0E6;stroke-width:6.5;stroke-linecap:round"/>`; }
+        if (sel && selKind === 'line') { const d = GEO.cyan[roadById(sel).cyanIdx]; sp.innerHTML = `<path d="${d}" filter="url(#eglow)" style="fill:none;stroke:#2BD0E6;stroke-width:44;opacity:.4;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#0B2552;stroke-width:28;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#fff;stroke-width:14;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#2BD0E6;stroke-width:8;stroke-linecap:round"/>`; }
       }
       l.classList.toggle('dimmed', !!(sel || cat));
     }
@@ -220,7 +227,7 @@
   function renderTags() {
     const g = layer() && layer().querySelector('#tagG'); if (!g) return;
     if (!(state.mapMode === 'easy' && state.showProps && state.section === 'master')) { g.innerHTML = ''; return; }
-    g.innerHTML = mapProperties().map(p => { const b = blockById(p.blockId) || { x: 700, y: 480, w: 120, h: 100 };
+    g.innerHTML = scopedProperties().map(p => { const b = blockById(p.blockId) || { x: 700, y: 480, w: 120, h: 100 };
       const x = b.x + b.w / 2, y = b.y + 14;
       return `<button class="ptag ${p.id === state.previewId ? 'sel' : ''}" data-tag="${p.id}" style="left:${x}px;top:${y}px">
         <span class="no">${esc(p.plotNumber)}</span><span class="sz">${esc(p.size)}</span><span class="av">Available</span></button>`;
@@ -320,13 +327,12 @@
     const sel = state.itemId && items.some(i => i.id === state.itemId) ? state.itemId : null;
     return `<div class="head" style="padding-bottom:14px">
         <button class="backlink" id="backCats">‹ All categories</button>
-        <div class="cat-head"><span class="cat-ico" style="width:34px;height:34px;background:${hexA(c.color, .16)};border:1px solid ${hexA(c.color, .45)}"><i style="background:${c.color}"></i></span><div class="t">${esc(c.label)}</div></div></div>
+        <div class="cat-head"><span class="cat-ico" style="background:${hexA(c.color, .12)};border:1px solid ${hexA(c.color, .3)}"><i style="background:${c.color}"></i></span><div class="t" style="color:#0B1A36;">${esc(c.label)}</div></div></div>
       <div class="scroll">
         ${sel ? previewCardHTML(sel) : ''}
         ${items.map(i => `<button class="item-btn ${i.id === sel ? 'sel' : ''}" data-item="${i.id}" data-kind="${i.kind}">
           <span class="item-dot" style="width:13px;height:${i.kind === 'line' ? '4px' : '13px'};border-radius:${i.kind === 'line' ? '3px' : '50%'};background:${i.color}"></span>
           <span class="lab"><b>${esc(i.name)}</b><span>${esc(i.sub)}</span></span>
-          ${i.photos ? `<span class="photo-ico" data-photoico="${i.id}" data-kind="${i.kind}" title="View photos"></span>` : ''}
           <span class="chev">${i.kind === 'block' ? '→' : '›'}</span></button>`).join('')}
       </div>`;
   }
@@ -339,13 +345,25 @@
         <div class="pc-actions"><button class="pc-primary" data-viewprops="${id}">View Properties</button><button class="pc-ghost" data-blocksector="${id}">Sector Map</button></div></div>`;
     }
     const it = itemObj(id); const cat = catById(itemCategory(id)) || { label: 'Value driver', color: '#16356A' };
-    const ph = photosFor(kind === 'line' ? 'line' : kind, photoKeyOf(id, kind), 3);
+    const hasPhotos = it.photos !== false; // display by default unless explicitly false
     return `<div class="preview-card">
-      <div class="pc-cat" style="color:${cat.color}">${esc(cat.label)}</div>
-      <div class="pc-name">${esc(it.name)}</div>
-      <div class="pc-strip">${ph.map((p, i) => `<button class="pc-thumb" data-lb="${i}"><span class="ph-fill" style="background:${p.grad};position:absolute;inset:0"></span><span class="ph-tex" style="position:absolute;inset:0"></span></button>`).join('')}</div>
+      <div class="pc-top">
+        <div>
+          <div class="pc-cat" style="color:${cat.color}">${esc(cat.label)}</div>
+          <div class="pc-name">${esc(it.name)}</div>
+        </div>
+        ${hasPhotos ? `<button class="gallery-icon-btn" data-photos="${id}" title="View Photos">
+          <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+        </button>` : ''}
+      </div>
       ${it.related && it.related.length ? `<div class="pc-rel">${it.related.map(r => `<span>${esc(r)}</span>`).join('')}</div>` : ''}
-      <div class="pc-actions"><button class="pc-primary" data-photos="${id}">View Photos</button><button class="pc-ghost" data-details="${id}">View Details</button></div>
+      <div class="pc-actions">
+        <button class="pc-ghost wfull" data-details="${id}">Spotlight Details</button>
+      </div>
       ${it.mapsUrl ? `<div class="gmaps-row"><a href="${it.mapsUrl}" target="_blank" rel="noopener">◎ Open in Google Maps</a></div>` : ''}
     </div>`;
   }
@@ -419,7 +437,7 @@
       <div class="eyebrow">Selected properties</div>
       <div class="serif" style="font-size:40px;font-weight:560;letter-spacing:-1px;line-height:1.02;margin-top:6px">${esc(area().name)} Properties</div>
       <div class="filters">${grp('type')}${grp('area')}${grp('location')}${grp('size')}${active ? '<button class="clear-all" id="clearF">Clear all filters</button>' : ''}</div>
-      ${list.length ? `<div class="grid-cards">${list.map(cardHTML).join('')}</div>` : '<div class="empty">No properties match these filters.<button class="btn-ghost" id="clearF2" style="margin-top:14px;height:42px;padding:0 18px">Clear filters</button></div>'}
+      ${list.length ? `<div class="grid-cards">${list.map(cardHTML).join('')}</div>` : `<div class="empty" style="background:#fff; border:1px solid #EBE1CC; border-radius:18px; padding:60px 40px; margin-top:24px;"><div style="font-size:36px; margin-bottom:12px;">🔍</div><div style="font-size:18px; font-weight:700; color:#0B1A36;">No properties match</div><div style="font-size:14px; margin-top:6px; color:#6B6456;">Try adjusting your filters to see more results.</div><button class="btn-ghost" id="clearF2" style="margin:6px auto 0; height:42px; padding:0 18px">Clear all filters</button></div>`}
     </div>`;
   }
   function cardHTML(p) {
@@ -465,7 +483,7 @@
       <div class="serif" style="font-size:40px;font-weight:560;letter-spacing:-1px;line-height:1.02;margin-top:6px">Sector Maps</div>
       <div class="chips" style="margin-top:16px">${chips.map(([v, l]) => `<button class="chip ${state.secArea === v ? 'on' : ''}" data-secarea="${v}">${l}</button>`).join('')}</div>
       <div class="search"><span class="ic"></span><input id="secSearch" value="${esc(state.secQ)}" placeholder="Search sector or block… e.g. Block A, Aerotropolis"></div>
-      ${list.length ? `<div class="grid-cards" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr));margin-top:22px">${list.map(secCardHTML).join('')}</div>` : '<div class="empty">No sector maps match.</div>'}
+      ${list.length ? `<div class="grid-cards" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr));margin-top:22px">${list.map(secCardHTML).join('')}</div>` : `<div class="empty" style="background:#fff; border:1px solid #EBE1CC; border-radius:18px; padding:60px 40px; margin-top:24px;"><div style="font-size:36px; margin-bottom:12px;">🗺️</div><div style="font-size:18px; font-weight:700; color:#0B1A36;">No sector maps match</div><div style="font-size:14px; margin-top:6px; color:#6B6456;">Try adjusting your search or area filter.</div></div>`}
     </div>`;
   }
   function secCardHTML(s) {
