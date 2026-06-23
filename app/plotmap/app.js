@@ -299,10 +299,15 @@
         g.classList.toggle('show', isSel || (on && !g.classList.contains('hide')));
       });
       const sp = l.querySelector('#oSpot'); if (sp) { sp.innerHTML = '';
-        let linesD = '';
         if (hasSel) {
            const lines = Array.from(selIds).filter(sel => itemKindOf(sel) === 'line');
-           linesD = lines.map(sel => GEO.paths[roadById(sel).svgId]).filter(Boolean).join(' ');
+           if (lines.length > 0) {
+             const paths = lines.map(sel => GEO.paths[roadById(sel).svgId]).filter(Boolean);
+             paths.forEach(d => sp.insertAdjacentHTML('beforeend', `<path d="${d}" filter="url(#eglow)" style="fill:none;stroke:#2BD0E6;stroke-width:44;opacity:.4;stroke-linecap:round;stroke-linejoin:round"/>`));
+             paths.forEach(d => sp.insertAdjacentHTML('beforeend', `<path d="${d}" style="fill:none;stroke:#0B2552;stroke-width:28;stroke-linecap:round;stroke-linejoin:round"/>`));
+             paths.forEach(d => sp.insertAdjacentHTML('beforeend', `<path d="${d}" style="fill:none;stroke:#fff;stroke-width:14;stroke-linecap:round;stroke-linejoin:round"/>`));
+             paths.forEach(d => sp.insertAdjacentHTML('beforeend', `<path d="${d}" style="fill:none;stroke:#2BD0E6;stroke-width:8;stroke-linecap:round;stroke-linejoin:round"/>`));
+           }
            selIds.forEach(sel => {
              if (itemKindOf(sel) === 'pin') {
                const it = itemObj(sel); let cx = 0, cy = 0;
@@ -312,10 +317,11 @@
              }
            });
         } else if (cat === 'roads') {
-           linesD = catItems('roads').map(item => GEO.paths[item.svgId]).filter(Boolean).join(' ');
-        }
-        if (linesD) {
-           sp.insertAdjacentHTML('afterbegin', `<path d="${linesD}" filter="url(#eglow)" style="fill:none;stroke:#2BD0E6;stroke-width:44;opacity:.4;stroke-linecap:round;stroke-linejoin:round"/><path d="${linesD}" style="fill:none;stroke:#0B2552;stroke-width:28;stroke-linecap:round;stroke-linejoin:round"/><path d="${linesD}" style="fill:none;stroke:#fff;stroke-width:14;stroke-linecap:round;stroke-linejoin:round"/><path d="${linesD}" style="fill:none;stroke:#2BD0E6;stroke-width:8;stroke-linecap:round;stroke-linejoin:round"/>`);
+           const paths = catItems('roads').map(item => GEO.paths[item.svgId]).filter(Boolean);
+           paths.forEach(d => sp.insertAdjacentHTML('beforeend', `<path d="${d}" filter="url(#eglow)" style="fill:none;stroke:#2BD0E6;stroke-width:44;opacity:.4;stroke-linecap:round;stroke-linejoin:round"/>`));
+           paths.forEach(d => sp.insertAdjacentHTML('beforeend', `<path d="${d}" style="fill:none;stroke:#0B2552;stroke-width:28;stroke-linecap:round;stroke-linejoin:round"/>`));
+           paths.forEach(d => sp.insertAdjacentHTML('beforeend', `<path d="${d}" style="fill:none;stroke:#fff;stroke-width:14;stroke-linecap:round;stroke-linejoin:round"/>`));
+           paths.forEach(d => sp.insertAdjacentHTML('beforeend', `<path d="${d}" style="fill:none;stroke:#2BD0E6;stroke-width:8;stroke-linecap:round;stroke-linejoin:round"/>`));
         }
       }
       l.classList.toggle('dimmed', !!(hasSel || cat));
