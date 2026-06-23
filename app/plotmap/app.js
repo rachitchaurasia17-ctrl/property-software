@@ -93,15 +93,26 @@
   let tx = 0, ty = 0, scale = 1, panning = false, moved = false, sx, sy, stx, sty, pinch = null, builtSig = '';
   let LW = EW, LH = EH;
   const wrap = () => el('mapwrap'), layer = () => el('maplayer');
-  function applyT(anim) { const l = layer(); if (!l) return; l.style.transition = anim ? 'transform .5s cubic-bezier(.33,0,.2,1)' : 'none'; l.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`; }
-  function fit() { const vp = wrap(); if (!vp || !vp.clientWidth) return; const W = vp.clientWidth, H = vp.clientHeight; const s = Math.min(W / LW, H / LH) * 0.97; scale = s; tx = (W - LW * s) / 2; ty = (H - LH * s) / 2; applyT(true); }
+  function applyT(anim) { 
+    const vp = wrap(); if (!vp || !vp.clientWidth) return;
+    const W = vp.clientWidth, H = vp.clientHeight;
+    const minX = W - LW * scale, maxX = 0;
+    const minY = H - LH * scale, maxY = 0;
+    if (minX > maxX) { tx = (W - LW * scale) / 2; } else { tx = Math.max(minX, Math.min(maxX, tx)); }
+    if (minY > maxY) { ty = (H - LH * scale) / 2; } else { ty = Math.max(minY, Math.min(maxY, ty)); }
+    const l = layer(); if (!l) return; 
+    l.style.transition = anim ? 'transform .5s cubic-bezier(.33,0,.2,1)' : 'none'; 
+    l.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`; 
+  }
+  function fit() { const vp = wrap(); if (!vp || !vp.clientWidth) return; const W = vp.clientWidth, H = vp.clientHeight; const s = Math.max(W / LW, H / LH); scale = s; tx = (W - LW * s) / 2; ty = (H - LH * s) / 2; applyT(true); }
   function focusBox(cx, cy, bw, bh, maxZoom) {
     const vp = wrap(); if (!vp || !vp.clientWidth) return; const W = vp.clientWidth, H = vp.clientHeight;
     const pad = 2.4; const sFit = Math.min(W / (bw * pad), H / (bh * pad));
-    const s = Math.max(Math.min(W / LW, H / LH) * 0.97, Math.min(sFit, maxZoom || 1.6));
+    const minScale = Math.max(W / LW, H / LH);
+    const s = Math.max(minScale, Math.min(sFit, maxZoom || 1.6));
     scale = s; tx = W / 2 - cx * s; ty = H / 2 - cy * s; applyT(true);
   }
-  function zoomAt(cx, cy, f) { const vp = wrap(); if (!vp) return; const r = vp.getBoundingClientRect(); const ox = cx - r.left, oy = cy - r.top; const ns = Math.max(0.3, Math.min(scale * f, 5)); const k = ns / scale; tx = ox - (ox - tx) * k; ty = oy - (oy - ty) * k; scale = ns; applyT(false); }
+  function zoomAt(cx, cy, f) { const vp = wrap(); if (!vp) return; const r = vp.getBoundingClientRect(); const ox = cx - r.left, oy = cy - r.top; const W = vp.clientWidth, H = vp.clientHeight; const minScale = Math.max(W / LW, H / LH); const ns = Math.max(minScale, Math.min(scale * f, 5)); const k = ns / scale; tx = ox - (ox - tx) * k; ty = oy - (oy - ty) * k; scale = ns; applyT(false); }
   function bindMap() {
     const vp = wrap(); if (!vp || vp._bound) return; vp._bound = true;
     vp.addEventListener('pointerdown', e => { if (e.target.closest('[data-hit],[data-tag]')) { panning = false; return; } panning = true; moved = false; sx = e.clientX; sy = e.clientY; stx = tx; sty = ty; vp.style.cursor = 'grabbing'; });
@@ -190,7 +201,25 @@
     const casing = GEO.cyan.map((d, i) => `<path d="${d}" class="o-road-case" data-roadpath="${roadOf[i] || ''}"/>`).join('');
     const lines = GEO.cyan.map((d, i) => `<path d="${d}" class="o-road" data-roadpath="${roadOf[i] || ''}"/>`).join('');
     const hits = GEO.cyan.map((d, i) => roadOf[i] ? `<path d="${d}" class="o-hit" data-hit="line:${roadOf[i]}"/>` : '').join('');
-    return `<svg class="easy-svg orig-ov" viewBox="${GEO.viewBox}" preserveAspectRatio="xMidYMid meet"><g id="oRoadCase">${casing}</g><g id="oRoads">${lines}</g><g id="oSpot"></g><g id="oHit">${hits}</g></svg>`;
+
+    const pinsHTML = [];
+    const addPin = (item, kind) => {
+      let cx = 0, cy = 0;
+      if (item.at) { cx = (item.at[0] / EW) * IW; cy = (item.at[1] / EH) * IH; }
+      else if (item.w) { cx = ((item.x + item.w/2) / EW) * IW; cy = ((item.y + item.h/2) / EH) * IH; }
+      else return;
+      const c = catColor(item.cat);
+      pinsHTML.push(`<g class="o-pin" data-hit="${kind}:${item.id}" data-itempath="${item.id}" style="transform:translate(${cx}px,${cy}px)">
+        <circle cx="0" cy="0" r="32" fill="${c}" stroke="#fff" stroke-width="10" class="pin-dot"/>
+        <rect x="-140" y="50" width="280" height="70" rx="35" fill="${hexA(c, .95)}" class="pin-lbl-bg"/>
+        <text x="0" y="96" class="pin-lbl" fill="#fff" text-anchor="middle" font-size="32" font-weight="700">${esc(item.name)}</text>
+      </g>`);
+    };
+    scopedBlocks().forEach(b => addPin(b, 'block'));
+    scopedZones().forEach(z => addPin(z, 'zone'));
+    scopedPins().forEach(p => addPin(p, 'pin'));
+
+    return `<svg class="easy-svg orig-ov" viewBox="${GEO.viewBox}" preserveAspectRatio="xMidYMid meet"><g id="oRoadCase">${casing}</g><g id="oRoads">${lines}</g><g id="oPins">${pinsHTML.join('')}</g><g id="oSpot"></g><g id="oHit">${hits}</g></svg>`;
   }
 
   /* ---------- overlays: highlight / declutter / spotlight ---------- */
@@ -223,8 +252,24 @@
         p.classList.toggle('hide', sel ? id !== sel : (cat ? !on : true)); 
         p.classList.toggle('show', on && !p.classList.contains('hide'));
       });
+      l.querySelectorAll('.o-pin').forEach(g => {
+        const id = g.getAttribute('data-itempath');
+        const on = relate(id, itemKindOf(id));
+        const inCat = !!cat && cat === itemCategory(id);
+        g.classList.toggle('soft', inCat && on && !sel);
+        g.classList.toggle('hide', sel ? id !== sel : (cat ? !on : true));
+        g.classList.toggle('show', on && !g.classList.contains('hide'));
+      });
       const sp = l.querySelector('#oSpot'); if (sp) { sp.innerHTML = '';
         if (sel && selKind === 'line') { const d = GEO.cyan[roadById(sel).cyanIdx]; sp.innerHTML = `<path d="${d}" filter="url(#eglow)" style="fill:none;stroke:#2BD0E6;stroke-width:44;opacity:.4;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#0B2552;stroke-width:28;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#fff;stroke-width:14;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#2BD0E6;stroke-width:8;stroke-linecap:round"/>`; }
+        else if (sel && selKind !== 'line') {
+          const it = itemObj(sel);
+          let cx = 0, cy = 0;
+          if (it.at) { cx = (it.at[0] / EW) * IW; cy = (it.at[1] / EH) * IH; }
+          else if (it.w) { cx = ((it.x + it.w/2) / EW) * IW; cy = ((it.y + it.h/2) / EH) * IH; }
+          const c = catColor(it.cat);
+          sp.innerHTML = `<g style="transform:translate(${cx}px,${cy}px)"><circle cx="0" cy="0" r="58" fill="${c}" opacity="0.3"/><circle cx="0" cy="0" r="42" fill="none" stroke="${c}" stroke-width="12"/></g>`;
+        }
       }
       l.classList.toggle('dimmed', !!(sel || cat));
     }
@@ -347,7 +392,7 @@
       const b = blockById(id), props = propsInBlock(id);
       return `<div class="preview-card"><div class="pc-cat" style="color:${catColor(b.cat)}">${esc(b.area)} Block</div><div class="pc-name">${esc(b.name)}</div>
         <div class="pc-rel"><span>${props.length} available propert${props.length === 1 ? 'y' : 'ies'}</span></div>
-        <div class="pc-actions"><button class="pc-primary" data-viewprops="${id}">View Properties</button><button class="pc-ghost" data-blocksector="${id}">Sector Map</button></div></div>`;
+        <div class="pc-actions"><button class="pc-primary" data-viewprops="${id}">View Properties</button><button class="pc-ghost" data-focus="${id}">Focus Map</button></div></div>`;
     }
     const it = itemObj(id); const cat = catById(itemCategory(id)) || { label: 'Value driver', color: '#16356A' };
     const hasPhotos = it.photos !== false; // display by default unless explicitly false
@@ -367,7 +412,7 @@
       </div>
       ${it.related && it.related.length ? `<div class="pc-rel">${it.related.map(r => `<span>${esc(r)}</span>`).join('')}</div>` : ''}
       <div class="pc-actions">
-        <button class="pc-ghost wfull" data-details="${id}">Spotlight Details</button>
+        <button class="pc-ghost wfull" data-focus="${id}">Focus on Map</button>
       </div>
       ${it.mapsUrl ? `<div class="gmaps-row"><a href="${it.mapsUrl}" target="_blank" rel="noopener">◎ Open in Google Maps</a></div>` : ''}
     </div>`;
@@ -537,6 +582,7 @@
     on('backDriver', () => { state.itemOpen = false; render(); });
     each('[data-photos]', b => b.addEventListener('click', () => { state.itemId = b.getAttribute('data-photos'); openLightbox(0); }));
     each('[data-details]', b => b.addEventListener('click', () => { state.itemId = b.getAttribute('data-details'); state.itemOpen = true; render(); }));
+    each('[data-focus]', b => b.addEventListener('click', () => focusItem(b.getAttribute('data-focus'))));
     each('[data-viewprops]', b => b.addEventListener('click', () => { const bl = blockById(b.getAttribute('data-viewprops')); Object.assign(state, { section: 'props', propView: 'browse', filters: { type: new Set(), area: new Set(bl ? [bl.area] : []), location: new Set(), size: new Set() } }); render(); }));
     each('[data-blocksector]', b => b.addEventListener('click', () => { const bl = blockById(b.getAttribute('data-blocksector')); const sm = bl && readySectorMaps().find(s => s.area === bl.area && s.block === bl.name); if (sm) openSectorHub(sm.id); }));
 
@@ -582,7 +628,7 @@
 
   function selectItem(id, kind) {
     state.itemId = id; state.itemKind = (kind === 'road' ? 'line' : kind); state.itemOpen = false; state.catId = itemCategory(id); state.section = 'master';
-    render(); setTimeout(() => focusItem(id), 60);
+    render();
   }
   function refreshControls() {
     const vp = el('mapwrap'); if (!vp) { render(); return; }
