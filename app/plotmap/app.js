@@ -197,10 +197,16 @@
 
   /* ---------- ORIGINAL MAP overlay (real geometry highlights) ---------- */
   function origSVG() {
-    const roadOf = {}; keyRoads().forEach(r => { if (num(r.cyanIdx) && GEO.cyan[Number(r.cyanIdx)]) roadOf[Number(r.cyanIdx)] = r.id; });
-    const casing = GEO.cyan.map((d, i) => `<path d="${d}" class="o-road-case" data-roadpath="${roadOf[i] || ''}"/>`).join('');
-    const lines = GEO.cyan.map((d, i) => `<path d="${d}" class="o-road" data-roadpath="${roadOf[i] || ''}"/>`).join('');
-    const hits = GEO.cyan.map((d, i) => roadOf[i] ? `<path d="${d}" class="o-hit" data-hit="line:${roadOf[i]}"/>` : '').join('');
+    const roadPaths = keyRoads().filter(r => r.svgId && GEO.paths && GEO.paths[r.svgId]);
+    const casing = roadPaths.map(r => `<path d="${GEO.paths[r.svgId]}" class="o-road-case" data-roadpath="${r.id}"/>`).join('');
+    const lines = roadPaths.map(r => `<path d="${GEO.paths[r.svgId]}" class="o-road" data-roadpath="${r.id}"/>`).join('');
+    const hits = roadPaths.map(r => `<path d="${GEO.paths[r.svgId]}" class="o-hit" data-hit="line:${r.id}"/>`).join('');
+    
+    const blockPaths = scopedBlocks().filter(b => b.svgId && GEO.paths && GEO.paths[b.svgId]);
+    const blocksHTML = blockPaths.map(b => `<path d="${GEO.paths[b.svgId]}" class="o-block" data-itempath="${b.id}" data-hit="block:${b.id}"/>`).join('');
+
+    const zonePaths = scopedZones().filter(z => z.svgId && GEO.paths && GEO.paths[z.svgId]);
+    const zonesHTML = zonePaths.map(z => `<path d="${GEO.paths[z.svgId]}" class="o-zone" data-itempath="${z.id}" data-hit="zone:${z.id}"/>`).join('');
 
     const pinsHTML = [];
     const addPin = (item, kind) => {
@@ -215,11 +221,11 @@
         <text x="0" y="96" class="pin-lbl" fill="#fff" text-anchor="middle" font-size="32" font-weight="700">${esc(item.name)}</text>
       </g>`);
     };
-    scopedBlocks().forEach(b => addPin(b, 'block'));
-    scopedZones().forEach(z => addPin(z, 'zone'));
+    scopedBlocks().filter(b => !b.svgId || !GEO.paths || !GEO.paths[b.svgId]).forEach(b => addPin(b, 'block')); // Fallback
+    scopedZones().filter(z => !z.svgId || !GEO.paths || !GEO.paths[z.svgId]).forEach(z => addPin(z, 'zone')); // Fallback
     scopedPins().forEach(p => addPin(p, 'pin'));
 
-    return `<svg class="easy-svg orig-ov" viewBox="${GEO.viewBox}" preserveAspectRatio="xMidYMid meet"><g id="oRoadCase">${casing}</g><g id="oRoads">${lines}</g><g id="oPins">${pinsHTML.join('')}</g><g id="oSpot"></g><g id="oHit">${hits}</g></svg>`;
+    return `<svg class="easy-svg orig-ov" viewBox="${GEO.viewBox || '0 0 4599 3069'}" preserveAspectRatio="xMidYMid meet"><g id="oRoadCase">${casing}</g><g id="oBlocks">${blocksHTML}</g><g id="oZones">${zonesHTML}</g><g id="oRoads">${lines}</g><g id="oPins">${pinsHTML.join('')}</g><g id="oSpot"></g><g id="oHit">${hits}</g></svg>`;
   }
 
   /* ---------- overlays: highlight / declutter / spotlight ---------- */
@@ -252,6 +258,20 @@
         p.classList.toggle('hide', sel ? id !== sel : (cat ? !on : true)); 
         p.classList.toggle('show', on && !p.classList.contains('hide'));
       });
+      l.querySelectorAll('.o-block, .o-zone').forEach(p => { 
+        const id = p.getAttribute('data-itempath'); 
+        const on = relate(id, itemKindOf(id)); 
+        const inCat = !!cat && cat === itemCategory(id);
+        if (sel) {
+          p.classList.toggle('hide', id !== sel);
+          p.classList.toggle('show', id === sel);
+          p.classList.toggle('soft', false);
+        } else {
+          p.classList.toggle('soft', false);
+          p.classList.toggle('hide', !inCat);
+          p.classList.toggle('show', inCat && on);
+        }
+      });
       l.querySelectorAll('.o-pin').forEach(g => {
         const id = g.getAttribute('data-itempath');
         const on = relate(id, itemKindOf(id));
@@ -261,7 +281,7 @@
         g.classList.toggle('show', on && !g.classList.contains('hide'));
       });
       const sp = l.querySelector('#oSpot'); if (sp) { sp.innerHTML = '';
-        if (sel && selKind === 'line') { const d = GEO.cyan[roadById(sel).cyanIdx]; sp.innerHTML = `<path d="${d}" filter="url(#eglow)" style="fill:none;stroke:#2BD0E6;stroke-width:44;opacity:.4;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#0B2552;stroke-width:28;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#fff;stroke-width:14;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#2BD0E6;stroke-width:8;stroke-linecap:round"/>`; }
+        if (sel && selKind === 'line') { const d = GEO.paths[roadById(sel).svgId]; if(d) sp.innerHTML = `<path d="${d}" filter="url(#eglow)" style="fill:none;stroke:#2BD0E6;stroke-width:44;opacity:.4;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#0B2552;stroke-width:28;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#fff;stroke-width:14;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#2BD0E6;stroke-width:8;stroke-linecap:round"/>`; }
         else if (sel && selKind !== 'line') {
           const it = itemObj(sel);
           let cx = 0, cy = 0;
@@ -359,7 +379,6 @@
   /* ---------- RIGHT PANEL ---------- */
   function panelHTML() {
     if (state.section === 'props' && state.propView === 'sector') return sectorPanelHTML();
-    if (state.itemOpen && state.itemId) return driverFullHTML();
     if (state.catId) return catItemsPanelHTML();
     return catListPanelHTML();
   }
@@ -417,21 +436,7 @@
       ${it.mapsUrl ? `<div class="gmaps-row"><a href="${it.mapsUrl}" target="_blank" rel="noopener">◎ Open in Google Maps</a></div>` : ''}
     </div>`;
   }
-  function driverFullHTML() {
-    const id = state.itemId, kind = state.itemKind, it = itemObj(id);
-    const cat = catById(itemCategory(id)) || { label: 'Value driver', color: '#16356A' };
-    const ph = photosFor(kind === 'line' ? 'line' : kind, photoKeyOf(id, kind), 4);
-    return `<div class="head" style="padding-bottom:14px">
-        <button class="backlink" id="backDriver">‹ ${esc(cat.label)}</button>
-        <div class="serif" style="font-size:28px;font-weight:560;letter-spacing:-.5px;line-height:1.06;margin-top:10px">${esc(it.name)}</div>
-        <span class="cat-pill" style="background:${cat.color}">${esc(cat.label)}</span></div>
-      <div class="scroll" style="animation:panelIn .24s ease">
-        ${photo(ph[0].grad, 210, `data-lb="0"`)}
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:9px">${ph.slice(1, 3).map((p, i) => photo(p.grad, 96, `data-lb="${i + 1}"`)).join('')}</div>
-        ${it.mapsUrl ? `<div class="gmaps-row" style="margin-top:13px"><a href="${it.mapsUrl}" target="_blank" rel="noopener">◎ Open in Google Maps</a></div>` : ''}
-        ${it.related && it.related.length ? `<div class="rel-h">Related areas</div><div style="display:flex;flex-wrap:wrap;gap:8px">${it.related.map(r => `<span class="rel-chip">${esc(r)}</span>`).join('')}</div>` : ''}
-      </div>`;
-  }
+
   function sectorPanelHTML() {
     const p = propById(state.selectedId);
     if (p) return `<div class="head" style="padding-bottom:14px">
@@ -579,9 +584,7 @@
     on('backCats', () => { state.catId = null; state.itemId = null; state.itemOpen = false; render(); });
     each('[data-item]', b => b.addEventListener('click', () => selectItem(b.getAttribute('data-item'), b.getAttribute('data-kind'))));
     each('[data-photoico]', b => b.addEventListener('click', e => { e.stopPropagation(); const id = b.getAttribute('data-photoico'); state.itemId = id; state.itemKind = b.getAttribute('data-kind'); openLightbox(0); }));
-    on('backDriver', () => { state.itemOpen = false; render(); });
     each('[data-photos]', b => b.addEventListener('click', () => { state.itemId = b.getAttribute('data-photos'); openLightbox(0); }));
-    each('[data-details]', b => b.addEventListener('click', () => { state.itemId = b.getAttribute('data-details'); state.itemOpen = true; render(); }));
     each('[data-focus]', b => b.addEventListener('click', () => focusItem(b.getAttribute('data-focus'))));
     each('[data-viewprops]', b => b.addEventListener('click', () => { const bl = blockById(b.getAttribute('data-viewprops')); Object.assign(state, { section: 'props', propView: 'browse', filters: { type: new Set(), area: new Set(bl ? [bl.area] : []), location: new Set(), size: new Set() } }); render(); }));
     each('[data-blocksector]', b => b.addEventListener('click', () => { const bl = blockById(b.getAttribute('data-blocksector')); const sm = bl && readySectorMaps().find(s => s.area === bl.area && s.block === bl.name); if (sm) openSectorHub(sm.id); }));
