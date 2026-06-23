@@ -1,8 +1,13 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "cleanUrls": false,
-  "trailingSlash": true,
-  "redirects": [
-    { "source": "/", "destination": "/app/plotmap/", "permanent": false }
+  "builds": [
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src": "app/plotmap/**", "use": "@vercel/static" },
+    { "src": "public/plotmap-assets/aerotropolis-original-web.jpg", "use": "@vercel/static" },
+    { "src": "public/plotmap-assets/aerotropolis-overlays.svg", "use": "@vercel/static" },
+    { "src": "public/plotmap-assets/sector-map.jpg", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/", "status": 307, "headers": { "Location": "/app/plotmap/" } },
+    { "handle": "filesystem" }
   ]
 }
