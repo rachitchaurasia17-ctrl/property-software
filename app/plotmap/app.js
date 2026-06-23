@@ -1,10 +1,20 @@
 /* PlotMap — client-facing app (Aerocity / Aerotropolis). Framework-free. */
 (async function () {
   const PM = window.PM;
-  const GEO = await fetch('./geo.json').then(r => r.json()).catch(() => ({ viewBox: '0 0 4599 3069', cyan: [], red: [], black: [] }));
   const el = (id) => document.getElementById(id);
   const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const EW = PM.EASY_W, EH = PM.EASY_H, IW = PM.IMG_W, IH = PM.IMG_H;
+
+  /* ---- reusable map engine: resolve the active dataset + its geometry ---- */
+  let DS = null, GEO = { viewBox: '0 0 4599 3069', cyan: [], red: [], black: [] };
+  let EW = 1440, EH = 960, IW = 4599, IH = 3069;
+  const geoCache = {};
+  async function useDataset(areaId) {
+    const ds = PM.datasetFor(areaId); if (!ds) return;
+    DS = ds; EW = ds.EASY_W; EH = ds.EASY_H; IW = ds.IMG_W; IH = ds.IMG_H;
+    const gp = ds.assets && ds.assets.overlayGeo;
+    if (gp) { if (!geoCache[gp]) geoCache[gp] = await fetch(gp).then(r => r.json()).catch(() => ({ viewBox: `0 0 ${IW} ${IH}`, cyan: [], red: [], black: [] })); GEO = geoCache[gp]; }
+    else GEO = { viewBox: `0 0 ${IW} ${IH}`, cyan: [], red: [], black: [] };
+  }
 
   const state = {
     space: 'area', areaId: 'aerotropolis', areaMenuOpen: false,
@@ -19,12 +29,12 @@
   /* ---------- lookups ---------- */
   const area = () => PM.areas.find(a => a.id === state.areaId) || PM.areas[0];
   const catById = (id) => PM.categories.find(c => c.id === id);
-  const roadById = (id) => PM.keyRoads.find(r => r.id === id);
-  const zoneById = (id) => PM.zones.find(z => z.id === id);
-  const pinById = (id) => PM.pins.find(p => p.id === id);
-  const blockById = (id) => PM.blocks.find(b => b.id === id);
-  const propById = (id) => PM.properties.find(p => p.id === id);
-  const propsInBlock = (bid) => PM.properties.filter(p => p.blockId === bid);
+  const roadById = (id) => DS.keyRoads.find(r => r.id === id);
+  const zoneById = (id) => DS.zones.find(z => z.id === id);
+  const pinById = (id) => DS.pins.find(p => p.id === id);
+  const blockById = (id) => DS.blocks.find(b => b.id === id);
+  const propById = (id) => DS.properties.find(p => p.id === id);
+  const propsInBlock = (bid) => DS.properties.filter(p => p.blockId === bid);
   const itemObj = (id) => roadById(id) || zoneById(id) || pinById(id) || blockById(id);
   const driverName = (id) => (itemObj(id) || {}).name || id;
   const catColor = (id) => (catById(id) || {}).color || '#16356A';
@@ -40,12 +50,12 @@
   }
   function itemKindOf(id) { if (roadById(id)) return 'line'; if (zoneById(id)) return 'zone'; if (pinById(id)) return 'pin'; if (blockById(id)) return 'block'; return 'pin'; }
   function catItems(catId) {
-    if (catId === 'roads') return PM.keyRoads.map(r => ({ id: r.id, name: r.name + (r.verify ? '  · verify' : ''), sub: 'Key road', kind: 'line', color: '#16356A', photos: true }));
-    if (catId === 'aerocity-blk') return PM.blocks.filter(b => b.area === 'Aerocity').map(b => ({ id: b.id, name: b.name, sub: 'Aerocity · ' + propsInBlock(b.id).length + ' available', kind: 'block', color: '#2E5A86' }));
-    if (catId === 'aerot-blk') return PM.blocks.filter(b => b.area === 'Aerotropolis').map(b => ({ id: b.id, name: b.name, sub: 'Aerotropolis · ' + propsInBlock(b.id).length + ' available', kind: 'block', color: '#3F6B4A' }));
+    if (catId === 'roads') return DS.keyRoads.map(r => ({ id: r.id, name: r.name + (r.verify ? '  · verify' : ''), sub: 'Key road', kind: 'line', color: '#16356A', photos: true }));
+    if (catId === 'aerocity-blk') return DS.blocks.filter(b => b.area === 'Aerocity').map(b => ({ id: b.id, name: b.name, sub: 'Aerocity · ' + propsInBlock(b.id).length + ' available', kind: 'block', color: '#2E5A86' }));
+    if (catId === 'aerot-blk') return DS.blocks.filter(b => b.area === 'Aerotropolis').map(b => ({ id: b.id, name: b.name, sub: 'Aerotropolis · ' + propsInBlock(b.id).length + ' available', kind: 'block', color: '#3F6B4A' }));
     const c = catById(catId) || {};
-    return PM.zones.filter(z => z.cat === catId).map(z => ({ id: z.id, name: z.name, sub: c.label, kind: 'zone', color: c.color, photos: z.photos }))
-      .concat(PM.pins.filter(p => p.cat === catId).map(p => ({ id: p.id, name: p.name, sub: c.label, kind: 'pin', color: c.color, photos: p.photos })));
+    return DS.zones.filter(z => z.cat === catId).map(z => ({ id: z.id, name: z.name, sub: c.label, kind: 'zone', color: c.color, photos: z.photos }))
+      .concat(DS.pins.filter(p => p.cat === catId).map(p => ({ id: p.id, name: p.name, sub: c.label, kind: 'pin', color: c.color, photos: p.photos })));
   }
   const catCount = (id) => catItems(id).length;
   const inCatItem = (id) => state.catId && catItems(state.catId).some(i => i.id === id);
@@ -102,8 +112,8 @@
     if (kind === 'easy') { LW = EW; LH = EH; } else { LW = 1380; LH = 921; }
     l.style.width = LW + 'px'; l.style.height = LH + 'px';
     l.className = 'maplayer ' + kind;
-    if (kind === 'original') l.innerHTML = `<img class="orig" src="${PM.assets.original}" alt="Official masterplan">` + origSVG();
-    else if (kind === 'sector') l.innerHTML = `<div class="sector-wrap" style="width:${LW}px;height:${LH}px;background-image:url('${PM.assets.sector}')"></div><div id="proofG"></div>`;
+    if (kind === 'original') l.innerHTML = `<img class="orig" src="${DS.assets.original}" alt="Official masterplan">` + origSVG();
+    else if (kind === 'sector') l.innerHTML = `<div class="sector-wrap" style="width:${LW}px;height:${LH}px;background-image:url('${DS.assets.sector}')"></div><div id="proofG"></div>`;
     else l.innerHTML = easySVG();
     builtSig = sig; updateMapOverlays();
     if (fresh) requestAnimationFrame(fit); else applyT(false);
@@ -115,10 +125,10 @@
       'M 200 120 L 200 880', 'M 1240 120 L 1240 880', 'M 120 350 L 1330 350',
       'M 120 820 L 1330 820', 'M 760 120 L 770 900', 'M 430 120 L 440 900'
     ].map(d => `<path d="${d}" class="in-road"/>`).join('');
-    const roads = PM.keyRoads.map(r => `<path d="${r.easyD}" class="e-road-casing"/>`).join('')
-      + PM.keyRoads.map(r => `<path d="${r.easyD}" class="e-road" data-roadpath="${r.id}"/>`).join('')
-      + PM.keyRoads.map(r => `<path d="${r.easyD}" class="e-road-hit" data-hit="line:${r.id}"/>`).join('');
-    const zones = PM.zones.map(z => {
+    const roads = DS.keyRoads.map(r => `<path d="${r.easyD}" class="e-road-casing"/>`).join('')
+      + DS.keyRoads.map(r => `<path d="${r.easyD}" class="e-road" data-roadpath="${r.id}"/>`).join('')
+      + DS.keyRoads.map(r => `<path d="${r.easyD}" class="e-road-hit" data-hit="line:${r.id}"/>`).join('');
+    const zones = DS.zones.map(z => {
       const c = catColor(z.cat);
       return `<g class="e-zone" data-hit="zone:${z.id}" data-zid="${z.id}">
         <rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="18" fill="${hexA(c, .16)}" stroke="${hexA(c, .55)}" stroke-width="2" ${z.dashed ? 'stroke-dasharray="11 8"' : ''} class="zfill"/>
@@ -126,7 +136,7 @@
         ${(z.pins || []).map(p => `<g><circle cx="${p.at[0]}" cy="${p.at[1]}" r="4.5" fill="${c}"/><text x="${p.at[0]}" y="${p.at[1] + 20}" class="e-sublabel" text-anchor="middle">${esc(p.name)}</text></g>`).join('')}
       </g>`;
     }).join('');
-    const blocks = PM.blocks.map(b => {
+    const blocks = DS.blocks.map(b => {
       const c = catColor(b.cat);
       return `<g class="e-block" data-hit="block:${b.id}" data-bid="${b.id}">
         <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="14" fill="${hexA(c, .2)}" stroke="${hexA(c, .7)}" stroke-width="2" class="bfill"/>
@@ -134,8 +144,8 @@
         <text x="${b.x + b.w / 2}" y="${b.y + b.h / 2 + 24}" class="e-bsub" text-anchor="middle">${esc(b.area)}</text>
       </g>`;
     }).join('');
-    const roadLabels = PM.keyRoads.map(r => `<g class="e-rlabel-g" data-roadlabel="${r.id}"><text x="${r.labelAt[0]}" y="${r.labelAt[1]}" class="e-rlabel" text-anchor="middle">${esc(r.name.replace(' / Zirakpur–Banur Corridor', ''))}</text></g>`).join('');
-    const pins = PM.pins.map(p => {
+    const roadLabels = DS.keyRoads.map(r => `<g class="e-rlabel-g" data-roadlabel="${r.id}"><text x="${r.labelAt[0]}" y="${r.labelAt[1]}" class="e-rlabel" text-anchor="middle">${esc(r.name.replace(' / Zirakpur–Banur Corridor', ''))}</text></g>`).join('');
+    const pins = DS.pins.map(p => {
       const c = catColor(p.cat);
       return `<g class="e-pin" data-hit="${itemKindOf(p.id)}:${p.id}" data-pid="${p.id}">
         <circle cx="${p.at[0]}" cy="${p.at[1]}" r="8" fill="${c}" stroke="#fff" stroke-width="2.5"/>
@@ -159,7 +169,7 @@
 
   /* ---------- ORIGINAL MAP overlay (real geometry highlights) ---------- */
   function origSVG() {
-    const roadOf = {}; PM.keyRoads.forEach(r => roadOf[r.cyanIdx] = r.id);
+    const roadOf = {}; DS.keyRoads.forEach(r => roadOf[r.cyanIdx] = r.id);
     const lines = GEO.cyan.map((d, i) => `<path d="${d}" class="o-road" data-roadpath="${roadOf[i] || ''}"/>`).join('');
     const hits = GEO.cyan.map((d, i) => roadOf[i] ? `<path d="${d}" class="o-hit" data-hit="line:${roadOf[i]}"/>` : '').join('');
     return `<svg class="easy-svg orig-ov" viewBox="${GEO.viewBox}" preserveAspectRatio="xMidYMid meet"><g id="oRoads">${lines}</g><g id="oSpot"></g><g id="oHit">${hits}</g></svg>`;
@@ -198,7 +208,7 @@
   function renderTags() {
     const g = layer() && layer().querySelector('#tagG'); if (!g) return;
     if (!(state.mapMode === 'easy' && state.showProps && state.section === 'master')) { g.innerHTML = ''; return; }
-    g.innerHTML = PM.properties.map(p => { const b = blockById(p.blockId) || { x: 700, y: 480, w: 120, h: 100 };
+    g.innerHTML = DS.properties.map(p => { const b = blockById(p.blockId) || { x: 700, y: 480, w: 120, h: 100 };
       const x = b.x + b.w / 2, y = b.y + 14;
       return `<button class="ptag ${p.id === state.previewId ? 'sel' : ''}" data-tag="${p.id}" style="left:${x}px;top:${y}px">
         <span class="no">${esc(p.plotNumber)}</span><span class="sz">${esc(p.size)}</span><span class="av">Available</span></button>`;
@@ -236,7 +246,7 @@
           ${a.live ? `<div style="display:flex;align-items:center;gap:7px;margin-top:12px"><span style="width:7px;height:7px;border-radius:50%;background:#B07A2B"></span><span style="font-size:13px;font-weight:600;color:#8A5E22;line-height:1.35">${esc(a.hook)}</span></div>` : `<div style="margin-top:12px"><span class="soon-tag">Coming soon</span></div>`}</div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:22px;padding-top:15px;border-top:1px solid #ECE2CD"><span style="font-size:13.5px;color:#5A554A;font-weight:600">${a.live ? 'Interactive masterplan' : 'Map being prepared'}</span>${a.live ? '<span style="font-size:13px;color:#16356A;font-weight:730">Open →</span>' : ''}</div></button>`).join('')}</div></div>`;
   }
-  function bindAreaSelect() { document.querySelectorAll('.as-tile[data-area]').forEach(b => b.addEventListener('click', () => { const a = PM.areas.find(x => x.id === b.getAttribute('data-area')); if (!a || !a.live) return; Object.assign(state, resetPlan({ space: 'plan', areaId: a.id })); builtSig = ''; render(); })); }
+  function bindAreaSelect() { document.querySelectorAll('.as-tile[data-area]').forEach(b => b.addEventListener('click', async () => { const a = PM.areas.find(x => x.id === b.getAttribute('data-area')); if (!a || !a.live) return; Object.assign(state, resetPlan({ space: 'plan', areaId: a.id })); await useDataset(a.id); builtSig = ''; render(); })); }
 
   /* ---------- PLAN SHELL ---------- */
   function planHTML() {
@@ -353,7 +363,7 @@
         ${p.near.length ? `<div class="rel-h">Nearby value drivers</div><div style="display:flex;flex-wrap:wrap;gap:8px">${p.near.map(n => `<span class="driver-chip">◆ ${esc(driverName(n))}</span>`).join('')}</div>` : ''}
         <button class="btn-ghost wfull" id="areaContext" style="height:48px;margin-top:20px;color:#16356A">Show Area Context →</button>
         <button class="btn-ghost wfull" id="backMaster2" style="height:46px;margin-top:10px">Back to Masterplan</button></div>`;
-    const b = state.sectorBlock ? PM.sectorMaps.find(s => s.id === state.sectorBlock) : null;
+    const b = state.sectorBlock ? DS.sectorMaps.find(s => s.id === state.sectorBlock) : null;
     return `<div class="head" style="padding-bottom:14px">
         <button class="backlink" id="backToSectors">‹ All sector maps</button>
         <div class="serif" style="font-size:26px;font-weight:560;margin-top:10px">${b ? esc(b.name) : 'Sector Map'}</div>
@@ -389,9 +399,9 @@
     return true;
   }
   function browseHTML() {
-    const list = PM.properties.filter(matchProp);
+    const list = DS.properties.filter(matchProp);
     const active = ['type', 'area', 'location', 'size'].reduce((n, k) => n + state.filters[k].size, 0);
-    const grp = (key) => { const g = PM.filters[key]; return `<div class="fgroup"><div class="fglabel">${g.label}</div><div class="fchips">${g.values.map(v => { const val = v.val || v, lab = v.label || v; const on = state.filters[key].has(val); return `<button class="fchip ${on ? 'on' : ''}" data-fk="${key}" data-fv="${esc(val)}">${esc(lab)}</button>`; }).join('')}</div></div>`; };
+    const grp = (key) => { const g = DS.filters[key]; return `<div class="fgroup"><div class="fglabel">${g.label}</div><div class="fchips">${g.values.map(v => { const val = v.val || v, lab = v.label || v; const on = state.filters[key].has(val); return `<button class="fchip ${on ? 'on' : ''}" data-fk="${key}" data-fv="${esc(val)}">${esc(lab)}</button>`; }).join('')}</div></div>`; };
     return `<div class="full-in">
       <div class="eyebrow">Selected properties</div>
       <div class="serif" style="font-size:40px;font-weight:560;letter-spacing:-1px;line-height:1.02;margin-top:6px">${esc(area().name)} Properties</div>
@@ -430,7 +440,7 @@
   }
   function sectorsHubHTML() {
     const q = state.secQ.trim().toLowerCase();
-    let list = PM.sectorMaps.filter(s => s.area === 'Aerocity' || s.area === 'Aerotropolis');
+    let list = DS.sectorMaps.filter(s => s.area === 'Aerocity' || s.area === 'Aerotropolis');
     if (state.secArea !== 'all') list = list.filter(s => s.area === state.secArea);
     if (q) list = list.filter(s => (s.name + ' ' + s.block).toLowerCase().includes(q));
     const chips = [['all', 'All'], ['Aerocity', 'Aerocity'], ['Aerotropolis', 'Aerotropolis']];
@@ -467,7 +477,7 @@
     on('areaToggle', () => { state.areaMenuOpen = !state.areaMenuOpen; render(); });
     on('areaScrim', () => { state.areaMenuOpen = false; render(); });
     on('viewAllSectors', () => { Object.assign(state, { section: 'sectors', areaMenuOpen: false }); render(); });
-    each('[data-sw]', b => b.addEventListener('click', () => { const a = PM.areas.find(x => x.id === b.getAttribute('data-sw')); if (!a || !a.live) return; Object.assign(state, resetPlan({ areaId: a.id })); builtSig = ''; render(); }));
+    each('[data-sw]', b => b.addEventListener('click', async () => { const a = PM.areas.find(x => x.id === b.getAttribute('data-sw')); if (!a || !a.live) return; Object.assign(state, resetPlan({ areaId: a.id })); await useDataset(a.id); builtSig = ''; render(); }));
     on('tabMaster', () => { Object.assign(state, { section: 'master' }); builtSig = ''; render(); });
     on('tabProps', () => { Object.assign(state, { section: 'props', propView: 'browse', selectedId: null, previewId: null }); render(); });
     on('tabSectors', () => { Object.assign(state, { section: 'sectors' }); render(); });
@@ -489,7 +499,7 @@
     each('[data-photos]', b => b.addEventListener('click', () => { state.itemId = b.getAttribute('data-photos'); openLightbox(0); }));
     each('[data-details]', b => b.addEventListener('click', () => { state.itemId = b.getAttribute('data-details'); state.itemOpen = true; render(); }));
     each('[data-viewprops]', b => b.addEventListener('click', () => { const bl = blockById(b.getAttribute('data-viewprops')); Object.assign(state, { section: 'props', propView: 'browse', filters: { type: new Set(), area: new Set(bl ? [bl.area] : []), location: new Set(), size: new Set() } }); render(); }));
-    each('[data-blocksector]', b => b.addEventListener('click', () => { const bl = blockById(b.getAttribute('data-blocksector')); const sm = PM.sectorMaps.find(s => s.area === bl.area && s.block === bl.name) || PM.sectorMaps[0]; openSectorHub(sm.id); }));
+    each('[data-blocksector]', b => b.addEventListener('click', () => { const bl = blockById(b.getAttribute('data-blocksector')); const sm = DS.sectorMaps.find(s => s.area === bl.area && s.block === bl.name) || DS.sectorMaps[0]; openSectorHub(sm.id); }));
 
     const lay = el('maplayer');
     if (lay) lay.addEventListener('click', e => {
@@ -527,7 +537,7 @@
     on('lbNext', e => { e.stopPropagation(); state.lightbox.index = (state.lightbox.index + 1) % state.lightbox.photos.length; render(); });
   }
   function zoomBtn(f) { const r = wrap().getBoundingClientRect(); zoomAt(r.left + wrap().clientWidth / 2, r.top + wrap().clientHeight / 2, f); }
-  function focusProps() { const ps = PM.properties; if (!ps.length) return; const cx = ps.reduce((s, p) => { const b = blockById(p.blockId) || { x: 700, w: 100 }; return s + b.x + b.w / 2; }, 0) / ps.length; const cy = ps.reduce((s, p) => { const b = blockById(p.blockId) || { y: 500, h: 100 }; return s + b.y + b.h / 2; }, 0) / ps.length; setTimeout(() => focusBox(cx, cy, 760, 520, 1.7), 60); }
+  function focusProps() { const ps = DS.properties; if (!ps.length) return; const cx = ps.reduce((s, p) => { const b = blockById(p.blockId) || { x: 700, w: 100 }; return s + b.x + b.w / 2; }, 0) / ps.length; const cy = ps.reduce((s, p) => { const b = blockById(p.blockId) || { y: 500, h: 100 }; return s + b.y + b.h / 2; }, 0) / ps.length; setTimeout(() => focusBox(cx, cy, 760, 520, 1.7), 60); }
   function toggleProps() { state.showProps = !state.showProps; state.previewId = null; refreshControls(); updateMapOverlays(); if (state.showProps) focusProps(); else fit(); }
   function clearFilters() { state.filters = { type: new Set(), area: new Set(), location: new Set(), size: new Set() }; render(); }
 
@@ -559,5 +569,6 @@
   function toast(msg) { let t = el('toast'); if (!t) { t = document.createElement('div'); t.id = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.style.opacity = '1'; clearTimeout(t._h); t._h = setTimeout(() => t.style.opacity = '0', 1900); }
 
   window.addEventListener('resize', () => { if (state.space === 'plan') fit(); });
+  await useDataset(state.areaId);
   render();
 })();
