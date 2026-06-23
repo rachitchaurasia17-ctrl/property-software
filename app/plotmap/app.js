@@ -225,7 +225,20 @@
     scopedZones().filter(z => !z.svgId || !GEO.paths || !GEO.paths[z.svgId]).forEach(z => addPin(z, 'zone')); // Fallback
     scopedPins().forEach(p => addPin(p, 'pin'));
 
-    return `<svg class="easy-svg orig-ov" viewBox="${GEO.viewBox || '0 0 4599 3069'}" preserveAspectRatio="xMidYMid meet"><g id="oRoadCase">${casing}</g><g id="oBlocks">${blocksHTML}</g><g id="oZones">${zonesHTML}</g><g id="oRoads">${lines}</g><g id="oPins">${pinsHTML.join('')}</g><g id="oSpot"></g><g id="oHit">${hits}</g></svg>`;
+    return `<svg class="easy-svg orig-ov" viewBox="${GEO.viewBox || '0 0 4599 3069'}" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <filter id="eglow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="15"/>
+        </filter>
+      </defs>
+      <g id="oRoadCase">${casing}</g>
+      <g id="oBlocks">${blocksHTML}</g>
+      <g id="oZones">${zonesHTML}</g>
+      <g id="oRoads">${lines}</g>
+      <g id="oPins">${pinsHTML.join('')}</g>
+      <g id="oSpot"></g>
+      <g id="oHit">${hits}</g>
+    </svg>`;
   }
 
   /* ---------- overlays: highlight / declutter / spotlight ---------- */
@@ -257,20 +270,8 @@
       renderTags();
     } else if (kind === 'original') {
       l.querySelectorAll('.o-road, .o-road-case').forEach(p => { 
-        const id = p.getAttribute('data-roadpath'); 
-        const inCat = !!cat && cat === 'roads';
-        const isSel = selIds.has(id);
-        if (hasSel) {
-          p.classList.toggle('act', isSel);
-          p.classList.toggle('show', isSel);
-          p.classList.toggle('soft', false);
-          p.classList.toggle('hide', !isSel);
-        } else {
-          p.classList.toggle('act', inCat);
-          p.classList.toggle('show', inCat);
-          p.classList.toggle('soft', false);
-          p.classList.toggle('hide', !inCat);
-        }
+        p.classList.remove('act', 'show', 'soft');
+        p.classList.add('hide');
       });
       l.querySelectorAll('.o-block, .o-zone').forEach(p => { 
         const id = p.getAttribute('data-itempath'); 
@@ -303,25 +304,47 @@
            const lines = Array.from(selIds).filter(sel => itemKindOf(sel) === 'line');
            if (lines.length > 0) {
              const paths = lines.map(sel => GEO.paths[roadById(sel).svgId]).filter(Boolean);
-             paths.forEach(d => sp.insertAdjacentHTML('beforeend', `<path d="${d}" filter="url(#eglow)" style="fill:none;stroke:#2BD0E6;stroke-width:44;opacity:.4;stroke-linecap:round;stroke-linejoin:round"/>`));
-             paths.forEach(d => sp.insertAdjacentHTML('beforeend', `<path d="${d}" style="fill:none;stroke:#0B2552;stroke-width:28;stroke-linecap:round;stroke-linejoin:round"/>`));
-             paths.forEach(d => sp.insertAdjacentHTML('beforeend', `<path d="${d}" style="fill:none;stroke:#fff;stroke-width:14;stroke-linecap:round;stroke-linejoin:round"/>`));
-             paths.forEach(d => sp.insertAdjacentHTML('beforeend', `<path d="${d}" style="fill:none;stroke:#2BD0E6;stroke-width:8;stroke-linecap:round;stroke-linejoin:round"/>`));
+             let html = '';
+             html += `<g filter="url(#eglow)" style="fill:none;stroke:#2BD0E6;stroke-width:44;opacity:.4;stroke-linecap:round;stroke-linejoin:round">`;
+             paths.forEach(d => { html += `<path d="${d}"/>`; });
+             html += `</g>`;
+             html += `<g style="fill:none;stroke:#0B2552;stroke-width:28;stroke-linecap:round;stroke-linejoin:round">`;
+             paths.forEach(d => { html += `<path d="${d}"/>`; });
+             html += `</g>`;
+             html += `<g style="fill:none;stroke:#fff;stroke-width:14;stroke-linecap:round;stroke-linejoin:round">`;
+             paths.forEach(d => { html += `<path d="${d}"/>`; });
+             html += `</g>`;
+             html += `<g style="fill:none;stroke:#2BD0E6;stroke-width:8;stroke-linecap:round;stroke-linejoin:round">`;
+             paths.forEach(d => { html += `<path d="${d}"/>`; });
+             html += `</g>`;
+             sp.insertAdjacentHTML('beforeend', html);
            }
+           let pinHtml = '';
            selIds.forEach(sel => {
              if (itemKindOf(sel) === 'pin') {
                const it = itemObj(sel); let cx = 0, cy = 0;
                if (it.at) { cx = (it.at[0] / EW) * IW; cy = (it.at[1] / EH) * IH; }
                const c = catColor(it.cat);
-               sp.insertAdjacentHTML('beforeend', `<g style="transform:translate(${cx}px,${cy}px)"><circle cx="0" cy="0" r="58" fill="${c}" opacity="0.3"/><circle cx="0" cy="0" r="42" fill="none" stroke="${c}" stroke-width="12"/></g>`);
+               pinHtml += `<g style="transform:translate(${cx}px,${cy}px)"><circle cx="0" cy="0" r="58" fill="${c}" opacity="0.3"/><circle cx="0" cy="0" r="42" fill="none" stroke="${c}" stroke-width="12"/></g>`;
              }
            });
+           if (pinHtml) sp.insertAdjacentHTML('beforeend', pinHtml);
         } else if (cat === 'roads') {
-           const paths = catItems('roads').map(item => GEO.paths[item.svgId]).filter(Boolean);
-           paths.forEach(d => sp.insertAdjacentHTML('beforeend', `<path d="${d}" filter="url(#eglow)" style="fill:none;stroke:#2BD0E6;stroke-width:44;opacity:.4;stroke-linecap:round;stroke-linejoin:round"/>`));
-           paths.forEach(d => sp.insertAdjacentHTML('beforeend', `<path d="${d}" style="fill:none;stroke:#0B2552;stroke-width:28;stroke-linecap:round;stroke-linejoin:round"/>`));
-           paths.forEach(d => sp.insertAdjacentHTML('beforeend', `<path d="${d}" style="fill:none;stroke:#fff;stroke-width:14;stroke-linecap:round;stroke-linejoin:round"/>`));
-           paths.forEach(d => sp.insertAdjacentHTML('beforeend', `<path d="${d}" style="fill:none;stroke:#2BD0E6;stroke-width:8;stroke-linecap:round;stroke-linejoin:round"/>`));
+           const paths = catItems('roads').map(item => GEO.paths[roadById(item.id).svgId]).filter(Boolean);
+           let html = '';
+           html += `<g filter="url(#eglow)" style="fill:none;stroke:#2BD0E6;stroke-width:44;opacity:.4;stroke-linecap:round;stroke-linejoin:round">`;
+           paths.forEach(d => { html += `<path d="${d}"/>`; });
+           html += `</g>`;
+           html += `<g style="fill:none;stroke:#0B2552;stroke-width:28;stroke-linecap:round;stroke-linejoin:round">`;
+           paths.forEach(d => { html += `<path d="${d}"/>`; });
+           html += `</g>`;
+           html += `<g style="fill:none;stroke:#fff;stroke-width:14;stroke-linecap:round;stroke-linejoin:round">`;
+           paths.forEach(d => { html += `<path d="${d}"/>`; });
+           html += `</g>`;
+           html += `<g style="fill:none;stroke:#2BD0E6;stroke-width:8;stroke-linecap:round;stroke-linejoin:round">`;
+           paths.forEach(d => { html += `<path d="${d}"/>`; });
+           html += `</g>`;
+           sp.insertAdjacentHTML('beforeend', html);
         }
       }
       l.classList.toggle('dimmed', !!(hasSel || cat));
