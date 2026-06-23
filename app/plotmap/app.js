@@ -30,7 +30,7 @@
   const area = () => PM.areas.find(a => a.id === state.areaId) || PM.areas[0];
   const num = (n) => typeof n === 'number' && Number.isFinite(n);
   const rectOk = (o) => o && ['x','y','w','h'].every(k => num(o[k]));
-  const activeCategories = () => PM.categoriesFor(DS).filter(c => c.id !== 'green');
+  const activeCategories = () => PM.categoriesFor(DS).filter(c => c.id !== 'green' && c.id !== 'entry');
   const catById = (id) => activeCategories().find(c => c.id === id) || PM.categoryById(id);
   const keyRoads = () => (DS.keyRoads || []).filter(r => r && r.clientVisible !== false && r.id && r.name && r.easyD && Array.isArray(r.labelAt));
   const mapBlocks = () => (DS.blocks || []).filter(b => b && b.clientVisible !== false && b.id && b.name && b.cat && rectOk(b));
@@ -254,7 +254,8 @@
       l.querySelectorAll('.o-road, .o-road-case').forEach(p => { 
         const id = p.getAttribute('data-roadpath'); 
         const on = relate(id, 'line'); 
-        p.classList.toggle('soft', !!cat && cat === 'roads' && on && !sel); 
+        p.classList.toggle('soft', false); // No longer use soft for roads category view
+        p.classList.toggle('cat-act', !!cat && cat === 'roads' && on && !sel);
         p.classList.toggle('hide', sel ? id !== sel : (cat ? !on : true)); 
         p.classList.toggle('show', on && !p.classList.contains('hide'));
         p.classList.toggle('act', id === sel);
@@ -383,27 +384,34 @@
     if (state.section === 'props' && state.propView === 'sector') return sectorPanelHTML();
     
     return `<div class="head" style="padding-bottom:14px">
-        <div class="eyebrow">Official masterplan proof layer</div>
-        <div class="title-xl serif">${esc(area().name)}</div>
-        <div class="quick"><button class="quick-btn" id="qAllMaps">⤺ View All Maps</button><button class="quick-btn" id="qAllSectors">▦ View All Sector Maps</button></div>
+        <div class="eyebrow" style="margin-bottom:6px">Official masterplan proof layer</div>
+        <div class="title-xl serif" style="margin-bottom:16px">${esc(area().name)}</div>
+        <div class="quick"><button class="quick-btn" id="qAllMaps">⤺ View All Maps</button><button class="quick-btn" id="qAllSectors">▦ View Sector Maps</button></div>
       </div>
       <div class="scroll">
-        <div style="font-size:12.5px;font-weight:700;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">Map Layers</div>
+        <div style="font-size:12px;font-weight:750;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Map Layers</div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px">
-          ${activeCategories().filter(c => catCount(c.id)).map(c => `
+          ${activeCategories().map(c => `
             <button class="layer-pill ${state.catId === c.id ? 'act' : ''}" data-cat="${c.id}">
-              <i style="background:${c.color}"></i> ${esc(c.label)} <span class="cnt">${catCount(c.id)}</span>
+              ${esc(c.label)}
             </button>`).join('')}
         </div>
 
         ${state.catId ? `
-          <div style="font-size:12.5px;font-weight:700;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">${esc(catById(state.catId).label)}</div>
-          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:28px">
+          <div style="font-size:12px;font-weight:750;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Selected Layer: ${esc(catById(state.catId).label)}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:28px">
             ${catItems(state.catId).map(i => `
-              <button class="item-btn ${state.itemId === i.id ? 'sel' : ''}" data-item="${i.id}" data-kind="${i.kind}">
-                <span class="item-dot" style="width:13px;height:${i.kind === 'line' ? '4px' : '13px'};border-radius:${i.kind === 'line' ? '3px' : '50%'};background:${i.color || catColor(i.cat)}"></span>
-                <span class="lab"><b>${esc(i.name)}</b>${i.sub ? `<span>${esc(i.sub)}</span>` : ''}</span>
+              <button class="item-chip ${state.itemId === i.id ? 'act' : ''}" data-item="${i.id}" data-kind="${i.kind}">
+                ${esc(i.name)}
               </button>`).join('')}
+          </div>
+        ` : ''}
+
+        ${state.catId && !state.itemId ? `
+          <div style="background:#fff;border:1px solid #EBE1CC;border-radius:12px;padding:20px;text-align:center">
+            <div style="color:#6A6150;font-size:14px;font-weight:550;line-height:1.5">
+              All ${esc(catById(state.catId).label.toLowerCase())} are highlighted on the map.<br>Select a chip above to spotlight one.
+            </div>
           </div>
         ` : ''}
 
@@ -412,33 +420,37 @@
   }
   function previewCardHTML(id) {
     const kind = itemKindOf(id);
+    const it = itemObj(id);
+    const cat = catById(itemCategory(id)) || { label: 'Value driver', color: '#16356A' };
+    const hasPhotos = it.photos !== false;
+
+    let metaLine = '';
     if (kind === 'block') {
-      const b = blockById(id), props = propsInBlock(id);
-      return `<div class="preview-card"><div class="pc-cat" style="color:${catColor(b.cat)}">${esc(b.area)} Block</div><div class="pc-name">${esc(b.name)}</div>
-        <div class="pc-rel"><span>${props.length} available propert${props.length === 1 ? 'y' : 'ies'}</span></div>
-        <div class="pc-actions"><button class="pc-primary" data-viewprops="${id}">View Properties</button><button class="pc-ghost" data-focus="${id}">Focus Map</button></div></div>`;
+      const props = propsInBlock(id);
+      metaLine = `${props.length} available propert${props.length === 1 ? 'y' : 'ies'}`;
+    } else {
+      metaLine = it.sub || `Official ${cat.label.toLowerCase()}`;
     }
-    const it = itemObj(id); const cat = catById(itemCategory(id)) || { label: 'Value driver', color: '#16356A' };
-    const hasPhotos = it.photos !== false; // display by default unless explicitly false
-    return `<div class="preview-card">
-      <div class="pc-top">
-        <div>
-          <div class="pc-cat" style="color:${cat.color}">${esc(cat.label)}</div>
-          <div class="pc-name">${esc(it.name)}</div>
-        </div>
-        ${hasPhotos ? `<button class="gallery-icon-btn" data-photos="${id}" title="View Photos">
-          <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <circle cx="8.5" cy="8.5" r="1.5"></circle>
-            <polyline points="21 15 16 10 5 21"></polyline>
-          </svg>
-        </button>` : ''}
+
+    return `<div class="preview-card" style="margin-top:12px; border:none; padding:0; box-shadow:none; background:transparent;">
+      <div class="pc-cat" style="color:${cat.color}">${esc(cat.label)}</div>
+      <div class="pc-name" style="font-size:24px; margin-bottom:6px;">${esc(it.name)}</div>
+      <div class="pc-desc" style="color:#6A6150; font-size:14px; margin-bottom:16px;">${esc(metaLine)}</div>
+      
+      <div class="pc-photo-area" style="width:100%; height:180px; border-radius:12px; background:${hasPhotos ? PM.grads[itemCategory(id)] || '#A0AAB5' : '#F4EFE6'}; display:flex; align-items:center; justify-content:center; margin-bottom:16px; position:relative; overflow:hidden;">
+        ${hasPhotos ? `
+           <span style="color:rgba(255,255,255,0.9); font-weight:600; font-size:14px; position:relative; z-index:2">Preview Available</span>
+        ` : `
+           <span style="color:#A89F89; font-weight:600; font-size:13px;">No photos added yet</span>
+        `}
       </div>
-      ${it.related && it.related.length ? `<div class="pc-rel">${it.related.map(r => `<span>${esc(r)}</span>`).join('')}</div>` : ''}
-      <div class="pc-actions">
-        <button class="pc-ghost wfull" data-focus="${id}">Focus on Map</button>
+
+      <div class="pc-actions" style="display:flex; gap:8px;">
+        ${hasPhotos ? `<button class="btn-primary" data-photos="${id}" style="flex:1;">View Gallery</button>` : ''}
+        ${kind === 'block' ? `<button class="pc-ghost" data-viewprops="${id}" style="flex:1;">Properties</button>` : ''}
+        <button class="pc-ghost" data-focus="${id}" style="${hasPhotos || kind === 'block' ? 'flex:none; padding:0 16px;' : 'flex:1;'}">Focus Map</button>
+        ${it.mapsUrl ? `<a href="${it.mapsUrl}" target="_blank" rel="noopener" class="pc-ghost" style="flex:none; padding:0 16px; text-decoration:none; display:flex; align-items:center;">Map</a>` : ''}
       </div>
-      ${it.mapsUrl ? `<div class="gmaps-row"><a href="${it.mapsUrl}" target="_blank" rel="noopener">◎ Open in Google Maps</a></div>` : ''}
     </div>`;
   }
 

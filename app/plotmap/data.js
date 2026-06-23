@@ -9,14 +9,14 @@
 window.PM = {
   /* shared value-driver taxonomy (datasets map their items onto these) */
   categories: [
-    { id:'roads',        label:'Key Roads & Connectivity', color:'#16356A', kind:'line' },
+    { id:'roads',        label:'Key Roads',                color:'#16356A', kind:'line' },
     { id:'blocks',       label:'Blocks & Pockets',         color:'#2E5A86', kind:'block' },
     { id:'sectors',      label:'Sectors',                  color:'#3F6B4A', kind:'block' },
     { id:'commercial',   label:'Commercial Zones',         color:'#B8823A', kind:'zone' },
-    { id:'institutions', label:'Education & Institutions', color:'#7A4A6E', kind:'zone' },
+    { id:'institutions', label:'Education',                color:'#7A4A6E', kind:'zone' },
     { id:'it',           label:'IT & Employment',          color:'#2F7E78', kind:'zone' },
     { id:'green',        label:'Green & Open Areas',       color:'#6E9456', kind:'zone' },
-    { id:'growth',       label:'Future Growth Areas',      color:'#9A6A1E', kind:'zone' },
+    { id:'growth',       label:'Future Growth',            color:'#9A6A1E', kind:'zone' },
     { id:'entry',        label:'Entry & Exit Points',      color:'#5A6B7E', kind:'pin' },
     { id:'landmarks',    label:'Landmarks',                color:'#B5604F', kind:'pin' }
   ],
