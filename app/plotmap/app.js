@@ -198,15 +198,15 @@
   /* ---------- ORIGINAL MAP overlay (real geometry highlights) ---------- */
   function origSVG() {
     const roadPaths = keyRoads().filter(r => r.svgId && GEO.paths && GEO.paths[r.svgId]);
-    const casing = roadPaths.map(r => `<path d="${GEO.paths[r.svgId]}" class="o-road-case" data-roadpath="${r.id}"/>`).join('');
-    const lines = roadPaths.map(r => `<path d="${GEO.paths[r.svgId]}" class="o-road" data-roadpath="${r.id}"/>`).join('');
+    const casing = roadPaths.map(r => `<path d="${GEO.paths[r.svgId]}" class="o-road-case" style="--rfill:${catColor('roads')}" data-roadpath="${r.id}"/>`).join('');
+    const lines = roadPaths.map(r => `<path d="${GEO.paths[r.svgId]}" class="o-road" style="--rfill:${catColor('roads')}" data-roadpath="${r.id}"/>`).join('');
     const hits = roadPaths.map(r => `<path d="${GEO.paths[r.svgId]}" class="o-hit" data-hit="line:${r.id}"/>`).join('');
     
     const blockPaths = scopedBlocks().filter(b => b.svgId && GEO.paths && GEO.paths[b.svgId]);
-    const blocksHTML = blockPaths.map(b => `<path d="${GEO.paths[b.svgId]}" class="o-block" data-itempath="${b.id}" data-hit="block:${b.id}"/>`).join('');
+    const blocksHTML = blockPaths.map(b => `<path d="${GEO.paths[b.svgId]}" class="o-block" style="${b.color ? `--bfill:${b.color}` : ''}" data-itempath="${b.id}" data-hit="block:${b.id}"/>`).join('');
 
     const zonePaths = scopedZones().filter(z => z.svgId && GEO.paths && GEO.paths[z.svgId]);
-    const zonesHTML = zonePaths.map(z => `<path d="${GEO.paths[z.svgId]}" class="o-zone" data-itempath="${z.id}" data-hit="zone:${z.id}"/>`).join('');
+    const zonesHTML = zonePaths.map(z => `<path d="${GEO.paths[z.svgId]}" class="o-zone cat-${z.cat}" style="--zfill:${catColor(z.cat)}" data-itempath="${z.id}" data-hit="zone:${z.id}"/>`).join('');
 
     const pinsHTML = [];
     const addPin = (item, kind) => {
@@ -257,6 +257,7 @@
         p.classList.toggle('soft', !!cat && cat === 'roads' && on && !sel); 
         p.classList.toggle('hide', sel ? id !== sel : (cat ? !on : true)); 
         p.classList.toggle('show', on && !p.classList.contains('hide'));
+        p.classList.toggle('act', id === sel);
       });
       l.querySelectorAll('.o-block, .o-zone').forEach(p => { 
         const id = p.getAttribute('data-itempath'); 
@@ -265,11 +266,13 @@
         if (sel) {
           p.classList.toggle('hide', id !== sel);
           p.classList.toggle('show', id === sel);
+          p.classList.toggle('act', id === sel);
           p.classList.toggle('soft', false);
         } else {
           p.classList.toggle('soft', false);
           p.classList.toggle('hide', !inCat);
           p.classList.toggle('show', inCat && on);
+          p.classList.toggle('act', false);
         }
       });
       l.querySelectorAll('.o-pin').forEach(g => {
@@ -282,11 +285,10 @@
       });
       const sp = l.querySelector('#oSpot'); if (sp) { sp.innerHTML = '';
         if (sel && selKind === 'line') { const d = GEO.paths[roadById(sel).svgId]; if(d) sp.innerHTML = `<path d="${d}" filter="url(#eglow)" style="fill:none;stroke:#2BD0E6;stroke-width:44;opacity:.4;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#0B2552;stroke-width:28;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#fff;stroke-width:14;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#2BD0E6;stroke-width:8;stroke-linecap:round"/>`; }
-        else if (sel && selKind !== 'line') {
+        else if (sel && selKind === 'pin') {
           const it = itemObj(sel);
           let cx = 0, cy = 0;
           if (it.at) { cx = (it.at[0] / EW) * IW; cy = (it.at[1] / EH) * IH; }
-          else if (it.w) { cx = ((it.x + it.w/2) / EW) * IW; cy = ((it.y + it.h/2) / EH) * IH; }
           const c = catColor(it.cat);
           sp.innerHTML = `<g style="transform:translate(${cx}px,${cy}px)"><circle cx="0" cy="0" r="58" fill="${c}" opacity="0.3"/><circle cx="0" cy="0" r="42" fill="none" stroke="${c}" stroke-width="12"/></g>`;
         }

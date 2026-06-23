@@ -280,11 +280,13 @@ input{font-family:inherit;-webkit-appearance:none;}
 .as-tile:hover:not(.soon){transform:translateY(-3px);box-shadow:0 18px 44px rgba(6,14,32,.4);}
 .as-tile.soon{opacity:.6;cursor:default;}
 /* ---- Original Map overlay ---- */
-.orig-ov .o-road-case { fill:none; stroke:#0B1A36; stroke-width:20; stroke-linecap:round; opacity:0; transition:.3s; }
-.orig-ov .o-road { fill:none; stroke:#2BD0E6; stroke-width:12; stroke-linecap:round; opacity:0; transition:.3s; }
+.orig-ov .o-road-case { fill:none; stroke:#0B1A36; stroke-width:24; stroke-linecap:round; opacity:0; transition:.3s; }
+.orig-ov .o-road { fill:none; stroke:var(--rfill, #2BD0E6); stroke-width:12; stroke-linecap:round; opacity:0; transition:.3s; }
 .orig-ov .o-road.soft, .orig-ov .o-road-case.soft { opacity:.3; }
 .orig-ov .o-road.hide, .orig-ov .o-road-case.hide { opacity:0; }
 .orig-ov .o-road.show, .orig-ov .o-road-case.show { opacity:1; }
+.orig-ov .o-road.act { stroke-width:16; filter:drop-shadow(0 0 10px var(--rfill)); }
+.orig-ov .o-road-case.act { stroke-width:28; }
 .orig-ov .o-hit { fill:none; stroke:rgba(0,0,0,0); stroke-width:46; stroke-linecap:round; cursor:pointer; }
 
 /* floating controls */
@@ -484,12 +486,16 @@ input{font-family:inherit;-webkit-appearance:none;}
 .orig-ov .o-pin.hide { opacity:0; }
 .orig-ov .o-pin .pin-lbl-bg { stroke:#fff; stroke-width:6; }
 
-.orig-ov .o-block { fill:#2E5A86; fill-opacity:0.25; stroke:#fff; stroke-width:12; stroke-linecap:round; opacity:0; transition:.3s; }
+.orig-ov .o-block { fill:color-mix(in srgb, var(--bfill, #2E5A86) 28%, transparent); stroke:color-mix(in srgb, var(--bfill, #2E5A86) 85%, transparent); stroke-width:12; stroke-linecap:round; opacity:0; transition:.3s; }
 .orig-ov .o-block.soft { opacity:.2; }
 .orig-ov .o-block.hide { opacity:0; }
 .orig-ov .o-block.show { opacity:1; }
+.orig-ov .o-block.act { fill:color-mix(in srgb, var(--bfill, #2E5A86) 45%, transparent); stroke:var(--bfill, #2E5A86); stroke-width:14; }
 
-.orig-ov .o-zone { fill:#B8823A; fill-opacity:0.3; stroke:#fff; stroke-width:12; stroke-dasharray:16 12; stroke-linecap:round; opacity:0; transition:.3s; }
+.orig-ov .o-zone { fill:color-mix(in srgb, var(--zfill, #B8823A) 25%, transparent); stroke:color-mix(in srgb, var(--zfill, #B8823A) 80%, transparent); stroke-width:12; stroke-dasharray:16 12; stroke-linecap:round; opacity:0; transition:.3s; }
 .orig-ov .o-zone.soft { opacity:.2; }
 .orig-ov .o-zone.hide { opacity:0; }
 .orig-ov .o-zone.show { opacity:1; }
+.orig-ov .o-zone.act { fill:color-mix(in srgb, var(--zfill, #B8823A) 40%, transparent); stroke:var(--zfill, #B8823A); stroke-width:14; }
+
+.orig-ov .o-zone.cat-growth { stroke-dasharray: 24 16; stroke-width: 14; }
