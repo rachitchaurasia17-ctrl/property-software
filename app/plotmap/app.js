@@ -18,8 +18,8 @@
 
   const state = {
     space: 'area', areaId: 'aerotropolis', areaMenuOpen: false,
-    section: 'master', mapMode: 'easy', showProps: false,
-    catId: null, itemId: null, itemKind: null, itemOpen: false,
+    section: 'master', mapMode: 'original', showProps: false,
+    catId: null, selectedIds: new Set(), itemOpen: false,
     propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null,
     filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set() },
     secQ: '', secArea: 'all',
@@ -137,7 +137,7 @@
   function buildMap() {
     const kind = mapKind(); const sig = state.areaId + '|' + kind; const fresh = sig !== builtSig;
     const l = layer(); if (!l) return;
-    if (kind === 'easy') { LW = EW; LH = EH; } else { LW = 1380; LH = 921; }
+    if (kind === 'easy') { LW = EW; LH = EH; } else { LW = 1080; LH = 921; }
     l.style.width = LW + 'px'; l.style.height = LH + 'px';
     l.className = 'maplayer ' + kind;
     if (kind === 'original') l.innerHTML = `<img class="orig" src="${DS.assets.original}" alt="Official masterplan">` + origSVG();
@@ -232,69 +232,82 @@
   function updateMapOverlays() {
     const kind = mapKind(); const l = layer(); if (!l) return;
     if (kind === 'sector') { renderProof(); return; }
-    const sel = state.itemId, selKind = state.itemKind, cat = state.catId;
-    const dimAll = sel || cat;
+    const selIds = state.selectedIds, cat = state.catId;
+    const hasSel = selIds.size > 0;
+    const dimAll = hasSel || cat;
     const relate = (id, k) => { // is this item active (selected or in selected category)?
-      if (sel) return id === sel;
+      if (hasSel) return selIds.has(id);
       if (cat) { const ic = (k === 'line') ? 'roads' : itemCategory(id); return ic === cat; }
       return true;
     };
     if (kind === 'easy') {
-      l.querySelectorAll('.e-road').forEach(p => { const id = p.getAttribute('data-roadpath'); const on = relate(id, 'line'); p.classList.toggle('act', !!(sel || cat) && on); p.classList.toggle('dim', !!dimAll && !on); });
-      l.querySelectorAll('.e-block').forEach(g => { const id = g.getAttribute('data-bid'); const on = relate(id, 'block'); g.classList.toggle('act', on && (sel === id || cat === itemCategory(id))); g.classList.toggle('dim', !!dimAll && !on); });
-      l.querySelectorAll('.e-zone').forEach(g => { const id = g.getAttribute('data-zid'); const on = relate(id, 'zone'); g.classList.toggle('act', on && (sel === id || cat === itemCategory(id))); g.classList.toggle('dim', !!dimAll && !on); });
-      l.querySelectorAll('.e-pin').forEach(g => { const id = g.getAttribute('data-pid'); const on = relate(id, 'pin'); g.classList.toggle('act', on && (sel === id || cat === itemCategory(id))); g.classList.toggle('dim', (!!dimAll && !on) || (state.showProps && !sel && !cat)); });
-      l.querySelectorAll('.e-rlabel-g').forEach(g => { const id = g.getAttribute('data-roadlabel'); g.classList.toggle('act', id === sel); g.classList.toggle('dim', !!dimAll && !relate(id, 'line')); });
+      l.querySelectorAll('.e-road').forEach(p => { const id = p.getAttribute('data-roadpath'); const on = relate(id, 'line'); p.classList.toggle('act', !!(hasSel || cat) && on); p.classList.toggle('dim', !!dimAll && !on); });
+      l.querySelectorAll('.e-block').forEach(g => { const id = g.getAttribute('data-bid'); const on = relate(id, 'block'); g.classList.toggle('act', on && (selIds.has(id) || cat === itemCategory(id))); g.classList.toggle('dim', !!dimAll && !on); });
+      l.querySelectorAll('.e-zone').forEach(g => { const id = g.getAttribute('data-zid'); const on = relate(id, 'zone'); g.classList.toggle('act', on && (selIds.has(id) || cat === itemCategory(id))); g.classList.toggle('dim', !!dimAll && !on); });
+      l.querySelectorAll('.e-pin').forEach(g => { const id = g.getAttribute('data-pid'); const on = relate(id, 'pin'); g.classList.toggle('act', on && (selIds.has(id) || cat === itemCategory(id))); g.classList.toggle('dim', (!!dimAll && !on) || (state.showProps && !hasSel && !cat)); });
+      l.querySelectorAll('.e-rlabel-g').forEach(g => { const id = g.getAttribute('data-roadlabel'); g.classList.toggle('act', selIds.has(id)); g.classList.toggle('dim', !!dimAll && !relate(id, 'line')); });
       // spotlight selected road (layered) in easy
       const sp = l.querySelector('#eSpot'); if (sp) { sp.innerHTML = '';
-        if (sel && selKind === 'line') { const d = roadById(sel).easyD; sp.innerHTML = `<path d="${d}" filter="url(#eglow)" style="fill:none;stroke:#28C8E0;stroke-width:18;opacity:.5;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#0B2552;stroke-width:11;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#fff;stroke-width:7;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#2BD0E6;stroke-width:3.5;stroke-linecap:round"/>`; }
+        if (hasSel) {
+           selIds.forEach(sel => {
+             if (itemKindOf(sel) === 'line') { const d = roadById(sel).easyD; sp.insertAdjacentHTML('beforeend', `<path d="${d}" filter="url(#eglow)" style="fill:none;stroke:#28C8E0;stroke-width:18;opacity:.5;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#0B2552;stroke-width:11;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#fff;stroke-width:7;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#2BD0E6;stroke-width:3.5;stroke-linecap:round"/>`); }
+           });
+        }
       }
       renderTags();
     } else if (kind === 'original') {
       l.querySelectorAll('.o-road, .o-road-case').forEach(p => { 
         const id = p.getAttribute('data-roadpath'); 
         const on = relate(id, 'line'); 
-        p.classList.toggle('soft', false); // No longer use soft for roads category view
-        p.classList.toggle('cat-act', !!cat && cat === 'roads' && on && !sel);
-        p.classList.toggle('hide', sel ? id !== sel : (cat ? !on : true)); 
-        p.classList.toggle('show', on && !p.classList.contains('hide'));
-        p.classList.toggle('act', id === sel);
+        const inCat = !!cat && cat === 'roads';
+        const isSel = selIds.has(id);
+        p.classList.toggle('soft', !isSel && inCat);
+        p.classList.toggle('cat-act', false); // replaced by solid .act
+        p.classList.toggle('hide', !isSel && !inCat); 
+        p.classList.toggle('show', isSel || inCat);
+        p.classList.toggle('act', isSel);
       });
       l.querySelectorAll('.o-block, .o-zone').forEach(p => { 
         const id = p.getAttribute('data-itempath'); 
         const on = relate(id, itemKindOf(id)); 
         const inCat = !!cat && cat === itemCategory(id);
-        if (sel) {
-          p.classList.toggle('hide', id !== sel);
-          p.classList.toggle('show', id === sel);
-          p.classList.toggle('act', id === sel);
-          p.classList.toggle('soft', false);
+        const isSel = selIds.has(id);
+        if (hasSel) {
+          p.classList.toggle('act', isSel);
+          p.classList.toggle('soft', !isSel && inCat);
+          p.classList.toggle('hide', !isSel && !inCat);
+          p.classList.toggle('show', isSel || inCat);
         } else {
+          p.classList.toggle('act', false);
           p.classList.toggle('soft', false);
           p.classList.toggle('hide', !inCat);
           p.classList.toggle('show', inCat && on);
-          p.classList.toggle('act', false);
         }
       });
       l.querySelectorAll('.o-pin').forEach(g => {
         const id = g.getAttribute('data-itempath');
         const on = relate(id, itemKindOf(id));
         const inCat = !!cat && cat === itemCategory(id);
-        g.classList.toggle('soft', inCat && on && !sel);
-        g.classList.toggle('hide', sel ? id !== sel : (cat ? !on : true));
-        g.classList.toggle('show', on && !g.classList.contains('hide'));
+        const isSel = selIds.has(id);
+        g.classList.toggle('soft', inCat && on && !isSel);
+        g.classList.toggle('hide', hasSel ? !isSel && !inCat : (cat ? !on : true));
+        g.classList.toggle('show', isSel || (on && !g.classList.contains('hide')));
       });
       const sp = l.querySelector('#oSpot'); if (sp) { sp.innerHTML = '';
-        if (sel && selKind === 'line') { const d = GEO.paths[roadById(sel).svgId]; if(d) sp.innerHTML = `<path d="${d}" filter="url(#eglow)" style="fill:none;stroke:#2BD0E6;stroke-width:44;opacity:.4;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#0B2552;stroke-width:28;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#fff;stroke-width:14;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#2BD0E6;stroke-width:8;stroke-linecap:round"/>`; }
-        else if (sel && selKind === 'pin') {
-          const it = itemObj(sel);
-          let cx = 0, cy = 0;
-          if (it.at) { cx = (it.at[0] / EW) * IW; cy = (it.at[1] / EH) * IH; }
-          const c = catColor(it.cat);
-          sp.innerHTML = `<g style="transform:translate(${cx}px,${cy}px)"><circle cx="0" cy="0" r="58" fill="${c}" opacity="0.3"/><circle cx="0" cy="0" r="42" fill="none" stroke="${c}" stroke-width="12"/></g>`;
+        if (hasSel) {
+           selIds.forEach(sel => {
+             const k = itemKindOf(sel);
+             if (k === 'line') { const d = GEO.paths[roadById(sel).svgId]; if(d) sp.insertAdjacentHTML('beforeend', `<path d="${d}" filter="url(#eglow)" style="fill:none;stroke:#2BD0E6;stroke-width:44;opacity:.4;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#0B2552;stroke-width:28;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#fff;stroke-width:14;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#2BD0E6;stroke-width:8;stroke-linecap:round"/>`); }
+             else if (k === 'pin') {
+               const it = itemObj(sel); let cx = 0, cy = 0;
+               if (it.at) { cx = (it.at[0] / EW) * IW; cy = (it.at[1] / EH) * IH; }
+               const c = catColor(it.cat);
+               sp.insertAdjacentHTML('beforeend', `<g style="transform:translate(${cx}px,${cy}px)"><circle cx="0" cy="0" r="58" fill="${c}" opacity="0.3"/><circle cx="0" cy="0" r="42" fill="none" stroke="${c}" stroke-width="12"/></g>`);
+             }
+           });
         }
       }
-      l.classList.toggle('dimmed', !!(sel || cat));
+      l.classList.toggle('dimmed', !!(hasSel || cat));
     }
   }
   function renderTags() {
@@ -322,7 +335,7 @@
     root.className = state.present ? 'present' : '';
     root.innerHTML = planHTML(); bindPlan(); bindMap(); buildMap();
   }
-  function resetPlan(extra) { return Object.assign({ section: 'master', mapMode: 'easy', showProps: false, catId: null, itemId: null, itemKind: null, itemOpen: false, propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, areaMenuOpen: false, filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set() }, secQ: '', secArea: 'all' }, extra || {}); }
+  function resetPlan(extra) { return Object.assign({ section: 'master', mapMode: 'original', showProps: false, catId: null, selectedIds: new Set(), itemOpen: false, propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, areaMenuOpen: false, filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set() }, secQ: '', secArea: 'all' }, extra || {}); }
 
   /* ---------- AREA SELECT ---------- */
   function areaSelectHTML() {
@@ -379,18 +392,18 @@
       ${state.previewId ? previewHTML() : ''}`;
   }
 
-  /* ---------- RIGHT PANEL ---------- */
+  /* ---------- RIGHT  /* ---------- RIGHT PANEL ---------- */
   function panelHTML() {
     if (state.section === 'props' && state.propView === 'sector') return sectorPanelHTML();
     
-    return `<div class="head" style="padding-bottom:14px">
-        <div class="eyebrow" style="margin-bottom:6px">Official masterplan proof layer</div>
-        <div class="title-xl serif" style="margin-bottom:16px">${esc(area().name)}</div>
-        <div class="quick"><button class="quick-btn" id="qAllMaps">⤺ View All Maps</button><button class="quick-btn" id="qAllSectors">▦ View Sector Maps</button></div>
-      </div>
-      <div class="scroll">
+    return `<div class="scroll" style="padding-top:16px;">
+        <div style="display:flex;gap:6px;margin-bottom:20px;">
+          <button class="quick-btn ${state.mapMode === 'original' ? 'on' : ''}" data-mode="original" style="${state.mapMode==='original'?'background:#0B1A36;color:#fff;border-color:#0B1A36':''}">Original Map</button>
+          <button class="quick-btn ${state.mapMode === 'easy' ? 'on' : ''}" data-mode="easy" style="${state.mapMode==='easy'?'background:#0B1A36;color:#fff;border-color:#0B1A36':''}">Easy Map</button>
+          <button class="quick-btn" id="qAllSectors">Sector Maps</button>
+        </div>
         <div style="font-size:12px;font-weight:750;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Map Layers</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px">
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px">
           ${activeCategories().map(c => `
             <button class="layer-pill ${state.catId === c.id ? 'act' : ''}" data-cat="${c.id}">
               ${esc(c.label)}
@@ -398,62 +411,98 @@
         </div>
 
         ${state.catId ? `
-          <div style="font-size:12px;font-weight:750;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Selected Layer: ${esc(catById(state.catId).label)}</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:28px">
+          <div style="font-size:12px;font-weight:750;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Select Items in ${esc(catById(state.catId).label)}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:24px">
             ${catItems(state.catId).map(i => `
-              <button class="item-chip ${state.itemId === i.id ? 'act' : ''}" data-item="${i.id}" data-kind="${i.kind}">
+              <button class="item-chip ${state.selectedIds.has(i.id) ? 'act' : ''}" data-item="${i.id}" data-kind="${i.kind}">
                 ${esc(i.name)}
               </button>`).join('')}
           </div>
         ` : ''}
 
-        ${state.catId && !state.itemId ? `
-          <div style="background:#fff;border:1px solid #EBE1CC;border-radius:12px;padding:20px;text-align:center">
-            <div style="color:#6A6150;font-size:14px;font-weight:550;line-height:1.5">
-              All ${esc(catById(state.catId).label.toLowerCase())} are highlighted on the map.<br>Select a chip above to spotlight one.
+        ${state.selectedIds.size > 0 ? `
+          <div style="background:#F9F7F1;border:1px solid #EBE1CC;border-radius:14px;padding:14px;margin-bottom:24px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <span style="font-size:12px;font-weight:750;color:#8A5E22;text-transform:uppercase;letter-spacing:1px;">Active Selection</span>
+              <button id="clearAllItems" style="background:none;border:none;color:#16356A;font-weight:680;font-size:12.5px;cursor:pointer;padding:0;">Clear All</button>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              ${Array.from(state.selectedIds).map(id => `<span class="tray-chip" style="background:#fff;border:1px solid #DCD0B6;border-radius:8px;padding:5px 8px 5px 10px;font-size:12.5px;font-weight:650;display:flex;align-items:center;gap:6px;">${esc(itemObj(id).name)} <button data-unsel="${id}" style="border:none;background:none;cursor:pointer;color:#8A5E22;font-size:14px;line-height:1;padding:0;">&times;</button></span>`).join('')}
             </div>
           </div>
         ` : ''}
 
-        ${state.itemId ? previewCardHTML(state.itemId) : ''}
+        ${state.selectedIds.size > 0 ? previewCardHTML() : (state.catId ? `
+          <div style="background:#fff;border:1px solid #EBE1CC;border-radius:12px;padding:20px;text-align:center">
+            <div style="color:#6A6150;font-size:14px;font-weight:550;line-height:1.5">
+              All ${esc(catById(state.catId).label.toLowerCase())} are active on the map.<br>Select chips above to focus them and view context.
+            </div>
+          </div>
+        ` : '')}
       </div>`;
   }
-  function previewCardHTML(id) {
-    const kind = itemKindOf(id);
-    const it = itemObj(id);
-    const cat = catById(itemCategory(id)) || { label: 'Value driver', color: '#16356A' };
-    const hasPhotos = it.photos !== false;
+  function previewCardHTML() {
+    const ids = Array.from(state.selectedIds);
+    if (ids.length === 1) {
+      const id = ids[0];
+      const kind = itemKindOf(id);
+      const it = itemObj(id);
+      const cat = catById(itemCategory(id)) || { label: 'Value driver', color: '#16356A' };
+      const hasPhotos = it.photos !== false;
 
-    let metaLine = '';
-    if (kind === 'block') {
-      const props = propsInBlock(id);
-      metaLine = `${props.length} available propert${props.length === 1 ? 'y' : 'ies'}`;
-    } else {
-      metaLine = it.sub || `Official ${cat.label.toLowerCase()}`;
+      let metaLine = '';
+      if (kind === 'block') {
+        const props = propsInBlock(id);
+        metaLine = `${props.length} available propert${props.length === 1 ? 'y' : 'ies'}`;
+      } else {
+        metaLine = it.sub || `Official ${cat.label.toLowerCase()}`;
+      }
+
+      return `<div class="preview-card" style="margin-top:12px; border:none; padding:0; box-shadow:none; background:transparent;">
+        <div class="pc-cat" style="color:${cat.color}">${esc(cat.label)}</div>
+        <div class="pc-name" style="font-size:24px; margin-bottom:6px;">${esc(it.name)}</div>
+        <div class="pc-desc" style="color:#6A6150; font-size:14px; margin-bottom:16px;">${esc(metaLine)}</div>
+        
+        <div class="pc-photo-area" style="width:100%; height:180px; border-radius:12px; background:${hasPhotos ? PM.grads[itemCategory(id)] || '#A0AAB5' : '#F4EFE6'}; display:flex; align-items:center; justify-content:center; margin-bottom:16px; position:relative; overflow:hidden;">
+          ${hasPhotos ? `
+             <span style="color:rgba(255,255,255,0.9); font-weight:600; font-size:14px; position:relative; z-index:2">Preview Available</span>
+          ` : `
+             <span style="color:#A89F89; font-weight:600; font-size:13px;">Photos/context can be added here</span>
+          `}
+        </div>
+
+        <div class="pc-actions" style="display:flex; gap:8px;">
+          ${hasPhotos ? `<button class="btn-primary" data-photos="${id}" style="flex:1;">View Gallery</button>` : ''}
+          ${kind === 'block' ? `<button class="pc-ghost" data-viewprops="${id}" style="flex:1;">Properties</button>` : ''}
+          <button class="pc-ghost" data-focus="${id}" style="${hasPhotos || kind === 'block' ? 'flex:none; padding:0 16px;' : 'flex:1;'}">Focus Map</button>
+          ${it.mapsUrl ? `<a href="${it.mapsUrl}" target="_blank" rel="noopener" class="pc-ghost" style="flex:none; padding:0 16px; text-decoration:none; display:flex; align-items:center;">Map</a>` : ''}
+        </div>
+      </div>`;
     }
-
+    
+    // Multiple items selected
+    let roadsCount = 0, blocksCount = 0, zonesCount = 0;
+    ids.forEach(id => {
+      const k = itemKindOf(id);
+      if (k === 'line') roadsCount++;
+      else if (k === 'block') blocksCount++;
+      else zonesCount++;
+    });
+    
+    const parts = [];
+    if (roadsCount) parts.push(`${roadsCount} road${roadsCount>1?'s':''}`);
+    if (blocksCount) parts.push(`${blocksCount} block${blocksCount>1?'s':''}`);
+    if (zonesCount) parts.push(`${zonesCount} zone${zonesCount>1?'s':''}`);
+    
     return `<div class="preview-card" style="margin-top:12px; border:none; padding:0; box-shadow:none; background:transparent;">
-      <div class="pc-cat" style="color:${cat.color}">${esc(cat.label)}</div>
-      <div class="pc-name" style="font-size:24px; margin-bottom:6px;">${esc(it.name)}</div>
-      <div class="pc-desc" style="color:#6A6150; font-size:14px; margin-bottom:16px;">${esc(metaLine)}</div>
-      
-      <div class="pc-photo-area" style="width:100%; height:180px; border-radius:12px; background:${hasPhotos ? PM.grads[itemCategory(id)] || '#A0AAB5' : '#F4EFE6'}; display:flex; align-items:center; justify-content:center; margin-bottom:16px; position:relative; overflow:hidden;">
-        ${hasPhotos ? `
-           <span style="color:rgba(255,255,255,0.9); font-weight:600; font-size:14px; position:relative; z-index:2">Preview Available</span>
-        ` : `
-           <span style="color:#A89F89; font-weight:600; font-size:13px;">No photos added yet</span>
-        `}
-      </div>
-
-      <div class="pc-actions" style="display:flex; gap:8px;">
-        ${hasPhotos ? `<button class="btn-primary" data-photos="${id}" style="flex:1;">View Gallery</button>` : ''}
-        ${kind === 'block' ? `<button class="pc-ghost" data-viewprops="${id}" style="flex:1;">Properties</button>` : ''}
-        <button class="pc-ghost" data-focus="${id}" style="${hasPhotos || kind === 'block' ? 'flex:none; padding:0 16px;' : 'flex:1;'}">Focus Map</button>
-        ${it.mapsUrl ? `<a href="${it.mapsUrl}" target="_blank" rel="noopener" class="pc-ghost" style="flex:none; padding:0 16px; text-decoration:none; display:flex; align-items:center;">Map</a>` : ''}
+      <div class="pc-cat" style="color:#A89F89">MULTIPLE SELECTION</div>
+      <div class="pc-name" style="font-size:24px; margin-bottom:6px;">Context Overview</div>
+      <div class="pc-desc" style="color:#6A6150; font-size:14px; margin-bottom:16px;">${parts.join(', ')} selected</div>
+      <div class="pc-photo-area" style="width:100%; height:140px; border-radius:12px; background:#F4EFE6; display:flex; align-items:center; justify-content:center; margin-bottom:16px; position:relative; overflow:hidden;">
+        <span style="color:#A89F89; font-weight:600; font-size:13px;">Photos/context can be added here</span>
       </div>
     </div>`;
   }
-
   function sectorPanelHTML() {
     const p = propById(state.selectedId);
     if (p) return `<div class="head" style="padding-bottom:14px">
@@ -597,11 +646,16 @@
     on('propSwitch', toggleProps);
     on('zin', () => zoomBtn(1.2)); on('zout', () => zoomBtn(1 / 1.2)); on('zfit', fit);
 
-    each('[data-cat]', b => b.addEventListener('click', () => { state.catId = b.getAttribute('data-cat'); state.itemId = null; state.itemOpen = false; render(); }));
-    on('backCats', () => { state.catId = null; state.itemId = null; state.itemOpen = false; render(); });
+    each('[data-cat]', b => b.addEventListener('click', () => { state.catId = b.getAttribute('data-cat'); render(); }));
+    on('backCats', () => { state.catId = null; state.selectedIds.clear(); state.itemOpen = false; render(); });
     each('[data-item]', b => b.addEventListener('click', () => selectItem(b.getAttribute('data-item'), b.getAttribute('data-kind'))));
-    each('[data-photoico]', b => b.addEventListener('click', e => { e.stopPropagation(); const id = b.getAttribute('data-photoico'); state.itemId = id; state.itemKind = b.getAttribute('data-kind'); openLightbox(0); }));
-    each('[data-photos]', b => b.addEventListener('click', () => { state.itemId = b.getAttribute('data-photos'); openLightbox(0); }));
+    each('[data-photoico]', b => b.addEventListener('click', e => { e.stopPropagation(); const id = b.getAttribute('data-photoico'); state.selectedIds = new Set([id]); openLightbox(0); }));
+    each('[data-photos]', b => b.addEventListener('click', () => { state.selectedIds = new Set([b.getAttribute('data-photos')]); openLightbox(0); }));
+    
+    // Multi-select tray actions
+    on('clearAllItems', () => { state.selectedIds.clear(); render(); });
+    each('[data-unsel]', b => b.addEventListener('click', e => { e.stopPropagation(); state.selectedIds.delete(b.getAttribute('data-unsel')); render(); }));
+    
     each('[data-focus]', b => b.addEventListener('click', () => focusItem(b.getAttribute('data-focus'))));
     each('[data-viewprops]', b => b.addEventListener('click', () => { const bl = blockById(b.getAttribute('data-viewprops')); Object.assign(state, { section: 'props', propView: 'browse', filters: { type: new Set(), area: new Set(bl ? [bl.area] : []), location: new Set(), size: new Set() } }); render(); }));
     each('[data-blocksector]', b => b.addEventListener('click', () => { const bl = blockById(b.getAttribute('data-blocksector')); const sm = bl && readySectorMaps().find(s => s.area === bl.area && s.block === bl.name); if (sm) openSectorHub(sm.id); }));
@@ -647,7 +701,14 @@
   function clearFilters() { state.filters = { type: new Set(), area: new Set(), location: new Set(), size: new Set() }; render(); }
 
   function selectItem(id, kind) {
-    state.itemId = id; state.itemKind = (kind === 'road' ? 'line' : kind); state.itemOpen = false; state.catId = itemCategory(id); state.section = 'master';
+    if (state.selectedIds.has(id)) {
+       state.selectedIds.delete(id);
+    } else {
+       state.selectedIds.add(id);
+    }
+    state.itemOpen = false;
+    state.catId = itemCategory(id);
+    state.section = 'master';
     render();
   }
   function refreshControls() {
@@ -669,11 +730,11 @@
     render();
   }
   function openSectorHub(smId) { if (!sectorMapById(smId)) return; Object.assign(state, { section: 'props', propView: 'sector', selectedId: null, sectorBlock: smId, previewId: null }); builtSig = ''; render(); }
-  function showAreaContext(id) { const p = propById(id); Object.assign(state, { section: 'master', mapMode: 'easy', showProps: true, selectedId: id, itemId: null, itemKind: null, itemOpen: false, previewId: id }); builtSig = ''; render(); if (p) { const b = blockById(p.blockId); if (b) setTimeout(() => focusBox(b.x + b.w / 2, b.y + b.h / 2, b.w, b.h, 1.7), 80); } }
+  function showAreaContext(id) { const p = propById(id); Object.assign(state, { section: 'master', mapMode: 'easy', showProps: true, selectedId: id, selectedIds: new Set([id]), itemOpen: false, previewId: id }); builtSig = ''; render(); if (p) { const b = blockById(p.blockId); if (b) setTimeout(() => focusBox(b.x + b.w / 2, b.y + b.h / 2, b.w, b.h, 1.7), 80); } }
   function openLightbox(idx) {
     let photos, name;
     if (state.section === 'props' && state.propView === 'detail') { photos = photosFor('property', state.selectedId, 4); name = 'Plot ' + (propById(state.selectedId) || {}).plotNumber; }
-    else if (state.itemId) { const it = itemObj(state.itemId); photos = photosFor(state.itemKind === 'line' ? 'line' : (state.itemKind || 'pin'), photoKeyOf(state.itemId, state.itemKind), 4); name = it ? it.name : ''; }
+    else if (state.selectedIds.size === 1) { const id = Array.from(state.selectedIds)[0]; const it = itemObj(id); photos = photosFor(itemKindOf(id) === 'line' ? 'line' : (itemCategory(id) || 'pin'), photoKeyOf(id, itemKindOf(id)), 4); name = it ? it.name : ''; }
     else { photos = photosFor('property', state.selectedId || 'x', 4); name = ''; }
     state.lightbox = { photos, index: idx || 0, name: name || '' }; render();
   }
