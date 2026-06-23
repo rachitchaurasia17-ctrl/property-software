@@ -310,6 +310,11 @@
                sp.insertAdjacentHTML('beforeend', `<g style="transform:translate(${cx}px,${cy}px)"><circle cx="0" cy="0" r="58" fill="${c}" opacity="0.3"/><circle cx="0" cy="0" r="42" fill="none" stroke="${c}" stroke-width="12"/></g>`);
              }
            });
+        } else if (cat === 'roads') {
+           catItems('roads').forEach(item => {
+             const d = GEO.paths[item.svgId];
+             if (d) sp.insertAdjacentHTML('beforeend', `<path d="${d}" filter="url(#eglow)" style="fill:none;stroke:#2BD0E6;stroke-width:44;opacity:.4;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#0B2552;stroke-width:28;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#fff;stroke-width:14;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#2BD0E6;stroke-width:8;stroke-linecap:round"/>`);
+           });
         }
       }
       l.classList.toggle('dimmed', !!(hasSel || cat));
