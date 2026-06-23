@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>PlotMap</title>
+<style>
+  :root{ --bg:#f7f8fa; --panel:#fff; --line:#e6e9ee; --txt:#101828; --mut:#667085; --acc:#2563eb; --ok:#16a34a; }
+  *{box-sizing:border-box;}
+  body{margin:0;font:15px/1.45 system-ui,sans-serif;background:var(--bg);color:var(--txt);height:100vh;display:grid;grid-template-columns:340px 1fr;overflow:hidden;}
+  body.present{grid-template-columns:0 1fr;}
+  body.present .left{display:none;}
+  .left{background:var(--panel);border-right:1px solid var(--line);height:100vh;overflow:auto;padding:16px;}
+  .brand{font-weight:800;font-size:20px;letter-spacing:-.02em;}
+  .brand span{color:var(--acc);}
+  h3{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin:18px 0 8px;}
+  select,input{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fff;}
+  .filters{display:grid;gap:8px;}
+  .card{border:1px solid var(--line);border-radius:10px;padding:11px;margin:9px 0;cursor:pointer;transition:.15s;}
+  .card:hover{border-color:var(--acc);box-shadow:0 2px 10px rgba(37,99,235,.08);}
+  .card.sel{border-color:var(--acc);background:#f5f8ff;}
+  .card .top{display:flex;justify-content:space-between;align-items:baseline;}
+  .plot{font-weight:700;font-size:16px;}
+  .price{font-weight:700;color:var(--ok);}
+  .meta{color:var(--mut);font-size:13px;margin-top:3px;}
+  .tag{display:inline-block;background:#eef2ff;color:var(--acc);border-radius:20px;padding:1px 9px;font-size:11px;font-weight:600;}
+  #stage{position:relative;height:100vh;overflow:hidden;background:#0b0e13;}
+  #world{position:absolute;transform-origin:0 0;transition:transform .6s cubic-bezier(.4,0,.2,1);}
+  #map{display:block;}
+  svg{position:absolute;top:0;left:0;overflow:visible;pointer-events:none;}
+  polygon{fill:rgba(37,99,235,0);stroke:rgba(37,99,235,0);stroke-width:3;vector-effect:non-scaling-stroke;transition:.4s;}
+  polygon.hot{fill:rgba(22,163,74,.28);stroke:#16a34a;filter:drop-shadow(0 0 6px rgba(22,163,74,.8));}
+  .topbar{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;gap:8px;z-index:5;pointer-events:none;}
+  .pill{background:rgba(255,255,255,.95);border-radius:10px;padding:8px 12px;font-weight:600;font-size:13px;box-shadow:0 2px 10px rgba(0,0,0,.2);pointer-events:auto;}
+  button{font:inherit;border:none;border-radius:8px;padding:9px 14px;cursor:pointer;font-weight:600;}
+  .btn-acc{background:var(--acc);color:#fff;} .btn-wa{background:#25D366;color:#fff;} .btn-ghost{background:#fff;border:1px solid var(--line);}
+  /* detail sheet */
+  #sheet{position:absolute;bottom:0;left:0;right:0;background:#fff;border-top-left-radius:16px;border-top-right-radius:16px;box-shadow:0 -4px 24px rgba(0,0,0,.25);transform:translateY(110%);transition:.4s;z-index:6;max-height:60vh;overflow:auto;}
+  #sheet.show{transform:translateY(0);}
+  .sheet-in{padding:18px;}
+  .photos{display:flex;gap:8px;overflow:auto;margin:10px 0;}
+  .photos img{height:150px;border-radius:10px;}
+  .kv{display:flex;gap:24px;flex-wrap:wrap;margin:8px 0;}
+  .kv div b{display:block;color:var(--mut);font-size:12px;font-weight:600;text-transform:uppercase;}
+  .actions{display:flex;gap:8px;margin-top:12px;}
+  .alt{display:flex;gap:8px;overflow:auto;margin-top:8px;}
+  .alt .card{min-width:150px;margin:0;}
+  .watermark{position:absolute;bottom:10px;right:14px;color:rgba(255,255,255,.85);font-size:12px;font-weight:600;text-shadow:0 1px 3px #000;z-index:5;}
+</style>
+</head>
+<body>
+  <div class="left">
+    <div class="brand">Plot<span>Map</span></div>
+    <div class="meta">Interactive sector inventory</div>
+    <h3>Find a property</h3>
+    <div class="filters">
+      <select id="fCity"></select>
+      <select id="fSector"></select>
+      <select id="fType"><option value="">Any type</option><option>residential</option><option>commercial</option></select>
+      <select id="fSize"><option value="">Any size</option><option value="marla">Marla plots</option><option value="acre">Acre+ parcels</option></select>
+      <input id="fBudget" type="number" placeholder="Max budget (₹)"/>
+    </div>
+    <h3>Matching inventory <span class="tag" id="resCount">0</span></h3>
+    <div id="results"></div>
+  </div>
+
+  <div id="stage">
+    <div class="topbar">
+      <div class="pill" id="ctxPill">Select a property →</div>
+      <button class="pill btn-acc" id="btnPresent">Presentation mode</button>
+    </div>
+    <div id="world"><img id="map" alt=""/><svg id="svg"></svg></div>
+    <div class="watermark">Powered by EasyMap × PlotMap</div>
+
+    <div id="sheet"><div class="sheet-in" id="sheetIn"></div></div>
+  </div>
+
+<script>
+const NS='http://www.w3.org/2000/svg';
+let maps=[], inv=[], current=null, polys=[], selId=null, present=false;
+const $=s=>document.querySelector(s);
+const world=$('#world'),svg=$('#svg'),img=$('#map');
+const fmt=n=>'₹'+Number(n).toLocaleString('en-IN');
+
+async function boot(){
+  maps = await fetch('/api/maps').then(r=>r.json());
+  inv  = await fetch('/data/inventory/inventory.json').then(r=>r.json()).then(j=>j.records);
+  const cities=[...new Set(inv.map(r=>r.city))];
+  $('#fCity').innerHTML=cities.map(c=>`<option>${c}</option>`).join('');
+  $('#fCity').onchange=syncSectors; ['fSector','fType','fSize','fBudget'].forEach(id=>$('#'+id).oninput=runFilter);
+  $('#fCity').addEventListener('change',runFilter);
+  syncSectors(); runFilter();
+}
+function syncSectors(){
+  const city=$('#fCity').value;
+  const secs=[...new Set(inv.filter(r=>r.city===city).map(r=>r.sector))];
+  $('#fSector').innerHTML='<option value="">Any sector</option>'+secs.map(s=>`<option>${s}</option>`).join('');
+}
+function runFilter(){
+  const city=$('#fCity').value, sec=$('#fSector').value, type=$('#fType').value, size=$('#fSize').value, bud=+$('#fBudget').value||Infinity;
+  const out=inv.filter(r=>r.city===city && (!sec||r.sector===sec) && (!type||r.type===type)
+    && (!size||r.size.unit===size||(size==='acre'&&r.size.unit==='acre')) && r.price.value<=bud);
+  $('#resCount').textContent=out.length;
+  $('#results').innerHTML = out.length? out.map(card).join('') : '<div class="meta">No matches. Loosen filters.</div>';
+  document.querySelectorAll('#results .card').forEach(el=>el.onclick=()=>selectProperty(el.dataset.id));
+}
+function card(r){
+  return `<div class="card ${r.id===selId?'sel':''}" data-id="${r.id}">
+    <div class="top"><span class="plot">Plot ${r.plotNo}</span><span class="price">${r.price.display}</span></div>
+    <div class="meta">${r.size.value} ${r.size.unit} · ${r.type} · ${r.facing}</div>
+    <div class="meta">${r.city} — Sector ${r.sector}</div></div>`;
+}
+
+async function ensureMap(mapId){
+  if(current && current.id===mapId) return;
+  current=maps.find(m=>m.id===mapId);
+  img.src=current.image; await new Promise(r=>img.onload=r);
+  svg.setAttribute('viewBox',`0 0 ${current.width} ${current.height}`);
+  svg.setAttribute('width',current.width); svg.setAttribute('height',current.height);
+  polys = await fetch(current.polygons).then(r=>r.ok?r.json():null).then(j=>j&&j.plots?j.plots:[]).catch(()=>[]);
+  svg.innerHTML='';
+  polys.forEach(p=>{const pl=document.createElementNS(NS,'polygon');pl.setAttribute('points',p.polygon.map(q=>q.join(',')).join(' '));pl.dataset.plot=p.plotNo;svg.appendChild(pl);});
+}
+
+async function selectProperty(id){
+  selId=id; const r=inv.find(x=>x.id===id); if(!r)return;
+  await ensureMap(r.mapId);
+  document.querySelectorAll('#results .card').forEach(el=>el.classList.toggle('sel',el.dataset.id===id));
+  $('#ctxPill').textContent=`${r.city} · Sector ${r.sector} · Plot ${r.plotNo}`;
+  // highlight + zoom to polygon
+  const poly=polys.find(p=>String(p.plotNo)===String(r.plotNo));
+  svg.querySelectorAll('polygon').forEach(el=>el.classList.toggle('hot', el.dataset.plot===String(r.plotNo)));
+  if(poly){ zoomTo(poly); } else { fit(); }
+  showSheet(r);
+}
+function bbox(pts){const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);return{x:Math.min(...xs),y:Math.min(...ys),w:Math.max(...xs)-Math.min(...xs),h:Math.max(...ys)-Math.min(...ys)};}
+function zoomTo(poly){
+  const b=bbox(poly.polygon), r=$('#stage').getBoundingClientRect(), pad=4;
+  const s=Math.min(r.width/(b.w*pad), r.height/(b.h*pad)); const sc=Math.min(s,6);
+  const cx=b.x+b.w/2, cy=b.y+b.h/2;
+  world.style.transform=`translate(${r.width/2-cx*sc}px,${r.height/2-cy*sc}px) scale(${sc})`;
+}
+function fit(){const r=$('#stage').getBoundingClientRect();const s=Math.min(r.width/current.width,r.height/current.height)*.96;
+  world.style.transform=`translate(${(r.width-current.width*s)/2}px,${(r.height-current.height*s)/2}px) scale(${s})`;}
+
+function showSheet(r){
+  const alts=inv.filter(x=>x.mapId===r.mapId && x.id!==r.id).slice(0,4);
+  $('#sheetIn').innerHTML=`
+    <div class="top" style="display:flex;justify-content:space-between;align-items:center">
+      <div><span class="plot">Plot ${r.plotNo}</span> <span class="tag">${r.status}</span></div>
+      <button class="btn-ghost" onclick="hideSheet()">✕</button></div>
+    <div class="photos">${r.photos.map(p=>`<img src="${p}"/>`).join('')}</div>
+    <div class="kv">
+      <div><b>Price</b>${r.price.display}</div><div><b>Size</b>${r.size.value} ${r.size.unit}</div>
+      <div><b>Type</b>${r.type}</div><div><b>Facing</b>${r.facing}</div>
+      <div><b>Location</b>${r.city} Sec ${r.sector}</div></div>
+    <div class="meta">${r.notes||''}</div>
+    <div class="actions">
+      <button class="btn-wa" onclick='shareWA(${JSON.stringify(r).replace(/'/g,"&#39;")})'>Share on WhatsApp</button>
+      <button class="btn-ghost" onclick="hideSheet()">Close</button></div>
+    ${alts.length?`<h3>Nearby alternatives</h3><div class="alt">${alts.map(a=>`<div class="card" onclick="selectProperty('${a.id}')"><div class="plot">Plot ${a.plotNo}</div><div class="price">${a.price.display}</div><div class="meta">${a.size.value} ${a.size.unit}</div></div>`).join('')}</div>`:''}
+  `;
+  $('#sheet').classList.add('show');
+}
+function hideSheet(){ $('#sheet').classList.remove('show'); }
+function shareWA(r){
+  const msg=`*Plot ${r.plotNo}* — ${r.city} Sector ${r.sector}\n${r.size.value} ${r.size.unit} · ${r.type} · ${r.facing}\nPrice: ${r.price.display}\n${r.notes||''}\n\nvia PlotMap`;
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+}
+$('#btnPresent').onclick=()=>{ present=!present; document.body.classList.toggle('present',present);
+  $('#btnPresent').textContent=present?'Exit presentation':'Presentation mode'; setTimeout(()=>{if(current)fit();},50); };
+
+window.selectProperty=selectProperty; window.hideSheet=hideSheet; window.shareWA=shareWA;
+boot();
+</script>
+</body>
+</html>

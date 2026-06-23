@@ -1,0 +1,62 @@
+[
+  {
+    "id": "panchkula-sector-20",
+    "city": "Panchkula",
+    "sector": "20",
+    "image": "/maps/enhanced/panchkula-sector-20.png",
+    "width": 4000,
+    "height": 2828,
+    "sourceBrand": "EasiMap",
+    "status": "processed",
+    "polygons": "/maps/polygons/panchkula-sector-20.json",
+    "hasPolygons": true
+  },
+  {
+    "id": "panchkula-sector-21",
+    "city": "Panchkula",
+    "sector": "21",
+    "image": "/maps/enhanced/panchkula-sector-21.png",
+    "width": 4000,
+    "height": 2828,
+    "sourceBrand": "EasiMap",
+    "status": "processed",
+    "polygons": "/maps/polygons/panchkula-sector-21.json",
+    "hasPolygons": false
+  },
+  {
+    "id": "panchkula-sector-7",
+    "city": "Panchkula",
+    "sector": "7",
+    "image": "/maps/enhanced/panchkula-sector-7.png",
+    "width": 4000,
+    "height": 2828,
+    "sourceBrand": "EasiMap",
+    "status": "processed",
+    "polygons": "/maps/polygons/panchkula-sector-7.json",
+    "hasPolygons": false
+  },
+  {
+    "id": "panchkula-sector-8",
+    "city": "Panchkula",
+    "sector": "8",
+    "image": "/maps/enhanced/panchkula-sector-8.png",
+    "width": 4000,
+    "height": 2828,
+    "sourceBrand": "EasiMap",
+    "status": "processed",
+    "polygons": "/maps/polygons/panchkula-sector-8.json",
+    "hasPolygons": false
+  },
+  {
+    "id": "panchkula-sector-25",
+    "city": "Panchkula",
+    "sector": "25",
+    "image": "/maps/enhanced/panchkula-sector-25.png",
+    "width": 4000,
+    "height": 2828,
+    "sourceBrand": "EasiMap",
+    "status": "processed",
+    "polygons": "/maps/polygons/panchkula-sector-25.json",
+    "hasPolygons": false
+  }
+]

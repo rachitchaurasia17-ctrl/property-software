@@ -1,0 +1,54 @@
+{
+  "_doc": "City-agnostic source registry. Adding a region = adding an entry here. Nothing downstream hard-codes a city.",
+  "standardize": {
+    "longEdge": 4000,
+    "format": "png",
+    "enhance": {
+      "unsharp": "5:5:0.8:5:5:0.0",
+      "contrast": 1.06,
+      "saturation": 1.04,
+      "_note": "Mild only. No denoise/smoothing — these are vector-style exports; smoothing destroys small plot text."
+    }
+  },
+  "sources": [
+    {
+      "city": "Panchkula",
+      "slug": "panchkula",
+      "folder": "panchulka",
+      "brand": "EasiMap",
+      "watermark": "bottom-credit",
+      "quality": "gold",
+      "tier": "P0-POC"
+    },
+    {
+      "city": "Mohali",
+      "slug": "mohali",
+      "folder": "mohali",
+      "brand": "EasiMap",
+      "watermark": "diagonal-tiled",
+      "quality": "high",
+      "tier": "P1"
+    },
+    {
+      "city": "New Chandigarh",
+      "slug": "new-chandigarh",
+      "folder": "new chandigarh",
+      "brand": "Anurag Property / Aerocity Infra",
+      "watermark": "margin-logo",
+      "quality": "medium",
+      "tier": "P2",
+      "needsLicensingCheck": true
+    }
+  ],
+  "poc": {
+    "_doc": "Phase-0-approved POC set. Explicit file->canonical-id map avoids depending on messy source filenames.",
+    "tier": "P0-POC",
+    "maps": [
+      { "id": "panchkula-sector-20", "city": "Panchkula", "sector": "20", "file": "panchulka/sector p20.jpg" },
+      { "id": "panchkula-sector-21", "city": "Panchkula", "sector": "21", "file": "panchulka/sector p 21.jpg" },
+      { "id": "panchkula-sector-7",  "city": "Panchkula", "sector": "7",  "file": "panchulka/sector 7 p.jpg" },
+      { "id": "panchkula-sector-8",  "city": "Panchkula", "sector": "8",  "file": "panchulka/sector 8 p.jpg" },
+      { "id": "panchkula-sector-25", "city": "Panchkula", "sector": "25", "file": "panchulka/sector 25 p.jpg" }
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "_doc": "Phase 5 output — plot polygons in ENHANCED-IMAGE pixel space (4000x2828). Seed sample; refine in the admin tool. Map layer ONLY — no inventory/price here (Phase 6 decoupling).",
+  "mapId": "panchkula-sector-20",
+  "city": "Panchkula",
+  "sector": "20",
+  "imageWidth": 4000,
+  "imageHeight": 2828,
+  "plots": [
+    { "plotNo": "64", "polygon": [[540,470],[610,470],[610,540],[540,540]], "centroid": [575,505] },
+    { "plotNo": "67", "polygon": [[610,470],[680,470],[680,540],[610,540]], "centroid": [645,505] },
+    { "plotNo": "92", "polygon": [[1860,360],[2020,360],[2020,470],[1860,470]], "centroid": [1940,415] },
+    { "plotNo": "94", "polygon": [[2120,560],[2320,560],[2320,760],[2120,760]], "centroid": [2220,660] }
+  ]
+}

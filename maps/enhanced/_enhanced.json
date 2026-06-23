@@ -1,0 +1,77 @@
+[
+  {
+    "id": "panchkula-sector-20",
+    "city": "Panchkula",
+    "sector": "20",
+    "file": "panchulka/sector p20.jpg",
+    "srcDims": {
+      "w": 5658,
+      "h": 4000
+    },
+    "dims": {
+      "w": 4000,
+      "h": 2828
+    },
+    "bytes": 5777646
+  },
+  {
+    "id": "panchkula-sector-21",
+    "city": "Panchkula",
+    "sector": "21",
+    "file": "panchulka/sector p 21.jpg",
+    "srcDims": {
+      "w": 5658,
+      "h": 4000
+    },
+    "dims": {
+      "w": 4000,
+      "h": 2828
+    },
+    "bytes": 8890271
+  },
+  {
+    "id": "panchkula-sector-7",
+    "city": "Panchkula",
+    "sector": "7",
+    "file": "panchulka/sector 7 p.jpg",
+    "srcDims": {
+      "w": 5658,
+      "h": 4000
+    },
+    "dims": {
+      "w": 4000,
+      "h": 2828
+    },
+    "bytes": 7614155
+  },
+  {
+    "id": "panchkula-sector-8",
+    "city": "Panchkula",
+    "sector": "8",
+    "file": "panchulka/sector 8 p.jpg",
+    "srcDims": {
+      "w": 5658,
+      "h": 4000
+    },
+    "dims": {
+      "w": 4000,
+      "h": 2828
+    },
+    "bytes": 7001604
+  },
+  {
+    "id": "panchkula-sector-25",
+    "city": "Panchkula",
+    "sector": "25",
+    "file": "panchulka/sector 25 p.jpg",
+    "srcDims": {
+      "w": 5658,
+      "h": 4000
+    },
+    "dims": {
+      "w": 4000,
+      "h": 2828
+    },
+    "bytes": 7186520
+  }
+]

@@ -1,0 +1,29 @@
+{
+  "_doc": "Phase 6 INVENTORY LAYER — fully decoupled from the map layer. A plot polygon exists permanently; an inventory record may or may not exist on it. Join key: (mapId + plotNo). Never embed polygons here.",
+  "records": [
+    {
+      "id": "inv-0001", "mapId": "panchkula-sector-20", "city": "Panchkula", "sector": "20",
+      "plotNo": "64", "size": { "value": 10, "unit": "marla" },
+      "price": { "value": 9500000, "display": "₹95 L" }, "type": "residential",
+      "status": "available", "facing": "East",
+      "photos": ["https://placehold.co/600x400?text=Plot+64+Front", "https://placehold.co/600x400?text=Plot+64+Street"],
+      "notes": "Corner plot, park-facing.", "dealerId": "dealer-001", "updatedAt": "2026-06-21"
+    },
+    {
+      "id": "inv-0002", "mapId": "panchkula-sector-20", "city": "Panchkula", "sector": "20",
+      "plotNo": "67", "size": { "value": 14, "unit": "marla" },
+      "price": { "value": 13800000, "display": "₹1.38 Cr" }, "type": "residential",
+      "status": "available", "facing": "North",
+      "photos": ["https://placehold.co/600x400?text=Plot+67"],
+      "notes": "Wide frontage on 18m road.", "dealerId": "dealer-001", "updatedAt": "2026-06-21"
+    },
+    {
+      "id": "inv-0003", "mapId": "panchkula-sector-20", "city": "Panchkula", "sector": "20",
+      "plotNo": "94", "size": { "value": 1, "unit": "acre" },
+      "price": { "value": 60000000, "display": "₹6 Cr" }, "type": "commercial",
+      "status": "available", "facing": "Main Road",
+      "photos": ["https://placehold.co/600x400?text=GH-94+Commercial"],
+      "notes": "Group-housing / commercial parcel.", "dealerId": "dealer-002", "updatedAt": "2026-06-21"
+    }
+  ]
+}

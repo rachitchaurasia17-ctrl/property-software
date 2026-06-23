@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "plotmap",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["tools/server.js"],
+      "port": 5173
+    }
+  ]
+}

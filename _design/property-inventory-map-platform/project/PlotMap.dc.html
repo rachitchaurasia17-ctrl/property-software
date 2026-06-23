@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;background:#EAE0CC;}
+  button{font-family:inherit;}
+  input,select{font-family:inherit;-webkit-appearance:none;}
+  ::-webkit-scrollbar{height:9px;width:9px;}
+  ::-webkit-scrollbar-thumb{background:#D8CCB2;border-radius:9px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+  @keyframes popIn{from{opacity:0;transform:translateY(12px) scale(.99);}to{opacity:1;transform:none;}}
+  @keyframes panelIn{from{opacity:0;transform:translateX(16px);}to{opacity:1;transform:none;}}
+  @keyframes riseIn{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+  @keyframes lmPulse{0%{box-shadow:0 0 0 0 rgba(34,211,238,.5);}70%{box-shadow:0 0 0 16px rgba(34,211,238,0);}100%{box-shadow:0 0 0 0 rgba(34,211,238,0);}}
+  @keyframes plotPulse{0%{box-shadow:0 0 0 0 rgba(22,53,106,.32);}70%{box-shadow:0 0 0 20px rgba(22,53,106,0);}100%{box-shadow:0 0 0 0 rgba(22,53,106,0);}}
+  @keyframes clusterIn{from{opacity:0;transform:translate(-50%,-50%) scale(.6);}to{opacity:1;transform:translate(-50%,-50%) scale(1);}}
+</style>
+</helmet>
+
+<div style="position:absolute;inset:0;display:flex;flex-direction:column;font-family:'Hanken Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#EAE0CC;color:#23211C;overflow:hidden;-webkit-font-smoothing:antialiased;">
+
+  <!-- ===================== AREA SELECT ===================== -->
+  <sc-if value="{{ isArea }}" hint-placeholder-val="{{ true }}">
+  <div style="position:absolute;inset:0;overflow-y:auto;background:linear-gradient(165deg,#16356A 0%,#0E2750 55%,#0A1E40 100%);">
+    <div style="max-width:1080px;margin:0 auto;padding:58px 40px 26px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="width:34px;height:34px;border-radius:9px;background:#FBF6EA;display:flex;align-items:center;justify-content:center;"><span style="width:13px;height:13px;border-radius:50%;border:3.5px solid #16356A;"></span></span>
+        <span style="font-size:19px;font-weight:740;letter-spacing:-.3px;color:#FBF6EA;">PlotMap</span>
+        <span style="font-size:13px;font-weight:600;color:rgba(251,246,234,.55);margin-left:2px;">Masterplan Studio</span>
+      </div>
+      <div style="font-family:'Newsreader',serif;font-size:52px;font-weight:500;letter-spacing:-1px;line-height:1.05;color:#FBF6EA;margin-top:42px;max-width:760px;">Open a masterplan.</div>
+      <div style="font-size:18px;color:rgba(251,246,234,.72);margin-top:15px;font-weight:430;max-width:580px;line-height:1.5;">Walk your client through the location — roads, zones, landmarks and pockets, with photo proof on the map. You explain; PlotMap shows.</div>
+    </div>
+    <div style="max-width:1080px;margin:0 auto;padding:26px 40px 24px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px;">
+        <sc-for list="{{ areaTiles }}" as="a" hint-placeholder-count="7">
+          <button type="button" data-id="{{ a.id }}" onClick="{{ pickArea }}" style="{{ a.style }}" style-hover="transform:translateY(-3px);box-shadow:0 18px 44px rgba(6,14,32,.4);">
+            <div>
+              <div style="display:flex;align-items:baseline;gap:9px;">
+                <span style="font-family:'Newsreader',serif;font-size:28px;font-weight:560;letter-spacing:-.4px;color:#1B2A1F;">{{ a.name }}</span>
+                <sc-if value="{{ a.hasSub }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px;color:#9C957F;font-weight:600;">{{ a.sub }}</span></sc-if>
+              </div>
+              <div style="display:flex;align-items:center;gap:7px;margin-top:12px;"><span style="width:7px;height:7px;border-radius:50%;background:#B07A2B;flex:none;"></span><span style="font-size:13px;font-weight:600;color:#8A5E22;line-height:1.35;">{{ a.hook }}</span></div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:22px;padding-top:15px;border-top:1px solid #ECE2CD;">
+              <span style="display:flex;align-items:center;gap:7px;font-size:13.5px;color:#5A554A;font-weight:600;"><span style="width:8px;height:8px;border-radius:50%;background:#1C8A57;"></span>{{ a.avail }} available</span>
+              <span style="font-size:13px;color:#16356A;font-weight:730;">Open masterplan →</span>
+            </div>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+    <div style="max-width:1080px;margin:0 auto;padding:8px 40px 50px;">
+      <button type="button" onClick="{{ goLogin }}" style="border:none;background:none;cursor:pointer;font-size:13px;color:rgba(251,246,234,.5);font-weight:600;padding:6px 0;">Dealer sign in →</button>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ===================== PLAN EXPERIENCE ===================== -->
+  <sc-if value="{{ isPlan }}" hint-placeholder-val="{{ false }}">
+  <!-- TOP BAR -->
+  <div style="flex:none;height:62px;background:#16356A;display:flex;align-items:center;gap:6px;padding:0 16px;z-index:50;position:relative;">
+    <button type="button" onClick="{{ toggleAreaMenu }}" style="display:flex;align-items:center;gap:10px;flex:none;border:none;background:none;cursor:pointer;padding:7px 10px 7px 7px;border-radius:11px;" style-hover="background:rgba(255,255,255,.09);">
+      <span style="width:28px;height:28px;border-radius:8px;background:#FBF6EA;display:flex;align-items:center;justify-content:center;"><span style="width:10px;height:10px;border-radius:50%;border:3px solid #16356A;"></span></span>
+      <span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.05;"><span style="font-size:15.5px;font-weight:730;letter-spacing:-.3px;color:#FBF6EA;">{{ areaName }}</span><span style="font-size:10.5px;font-weight:600;color:rgba(251,246,234,.55);">View all maps ▾</span></span>
+    </button>
+
+    <div style="width:1px;height:26px;background:rgba(251,246,234,.18);margin:0 8px;flex:none;"></div>
+
+    <div style="display:flex;gap:3px;flex:none;">
+      <button type="button" onClick="{{ goMasterTab }}" style="{{ tabMasterStyle }}">Masterplan</button>
+      <button type="button" onClick="{{ goPropsTab }}" style="{{ tabPropsStyle }}">Properties</button>
+      <button type="button" onClick="{{ goMapsTab }}" style="{{ tabMapsStyle }}">Sector Maps</button>
+    </div>
+
+    <div style="flex:1;"></div>
+
+    <sc-if value="{{ showBack }}" hint-placeholder-val="{{ false }}">
+    <button type="button" onClick="{{ backToMaster }}" style="display:flex;align-items:center;gap:9px;flex:none;border:1px solid rgba(251,246,234,.28);background:rgba(251,246,234,.1);cursor:pointer;padding:8px 15px;border-radius:11px;" style-hover="background:rgba(251,246,234,.18);">
+      <span style="width:15px;height:15px;border:2px solid #E7CE9B;border-radius:4px;flex:none;position:relative;"><span style="position:absolute;left:1px;top:5px;width:11px;height:2px;background:#E7CE9B;"></span></span>
+      <span style="font-size:14px;font-weight:680;color:#FBF6EA;">Back to Masterplan</span>
+    </button>
+    </sc-if>
+
+    <sc-if value="{{ areaMenuOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;top:62px;height:100vh;z-index:55;" onClick="{{ toggleAreaMenu }}"></div>
+    <div style="position:absolute;left:14px;top:58px;width:330px;background:#FBF6EA;border-radius:16px;box-shadow:0 18px 48px rgba(6,14,32,.36);padding:8px;z-index:56;animation:popIn .16s ease;">
+      <div style="font-size:11px;font-weight:700;color:#A89F89;text-transform:uppercase;letter-spacing:.9px;padding:9px 12px 6px;">Switch area</div>
+      <sc-for list="{{ areaMenu }}" as="m" hint-placeholder-count="7">
+        <button type="button" data-id="{{ m.id }}" onClick="{{ switchArea }}" style="{{ m.style }}">
+          <span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.15;"><span style="font-size:15px;font-weight:680;">{{ m.name }}</span><span style="font-size:11.5px;color:#9C957F;font-weight:550;">{{ m.metaText }}</span></span>
+          <sc-if value="{{ m.active }}" hint-placeholder-val="{{ false }}"><span style="width:8px;height:8px;border-radius:50%;background:#1C8A57;"></span></sc-if>
+        </button>
+      </sc-for>
+      <div style="height:1px;background:#EEE4CF;margin:7px 8px;"></div>
+      <button type="button" onClick="{{ goAreaSelect }}" style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:none;background:none;cursor:pointer;padding:11px 12px;border-radius:11px;font-size:14px;font-weight:650;color:#16356A;" style-hover="background:#F1E8D5;">View all masterplans →</button>
+    </div>
+    </sc-if>
+  </div>
+
+  <div style="flex:1;display:flex;min-height:0;">
+
+    <!-- ============ SPLIT SCREENS: MAP + PANEL ============ -->
+    <sc-if value="{{ splitScreen }}" hint-placeholder-val="{{ true }}">
+    <div ref="{{ mapPanelRef }}" style="flex:1;position:relative;overflow:hidden;background:#D8CDB4;touch-action:none;cursor:grab;min-width:0;">
+      <div ref="{{ mapLayerRef }}" style="position:absolute;top:0;left:0;width:1200px;height:820px;transform-origin:0 0;">
+        <sc-if value="{{ showSchematic }}" hint-placeholder-val="{{ true }}">
+        <div style="position:absolute;inset:0;background:#E9DFC9;background-image:linear-gradient(0deg,rgba(120,100,60,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(120,100,60,.05) 1px,transparent 1px);background-size:40px 40px;border:1px solid #D8CCB2;">
+          <svg viewBox="0 0 1200 820" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;">
+            <defs><filter id="roadGlow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="7"></feGaussianBlur></filter></defs>
+            <sc-for list="{{ ctxRoads }}" as="r" hint-placeholder-count="5"><path d="{{ r.d }}" style="fill:none;stroke:#D7CBAF;stroke-width:17;stroke-linecap:round;"></path></sc-for>
+            <sc-for list="{{ ctxRoads }}" as="r" hint-placeholder-count="5"><path d="{{ r.d }}" style="fill:none;stroke:#CFC2A2;stroke-width:2;stroke-dasharray:1 16;stroke-linecap:round;"></path></sc-for>
+            <sc-for list="{{ zoneEls }}" as="z" hint-placeholder-count="3"><rect x="{{ z.x }}" y="{{ z.y }}" width="{{ z.w }}" height="{{ z.h }}" rx="16" data-id="{{ z.id }}" onClick="{{ selectDriver }}" style="{{ z.style }}"></rect></sc-for>
+            <sc-for list="{{ sectorHi }}" as="s" hint-placeholder-count="0"><rect x="{{ s.x }}" y="{{ s.y }}" width="{{ s.w }}" height="{{ s.h }}" rx="11" style="{{ s.style }}"></rect></sc-for>
+            <sc-for list="{{ driverRoads }}" as="r" hint-placeholder-count="2"><path d="{{ r.d }}" data-id="{{ r.id }}" onClick="{{ selectDriver }}" style="{{ r.style }}"></path></sc-for>
+            <sc-if value="{{ hasSpotRoad }}" hint-placeholder-val="{{ false }}">
+              <path d="{{ spotRoad.d }}" filter="url(#roadGlow)" style="fill:none;stroke:#22D3EE;stroke-width:30;opacity:.55;stroke-linecap:round;"></path>
+              <path d="{{ spotRoad.d }}" style="fill:none;stroke:#0B2552;stroke-width:22;stroke-linecap:round;"></path>
+              <path d="{{ spotRoad.d }}" style="fill:none;stroke:#FFFFFF;stroke-width:14;stroke-linecap:round;"></path>
+              <path d="{{ spotRoad.d }}" style="fill:none;stroke:#22D3EE;stroke-width:7.5;stroke-linecap:round;"></path>
+            </sc-if>
+            <sc-for list="{{ ctxChowks }}" as="c" hint-placeholder-count="2"><circle cx="{{ c.cx }}" cy="{{ c.cy }}" r="13" style="fill:#E9DFC9;stroke:#B07A2B;stroke-width:3;"></circle></sc-for>
+            <sc-for list="{{ roadHits }}" as="h" hint-placeholder-count="2"><path d="{{ h.d }}" data-id="{{ h.id }}" onClick="{{ selectDriver }}" style="fill:none;stroke:rgba(0,0,0,0);stroke-width:40;stroke-linecap:round;cursor:pointer;"></path></sc-for>
+          </svg>
+          <sc-for list="{{ pins }}" as="p" hint-placeholder-count="6">
+            <button type="button" data-id="{{ p.id }}" onClick="{{ selectDriver }}" style="{{ p.btnStyle }}">
+              <span style="{{ p.dotStyle }}"><span style="{{ p.innerStyle }}"></span></span>
+              <sc-if value="{{ p.showLabel }}" hint-placeholder-val="{{ true }}"><span style="{{ p.labelStyle }}">{{ p.name }}</span></sc-if>
+            </button>
+          </sc-for>
+          <sc-for list="{{ clusters }}" as="c" hint-placeholder-count="0">
+            <button type="button" data-block="{{ c.blockId }}" onClick="{{ goPropsSector }}" style="{{ c.style }}" style-hover="background:#16356A;color:#FBF6EA;">
+              <span style="font-size:21px;font-weight:800;letter-spacing:-.5px;line-height:1;">{{ c.count }}</span>
+              <span style="font-size:11.5px;font-weight:650;line-height:1.1;">{{ c.name }}</span>
+            </button>
+          </sc-for>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ showOriginal }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;background:#fff center/contain no-repeat;background-image:url('{{ originalImg }}');border:1px solid #C9BFA6;"></div>
+        </sc-if>
+
+        <sc-if value="{{ showScan }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;background:#fff center/contain no-repeat;background-image:url('{{ originalImg }}');border:1px solid #C9BFA6;">
+          <sc-for list="{{ scanPins }}" as="p" hint-placeholder-count="0">
+            <button type="button" data-id="{{ p.id }}" onClick="{{ selectProperty }}" style="{{ p.style }}"></button>
+          </sc-for>
+          <sc-if value="{{ showPlotHi }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;left:{{ plotPin.xpx }}px;top:{{ plotPin.ypx }}px;width:58px;height:58px;margin:-29px 0 0 -29px;border:3px solid #16356A;background:rgba(22,53,106,.16);border-radius:11px;transform:rotate(8deg);z-index:9;animation:plotPulse 2.4s ease-out infinite;"></div>
+          <div style="position:absolute;left:{{ plotPin.xpx }}px;top:{{ plotPin.ypx }}px;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:#16356A;border:2.5px solid #fff;z-index:10;"></div>
+          <div style="position:absolute;left:{{ plotPin.xpx }}px;top:{{ plotPin.ypx }}px;transform:translate(-50%,calc(-100% - 30px));background:#16356A;color:#fff;font-size:13px;font-weight:700;padding:6px 12px;border-radius:9px;white-space:nowrap;z-index:11;box-shadow:0 6px 16px rgba(0,0,0,.3);">Plot {{ plotPin.no }}</div>
+          </sc-if>
+        </div>
+        </sc-if>
+      </div>
+
+      <!-- MASTERPLAN MODE BUTTONS -->
+      <sc-if value="{{ showModes }}" hint-placeholder-val="{{ true }}">
+      <div style="position:absolute;left:16px;top:14px;display:flex;background:rgba(251,246,234,.95);border:1px solid #E6DCC8;border-radius:13px;padding:4px;gap:3px;backdrop-filter:blur(5px);box-shadow:0 4px 14px rgba(40,28,8,.14);z-index:16;">
+        <sc-for list="{{ modeButtons }}" as="m" hint-placeholder-count="3"><button type="button" data-val="{{ m.val }}" onClick="{{ setMode }}" style="{{ m.style }}">{{ m.label }}</button></sc-for>
+      </div>
+      </sc-if>
+
+      <!-- VIEW-ON-MAP TOGGLE -->
+      <sc-if value="{{ showVmToggle }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;left:16px;top:14px;display:flex;background:rgba(251,246,234,.95);border:1px solid #E6DCC8;border-radius:13px;padding:4px;gap:3px;backdrop-filter:blur(5px);box-shadow:0 4px 14px rgba(40,28,8,.14);z-index:16;">
+        <sc-for list="{{ vmButtons }}" as="m" hint-placeholder-count="2"><button type="button" data-val="{{ m.val }}" onClick="{{ setVmTab }}" style="{{ m.style }}">{{ m.label }}</button></sc-for>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ showMapNote }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;left:16px;top:66px;background:rgba(22,53,106,.92);color:#EAF6FB;font-size:12px;font-weight:600;padding:7px 13px;border-radius:10px;z-index:15;max-width:300px;line-height:1.4;">{{ mapNote }}</div>
+      </sc-if>
+
+      <sc-if value="{{ showZoom }}" hint-placeholder-val="{{ true }}">
+      <div style="position:absolute;right:18px;bottom:18px;display:flex;flex-direction:column;gap:1px;background:#FBF6EA;border-radius:13px;box-shadow:0 6px 18px rgba(40,28,8,.18);overflow:hidden;border:1px solid #E6DCC8;z-index:14;">
+        <button type="button" onClick="{{ zoomIn }}" style="width:46px;height:46px;border:none;background:#FBF6EA;font-size:23px;color:#3A352B;cursor:pointer;">+</button>
+        <div style="height:1px;background:#EEE4CF;"></div>
+        <button type="button" onClick="{{ zoomOut }}" style="width:46px;height:46px;border:none;background:#FBF6EA;font-size:25px;color:#3A352B;cursor:pointer;line-height:1;">−</button>
+      </div>
+      </sc-if>
+    </div>
+
+    <!-- SPLIT RIGHT PANEL -->
+    <div style="width:404px;flex:none;background:#FBF6EA;border-left:1px solid #E6DCC8;display:flex;flex-direction:column;min-height:0;box-shadow:-8px 0 24px rgba(40,28,8,.05);">
+
+      <!-- MASTER: CATEGORY LIST -->
+      <sc-if value="{{ panelCats }}" hint-placeholder-val="{{ true }}">
+      <div style="flex:none;padding:24px 24px 16px;">
+        <div style="font-size:12px;font-weight:700;color:#B07A2B;text-transform:uppercase;letter-spacing:1.1px;">Location masterplan</div>
+        <div style="font-family:'Newsreader',serif;font-size:32px;font-weight:560;letter-spacing:-.6px;line-height:1.05;margin-top:7px;">{{ areaName }}</div>
+        <div style="font-size:13.5px;color:#9C957F;font-weight:550;margin-top:6px;">Tap a category, then a road, zone or landmark to show it on the map.</div>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:4px 18px 20px;">
+        <div style="display:flex;flex-direction:column;gap:9px;">
+          <sc-for list="{{ catList }}" as="c" hint-placeholder-count="6">
+            <button type="button" data-id="{{ c.id }}" onClick="{{ selectCategory }}" style="display:flex;align-items:center;gap:14px;text-align:left;width:100%;cursor:pointer;border:1px solid #EFE5D1;background:#fff;border-radius:14px;padding:15px;" style-hover="border-color:#16356A;box-shadow:0 6px 16px rgba(22,53,106,.1);">
+              <span style="{{ c.iconStyle }}"></span>
+              <span style="flex:1;min-width:0;"><span style="display:block;font-size:15.5px;font-weight:700;letter-spacing:-.2px;">{{ c.label }}</span><span style="display:block;font-size:12.5px;color:#9C957F;font-weight:550;margin-top:2px;">{{ c.countText }}</span></span>
+              <span style="color:#C2B79C;font-size:18px;flex:none;">›</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- MASTER: CATEGORY ITEMS -->
+      <sc-if value="{{ panelCat }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:none;padding:20px 22px 15px;border-bottom:1px solid #EFE5D1;">
+        <button type="button" onClick="{{ backCategories }}" style="display:flex;align-items:center;gap:6px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:650;color:#8A5E22;padding:0;">‹ All categories</button>
+        <div style="display:flex;align-items:center;gap:11px;margin-top:11px;"><span style="{{ category.iconStyle }}"></span><div style="font-size:20px;font-weight:780;letter-spacing:-.4px;line-height:1.1;">{{ category.label }}</div></div>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:15px 18px 20px;">
+        <div style="display:flex;flex-direction:column;gap:9px;">
+          <sc-for list="{{ catItems }}" as="i" hint-placeholder-count="3">
+            <button type="button" data-id="{{ i.id }}" data-kind="{{ i.kind }}" data-block="{{ i.block }}" onClick="{{ selectCatItem }}" style="display:flex;align-items:center;gap:12px;text-align:left;width:100%;cursor:pointer;border:1px solid #EFE5D1;background:#fff;border-radius:13px;padding:14px 15px;" style-hover="border-color:#16356A;box-shadow:0 5px 14px rgba(22,53,106,.1);">
+              <span style="{{ i.dotStyle }}"></span>
+              <span style="flex:1;min-width:0;"><span style="display:block;font-size:15px;font-weight:680;letter-spacing:-.2px;">{{ i.name }}</span><span style="display:block;font-size:12px;color:#9C957F;font-weight:550;margin-top:2px;">{{ i.sub }}</span></span>
+              <span style="color:#C2B79C;font-size:16px;flex:none;">{{ i.chevron }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- MASTER: DRIVER (photo-first) -->
+      <sc-if value="{{ panelDriver }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:none;padding:18px 22px 15px;border-bottom:1px solid #EFE5D1;">
+        <button type="button" onClick="{{ backFromDriver }}" style="display:flex;align-items:center;gap:6px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:650;color:#8A5E22;padding:0;">‹ {{ driver.backLabel }}</button>
+        <div style="font-family:'Newsreader',serif;font-size:28px;font-weight:560;letter-spacing:-.5px;line-height:1.06;margin-top:10px;">{{ driver.name }}</div>
+        <span style="{{ driver.catStyle }}">{{ driver.catLabel }}</span>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:16px 18px 20px;animation:panelIn .26s ease;">
+        <button type="button" data-idx="0" onClick="{{ openLightbox }}" style="{{ driver.photoMain.style }}">
+          <span style="position:absolute;inset:0;background-image:linear-gradient(0deg,rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:26px 26px;"></span>
+          <span style="position:absolute;right:13px;top:13px;width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;"><span style="width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.7);"></span></span>
+          <span style="position:relative;padding:13px 15px;color:rgba(255,255,255,.94);font-size:13px;font-weight:650;background:linear-gradient(0deg,rgba(8,16,34,.5),transparent);width:100%;">{{ driver.photoMain.caption }}</span>
+        </button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:9px;">
+          <sc-for list="{{ driver.photoThumbs }}" as="ph" hint-placeholder-count="2">
+            <button type="button" data-idx="{{ ph.idx }}" onClick="{{ openLightbox }}" style="{{ ph.style }}">
+              <span style="position:absolute;inset:0;background-image:linear-gradient(0deg,rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:20px 20px;"></span>
+              <span style="position:relative;padding:8px 10px;color:rgba(255,255,255,.9);font-size:11px;font-weight:600;background:linear-gradient(0deg,rgba(8,16,34,.5),transparent);width:100%;">{{ ph.caption }}</span>
+            </button>
+          </sc-for>
+        </div>
+        <sc-if value="{{ driver.hasRelated }}" hint-placeholder-val="{{ true }}">
+        <div style="font-size:12px;font-weight:700;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin:22px 0 11px;">Available pockets here</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          <sc-for list="{{ driver.related }}" as="r" hint-placeholder-count="3">
+            <button type="button" data-block="{{ r.block }}" onClick="{{ goPropsSector }}" style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:650;color:#2E4A78;background:#E8EEF7;border:1px solid #D7E1F0;padding:8px 13px;border-radius:10px;cursor:pointer;" style-hover="border-color:#16356A;">{{ r.name }} <span style="color:#9DB0CC;font-weight:600;">{{ r.countText }}</span></button>
+          </sc-for>
+        </div>
+        </sc-if>
+      </div>
+      <div style="flex:none;padding:14px 22px;border-top:1px solid #EFE5D1;background:#F5EEDD;">
+        <div style="display:flex;align-items:center;gap:11px;color:#6B6456;font-size:13px;font-weight:560;line-height:1.4;"><span style="width:24px;height:24px;border-radius:50%;background:#E8F6FA;border:1px solid #BFE6EF;display:flex;align-items:center;justify-content:center;flex:none;"><span style="width:8px;height:8px;border-radius:50%;background:#22A8C4;"></span></span>Highlighted on the map. Tap a photo to enlarge.</div>
+      </div>
+      </sc-if>
+
+      <!-- VIEW ON MAP: property side panel -->
+      <sc-if value="{{ panelViewmap }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:none;padding:15px 18px;border-bottom:1px solid #EFE5D1;">
+        <button type="button" onClick="{{ backToDetail }}" style="display:flex;align-items:center;gap:6px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:650;color:#8A5E22;padding:0;">‹ Back to property</button>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:20px 20px 20px;animation:panelIn .26s ease;">
+        <div style="font-size:13px;color:#6B6456;font-weight:560;line-height:1.5;background:#F0F4FA;border:1px solid #DDE7F3;border-radius:12px;padding:12px 14px;">{{ vm.note }}</div>
+        <div style="font-size:44px;font-weight:800;letter-spacing:-1.4px;line-height:1;margin-top:18px;">{{ sel.sizeText }}</div>
+        <div style="font-size:17px;font-weight:700;color:#3F3A30;margin-top:8px;">{{ sel.sectorName }} · Plot {{ sel.no }}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:13px;">
+          <span style="font-size:12.5px;font-weight:700;color:#2E4A78;background:#E8EEF7;padding:6px 11px;border-radius:8px;">{{ sel.plotType }}</span>
+          <sc-if value="{{ sel.hasRoad }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px;font-weight:700;color:#2E4A78;background:#E8EEF7;padding:6px 11px;border-radius:8px;">{{ sel.roadFacing }}</span></sc-if>
+        </div>
+        <sc-if value="{{ sel.hasDrivers }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:12px;font-weight:700;color:#A89F89;text-transform:uppercase;letter-spacing:.8px;margin:22px 0 9px;">Nearby value drivers</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          <sc-for list="{{ sel.nearDrivers }}" as="l" hint-placeholder-count="2"><button type="button" data-id="{{ l.id }}" onClick="{{ showAreaContextFor }}" style="border:1px solid #E6D5B4;background:#F4E8CF;color:#8A5E22;font-size:12.5px;font-weight:650;padding:8px 12px;border-radius:10px;cursor:pointer;" style-hover="border-color:#B07A2B;">◆ {{ l.name }}</button></sc-for>
+        </div>
+        </sc-if>
+        <button type="button" onClick="{{ shareWhatsApp }}" style="margin-top:24px;width:100%;height:56px;border:none;border-radius:15px;background:#1FA855;color:#fff;font-size:16px;font-weight:730;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 8px 20px rgba(31,168,85,.28);" style-hover="background:#23B85E;"><span style="width:23px;height:23px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;"><span style="width:10px;height:10px;border-radius:0 10px 10px 10px;background:#1FA855;"></span></span>Share on WhatsApp</button>
+      </div>
+      </sc-if>
+
+      <!-- SECTOR MAP OPEN: available properties -->
+      <sc-if value="{{ panelSectorOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:none;padding:18px 20px 15px;border-bottom:1px solid #EFE5D1;">
+        <button type="button" onClick="{{ backToLibrary }}" style="display:flex;align-items:center;gap:6px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:650;color:#8A5E22;padding:0;">‹ Map library</button>
+        <div style="font-family:'Newsreader',serif;font-size:27px;font-weight:560;letter-spacing:-.5px;margin-top:10px;line-height:1.05;">{{ sectorOpen.name }}</div>
+        <div style="font-size:13.5px;color:#9C957F;font-weight:600;margin-top:3px;">{{ sectorOpen.areaName }} · {{ sectorOpen.availText }}</div>
+        <button type="button" onClick="{{ sectorToContext }}" style="margin-top:13px;width:100%;height:46px;border:1px solid #E6DCC8;background:#fff;border-radius:12px;font-size:13.5px;font-weight:680;color:#16356A;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;" style-hover="border-color:#16356A;">View on Masterplan Context →</button>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:14px 16px 18px;">
+        <sc-if value="{{ sectorOpen.hasProps }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:11px;">
+          <sc-for list="{{ sectorOpen.props }}" as="c" hint-placeholder-count="5">
+            <div style="border:1px solid #EFE5D1;background:#fff;border-radius:15px;padding:14px 15px;">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;"><span style="font-size:23px;font-weight:790;letter-spacing:-.7px;line-height:1;">{{ c.sizeText }}</span><span style="font-size:12px;font-weight:700;color:#2E4A78;background:#E8EEF7;padding:4px 9px;border-radius:7px;">Plot {{ c.no }}</span></div>
+              <div style="font-size:13px;color:#7C7565;font-weight:600;margin-top:8px;">{{ c.typeRoad }}</div>
+              <div style="display:flex;gap:8px;margin-top:12px;">
+                <button type="button" data-id="{{ c.id }}" onClick="{{ selectPropertyOnScan }}" style="flex:1;height:44px;border:none;border-radius:11px;background:#16356A;color:#FBF6EA;font-size:13px;font-weight:700;cursor:pointer;" style-hover="background:#1B3F7C;">Show on map</button>
+                <button type="button" data-id="{{ c.id }}" onClick="{{ selectProperty }}" style="flex:none;padding:0 15px;height:44px;border:1px solid #E6DCC8;border-radius:11px;background:#fff;font-size:13px;font-weight:680;color:#23211C;cursor:pointer;" style-hover="border-color:#16356A;">Details</button>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        </sc-if>
+        <sc-if value="{{ sectorOpen.noProps }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:44px 20px;text-align:center;color:#A89F89;"><div style="font-size:15px;font-weight:650;color:#7C7565;">No available properties listed in this sector yet.</div></div>
+        </sc-if>
+      </div>
+      </sc-if>
+    </div>
+    </sc-if>
+
+    <!-- ============ FULL SCREENS ============ -->
+    <sc-if value="{{ fullScreen }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;overflow-y:auto;background:#EAE0CC;min-width:0;">
+
+      <!-- PROPERTIES BROWSE -->
+      <sc-if value="{{ screenBrowse }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:1180px;margin:0 auto;padding:30px 40px 44px;">
+        <div style="font-size:12px;font-weight:700;color:#B07A2B;text-transform:uppercase;letter-spacing:1.1px;">Available properties</div>
+        <div style="display:flex;align-items:baseline;gap:13px;margin-top:6px;flex-wrap:wrap;">
+          <div style="font-family:'Newsreader',serif;font-size:40px;font-weight:560;letter-spacing:-1px;line-height:1;">{{ areaName }}</div>
+          <div style="font-size:16px;color:#8C8676;font-weight:600;">{{ browseCount }}</div>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;gap:9px;margin-top:16px;">
+          <sc-for list="{{ propAreaChips }}" as="a" hint-placeholder-count="7"><button type="button" data-id="{{ a.id }}" onClick="{{ switchAreaProps }}" style="{{ a.style }}">{{ a.label }}</button></sc-for>
+        </div>
+
+        <div style="position:relative;margin-top:18px;">
+          <span style="position:absolute;left:18px;top:50%;transform:translateY(-50%);width:17px;height:17px;border:2.5px solid #B0A88F;border-radius:50%;"></span>
+          <span style="position:absolute;left:31px;top:calc(50% + 6px);width:8px;height:2.5px;background:#B0A88F;transform:rotate(45deg);"></span>
+          <input type="text" value="{{ pfQ }}" onInput="{{ onPSearch }}" placeholder="Search sector, plot number, road facing…" style="width:100%;height:58px;border:1px solid #E2D7C0;border-radius:16px;padding:0 18px 0 46px;font-size:16px;font-weight:500;outline:none;background:#FBF6EA;box-shadow:0 2px 8px rgba(40,28,8,.05);" />
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;gap:9px;margin-top:14px;">
+          <sc-for list="{{ facetPills }}" as="f" hint-placeholder-count="5"><button type="button" data-facet="{{ f.id }}" onClick="{{ toggleFacet }}" style="{{ f.style }}">{{ f.label }} <span style="opacity:.6;">▾</span></button></sc-for>
+          <sc-if value="{{ hasActiveFilters }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ clearFilters }}" style="border:none;background:none;cursor:pointer;font-size:13px;font-weight:650;color:#8A5E22;padding:9px 6px;">Clear all</button></sc-if>
+        </div>
+
+        <sc-if value="{{ facetOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:12px;background:#FBF6EA;border:1px solid #E6DCC8;border-radius:16px;padding:16px 17px;animation:riseIn .18s ease;">
+          <div style="font-size:12px;font-weight:700;color:#A89F89;text-transform:uppercase;letter-spacing:.8px;margin-bottom:11px;">{{ facetTitle }}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:9px;">
+            <button type="button" data-facet="{{ facetOpenId }}" data-val="" onClick="{{ setFacet }}" style="{{ facetAnyStyle }}">Any</button>
+            <sc-for list="{{ facetOptions }}" as="o" hint-placeholder-count="5"><button type="button" data-facet="{{ facetOpenId }}" data-val="{{ o.val }}" onClick="{{ setFacet }}" style="{{ o.style }}">{{ o.label }}</button></sc-for>
+          </div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ hasBrowse }}" hint-placeholder-val="{{ true }}">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;margin-top:24px;">
+          <sc-for list="{{ browseCards }}" as="c" hint-placeholder-count="6">
+            <div style="background:#FBF6EA;border:1px solid #EBE1CC;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 4px 16px rgba(40,28,8,.06);">
+              <button type="button" data-id="{{ c.id }}" onClick="{{ selectProperty }}" style="position:relative;height:170px;background:{{ c.grad }};border:none;cursor:pointer;padding:0;display:flex;align-items:flex-end;text-align:left;">
+                <span style="position:absolute;inset:0;background-image:linear-gradient(0deg,rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:24px 24px;"></span>
+                <span style="position:absolute;left:13px;top:13px;display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.92);color:#1C8A57;font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:8px;"><span style="width:7px;height:7px;border-radius:50%;background:#1C8A57;"></span>Available</span>
+                <sc-if value="{{ c.hasNear }}" hint-placeholder-val="{{ true }}"><span style="position:relative;margin:13px;padding:7px 12px;background:rgba(138,94,34,.92);color:#fff;font-size:12px;font-weight:680;border-radius:9px;backdrop-filter:blur(3px);">◆ {{ c.nearText }}</span></sc-if>
+              </button>
+              <div style="padding:16px 17px 17px;display:flex;flex-direction:column;flex:1;">
+                <div style="font-size:30px;font-weight:800;letter-spacing:-1px;line-height:1;">{{ c.sizeText }}</div>
+                <div style="font-size:16px;font-weight:700;color:#2E2A22;margin-top:9px;">{{ c.sectorPlot }}</div>
+                <div style="font-size:13.5px;color:#7C7565;font-weight:580;margin-top:5px;">{{ c.typeRoad }}</div>
+                <div style="display:flex;gap:9px;margin-top:16px;">
+                  <button type="button" data-id="{{ c.id }}" onClick="{{ viewOnMap }}" style="flex:1;height:50px;border:none;border-radius:13px;background:#16356A;color:#FBF6EA;font-size:14.5px;font-weight:730;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;" style-hover="background:#1B3F7C;">View on Map</button>
+                  <button type="button" data-id="{{ c.id }}" onClick="{{ selectProperty }}" style="flex:none;padding:0 16px;height:50px;border:1px solid #E2D7C0;border-radius:13px;background:#fff;font-size:14px;font-weight:680;color:#23211C;cursor:pointer;" style-hover="border-color:#16356A;">Details</button>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        </sc-if>
+        <sc-if value="{{ noBrowse }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:70px 20px;text-align:center;color:#A89F89;"><div style="font-size:17px;font-weight:650;color:#7C7565;">No properties match these filters.</div><button type="button" onClick="{{ clearFilters }}" style="margin-top:14px;border:1px solid #E2D7C0;background:#FBF6EA;border-radius:12px;padding:11px 20px;font-size:14px;font-weight:680;color:#16356A;cursor:pointer;">Clear filters</button></div>
+        </sc-if>
+      </div>
+      </sc-if>
+
+      <!-- PROPERTY DETAIL -->
+      <sc-if value="{{ screenDetail }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:1040px;margin:0 auto;padding:24px 40px 50px;animation:riseIn .24s ease;">
+        <button type="button" onClick="{{ backFromDetail }}" style="display:flex;align-items:center;gap:6px;border:none;background:none;cursor:pointer;font-size:14px;font-weight:650;color:#8A5E22;padding:6px 0;">‹ {{ detailBack }}</button>
+        <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:30px;margin-top:14px;align-items:start;">
+          <div>
+            <button type="button" data-idx="0" onClick="{{ openLightbox }}" style="position:relative;display:flex;align-items:flex-end;width:100%;height:330px;border:none;cursor:pointer;padding:0;border-radius:20px;overflow:hidden;background:{{ sel.photoGrad }};box-shadow:0 10px 30px rgba(40,28,8,.12);">
+              <span style="position:absolute;inset:0;background-image:linear-gradient(0deg,rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:30px 30px;"></span>
+              <span style="position:absolute;right:15px;top:15px;width:34px;height:34px;border-radius:50%;border:2px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;"><span style="width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.7);"></span></span>
+              <span style="position:relative;padding:16px 18px;color:rgba(255,255,255,.92);font-size:14px;font-weight:650;background:linear-gradient(0deg,rgba(8,16,34,.5),transparent);width:100%;">{{ sel.photoCaption }}</span>
+            </button>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
+              <sc-for list="{{ sel.thumbs }}" as="ph" hint-placeholder-count="3">
+                <button type="button" data-idx="{{ ph.idx }}" onClick="{{ openLightbox }}" style="position:relative;height:84px;border:none;cursor:pointer;padding:0;border-radius:12px;overflow:hidden;background:{{ ph.grad }};">
+                  <span style="position:absolute;inset:0;background-image:linear-gradient(0deg,rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:18px 18px;"></span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+          <div>
+            <div style="display:inline-flex;align-items:center;gap:6px;background:#E1F0E7;color:#1C8A57;font-size:12px;font-weight:700;padding:6px 12px;border-radius:8px;"><span style="width:7px;height:7px;border-radius:50%;background:#1C8A57;"></span>Available</div>
+            <div style="font-size:54px;font-weight:800;letter-spacing:-2px;line-height:.95;margin-top:14px;">{{ sel.sizeText }}</div>
+            <div style="font-size:22px;font-weight:730;letter-spacing:-.5px;color:#2E2A22;margin-top:8px;">{{ sel.sectorName }} · Plot {{ sel.no }}</div>
+            <div style="margin-top:18px;border:1px solid #EBE1CC;border-radius:16px;overflow:hidden;background:#FBF6EA;">
+              <sc-for list="{{ sel.meta }}" as="row" hint-placeholder-count="3">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #F2EAD8;">
+                  <span style="font-size:13.5px;color:#A89F89;font-weight:600;">{{ row.label }}</span>
+                  <span style="font-size:15px;color:#23211C;font-weight:700;text-align:right;">{{ row.value }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <sc-if value="{{ sel.hasDrivers }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:12px;font-weight:700;color:#A89F89;text-transform:uppercase;letter-spacing:.8px;margin:20px 0 10px;">Nearby landmarks &amp; value drivers</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <sc-for list="{{ sel.nearDrivers }}" as="l" hint-placeholder-count="3"><span style="display:inline-flex;align-items:center;gap:7px;border:1px solid #E6D5B4;background:#F4E8CF;color:#8A5E22;font-size:13px;font-weight:650;padding:8px 13px;border-radius:10px;">◆ {{ l.name }}</span></sc-for>
+            </div>
+            </sc-if>
+            <div style="display:flex;gap:11px;margin-top:24px;">
+              <button type="button" data-id="{{ sel.id }}" onClick="{{ viewOnMap }}" style="flex:1;height:58px;border:none;border-radius:15px;background:#16356A;color:#FBF6EA;font-size:16px;font-weight:730;cursor:pointer;box-shadow:0 8px 20px rgba(22,53,106,.26);" style-hover="background:#1B3F7C;">View on Map</button>
+              <button type="button" onClick="{{ shareWhatsApp }}" style="flex:none;width:58px;height:58px;border:none;border-radius:15px;background:#1FA855;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(31,168,85,.26);" style-hover="background:#23B85E;" title="Share on WhatsApp"><span style="width:24px;height:24px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;"><span style="width:11px;height:11px;border-radius:0 11px 11px 11px;background:#1FA855;"></span></span></button>
+            </div>
+          </div>
+        </div>
+
+        <sc-if value="{{ hasAlts }}" hint-placeholder-val="{{ true }}">
+        <div style="margin-top:40px;">
+          <div style="font-family:'Newsreader',serif;font-size:24px;font-weight:560;letter-spacing:-.5px;">Nearby alternatives</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-top:16px;">
+            <sc-for list="{{ alts }}" as="n" hint-placeholder-count="3">
+              <button type="button" data-id="{{ n.id }}" onClick="{{ selectProperty }}" style="text-align:left;background:#FBF6EA;border:1px solid #EBE1CC;border-radius:16px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;" style-hover="border-color:#16356A;box-shadow:0 8px 20px rgba(22,53,106,.1);">
+                <div style="height:96px;background:{{ n.grad }};"></div>
+                <div style="padding:13px 14px 14px;"><div style="font-size:22px;font-weight:790;letter-spacing:-.6px;">{{ n.sizeText }}</div><div style="font-size:13px;color:#7C7565;font-weight:600;margin-top:5px;">{{ n.sectorPlot }}</div></div>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+      </sc-if>
+
+      <!-- SECTOR MAP LIBRARY -->
+      <sc-if value="{{ screenLibrary }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:1180px;margin:0 auto;padding:30px 40px 50px;">
+        <div style="font-size:12px;font-weight:700;color:#B07A2B;text-transform:uppercase;letter-spacing:1.1px;">Sector Map Library</div>
+        <div style="font-family:'Newsreader',serif;font-size:40px;font-weight:560;letter-spacing:-1px;line-height:1.02;margin-top:6px;">Find any sector map.</div>
+        <div style="font-size:15.5px;color:#8C8676;font-weight:550;margin-top:8px;">{{ libTotalText }} across the Tri-City. Search, or pick an area to browse.</div>
+
+        <div style="position:relative;margin-top:22px;">
+          <span style="position:absolute;left:18px;top:50%;transform:translateY(-50%);width:17px;height:17px;border:2.5px solid #B0A88F;border-radius:50%;"></span>
+          <span style="position:absolute;left:31px;top:calc(50% + 6px);width:8px;height:2.5px;background:#B0A88F;transform:rotate(45deg);"></span>
+          <input type="text" value="{{ mapsSearch }}" onInput="{{ onMapsSearch }}" placeholder="Search sector, pocket or area…  e.g. 79, Sector 82, Aerocity Pocket 1" style="width:100%;height:58px;border:1px solid #E2D7C0;border-radius:16px;padding:0 18px 0 46px;font-size:16px;font-weight:500;outline:none;background:#FBF6EA;box-shadow:0 2px 8px rgba(40,28,8,.05);" />
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;gap:9px;margin-top:14px;">
+          <sc-for list="{{ areaChips }}" as="a" hint-placeholder-count="8"><button type="button" data-id="{{ a.id }}" onClick="{{ setMapsArea }}" style="{{ a.style }}">{{ a.label }}</button></sc-for>
+        </div>
+
+        <sc-for list="{{ librarySections }}" as="sec" hint-placeholder-count="2">
+          <div style="margin-top:30px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <sc-if value="{{ sec.hasIcon }}" hint-placeholder-val="{{ false }}"><span style="{{ sec.iconStyle }}"></span></sc-if>
+              <div style="font-size:19px;font-weight:780;letter-spacing:-.3px;">{{ sec.label }}</div>
+              <div style="font-size:13px;color:#A89F89;font-weight:600;">{{ sec.countText }}</div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:16px;margin-top:14px;">
+              <sc-for list="{{ sec.cards }}" as="c" hint-placeholder-count="4">
+                <div style="background:#FBF6EA;border:1px solid #EBE1CC;border-radius:18px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 3px 12px rgba(40,28,8,.05);">
+                  <div style="{{ c.thumbStyle }}">
+                    <div style="{{ c.thumbRoad }}"></div>
+                    <div style="{{ c.thumbRoad2 }}"></div>
+                    <span style="position:absolute;right:11px;bottom:9px;font-family:'Newsreader',serif;font-size:30px;font-weight:600;color:rgba(22,53,106,.18);line-height:1;">{{ c.bigNo }}</span>
+                    <span style="{{ c.statusStyle }}">{{ c.statusLabel }}</span>
+                  </div>
+                  <div style="padding:14px 15px 15px;display:flex;flex-direction:column;flex:1;">
+                    <div style="font-size:18px;font-weight:780;letter-spacing:-.3px;line-height:1.1;">{{ c.name }}</div>
+                    <div style="font-size:13px;color:#9C957F;font-weight:600;margin-top:3px;">{{ c.areaName }}</div>
+                    <div style="font-size:13px;font-weight:650;margin-top:9px;color:{{ c.availColor }};display:flex;align-items:center;gap:6px;"><span style="width:7px;height:7px;border-radius:50%;background:{{ c.availColor }};"></span>{{ c.availText }}</div>
+                    <button type="button" data-block="{{ c.block }}" onClick="{{ openSectorMap }}" style="{{ c.openStyle }}">{{ c.openLabel }}</button>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+
+        <sc-if value="{{ libEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:60px 20px;text-align:center;color:#A89F89;"><div style="font-size:17px;font-weight:650;color:#7C7565;">No maps match “{{ mapsSearch }}”.</div></div>
+        </sc-if>
+      </div>
+      </sc-if>
+
+    </div>
+    </sc-if>
+  </div>
+
+  <!-- LIGHTBOX -->
+  <sc-if value="{{ lightboxOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;z-index:90;background:rgba(8,14,28,.82);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px;animation:fadeIn .2s ease;" onClick="{{ closeLightbox }}">
+    <div style="width:100%;max-width:720px;" onClick="{{ stop }}">
+      <div style="position:relative;width:100%;height:430px;border-radius:18px;overflow:hidden;background:{{ lbPhoto.grad }};box-shadow:0 24px 70px rgba(0,0,0,.5);">
+        <div style="position:absolute;inset:0;background-image:linear-gradient(0deg,rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:34px 34px;"></div>
+        <div style="position:absolute;left:0;right:0;bottom:0;padding:20px 22px;background:linear-gradient(0deg,rgba(6,12,26,.6),transparent);color:#fff;font-size:16px;font-weight:680;">{{ lbPhoto.caption }}</div>
+        <sc-if value="{{ lbHasMany }}" hint-placeholder-val="{{ true }}">
+        <button type="button" onClick="{{ lbPrev }}" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;border:none;background:rgba(255,255,255,.18);color:#fff;font-size:22px;cursor:pointer;backdrop-filter:blur(4px);">‹</button>
+        <button type="button" onClick="{{ lbNext }}" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;border:none;background:rgba(255,255,255,.18);color:#fff;font-size:22px;cursor:pointer;backdrop-filter:blur(4px);">›</button>
+        </sc-if>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;">
+        <span style="color:rgba(255,255,255,.6);font-size:13px;font-weight:600;">{{ lbCounter }}</span>
+        <button type="button" onClick="{{ closeLightbox }}" style="display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-size:13.5px;font-weight:650;padding:9px 16px;border-radius:11px;cursor:pointer;">Close ×</button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+  </sc-if>
+
+  <!-- ===================== DEALER LOGIN (private) ===================== -->
+  <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(165deg,#16356A,#0A1E40);">
+    <div style="width:400px;max-width:92%;background:#FBF6EA;border-radius:22px;padding:36px 32px;box-shadow:0 28px 80px rgba(0,0,0,.4);animation:popIn .22s ease;">
+      <div style="display:flex;align-items:center;gap:11px;margin-bottom:24px;"><span style="width:32px;height:32px;border-radius:9px;background:#16356A;display:flex;align-items:center;justify-content:center;"><span style="width:12px;height:12px;border-radius:50%;border:3px solid #FBF6EA;"></span></span><span style="font-size:17px;font-weight:730;">PlotMap <span style="font-weight:500;color:#A89F89;">Dealer</span></span></div>
+      <div style="font-family:'Newsreader',serif;font-size:26px;font-weight:560;letter-spacing:-.4px;">Sign in</div>
+      <div style="font-size:13.5px;color:#7C7565;margin-top:6px;">Private workspace for managing inventory.</div>
+      <div style="margin-top:22px;display:flex;flex-direction:column;gap:12px;">
+        <input type="text" placeholder="Email or phone" style="width:100%;height:50px;border:1px solid #E6DCC8;border-radius:13px;padding:0 15px;font-size:14.5px;outline:none;background:#fff;" />
+        <input type="password" placeholder="Password" style="width:100%;height:50px;border:1px solid #E6DCC8;border-radius:13px;padding:0 15px;font-size:14.5px;outline:none;background:#fff;" />
+      </div>
+      <button type="button" onClick="{{ doLogin }}" style="margin-top:20px;width:100%;height:52px;border:none;border-radius:14px;background:#16356A;color:#FBF6EA;font-size:15.5px;font-weight:700;cursor:pointer;">Sign in</button>
+      <button type="button" onClick="{{ goAreaSelect }}" style="margin-top:13px;width:100%;border:none;background:none;cursor:pointer;font-size:13.5px;color:#7C7565;font-weight:600;">← Back to masterplans</button>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ===================== DEALER PORTAL (private) ===================== -->
+  <sc-if value="{{ isDealer }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:none;height:60px;background:#16356A;display:flex;align-items:center;gap:14px;padding:0 20px;z-index:40;">
+    <span style="font-size:16px;font-weight:730;color:#FBF6EA;">PlotMap <span style="font-weight:500;opacity:.65;">· Dealer</span></span>
+    <div style="flex:1;"></div>
+    <button type="button" onClick="{{ openAdd }}" style="height:40px;padding:0 17px;border:none;background:#FBF6EA;color:#16356A;border-radius:11px;font-size:14px;font-weight:730;cursor:pointer;">+ Add property</button>
+    <button type="button" onClick="{{ goAreaSelect }}" style="height:40px;padding:0 16px;border:1px solid rgba(251,246,234,.35);background:transparent;color:#FBF6EA;border-radius:11px;font-size:14px;font-weight:600;cursor:pointer;">Sign out</button>
+  </div>
+  <div style="flex:1;background:#EAE0CC;display:flex;flex-direction:column;min-height:0;">
+    <div style="flex:none;background:#FBF6EA;border-bottom:1px solid #E6DCC8;padding:16px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <input type="text" placeholder="Search plot number…" value="{{ invSearch }}" onInput="{{ onSearch }}" style="height:46px;border:1px solid #E6DCC8;border-radius:13px;padding:0 15px;font-size:14px;outline:none;background:#fff;min-width:200px;" />
+      <select value="{{ invBlockId }}" onChange="{{ onInvBlock }}" style="height:46px;border:1px solid #E6DCC8;border-radius:13px;padding:0 30px 0 13px;font-size:14px;font-weight:650;background:#fff;cursor:pointer;"><option value="all">All sectors / pockets</option><sc-for list="{{ blockOptions }}" as="o" hint-placeholder-count="6"><option value="{{ o.id }}">{{ o.label }}</option></sc-for></select>
+      <div style="display:flex;background:#EFE5D1;border-radius:13px;padding:3px;gap:2px;"><sc-for list="{{ statusFilters }}" as="f" hint-placeholder-count="4"><button type="button" data-val="{{ f.val }}" onClick="{{ onStatusFilter }}" style="{{ f.style }}">{{ f.label }}</button></sc-for></div>
+      <div style="flex:1;"></div>
+      <select value="{{ invSort }}" onChange="{{ onSort }}" style="height:46px;border:1px solid #E6DCC8;border-radius:13px;padding:0 30px 0 13px;font-size:14px;font-weight:650;background:#fff;cursor:pointer;"><option value="size-desc">Size: Large → Small</option><option value="size-asc">Size: Small → Large</option></select>
+    </div>
+    <div style="flex:none;padding:14px 24px 0;font-size:13px;color:#A89F89;font-weight:650;">{{ invCountText }}</div>
+    <div style="flex:1;overflow-y:auto;padding:15px 24px 28px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:15px;">
+        <sc-for list="{{ inventory }}" as="c" hint-placeholder-count="9">
+          <div style="background:#FBF6EA;border:1px solid #E6DCC8;border-radius:17px;overflow:hidden;display:flex;flex-direction:column;">
+            <div style="position:relative;height:108px;background:linear-gradient(135deg,#E7DCC5,#DCD0B8);display:flex;align-items:flex-end;padding:11px;"><span style="position:absolute;left:12px;top:12px;{{ c.badgeStyle }}">{{ c.statusLabel }}</span></div>
+            <div style="padding:14px 15px 15px;display:flex;flex-direction:column;flex:1;">
+              <div style="font-size:24px;font-weight:790;letter-spacing:-.7px;line-height:1;">{{ c.sizeText }}</div>
+              <div style="font-size:12.5px;color:#7C7565;margin-top:8px;font-weight:600;">{{ c.plotType }} · Plot {{ c.no }}</div>
+              <div style="font-size:12px;color:#A89F89;margin-top:2px;font-weight:550;">{{ c.blockLabel }}</div>
+              <div style="display:flex;gap:8px;margin-top:13px;">
+                <button type="button" data-id="{{ c.id }}" onClick="{{ onViewOnMap }}" style="flex:1;height:40px;border:1px solid #E6DCC8;background:#fff;border-radius:11px;font-size:12.5px;font-weight:650;color:#23211C;cursor:pointer;">View on map</button>
+                <button type="button" data-id="{{ c.id }}" onClick="{{ onEditPlot }}" style="width:40px;height:40px;border:1px solid #E6DCC8;background:#fff;border-radius:11px;cursor:pointer;color:#7C7565;font-size:14px;">✎</button>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ADD / EDIT FORM (private) -->
+  <sc-if value="{{ formOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;z-index:80;background:rgba(10,18,38,.5);display:flex;align-items:center;justify-content:center;animation:fadeIn .18s ease;" onClick="{{ onBackdrop }}">
+    <div style="width:840px;max-width:94%;max-height:92%;background:#FBF6EA;border-radius:22px;box-shadow:0 28px 80px rgba(0,0,0,.36);display:flex;flex-direction:column;overflow:hidden;animation:popIn .22s ease;" onClick="{{ stop }}">
+      <div style="flex:none;padding:19px 24px;border-bottom:1px solid #EEE4CF;display:flex;align-items:center;justify-content:space-between;"><div style="font-size:18px;font-weight:730;letter-spacing:-.3px;">{{ formTitle }}</div><button type="button" onClick="{{ closeForm }}" style="width:34px;height:34px;border-radius:50%;border:none;background:#EFE5D1;color:#7C7565;font-size:18px;cursor:pointer;">×</button></div>
+      <div style="flex:1;overflow-y:auto;padding:24px;display:flex;gap:24px;">
+        <div style="flex:none;width:290px;display:flex;flex-direction:column;gap:17px;">
+          <div><div style="font-size:12px;font-weight:650;color:#7C7565;margin-bottom:8px;">Property photo</div><x-import component-from-global-scope="image-slot" from="./image-slot.js" hint-size="290px,168px" style="display:block;width:290px;height:168px;"><image-slot id="form-photo" shape="rounded" radius="13" placeholder="Drop / browse photo" style="width:290px;height:168px;display:block;"></image-slot></x-import></div>
+          <div><div style="font-size:12px;font-weight:650;color:#7C7565;margin-bottom:8px;">Place pin on map</div><div onClick="{{ onPlacePin }}" style="position:relative;width:290px;height:168px;border-radius:13px;overflow:hidden;cursor:crosshair;border:1px solid #E6DCC8;background:#fff center/contain no-repeat;background-image:url('sector-map.jpg');"><div style="{{ formPinStyle }}"></div></div></div>
+        </div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:15px;">
+          <div><div style="font-size:12px;font-weight:650;color:#7C7565;margin-bottom:8px;">Sector / pocket</div><select value="{{ formData.blockId }}" onChange="{{ onFormBlock }}" style="width:100%;height:48px;border:1px solid #E6DCC8;border-radius:13px;padding:0 30px 0 14px;font-size:14px;font-weight:650;background:#fff;cursor:pointer;"><sc-for list="{{ blockOptions }}" as="o" hint-placeholder-count="6"><option value="{{ o.id }}">{{ o.label }}</option></sc-for></select></div>
+          <div style="display:flex;gap:13px;"><div style="flex:1;"><div style="font-size:12px;font-weight:650;color:#7C7565;margin-bottom:8px;">Plot number</div><input type="text" value="{{ formData.no }}" onInput="{{ onFormNo }}" placeholder="124" style="width:100%;height:48px;border:1px solid #E6DCC8;border-radius:13px;padding:0 14px;font-size:14px;outline:none;" /></div><div style="flex:1;"><div style="font-size:12px;font-weight:650;color:#7C7565;margin-bottom:8px;">Plot size (sq.yd)</div><input type="number" value="{{ formData.size }}" onInput="{{ onFormSize }}" placeholder="250" style="width:100%;height:48px;border:1px solid #E6DCC8;border-radius:13px;padding:0 14px;font-size:14px;outline:none;" /></div></div>
+          <div style="display:flex;gap:13px;"><div style="flex:1;"><div style="font-size:12px;font-weight:650;color:#7C7565;margin-bottom:8px;">Plot type</div><select value="{{ formData.plotType }}" onChange="{{ onFormType }}" style="width:100%;height:48px;border:1px solid #E6DCC8;border-radius:13px;padding:0 30px 0 14px;font-size:14px;font-weight:650;background:#fff;cursor:pointer;"><sc-for list="{{ plotTypeOptions }}" as="o" hint-placeholder-count="7"><option value="{{ o }}">{{ o }}</option></sc-for></select></div><div style="flex:1;"><div style="font-size:12px;font-weight:650;color:#7C7565;margin-bottom:8px;">Road facing</div><select value="{{ formData.roadFacing }}" onChange="{{ onFormRoad }}" style="width:100%;height:48px;border:1px solid #E6DCC8;border-radius:13px;padding:0 30px 0 14px;font-size:14px;font-weight:650;background:#fff;cursor:pointer;"><sc-for list="{{ roadOptions }}" as="o" hint-placeholder-count="9"><option value="{{ o }}">{{ o }}</option></sc-for></select></div></div>
+          <div><div style="font-size:12px;font-weight:650;color:#7C7565;margin-bottom:8px;">Status</div><div style="display:flex;gap:9px;"><sc-for list="{{ formStatusOptions }}" as="s" hint-placeholder-count="3"><button type="button" data-val="{{ s.val }}" onClick="{{ onFormStatus }}" style="{{ s.style }}"><span style="width:9px;height:9px;border-radius:50%;background:{{ s.dot }};"></span>{{ s.label }}</button></sc-for></div></div>
+        </div>
+      </div>
+      <div style="flex:none;padding:17px 24px;border-top:1px solid #EEE4CF;display:flex;justify-content:flex-end;gap:11px;"><button type="button" onClick="{{ closeForm }}" style="height:48px;padding:0 22px;border:1px solid #E6DCC8;background:#fff;border-radius:13px;font-size:14px;font-weight:650;cursor:pointer;color:#23211C;">Cancel</button><button type="button" onClick="{{ saveForm }}" style="height:48px;padding:0 28px;border:none;background:#16356A;color:#FBF6EA;border-radius:13px;font-size:14px;font-weight:730;cursor:pointer;">Save property</button></div>
+    </div>
+  </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1194,&quot;height&quot;:834},&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Bronze&quot;,&quot;Royal&quot;,&quot;Forest&quot;,&quot;Plum&quot;],&quot;default&quot;:&quot;Bronze&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;zoomControls&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.mapPanelRef=React.createRef(); this.mapLayerRef=React.createRef();
+    this.MAP_W=1200; this.MAP_H=820;
+    this._tx=0;this._ty=0;this._scale=1;this._moved=false;this._panning=false;
+    this._boundNode=null;this._winBound=false;this._sig='__init__';this._pinch=null;
+    this.PLOT_TYPES=['Residential','Commercial','Corner','Kanal','Kothi','Booth / SCO','Other'];
+    this.ROADS=['Main Road','200ft Road','100ft Road','60ft Road','40ft Road','Park Facing','Corner Facing','Internal Road','Not specified'];
+    this.NAVY='#16356A'; this.SAGE='#7E9A63';
+    this.ACCENTS={Bronze:'#B07A2B',Royal:'#16356A',Forest:'#3F6B4A',Plum:'#7A3B5E'};
+    this.BRONZE=this.ACCENTS[this.props.accent]||'#B07A2B';
+    this.CATS={
+      connectivity:{label:'Connectivity',color:this.NAVY},
+      commercial:{label:'Commercial Zone',color:this.BRONZE},
+      retail:{label:'Shopping & Market',color:this.BRONZE},
+      social:{label:'Institution / Landmark',color:'#2E4A78'},
+      green:{label:'Green & Open Space',color:this.SAGE},
+      growth:{label:'Upcoming Development',color:'#9A6A1E'},
+    };
+    this.CATEGORIES=[
+      {id:'roads',label:'Key Roads & Connectivity',cats:['connectivity'],color:this.NAVY,kind:'driver'},
+      {id:'commercial',label:'Commercial & Market Zones',cats:['commercial','retail'],color:this.BRONZE,kind:'driver'},
+      {id:'green',label:'Green & Open Areas',cats:['green'],color:this.SAGE,kind:'driver'},
+      {id:'future',label:'Future Development Pockets',cats:['growth'],color:'#9A6A1E',kind:'driver'},
+      {id:'institutions',label:'Institutions & Landmarks',cats:['social'],color:'#2E4A78',kind:'driver'},
+      {id:'appreciation',label:'High Appreciation Pockets',color:'#7A3B5E',kind:'pocket'},
+    ];
+    this.ROAD_GEO={
+      expressway:{d:'M -30 625 C 235 565 420 505 560 432 C 705 357 865 282 1235 168',pin:[560,432]},
+      highway:{d:'M -30 352 C 250 322 520 336 765 346 C 985 355 1100 351 1235 341',pin:[300,332]},
+      airport:{d:'M 768 302 C 850 412 912 522 1012 662',pin:[905,520]},
+      pr:{d:'M 432 -30 C 452 150 520 305 560 432',pin:[500,235]},
+      ring:{d:'M 150 770 C 340 672 520 612 765 568 C 945 536 1085 528 1235 548',pin:[500,612]},
+    };
+    this.ZONE_GEO={ commercial:{x:590,y:418,w:212,h:138}, market:{x:210,y:230,w:154,h:98}, green:{x:54,y:470,w:256,h:236}, growth:{x:852,y:416,w:290,h:234} };
+    this.PHOTO_GRADS={
+      connectivity:'linear-gradient(135deg,#1B3A6B,#102A52)', commercial:'linear-gradient(135deg,#8A5E22,#5E3F14)',
+      retail:'linear-gradient(135deg,#8A5E22,#5E3F14)', social:'linear-gradient(135deg,#284A78,#15294A)',
+      green:'linear-gradient(135deg,#5E7544,#3F5230)', growth:'linear-gradient(135deg,#7A5418,#4A330F)',
+      property:'linear-gradient(135deg,#1B3A6B,#102A52)',
+    };
+    this.PROP_GRADS=['linear-gradient(135deg,#1B3A6B,#102A52)','linear-gradient(135deg,#2A5070,#16324A)','linear-gradient(135deg,#3F5538,#27331F)','linear-gradient(135deg,#6B4A1E,#3F2C10)','linear-gradient(135deg,#3E3A52,#26233A)'];
+    this.PHOTO_CAPS={
+      connectivity:['Road corridor','Connectivity view','Roadside activity','Junction'],
+      commercial:['Retail frontage','Shops & footfall','Market street','Development'],
+      retail:['Market street','Daily shops','Local activity','Frontage'],
+      social:['Institution','Campus view','Surroundings','Entry gate'],
+      green:['Open green','Park frontage','Landscape','Walkway'],
+      growth:['Site progress','Under development','Future frontage','Aerial view'],
+      property:['Plot frontage','Road view','Locality','Surroundings'],
+    };
+    this.AREA_MAP_IMG={aero:'uploads/Aerocity-C-.jpg',moh:'uploads/78.jpg'};
+    this.SIZE_BUCKETS=[{key:'s',label:'Up to 150 sq.yd',lo:0,hi:150},{key:'m',label:'150–250 sq.yd',lo:151,hi:250},{key:'l',label:'251–500 sq.yd',lo:251,hi:500},{key:'xl',label:'500+ sq.yd',lo:501,hi:99999}];
+    this.state={
+      space:'area', areaId:null, areaMenuOpen:false,
+      section:'master', mapMode:'easy', catId:null, driverId:null,
+      propView:'browse', selectedId:null, detailFrom:'browse', vmTab:'sector',
+      pf:{q:'',sector:null,size:null,type:null,road:null,near:null}, openFacet:null,
+      mapsArea:'all', mapsSearch:'', mapsView:'library', openBlockId:null, recent:[],
+      lightbox:null,
+      invSearch:'',invStatus:'all',invBlockId:'all',invSort:'size-desc',
+      formOpen:false,formData:null,formMode:'add',
+    };
+    this.buildData();
+    this.state.recent=this.seedRecent();
+  }
+
+  /* ---------- DATA ---------- */
+  buildData(){
+    const R=(a,b)=>{const o=[];for(let i=a;i<=b;i++)o.push(i);return o;};
+    this.AREAS=[
+      {id:'aerot',name:'Aerotropolis',sub:'GMADA',kind:'block',tier:2,pockets:R(1,12).map(n=>'Pocket '+n),
+        dr:[
+          {name:'Bharatmala Expressway',cat:'connectivity',geo:'road:expressway',blocks:[0,1,2]},
+          {name:'Airport Road',cat:'connectivity',geo:'road:airport',blocks:[1,2]},
+          {name:'PR Road',cat:'connectivity',geo:'road:pr',blocks:[0,1]},
+          {name:'Aerotropolis Commercial Belt',cat:'commercial',geo:'zone:commercial',blocks:[2,3]},
+          {name:'Upcoming GMADA Pockets',cat:'growth',geo:'zone:growth',blocks:[3,4]},
+          {name:'Central Green Belt',cat:'green',geo:'zone:green',blocks:[0,4]},
+          {name:'Institutional & School Zone',cat:'social',geo:'pt:330,565',blocks:[0,1]},
+        ]},
+      {id:'aero',name:'Aerocity',sub:'Mohali',kind:'block',tier:2,pockets:R(1,8).map(n=>'Pocket '+n).concat(['Block A','Block B','Block C','Block D']),
+        dr:[
+          {name:'Airport Road',cat:'connectivity',geo:'road:airport',blocks:[0,1]},
+          {name:'200ft Aerocity Road',cat:'connectivity',geo:'road:pr',blocks:[1,2]},
+          {name:'Aerocity Commercial Pocket',cat:'commercial',geo:'zone:commercial',blocks:[1,2]},
+          {name:'IT City Frontage',cat:'growth',geo:'zone:growth',blocks:[2,3]},
+          {name:'Aerocity Green Corridor',cat:'green',geo:'zone:green',blocks:[0,3]},
+          {name:'Neighbourhood Market',cat:'retail',geo:'pt:290,300',blocks:[0,1]},
+        ]},
+      {id:'nchd',name:'New Chandigarh',sub:'Mullanpur',kind:'sector',tier:2,nums:R(1,8),
+        dr:[
+          {name:'Mullanpur–Baddi Highway',cat:'connectivity',geo:'road:highway',blocks:[0,1]},
+          {name:'New Chandigarh Expressway',cat:'connectivity',geo:'road:expressway',blocks:[1,2]},
+          {name:'Medicity & Education Hub',cat:'social',geo:'zone:commercial',blocks:[2,3]},
+          {name:'Upcoming Township Sectors',cat:'growth',geo:'zone:growth',blocks:[3,4]},
+          {name:'Shivalik Green Belt',cat:'green',geo:'zone:green',blocks:[0,5]},
+          {name:'Sector Markets',cat:'retail',geo:'pt:290,300',blocks:[4,5]},
+        ]},
+      {id:'moh',name:'Mohali',sub:'',kind:'sector',tier:1,nums:R(48,95),
+        dr:[
+          {name:'PR-7 (Airport Road)',cat:'connectivity',geo:'road:pr',blocks:[0,1,2]},
+          {name:'NH-7 / Kharar Highway',cat:'connectivity',geo:'road:highway',blocks:[2,3]},
+          {name:'Sector Commercial Market',cat:'commercial',geo:'zone:commercial',blocks:[3,4]},
+          {name:'Upcoming Sector 80s',cat:'growth',geo:'zone:growth',blocks:[20,21,22]},
+          {name:'Leisure Valley Green',cat:'green',geo:'zone:green',blocks:[0,5]},
+          {name:'Hospitals & Schools',cat:'social',geo:'pt:700,240',blocks:[1,2]},
+        ]},
+      {id:'pkl',name:'Panchkula',sub:'',kind:'sector',tier:1,nums:R(1,28),
+        dr:[
+          {name:'NH-7 (Kalka Highway)',cat:'connectivity',geo:'road:highway',blocks:[0,1]},
+          {name:'Panchkula Major Chowk',cat:'connectivity',geo:'pt:560,432',blocks:[1,4]},
+          {name:'Sector 20 Market',cat:'commercial',geo:'zone:commercial',blocks:[18,19]},
+          {name:'Upcoming Sectors 25–32',cat:'growth',geo:'zone:growth',blocks:[24,25,26]},
+          {name:'Shivalik Foothills Green',cat:'green',geo:'zone:green',blocks:[0,7]},
+          {name:'Schools & Hospitals',cat:'social',geo:'pt:330,565',blocks:[2,3]},
+        ]},
+      {id:'chd',name:'Chandigarh',sub:'',kind:'sector',tier:0,nums:R(1,47),
+        dr:[
+          {name:'Madhya Marg',cat:'connectivity',geo:'road:highway',blocks:[0,1]},
+          {name:'Dakshin Marg',cat:'connectivity',geo:'road:expressway',blocks:[30,31]},
+          {name:'Sector 17 City Centre',cat:'commercial',geo:'zone:commercial',blocks:[15,16]},
+          {name:'Sector Markets',cat:'retail',geo:'pt:290,300',blocks:[7,8]},
+          {name:'Leisure Valley & Rose Garden',cat:'green',geo:'zone:green',blocks:[0,3]},
+          {name:'PGI & Education Hub',cat:'social',geo:'pt:700,240',blocks:[10,11]},
+        ]},
+      {id:'zrk',name:'Zirakpur',sub:'',kind:'block',tier:3,pockets:['VIP Road','Patiala Road','Dhakoli','Baltana','Peer Muchalla','Zirakpur Extn','NH-7 Belt','Gazipur'],
+        dr:[
+          {name:'NH-7 (Ambala Highway)',cat:'connectivity',geo:'road:highway',blocks:[0,1]},
+          {name:'VIP Road Corridor',cat:'connectivity',geo:'road:pr',blocks:[0,2]},
+          {name:'Highway Retail Belt',cat:'commercial',geo:'zone:commercial',blocks:[1,2]},
+          {name:'Upcoming High-Rise Corridor',cat:'growth',geo:'zone:growth',blocks:[3,4]},
+          {name:'Zirakpur Entry Chowk',cat:'connectivity',geo:'pt:60,352',blocks:[0,1]},
+          {name:'Schools & Markets',cat:'social',geo:'pt:330,565',blocks:[2,3]},
+        ]},
+    ];
+    this.blocksByArea={}; this.plotsByBlock={}; this.allPlots=[]; this.blockIndex={}; this.driversByArea={};
+    this.AREAS.forEach(a=>{
+      const blocks=this.genBlocks(a); this.blocksByArea[a.id]=blocks;
+      blocks.forEach((b)=>{ this.blockIndex[b.id]=b.idx; const ps=this.genProps(a,b); this.plotsByBlock[b.id]=ps; this.allPlots.push(...ps); });
+      this.driversByArea[a.id]=(a.dr||[]).map((d,i)=>({id:a.id+'-d'+i,areaId:a.id,name:d.name,cat:d.cat,catLabel:this.CATS[d.cat].label,color:this.CATS[d.cat].color,geo:d.geo,blocks:d.blocks,anchor:this.anchorOf(d.geo),photos:this.makePhotos(d.cat)}));
+    });
+  }
+  seedRecent(){ const names=[['moh',79],['chd',35],['aero','Pocket 1'],['nchd',5]]; const ids=[]; names.forEach(([aid,key])=>{ const b=(this.blocksByArea[aid]||[]).find(x=>x.num===key||x.name==='Sector '+key||x.name===key); if(b) ids.push(b.id); }); return ids; }
+  hash(str){ let h=2166136261; for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619);} return h>>>0; }
+  rng(seed){ let s=seed>>>0; return ()=>{ s=(s+0x6D2B79F5)|0; let t=Math.imul(s^(s>>>15),1|s); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
+  pickW(rnd,arr){ const r=rnd(); let a=0; for(const [v,w] of arr){ a+=w; if(r<a) return v; } return arr[arr.length-1][0]; }
+  makePhotos(cat){ const caps=this.PHOTO_CAPS[cat]||this.PHOTO_CAPS.property; const grad=this.PHOTO_GRADS[cat]||this.PHOTO_GRADS.property; return caps.map(c=>({caption:c,grad})); }
+  propPhotos(p){ const g=this.PROP_GRADS[this.hash(p.id)%this.PROP_GRADS.length]; return this.PHOTO_CAPS.property.map(c=>({caption:c,grad:g})); }
+  anchorOf(geo){ if(geo.indexOf('road:')===0) return this.ROAD_GEO[geo.slice(5)].pin; if(geo.indexOf('zone:')===0){ const z=this.ZONE_GEO[geo.slice(5)]; return [z.x+z.w/2,z.y+z.h/2]; } if(geo.indexOf('pt:')===0){ const p=geo.slice(3).split(',').map(Number); return [p[0],p[1]]; } return [600,410]; }
+  zonePoly(idx,n){ const X0=8,Y0=22,RW=60,RH=60; const cols=n<=4?2:(n<=12?3:6); const rows=Math.ceil(n/cols); const cw=RW/cols,ch=RH/rows; const c=idx%cols,r=Math.floor(idx/cols); const inset=cw*0.12; return {x:X0+c*cw+inset,y:Y0+r*ch+inset,w:cw-inset*2,h:ch-inset*2}; }
+  genBlocks(a){ const names = a.kind==='block' ? a.pockets : a.nums.map(n=>'Sector '+n); return names.map((nm,i)=>{ const p=this.zonePoly(i,names.length); return {id:a.id+'-b'+i,areaId:a.id,name:nm,num:(a.kind==='sector'?a.nums[i]:null),idx:i,x:p.x,y:p.y,w:p.w,h:p.h}; }); }
+  genProps(a,b){
+    const rnd=this.rng(this.hash(b.id)); const n=5+Math.floor(rnd()*8); const out=[];
+    for(let i=0;i<n;i++){
+      const x=b.x+(0.14+0.72*rnd())*b.w, y=b.y+(0.16+0.68*rnd())*b.h;
+      const plotType=this.pickW(rnd,[['Residential',.45],['Corner',.13],['Kanal',.1],['Kothi',.08],['Commercial',.09],['Booth / SCO',.07],['Other',.08]]);
+      let size;
+      if(plotType==='Kanal') size=[500,605,700][Math.floor(rnd()*3)];
+      else if(plotType==='Kothi') size=[250,300,400,500][Math.floor(rnd()*4)];
+      else if(plotType==='Commercial'||plotType==='Booth / SCO') size=[100,125,150,200][Math.floor(rnd()*4)];
+      else size=[100,125,150,200,250,300,400][Math.floor(rnd()*7)];
+      const roadFacing=this.pickW(rnd,[['Main Road',.16],['200ft Road',.07],['100ft Road',.1],['60ft Road',.14],['40ft Road',.12],['Park Facing',.12],['Corner Facing',.09],['Internal Road',.08],['Not specified',.12]]);
+      const roll=rnd(); const status=roll<0.58?'available':(roll<0.85?'sold':'reserved');
+      out.push({id:b.id+'-'+(i+1),no:(b.num?b.num*100+i+1:i+1),x,y,size,plotType,roadFacing,status,areaId:a.id,blockId:b.id});
+    }
+    return out;
+  }
+  statusColor(s){ return s==='available'?'#1C8A57':(s==='sold'?'#B65149':'#8C8C83'); }
+  statusLabel(s){ return s==='available'?'Available':(s==='sold'?'Sold':'On Hold'); }
+  badgeStyle(s){ const c=this.statusColor(s); const bg=s==='available'?'#E1F0E7':(s==='sold'?'#F7EAE8':'#EFEEE8'); return 'display:inline-flex;align-items:center;gap:6px;background:'+bg+';color:'+c+';font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:8px;'; }
+  hexA(hex,al){ const n=parseInt(hex.slice(1),16); return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+al+')'; }
+  areaOf(id){ return this.AREAS.find(a=>a.id===id); }
+  blockOf(id){ for(const k in this.blocksByArea){ const b=this.blocksByArea[k].find(x=>x.id===id); if(b) return b; } return null; }
+  driverOf(id){ for(const k in this.driversByArea){ const d=this.driversByArea[k].find(x=>x.id===id); if(d) return d; } return null; }
+  plot(id){ return this.allPlots.find(x=>x.id===id); }
+  availOfBlock(id){ return (this.plotsByBlock[id]||[]).filter(p=>p.status==='available').length; }
+  availPlotsOfBlock(id){ return (this.plotsByBlock[id]||[]).filter(p=>p.status==='available'); }
+  driverBlocks(d){ const blocks=this.blocksByArea[d.areaId]||[]; return d.blocks.map(i=>blocks[i]).filter(Boolean); }
+  driversNearBlock(areaId,idx){ return (this.driversByArea[areaId]||[]).filter(d=>d.blocks.includes(idx)); }
+  catHasDriver(catId,d){ const c=this.CATEGORIES.find(x=>x.id===catId); return c&&c.cats&&c.cats.includes(d.cat); }
+  driversInCat(areaId,catId){ return (this.driversByArea[areaId]||[]).filter(d=>this.catHasDriver(catId,d)); }
+  appreciationPockets(areaId){ return (this.blocksByArea[areaId]||[]).map(b=>({b,n:this.availOfBlock(b.id)})).filter(o=>o.n>0).sort((a,b)=>b.n-a.n).slice(0,5).map(o=>o.b); }
+  areaMapImg(id){ return this.AREA_MAP_IMG[id]||'sector-map.jpg'; }
+  sizeText(s){ return s+' sq.yd'; }
+
+  /* ---------- MAP ---------- */
+  componentDidMount(){ this.tryBind(); }
+  componentDidUpdate(){ this.tryBind(); this.refocus(); }
+  inPlan(){ return this.state.space==='plan'; }
+  screenOf(){ const s=this.state; if(s.section==='master') return 'master'; if(s.section==='props') return s.propView==='browse'?'p_browse':(s.propView==='detail'?'p_detail':'p_viewmap'); return s.mapsView==='library'?'lib':'lib_open'; }
+  isSplit(scr){ return scr==='master'||scr==='p_viewmap'||scr==='lib_open'; }
+  tryBind(){
+    if(!this.inPlan()||!this.isSplit(this.screenOf())){ this._boundNode=null; return; }
+    const vp=this.mapPanelRef.current; if(!vp||vp===this._boundNode) return;
+    this._boundNode=vp; this._sig='__rebind__';
+    vp.addEventListener('pointerdown',this.onDown); vp.addEventListener('pointermove',this.onMove);
+    vp.addEventListener('wheel',this.onWheel,{passive:false}); vp.addEventListener('dblclick',this.onDbl);
+    vp.addEventListener('touchstart',this.onTS,{passive:false}); vp.addEventListener('touchmove',this.onTM,{passive:false}); vp.addEventListener('touchend',this.onTE);
+    if(!this._winBound){ window.addEventListener('pointerup',this.onUp); this._winBound=true; }
+    requestAnimationFrame(()=>this.refocus(true));
+  }
+  refocus(force){
+    if(!this.inPlan()) return; const scr=this.screenOf(); if(!this.isSplit(scr)){ this._boundNode=null; return; }
+    const st=this.state; const sig=scr+'|'+st.areaId+'|'+st.mapMode+'|'+st.catId+'|'+st.driverId+'|'+st.vmTab+'|'+st.openBlockId+'|'+st.selectedId;
+    if(!force && sig===this._sig) return; this._sig=sig;
+    if(scr==='p_viewmap'&&st.vmTab==='sector'){ const p=this.plot(st.selectedId); if(p){ this.focusPlot(p); return; } }
+    if(scr==='lib_open'){ const p=this.plot(st.selectedId); const b=this.blockOf(st.openBlockId); if(p&&b&&p.blockId===b.id){ this.focusPlot(p); return; } this.fit(); return; }
+    this.fit();
+  }
+  clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+  apply(an){ const l=this.mapLayerRef.current; if(!l) return; l.style.transition=an?'transform .6s cubic-bezier(.4,0,.2,1)':'none'; l.style.transform='translate('+this._tx+'px,'+this._ty+'px) scale('+this._scale+')'; }
+  fit(){ const vp=this.mapPanelRef.current; if(!vp) return; const W=vp.clientWidth,H=vp.clientHeight; const s=Math.min(W/this.MAP_W,H/this.MAP_H)*0.96; this._scale=s; this._tx=(W-this.MAP_W*s)/2; this._ty=(H-this.MAP_H*s)/2; this.apply(true); }
+  focusPoint(xp,yp,sc){ const vp=this.mapPanelRef.current; if(!vp) return; const W=vp.clientWidth,H=vp.clientHeight; const s=this.clamp(Math.min(W/this.MAP_W,H/this.MAP_H)*sc,0.4,2.8); const px=xp/100*this.MAP_W,py=yp/100*this.MAP_H; this._scale=s; this._tx=W/2-px*s; this._ty=H/2-py*s; this.apply(true); }
+  focusPlot(p){ this.focusPoint(p.x,p.y,2.2); }
+  onDown=(e)=>{ if(e.target.closest('[data-id],[data-block],[data-val]')){ this._panning=false; this._moved=false; return; } this._panning=true; this._moved=false; this._sx=e.clientX; this._sy=e.clientY; this._stx=this._tx; this._sty=this._ty; const vp=this.mapPanelRef.current; if(vp) vp.style.cursor='grabbing'; }
+  onMove=(e)=>{ if(!this._panning) return; const dx=e.clientX-this._sx,dy=e.clientY-this._sy; if(Math.abs(dx)>3||Math.abs(dy)>3) this._moved=true; this._tx=this._stx+dx; this._ty=this._sty+dy; this.apply(false); }
+  onUp=()=>{ this._panning=false; const vp=this.mapPanelRef.current; if(vp) vp.style.cursor='grab'; }
+  onWheel=(e)=>{ e.preventDefault(); this.zoomAt(e.clientX,e.clientY,e.deltaY<0?1.12:0.892); }
+  onDbl=(e)=>{ if(e.target.closest('[data-id],[data-block],[data-val]')) return; this.zoomAt(e.clientX,e.clientY,1.6); }
+  zoomAt(cx,cy,f){ const vp=this.mapPanelRef.current; if(!vp) return; const r=vp.getBoundingClientRect(); const ox=cx-r.left,oy=cy-r.top; const ns=this.clamp(this._scale*f,0.35,3.4); const k=ns/this._scale; this._tx=ox-(ox-this._tx)*k; this._ty=oy-(oy-this._ty)*k; this._scale=ns; this.apply(false); }
+  zoomIn=()=>{ const vp=this.mapPanelRef.current; if(!vp) return; const r=vp.getBoundingClientRect(); this.zoomAt(r.left+vp.clientWidth/2,r.top+vp.clientHeight/2,1.25); }
+  zoomOut=()=>{ const vp=this.mapPanelRef.current; if(!vp) return; const r=vp.getBoundingClientRect(); this.zoomAt(r.left+vp.clientWidth/2,r.top+vp.clientHeight/2,0.8); }
+  onTS=(e)=>{ if(e.touches.length===2){ e.preventDefault(); this._pinch={d:this.td(e),cx:(e.touches[0].clientX+e.touches[1].clientX)/2,cy:(e.touches[0].clientY+e.touches[1].clientY)/2}; this._panning=false; } }
+  onTM=(e)=>{ if(e.touches.length===2&&this._pinch){ e.preventDefault(); const nd=this.td(e); this.zoomAt(this._pinch.cx,this._pinch.cy,nd/this._pinch.d); this._pinch.d=nd; } }
+  onTE=()=>{ this._pinch=null; }
+  td(e){ return Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); }
+
+  /* ---------- FLOW ---------- */
+  resetPlan(extra){ return Object.assign({section:'master',mapMode:'easy',catId:null,driverId:null,propView:'browse',selectedId:null,vmTab:'sector',mapsView:'library',openFacet:null,lightbox:null,areaMenuOpen:false,pf:{q:'',sector:null,size:null,type:null,road:null,near:null}},extra||{}); }
+  pickArea=(e)=>this.setState(this.resetPlan({space:'plan',areaId:e.currentTarget.getAttribute('data-id')}));
+  goAreaSelect=()=>this.setState({space:'area',areaMenuOpen:false,areaId:null});
+  toggleAreaMenu=()=>this.setState(s=>({areaMenuOpen:!s.areaMenuOpen}));
+  switchArea=(e)=>this.setState(this.resetPlan({space:'plan',areaId:e.currentTarget.getAttribute('data-id'),mapsArea:e.currentTarget.getAttribute('data-id')}));
+  switchAreaProps=(e)=>this.setState(this.resetPlan({space:'plan',areaId:e.currentTarget.getAttribute('data-id'),mapsArea:e.currentTarget.getAttribute('data-id'),section:'props',propView:'browse'}));
+  backToMaster=()=>this.setState(this.resetPlan({}));
+  goMasterTab=()=>this.setState({section:'master'});
+  goPropsTab=()=>this.setState({section:'props',propView:'browse',selectedId:null,openFacet:null});
+  goMapsTab=()=>this.setState({section:'maps',mapsView:'library',openFacet:null});
+  setMode=(e)=>{ const m=e.currentTarget.getAttribute('data-val'); if(m==='pockets') this.setState({mapMode:m,catId:null,driverId:null}); else this.setState({mapMode:m}); };
+  selectCategory=(e)=>this.setState({catId:e.currentTarget.getAttribute('data-id'),driverId:null});
+  backCategories=()=>this.setState({catId:null,driverId:null});
+  selectCatItem=(e)=>{ const kind=e.currentTarget.getAttribute('data-kind'); if(kind==='pocket'){ this.setState(this.resetPlan({space:'plan',areaId:this.state.areaId,section:'props',propView:'browse',pf:{q:'',sector:e.currentTarget.getAttribute('data-block'),size:null,type:null,road:null,near:null}})); } else { this.setState({driverId:e.currentTarget.getAttribute('data-id')}); } };
+  selectDriver=(e)=>{ const id=e.currentTarget.getAttribute('data-id'); if(!id) return; const d=this.driverOf(id); const cat=this.CATEGORIES.find(c=>c.cats&&c.cats.includes(d.cat)); this.setState({section:'master',mapMode:this.state.mapMode==='original'?'easy':this.state.mapMode,driverId:id,catId:cat?cat.id:this.state.catId}); };
+  backFromDriver=()=>this.setState({driverId:null});
+  goPropsSector=(e)=>{ const block=e.currentTarget.getAttribute('data-block'); this.setState(this.resetPlan({space:'plan',areaId:this.state.areaId,section:'props',propView:'browse',pf:{q:'',sector:block,size:null,type:null,road:null,near:null}})); };
+
+  onPSearch=(e)=>this.setState(s=>({pf:{...s.pf,q:e.target.value}}));
+  toggleFacet=(e)=>{ const f=e.currentTarget.getAttribute('data-facet'); this.setState(s=>({openFacet:s.openFacet===f?null:f})); };
+  setFacet=(e)=>{ const f=e.currentTarget.getAttribute('data-facet'); const v=e.currentTarget.getAttribute('data-val')||null; this.setState(s=>({pf:{...s.pf,[f]:v},openFacet:null})); };
+  clearFilters=()=>this.setState({pf:{q:'',sector:null,size:null,type:null,road:null,near:null},openFacet:null});
+  selectProperty=(e)=>{ const id=e.currentTarget.getAttribute('data-id'); const from=this.state.section==='maps'?'sector':'browse'; this.setState({section:'props',selectedId:id,propView:'detail',detailFrom:from,lightbox:null}); };
+  selectPropertyOnScan=(e)=>this.setState({selectedId:e.currentTarget.getAttribute('data-id')});
+  backFromDetail=()=>{ if(this.state.detailFrom==='sector'&&this.state.openBlockId){ this.setState({section:'maps',mapsView:'open',propView:'browse'}); } else { this.setState({section:'props',propView:'browse',selectedId:null}); } };
+  viewOnMap=(e)=>{ const id=e.currentTarget.getAttribute('data-id')||this.state.selectedId; this.setState({section:'props',selectedId:id,propView:'viewmap',vmTab:'sector'}); };
+  setVmTab=(e)=>this.setState({vmTab:e.currentTarget.getAttribute('data-val')});
+  backToDetail=()=>this.setState({propView:'detail'});
+  showAreaContextFor=(e)=>{ const id=e.currentTarget.getAttribute('data-id'); const d=this.driverOf(id); const cat=d?this.CATEGORIES.find(c=>c.cats&&c.cats.includes(d.cat)):null; this.setState({section:'master',mapMode:'easy',driverId:id,catId:cat?cat.id:null}); };
+
+  setMapsArea=(e)=>this.setState({mapsArea:e.currentTarget.getAttribute('data-id')});
+  onMapsSearch=(e)=>this.setState({mapsSearch:e.target.value});
+  openSectorMap=(e)=>{ const id=e.currentTarget.getAttribute('data-block'); const b=this.blockOf(id); if(!b) return; this.setState(s=>{ const recent=[id].concat((s.recent||[]).filter(x=>x!==id)).slice(0,8); return {section:'maps',mapsView:'open',openBlockId:id,areaId:b.areaId,selectedId:null,recent}; }); };
+  backToLibrary=()=>this.setState({mapsView:'library',openBlockId:null,selectedId:null});
+  sectorToContext=()=>{ const b=this.blockOf(this.state.openBlockId); if(!b) return; const near=this.driversNearBlock(b.areaId,b.idx); const d=near[0]; const cat=d?this.CATEGORIES.find(c=>c.cats&&c.cats.includes(d.cat)):null; this.setState({section:'master',mapMode:'easy',areaId:b.areaId,driverId:d?d.id:null,catId:cat?cat.id:null}); };
+
+  openLightbox=(e)=>{ const idx=parseInt(e.currentTarget.getAttribute('data-idx'),10)||0; const st=this.state; let photos; if(st.section==='props'){ const p=this.plot(st.selectedId); photos=p?this.propPhotos(p):this.makePhotos('property'); } else { const d=this.driverOf(st.driverId); photos=d?d.photos:[]; } this.setState({lightbox:{photos,index:idx}}); };
+  closeLightbox=()=>this.setState({lightbox:null});
+  lbNext=(e)=>{ e.stopPropagation(); this.setState(s=>({lightbox:{...s.lightbox,index:(s.lightbox.index+1)%s.lightbox.photos.length}})); };
+  lbPrev=(e)=>{ e.stopPropagation(); this.setState(s=>({lightbox:{...s.lightbox,index:(s.lightbox.index-1+s.lightbox.photos.length)%s.lightbox.photos.length}})); };
+  stop=(e)=>e.stopPropagation();
+  shareWhatsApp=()=>{ const p=this.plot(this.state.selectedId); if(!p) return; const b=this.blockOf(p.blockId); const a=this.areaOf(p.areaId); const road=p.roadFacing!=='Not specified'?('\n'+p.roadFacing):''; const drs=this.driversNearBlock(p.areaId,this.blockIndex[p.blockId]); const lm=drs.length?('\nNear '+drs[0].name):''; const txt='*Plot '+p.no+' — '+(b?b.name:'')+', '+(a?a.name:'')+'*\n'+p.size+' sq.yd  ·  '+p.plotType+road+lm+'\n\nShared via PlotMap'; window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank'); };
+
+  goLogin=()=>this.setState({space:'login'});
+  doLogin=()=>this.setState({space:'dealer'});
+  onSearch=(e)=>this.setState({invSearch:e.target.value});
+  onInvBlock=(e)=>this.setState({invBlockId:e.target.value});
+  onStatusFilter=(e)=>this.setState({invStatus:e.currentTarget.getAttribute('data-val')});
+  onSort=(e)=>this.setState({invSort:e.target.value});
+  onViewOnMap=(e)=>{ const id=e.currentTarget.getAttribute('data-id'); const p=this.plot(id); if(!p) return; this.setState(this.resetPlan({space:'plan',areaId:p.areaId,section:'props',propView:'viewmap',vmTab:'sector',selectedId:id})); };
+  onEditPlot=(e)=>{ const id=e.currentTarget.getAttribute('data-id'); const p=this.plot(id); if(!p) return; this.setState({formOpen:true,formMode:'edit',formData:{id:p.id,blockId:p.blockId,no:String(p.no),size:String(p.size),plotType:p.plotType,roadFacing:p.roadFacing,status:p.status,x:p.x,y:p.y}}); };
+  openAdd=()=>{ const fb=(this.blocksByArea['aerot']||[])[0]; this.setState({formOpen:true,formMode:'add',formData:{blockId:fb?fb.id:'',no:'',size:'',plotType:'Residential',roadFacing:'Not specified',status:'available',x:38,y:50}}); };
+  closeForm=()=>this.setState({formOpen:false}); onBackdrop=()=>this.setState({formOpen:false});
+  setForm(p){ this.setState(s=>({formData:{...s.formData,...p}})); }
+  onFormBlock=(e)=>this.setForm({blockId:e.target.value}); onFormNo=(e)=>this.setForm({no:e.target.value}); onFormSize=(e)=>this.setForm({size:e.target.value}); onFormType=(e)=>this.setForm({plotType:e.target.value}); onFormRoad=(e)=>this.setForm({roadFacing:e.target.value}); onFormStatus=(e)=>this.setForm({status:e.currentTarget.getAttribute('data-val')});
+  onPlacePin=(e)=>{ const r=e.currentTarget.getBoundingClientRect(); this.setForm({x:this.clamp((e.clientX-r.left)/r.width*100,2,98),y:this.clamp((e.clientY-r.top)/r.height*100,2,98)}); };
+  saveForm=()=>{ const f=this.state.formData; if(!f) return; const size=parseInt(f.size,10)||0; const b=this.blockOf(f.blockId);
+    if(this.state.formMode==='edit'){ const p=this.plot(f.id); if(p){ p.no=parseInt(f.no,10)||p.no; p.size=size||p.size; p.plotType=f.plotType; p.roadFacing=f.roadFacing; p.status=f.status; p.x=f.x; p.y=f.y; } }
+    else { const np={id:f.blockId+'-new-'+Date.now(),no:parseInt(f.no,10)||0,x:f.x,y:f.y,size,plotType:f.plotType,roadFacing:f.roadFacing,status:f.status,areaId:b?b.areaId:null,blockId:f.blockId}; (this.plotsByBlock[f.blockId]=this.plotsByBlock[f.blockId]||[]).push(np); this.allPlots.push(np); }
+    this.setState({formOpen:false}); };
+
+  /* ---------- FILTERS ---------- */
+  filterPlots(area){
+    const pf=this.state.pf; const blocks=this.blocksByArea[area.id]||[];
+    let av=blocks.flatMap(b=>this.availPlotsOfBlock(b.id));
+    if(pf.sector) av=av.filter(p=>p.blockId===pf.sector);
+    if(pf.type) av=av.filter(p=>p.plotType===pf.type);
+    if(pf.road) av=av.filter(p=>p.roadFacing===pf.road);
+    if(pf.size){ const bk=this.SIZE_BUCKETS.find(x=>x.key===pf.size); if(bk) av=av.filter(p=>p.size>=bk.lo&&p.size<=bk.hi); }
+    if(pf.near){ const d=this.driverOf(pf.near); if(d){ const ids=this.driverBlocks(d).map(b=>b.id); av=av.filter(p=>ids.includes(p.blockId)); } }
+    const q=(pf.q||'').trim().toLowerCase();
+    if(q){ av=av.filter(p=>{ const b=this.blockOf(p.blockId); const drs=this.driversNearBlock(p.areaId,this.blockIndex[p.blockId]).map(d=>d.name.toLowerCase()).join(' '); return (b&&b.name.toLowerCase().includes(q))||String(p.no).includes(q)||p.roadFacing.toLowerCase().includes(q)||p.plotType.toLowerCase().includes(q)||drs.includes(q); }); }
+    return av;
+  }
+  facetOptionsFor(facet,area){
+    const blocks=this.blocksByArea[area.id]||[]; const av=blocks.flatMap(b=>this.availPlotsOfBlock(b.id));
+    if(facet==='sector') return blocks.filter(b=>this.availOfBlock(b.id)>0).map(b=>({val:b.id,label:b.name}));
+    if(facet==='size') return this.SIZE_BUCKETS.map(b=>({val:b.key,label:b.label}));
+    if(facet==='type'){ const s=[...new Set(av.map(p=>p.plotType))]; return s.map(t=>({val:t,label:t})); }
+    if(facet==='road'){ const s=[...new Set(av.map(p=>p.roadFacing).filter(r=>r!=='Not specified'))]; return s.map(t=>({val:t,label:t})); }
+    if(facet==='near') return (this.driversByArea[area.id]||[]).map(d=>({val:d.id,label:d.name}));
+    return [];
+  }
+  facetValueLabel(facet,val,area){
+    if(!val) return null;
+    if(facet==='sector'){ const b=this.blockOf(val); return b?b.name:null; }
+    if(facet==='size'){ const b=this.SIZE_BUCKETS.find(x=>x.key===val); return b?b.label:null; }
+    if(facet==='near'){ const d=this.driverOf(val); return d?d.name:null; }
+    return val;
+  }
+
+  /* ---------- LIBRARY ---------- */
+  rangesForArea(aid){
+    const a=this.areaOf(aid); const blocks=this.blocksByArea[aid]||[];
+    if(a.kind==='sector'){ const sorted=blocks.slice().sort((x,y)=>x.num-y.num); const out=[]; const size=12; for(let i=0;i<sorted.length;i+=size){ const g=sorted.slice(i,i+size); out.push({key:aid+'-r'+i,label:'Sectors '+g[0].num+'–'+g[g.length-1].num,blocks:g}); } return out; }
+    const prefixes=[...new Set(blocks.map(b=>b.name.split(' ')[0]))];
+    if(prefixes.length<=3){ return prefixes.map(p=>({key:aid+'-'+p,label:p+'s',blocks:blocks.filter(b=>b.name.split(' ')[0]===p)})); }
+    return [{key:aid+'-all',label:'All pockets',blocks}];
+  }
+  thumbFor(b){
+    const a=this.areaOf(b.areaId); const accent=this.hash(b.id)%2?this.BRONZE:this.NAVY; const rot=(this.hash(b.id)%40)-20; const rot2=((this.hash(b.id)>>3)%30)+30;
+    return {
+      thumbStyle:'position:relative;height:104px;background:#E7DCC5;background-image:linear-gradient(0deg,rgba(120,100,60,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(120,100,60,.06) 1px,transparent 1px);background-size:18px 18px;border-bottom:1px solid #E6DCC8;overflow:hidden;',
+      thumbRoad:'position:absolute;left:-20%;top:50%;width:140%;height:8px;background:'+this.hexA(accent,.4)+';transform:rotate('+rot+'deg);border-radius:4px;',
+      thumbRoad2:'position:absolute;left:50%;top:-20%;width:6px;height:140%;background:'+this.hexA(this.BRONZE,.32)+';transform:rotate('+rot2+'deg);border-radius:4px;',
+      bigNo: a&&a.kind==='sector'?String(b.num):b.name.replace(/[^0-9A-D]/g,'').slice(0,2),
+    };
+  }
+  sectorCard(b){
+    const a=this.areaOf(b.areaId); const n=this.availOfBlock(b.id); const coming=n===0; const t=this.thumbFor(b);
+    return {
+      block:b.id, name:b.name, areaName:a?a.name:'', bigNo:t.bigNo, thumbStyle:t.thumbStyle, thumbRoad:t.thumbRoad, thumbRoad2:t.thumbRoad2,
+      availText: coming?'Map coming soon':(n+' available propert'+(n===1?'y':'ies')), availColor: coming?'#9C957F':'#1C8A57',
+      statusLabel: coming?'Coming Soon':'Ready', statusStyle:'position:absolute;left:11px;top:11px;font-size:10.5px;font-weight:700;padding:4px 9px;border-radius:7px;'+(coming?'background:#EFEAdd;color:#9C8B62;':'background:rgba(28,138,87,.16);color:#15633E;'),
+      openLabel: coming?'Coming soon':'Open Map', openStyle:'margin-top:13px;width:100%;height:46px;border-radius:12px;font-size:14px;font-weight:730;cursor:'+(coming?'default':'pointer')+';border:none;'+(coming?'background:#EFE5D1;color:#A89F89;':'background:#16356A;color:#FBF6EA;'),
+    };
+  }
+
+  /* ---------- EMPHASIS ---------- */
+  emphasis(d){ const c=this._mapCtx||{}; if(c.pockets) return 'faint'; if(c.driverId) return d.id===c.driverId?'spot':'dim'; if(c.catId) return this.catHasDriver(c.catId,d)?'soft':'dim'; return c.base||'normal'; }
+  roadStyle(d,emp){ const c=d.color; const m={normal:[7,.85],soft:[10,1],dim:[6,.32],faint:[5,.16]}; const [w,o]=m[emp]||m.normal; return 'fill:none;stroke:'+c+';stroke-width:'+w+';stroke-linecap:round;opacity:'+o+';transition:opacity .3s ease;cursor:pointer;'; }
+  zoneStyle(d,emp){ const c=d.color; let fill,stroke,sw,op,extra=''; if(d.cat==='growth') extra='stroke-dasharray:11 8;';
+    if(emp==='spot'){ fill=this.hexA(c,.4); stroke=c; sw=3.5; op=1; }
+    else if(emp==='soft'){ fill=this.hexA(c,.28); stroke=c; sw=2.5; op=1; }
+    else if(emp==='dim'){ fill=this.hexA(c,.06); stroke=this.hexA(c,.25); sw=1.5; op=.55; }
+    else if(emp==='faint'){ fill=this.hexA(c,.05); stroke=this.hexA(c,.2); sw=1.5; op=.3; }
+    else { fill=this.hexA(c,.14); stroke=this.hexA(c,.55); sw=2; op=1; }
+    return 'fill:'+fill+';stroke:'+stroke+';stroke-width:'+sw+';opacity:'+op+';cursor:pointer;transition:opacity .3s ease;'+extra; }
+
+  /* ---------- RENDER ---------- */
+  renderVals(){
+    const st=this.state; const navy=this.NAVY;
+    const isArea=st.space==='area', isLogin=st.space==='login', isDealer=st.space==='dealer', isPlan=this.inPlan();
+    const area=this.areaOf(st.areaId); const areaName=area?area.name:''; const drivers=area?this.driversByArea[area.id]:[];
+    const blocks=area?(this.blocksByArea[area.id]||[]):[];
+    const areaAvailOf=(aid)=>(this.blocksByArea[aid]||[]).reduce((s,b)=>s+this.availOfBlock(b.id),0);
+    const scr=this.screenOf();
+
+    // AREA SELECT
+    const tileStyle='display:flex;flex-direction:column;justify-content:space-between;text-align:left;cursor:pointer;background:#FBF6EA;border:none;border-radius:18px;padding:22px 22px 18px;min-height:150px;box-shadow:0 10px 30px rgba(6,14,32,.26);transition:transform .16s ease,box-shadow .16s ease;';
+    const areaTiles=this.AREAS.map(a=>{ const dr=this.driversByArea[a.id]||[]; const hook=dr.slice(0,2).map(d=>d.name).join('  ·  '); return {id:a.id,name:a.name,sub:a.sub,hasSub:!!a.sub,hook,avail:areaAvailOf(a.id),style:tileStyle}; });
+
+    const itemBase='display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;border:none;cursor:pointer;padding:11px 12px;border-radius:11px;background:none;';
+    const areaMenu=this.AREAS.map(a=>({id:a.id,name:a.name,active:a.id===st.areaId,metaText:(a.sub?a.sub+' · ':'')+areaAvailOf(a.id)+' available',style:itemBase+(a.id===st.areaId?'background:#F1E8D5;':'')}));
+
+    const tab=(on)=>'border:none;cursor:pointer;border-radius:10px;padding:9px 15px;font-size:14.5px;font-weight:680;background:'+(on?'rgba(251,246,234,.16)':'transparent')+';color:'+(on?'#FBF6EA':'rgba(251,246,234,.6)')+';';
+    const tabMasterStyle=tab(st.section==='master'), tabPropsStyle=tab(st.section==='props'), tabMapsStyle=tab(st.section==='maps');
+    const showBack = scr!=='master' || st.mapMode==='pockets' || !!st.catId || !!st.driverId;
+
+    // ---- map context for emphasis ----
+    const selP=this.plot(st.selectedId);
+    let activeDriverId=null;
+    if(scr==='master'){ this._mapCtx={driverId:st.driverId,catId:st.catId,pockets:st.mapMode==='pockets',base:'normal'}; }
+    else if(scr==='p_viewmap'&&st.vmTab==='context'&&selP){ const nd=this.driversNearBlock(selP.areaId,this.blockIndex[selP.blockId])[0]; activeDriverId=nd?nd.id:null; this._mapCtx={driverId:activeDriverId,catId:null,base:'dim'}; }
+    else { this._mapCtx={driverId:null,catId:null,base:'faint'}; }
+
+    const splitScreen=this.isSplit(scr);
+    const fullScreen=!splitScreen&&(scr==='p_browse'||scr==='p_detail'||scr==='lib');
+
+    const showSchematic=(scr==='master'&&st.mapMode!=='original')||(scr==='p_viewmap'&&st.vmTab==='context');
+    const showOriginal=scr==='master'&&st.mapMode==='original';
+    const showScan=(scr==='p_viewmap'&&st.vmTab==='sector')||scr==='lib_open';
+    const originalImg=this.areaMapImg(st.areaId);
+
+    const ctxRoads=Object.keys(this.ROAD_GEO).map(k=>({d:this.ROAD_GEO[k].d}));
+    const ctxChowks=[{cx:560,cy:432},{cx:765,cy:346}];
+    const driverList=drivers||[];
+
+    const zoneEls=driverList.filter(d=>d.geo.indexOf('zone:')===0).map(d=>{ const z=this.ZONE_GEO[d.geo.slice(5)]; return {id:d.id,x:z.x,y:z.y,w:z.w,h:z.h,style:this.zoneStyle(d,this.emphasis(d))}; });
+    let spotRoad=null; const driverRoads=[];
+    driverList.filter(d=>d.geo.indexOf('road:')===0).forEach(d=>{ const emp=this.emphasis(d); const g=this.ROAD_GEO[d.geo.slice(5)]; if(emp==='spot'){ spotRoad={d:g.d}; } else { driverRoads.push({id:d.id,d:g.d,style:this.roadStyle(d,emp)}); } });
+    const roadHits=driverList.filter(d=>d.geo.indexOf('road:')===0).map(d=>({d:this.ROAD_GEO[d.geo.slice(5)].d,id:d.id}));
+    const pins=driverList.map(d=>{ const emp=this.emphasis(d); const sel=emp==='spot'; const showLabel=(emp==='spot'||emp==='soft'||emp==='normal'); const op=emp==='dim'?0.45:(emp==='faint'?0.28:1); const sz=sel?28:(emp==='soft'?23:19); const ring=sel?'#22D3EE':d.color;
+      return {id:d.id,name:d.name,showLabel,
+        btnStyle:'position:absolute;left:'+d.anchor[0]+'px;top:'+d.anchor[1]+'px;transform:translate(-50%,-50%);border:none;background:none;cursor:pointer;padding:0;display:flex;flex-direction:column;align-items:center;gap:6px;z-index:'+(sel?14:8)+';opacity:'+op+';transition:opacity .3s ease;',
+        dotStyle:'width:'+sz+'px;height:'+sz+'px;border-radius:50%;background:'+(sel?'#0B2552':d.color)+';border:3px solid '+(sel?ring:'#FBF6EA')+';box-shadow:0 3px 9px rgba(40,28,8,.4);display:flex;align-items:center;justify-content:center;'+(sel?'animation:lmPulse 2s ease-out infinite;':''),
+        innerStyle:'width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.92);',
+        labelStyle:'font-size:'+(sel?12.5:11.5)+'px;font-weight:700;color:#33414F;background:rgba(251,246,234,.96);padding:3px 10px;border-radius:8px;white-space:nowrap;box-shadow:0 2px 6px rgba(40,28,8,.16);border:1px solid '+this.hexA(sel?'#22A8C4':d.color,.4)+';'}; });
+
+    // sector highlight rects
+    let hiBlocks=[];
+    if(scr==='master'&&st.catId==='appreciation') hiBlocks=this.appreciationPockets(st.areaId);
+    else if(scr==='p_viewmap'&&st.vmTab==='context'&&selP){ const b=this.blockOf(selP.blockId); if(b) hiBlocks=[b]; }
+    const sectorHi=hiBlocks.map(b=>({x:b.x/100*1200,y:b.y/100*820,w:b.w/100*1200,h:b.h/100*820,style:'fill:rgba(22,53,106,.1);stroke:rgba(22,53,106,.55);stroke-width:2.5;stroke-dasharray:8 6;'}));
+
+    // clusters (pockets mode)
+    let clusters=[];
+    if(scr==='master'&&st.mapMode==='pockets'){
+      const cs='position:absolute;transform:translate(-50%,-50%);border:2px solid #16356A;background:#FBF6EA;color:#16356A;border-radius:16px;padding:9px 14px;display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;box-shadow:0 6px 16px rgba(22,53,106,.22);z-index:12;min-width:78px;animation:clusterIn .25s ease;transition:background .15s,color .15s;';
+      blocks.map(b=>({b,n:this.availOfBlock(b.id)})).filter(o=>o.n>0).sort((a,b)=>b.n-a.n).slice(0,5).forEach(o=>{ clusters.push({blockId:o.b.id,name:o.b.name,count:o.n,style:cs+'left:'+((o.b.x+o.b.w/2)/100*1200)+'px;top:'+((o.b.y+o.b.h/2)/100*820)+'px;'}); });
+    }
+
+    // scan pins (single focused plot)
+    let scanPins=[]; let plotPin={xpx:0,ypx:0,no:''}; let showPlotHi=false;
+    if(showScan&&selP){ const b=this.blockOf(selP.blockId); const inOpen = scr!=='lib_open' || (b&&b.id===st.openBlockId); if(inOpen){ plotPin={xpx:selP.x/100*1200,ypx:selP.y/100*820,no:selP.no}; showPlotHi=true; } }
+
+    // mode / toggle buttons
+    const showModes=scr==='master';
+    const modeOf=(v,label)=>{ const on=st.mapMode===v; return {val:v,label,style:'border:none;cursor:pointer;border-radius:10px;padding:8px 13px;font-size:13px;font-weight:680;white-space:nowrap;background:'+(on?navy:'transparent')+';color:'+(on?'#FBF6EA':'#5A554A')+';'}; };
+    const modeButtons=[modeOf('original','Original Map'),modeOf('easy','Easy View')];
+    const propAreaChips=this.AREAS.map(a=>{ const on=a.id===st.areaId; return {id:a.id,label:a.name,style:'border:1px solid '+(on?navy:'#E2D7C0')+';cursor:pointer;border-radius:11px;padding:9px 15px;font-size:13.5px;font-weight:680;background:'+(on?navy:'#FBF6EA')+';color:'+(on?'#FBF6EA':'#3F3A30')+';transition:background .14s;'}; });
+    const showVmToggle=scr==='p_viewmap';
+    const vmOf=(v,label)=>{ const on=st.vmTab===v; return {val:v,label,style:'border:none;cursor:pointer;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:680;white-space:nowrap;background:'+(on?navy:'transparent')+';color:'+(on?'#FBF6EA':'#5A554A')+';'}; };
+    const vmButtons=[vmOf('sector','Exact Sector Map'),vmOf('context','Masterplan Context')];
+    let mapNote='',showMapNote=false;
+    if(showOriginal){ showMapNote=true; mapNote='Official layout map — the proof. Switch to Easy View to explain roads & zones.'; }
+    else if(scr==='p_viewmap'&&st.vmTab==='sector'){ showMapNote=true; mapNote='Exact plot location pinned on the official sector layout.'; }
+    else if(scr==='p_viewmap'&&st.vmTab==='context'){ showMapNote=true; mapNote='The full masterplan — this plot’s area and its value drivers.'; }
+
+    // ===== SPLIT PANELS =====
+    const inMaster=scr==='master';
+    const selDriver=st.driverId?this.driverOf(st.driverId):null;
+    const panelCats=inMaster&&!selDriver&&!st.catId;
+    const panelCat=inMaster&&!selDriver&&!!st.catId;
+    const panelDriver=inMaster&&!!selDriver;
+    const panelViewmap=scr==='p_viewmap';
+    const panelSectorOpen=scr==='lib_open';
+
+    const catList=this.CATEGORIES.map(c=>{ let count,countText; if(c.kind==='pocket'){ count=this.appreciationPockets(st.areaId).length; countText=count+' pocket'+(count===1?'':'s'); } else { count=this.driversInCat(st.areaId,c.id).length; countText=count+' item'+(count===1?'':'s'); } return {id:c.id,label:c.label,countText,iconStyle:'width:30px;height:30px;border-radius:9px;flex:none;background:'+this.hexA(c.color,.14)+';border:1px solid '+this.hexA(c.color,.5)+';'}; });
+
+    const curCat=st.catId?this.CATEGORIES.find(c=>c.id===st.catId):null;
+    let category=null,catItems=[];
+    if(curCat){
+      category={label:curCat.label,iconStyle:'width:32px;height:32px;border-radius:9px;flex:none;background:'+this.hexA(curCat.color,.16)+';border:1px solid '+this.hexA(curCat.color,.5)+';'};
+      if(curCat.kind==='pocket'){ catItems=this.appreciationPockets(st.areaId).map(b=>{ const n=this.availOfBlock(b.id); return {id:b.id,kind:'pocket',block:b.id,name:b.name,sub:n+' available',chevron:'→',dotStyle:'width:11px;height:11px;border-radius:50%;flex:none;background:'+curCat.color+';'}; }); }
+      else { catItems=this.driversInCat(st.areaId,curCat.id).map(d=>{ const isRoad=d.geo.indexOf('road:')===0; const isZone=d.geo.indexOf('zone:')===0; return {id:d.id,kind:'driver',block:'',name:d.name,sub:d.catLabel,chevron:'›',dotStyle:'width:13px;height:'+(isRoad?'4px':'13px')+';border-radius:'+(isRoad||isZone?'3px':'50%')+';flex:none;background:'+d.color+';'}; }); }
+    }
+
+    let driver=null;
+    if(selDriver){
+      const ph=selDriver.photos; const cb=this.driverBlocks(selDriver);
+      const tile=(p,h)=>'position:relative;display:flex;align-items:flex-end;border:none;cursor:pointer;padding:0;width:100%;border-radius:13px;overflow:hidden;background:'+p.grad+';height:'+h+'px;';
+      driver={ name:selDriver.name, catLabel:selDriver.catLabel, backLabel: curCat?curCat.label:'Masterplan',
+        catStyle:'display:inline-block;margin-top:9px;font-size:11.5px;font-weight:700;color:#fff;background:'+selDriver.color+';padding:5px 12px;border-radius:8px;letter-spacing:.4px;',
+        photoMain:{caption:ph[0].caption,style:tile(ph[0],208)},
+        photoThumbs:ph.slice(1,3).map((p,i)=>({idx:i+1,caption:p.caption,style:tile(p,96)})),
+        hasRelated:cb.filter(b=>this.availOfBlock(b.id)>0).length>0,
+        related:cb.filter(b=>this.availOfBlock(b.id)>0).map(b=>({block:b.id,name:b.name,countText:this.availOfBlock(b.id)+''})) };
+    }
+
+    // selected property derived
+    let sel=null,vm={note:''},alts=[];
+    if(selP){
+      const b=this.blockOf(selP.blockId);
+      const meta=[{label:'Plot type',value:selP.plotType}];
+      if(selP.roadFacing!=='Not specified') meta.push({label:'Road facing',value:selP.roadFacing});
+      meta.push({label:'Sector / pocket',value:b?b.name:''});
+      meta.push({label:'Plot number',value:String(selP.no)});
+      const nearD=this.driversNearBlock(selP.areaId,this.blockIndex[selP.blockId]).slice(0,4);
+      const php=this.propPhotos(selP);
+      sel={ id:selP.id, no:selP.no, sectorName:b?b.name:'', sizeText:this.sizeText(selP.size), plotType:selP.plotType, roadFacing:selP.roadFacing, hasRoad:selP.roadFacing!=='Not specified',
+        meta, hasDrivers:nearD.length>0, nearDrivers:nearD.map(d=>({id:d.id,name:d.name})),
+        photoGrad:php[0].grad, photoCaption:php[0].caption, thumbs:php.slice(1,4).map((p,i)=>({idx:i+1,grad:p.grad})) };
+      vm.note = st.vmTab==='sector' ? 'Exact plot location is pinned on the official sector layout — proof your client can verify.' : 'See how this plot sits within the full masterplan and its value drivers.';
+      const scope=this.availPlotsOfBlock(selP.blockId);
+      alts=scope.filter(p=>p.id!==selP.id).map(p=>({p,d:Math.hypot(p.x-selP.x,p.y-selP.y)})).sort((a,b)=>a.d-b.d).slice(0,4).map(o=>({id:o.p.id,sizeText:this.sizeText(o.p.size),sectorPlot:(this.blockOf(o.p.blockId)||{}).name+' · Plot '+o.p.no,grad:this.propPhotos(o.p)[0].grad}));
+    }
+
+    // sector open panel
+    let sectorOpen={hasProps:false,noProps:false,props:[],name:'',areaName:'',availText:''};
+    if(scr==='lib_open'){ const b=this.blockOf(st.openBlockId); if(b){ const a=this.areaOf(b.areaId); const av=this.availPlotsOfBlock(b.id).sort((x,y)=>y.size-x.size); sectorOpen={ name:b.name, areaName:a?a.name:'', availText:av.length+' available propert'+(av.length===1?'y':'ies'), hasProps:av.length>0, noProps:av.length===0, props:av.map(p=>({id:p.id,no:p.no,sizeText:this.sizeText(p.size),typeRoad:p.plotType+(p.roadFacing!=='Not specified'?' · '+p.roadFacing:'')})) }; } }
+
+    // ===== FULL SCREENS =====
+    const screenBrowse=scr==='p_browse', screenDetail=scr==='p_detail', screenLibrary=scr==='lib';
+
+    // browse
+    let browseCards=[],browseCount='',facetPills=[],facetOptions=[],facetTitle='',facetOpenId=st.openFacet||'',facetAnyStyle='',hasActiveFilters=false;
+    const FACETS=[{id:'sector',label:'Sector'},{id:'size',label:'Size'},{id:'type',label:'Type'},{id:'road',label:'Road facing'},{id:'near',label:'Near'}];
+    if(area){
+      const list=this.filterPlots(area).sort((a,b)=>b.size-a.size||a.no-b.no);
+      browseCount=list.length+' available';
+      browseCards=list.slice(0,60).map(p=>{ const b=this.blockOf(p.blockId); const near=this.driversNearBlock(p.areaId,this.blockIndex[p.blockId])[0]; return {id:p.id,sizeText:this.sizeText(p.size),sectorPlot:(b?b.name:'')+' · Plot '+p.no,typeRoad:p.plotType+(p.roadFacing!=='Not specified'?' · '+p.roadFacing+' Facing':''),grad:this.propPhotos(p)[0].grad,hasNear:!!near,nearText:near?near.name:''}; });
+      hasActiveFilters=!!(st.pf.sector||st.pf.size||st.pf.type||st.pf.road||st.pf.near);
+      facetPills=FACETS.map(f=>{ const val=st.pf[f.id]; const active=!!val; const lbl=active?this.facetValueLabel(f.id,val,area):f.label; const open=st.openFacet===f.id; return {id:f.id,label:lbl,style:'border:1px solid '+(active?navy:'#E2D7C0')+';cursor:pointer;border-radius:11px;padding:10px 15px;font-size:14px;font-weight:680;background:'+(active?navy:(open?'#F1E8D5':'#FBF6EA'))+';color:'+(active?'#FBF6EA':'#3F3A30')+';'}; });
+      if(st.openFacet){ const f=FACETS.find(x=>x.id===st.openFacet); facetTitle=f?f.label:''; const cur=st.pf[st.openFacet]; facetAnyStyle='border:1px solid '+(!cur?navy:'#E2D7C0')+';cursor:pointer;border-radius:11px;padding:10px 15px;font-size:13.5px;font-weight:650;background:'+(!cur?this.hexA(navy,.08):'#fff')+';color:#3F3A30;'; facetOptions=this.facetOptionsFor(st.openFacet,area).map(o=>{ const on=cur===o.val; return {val:o.val,label:o.label,style:'border:1px solid '+(on?navy:'#E2D7C0')+';cursor:pointer;border-radius:11px;padding:10px 15px;font-size:13.5px;font-weight:650;background:'+(on?navy:'#fff')+';color:'+(on?'#FBF6EA':'#3F3A30')+';'}; }); }
+    }
+
+    // library
+    let librarySections=[],areaChips=[],libEmpty=false,libTotalText='';
+    const totalMaps=this.AREAS.reduce((s,a)=>s+(this.blocksByArea[a.id]||[]).length,0);
+    libTotalText=totalMaps+' sector maps';
+    areaChips=[{id:'all',label:'All areas'}].concat(this.AREAS.map(a=>({id:a.id,label:a.name}))).map(c=>{ const on=st.mapsArea===c.id; return {id:c.id,label:c.label,style:'border:1px solid '+(on?navy:'#E2D7C0')+';cursor:pointer;border-radius:11px;padding:10px 16px;font-size:14px;font-weight:680;background:'+(on?navy:'#FBF6EA')+';color:'+(on?'#FBF6EA':'#3F3A30')+';'}; });
+    const q=(st.mapsSearch||'').trim().toLowerCase();
+    if(q){
+      let all=[]; this.AREAS.forEach(a=>{ (this.blocksByArea[a.id]||[]).forEach(b=>{ const hay=(b.name+' '+a.name).toLowerCase(); if(hay.includes(q)||(b.num&&String(b.num)===q)||(b.num&&String(b.num).includes(q))) all.push(b); }); });
+      if(st.mapsArea!=='all') all=all.filter(b=>b.areaId===st.mapsArea);
+      libEmpty=all.length===0;
+      if(all.length) librarySections=[{key:'results',label:'Results',countText:all.length+' map'+(all.length===1?'':'s'),hasIcon:false,iconStyle:'',cards:all.slice(0,48).map(b=>this.sectorCard(b))}];
+    } else if(st.mapsArea==='all'){
+      const recentBlocks=(st.recent||[]).map(id=>this.blockOf(id)).filter(Boolean);
+      if(recentBlocks.length) librarySections.push({key:'recent',label:'Recent maps',countText:'',hasIcon:true,iconStyle:'width:9px;height:9px;border-radius:50%;background:#22A8C4;',cards:recentBlocks.slice(0,5).map(b=>this.sectorCard(b))});
+      const popular=this.AREAS.flatMap(a=>this.blocksByArea[a.id]||[]).map(b=>({b,n:this.availOfBlock(b.id)})).sort((x,y)=>y.n-x.n).slice(0,5).map(o=>o.b);
+      librarySections.push({key:'popular',label:'Popular maps',countText:'',hasIcon:true,iconStyle:'width:9px;height:9px;border-radius:2px;background:#B07A2B;',cards:popular.map(b=>this.sectorCard(b))});
+    } else {
+      librarySections=this.rangesForArea(st.mapsArea).map(r=>({key:r.key,label:r.label,countText:r.blocks.length+' maps',hasIcon:false,iconStyle:'',cards:r.blocks.map(b=>this.sectorCard(b))}));
+    }
+
+    // lightbox
+    const lb=st.lightbox; let lbPhoto={grad:'#16356A',caption:''},lbHasMany=false,lbCounter='';
+    if(lb){ lbPhoto=lb.photos[lb.index]||lbPhoto; lbHasMany=lb.photos.length>1; lbCounter=(lb.index+1)+' / '+lb.photos.length; }
+
+    // DEALER (private)
+    const blockOptions=this.AREAS.flatMap(a=>(this.blocksByArea[a.id]||[]).map(b=>({id:b.id,label:a.name+' · '+b.name})));
+    const statusFilters=[{val:'all',label:'All'},{val:'available',label:'Available'},{val:'reserved',label:'Hold'},{val:'sold',label:'Sold'}].map(f=>{ const on=st.invStatus===f.val; return {...f,style:'border:none;cursor:pointer;border-radius:10px;padding:9px 14px;font-size:12.5px;font-weight:650;background:'+(on?'#fff':'transparent')+';color:'+(on?'#23211C':'#8C887F')+';box-shadow:'+(on?'0 1px 3px rgba(40,28,8,.12)':'none')+';'}; });
+    let inv=this.allPlots.slice();
+    if(st.invBlockId!=='all') inv=inv.filter(p=>p.blockId===st.invBlockId);
+    if(st.invStatus!=='all') inv=inv.filter(p=>p.status===st.invStatus);
+    if(st.invSearch.trim()) inv=inv.filter(p=>String(p.no).includes(st.invSearch.trim()));
+    inv.sort((a,b)=>st.invSort==='size-desc'?b.size-a.size:a.size-b.size);
+    const total=inv.length; inv=inv.slice(0,60);
+    const inventory=inv.map(p=>{ const b=this.blockOf(p.blockId); const a=this.areaOf(p.areaId); return {id:p.id,no:p.no,sizeText:this.sizeText(p.size),plotType:p.plotType,statusLabel:this.statusLabel(p.status),badgeStyle:this.badgeStyle(p.status),blockLabel:(b?b.name:'')+(a?' · '+a.name:'')}; });
+
+    const fd=st.formData; let formPinStyle='display:none;',formStatusOptions=[];
+    if(fd){ formPinStyle='position:absolute;left:'+fd.x+'%;top:'+fd.y+'%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:'+this.statusColor(fd.status)+';box-shadow:0 0 0 3px #fff,0 0 0 6px '+this.hexA(navy,.32)+';'; formStatusOptions=[{val:'available',label:'Available',dot:'#1C8A57'},{val:'reserved',label:'On Hold',dot:'#8C8C83'},{val:'sold',label:'Sold',dot:'#B65149'}].map(s=>{ const on=fd.status===s.val; return {...s,style:'flex:1;display:flex;align-items:center;justify-content:center;gap:7px;height:46px;border-radius:13px;cursor:pointer;font-size:13px;font-weight:650;border:1.5px solid '+(on?navy:'#E6DCC8')+';background:'+(on?this.hexA(navy,.06):'#fff')+';color:#23211C;'}; }); }
+
+    return {
+      isArea, isPlan, isLogin, isDealer,
+      areaTiles, pickArea:this.pickArea, goLogin:this.goLogin, doLogin:this.doLogin, goAreaSelect:this.goAreaSelect,
+      areaName, areaMenuOpen:st.areaMenuOpen, toggleAreaMenu:this.toggleAreaMenu, areaMenu, switchArea:this.switchArea,
+      tabMasterStyle, tabPropsStyle, tabMapsStyle, goMasterTab:this.goMasterTab, goPropsTab:this.goPropsTab, goMapsTab:this.goMapsTab,
+      showBack, backToMaster:this.backToMaster,
+      splitScreen, fullScreen,
+
+      mapPanelRef:this.mapPanelRef, mapLayerRef:this.mapLayerRef,
+      showSchematic, showOriginal, showScan, originalImg,
+      ctxRoads, ctxChowks, zoneEls, driverRoads, hasSpotRoad:!!spotRoad, spotRoad:spotRoad||{d:''}, roadHits, pins, clusters, sectorHi,
+      selectDriver:this.selectDriver, goPropsSector:this.goPropsSector, selectProperty:this.selectProperty,
+      scanPins, showPlotHi, plotPin,
+      showModes, modeButtons, propAreaChips, switchAreaProps:this.switchAreaProps, setMode:this.setMode, showVmToggle, vmButtons, setVmTab:this.setVmTab, showMapNote, mapNote,
+      showZoom: this.props.zoomControls!==false, zoomIn:this.zoomIn, zoomOut:this.zoomOut,
+
+      panelCats, panelCat, panelDriver, panelViewmap, panelSectorOpen,
+      catList, selectCategory:this.selectCategory, category, catItems, selectCatItem:this.selectCatItem, backCategories:this.backCategories,
+      driver, backFromDriver:this.backFromDriver, openLightbox:this.openLightbox,
+      sel, vm, backToDetail:this.backToDetail, showAreaContextFor:this.showAreaContextFor, shareWhatsApp:this.shareWhatsApp,
+      sectorOpen, backToLibrary:this.backToLibrary, sectorToContext:this.sectorToContext, selectPropertyOnScan:this.selectPropertyOnScan,
+
+      screenBrowse, screenDetail, screenLibrary,
+      pfQ:st.pf.q, onPSearch:this.onPSearch, browseCount, facetPills, toggleFacet:this.toggleFacet, hasActiveFilters, clearFilters:this.clearFilters,
+      facetOpen:!!st.openFacet, facetOpenId, facetTitle, facetOptions, facetAnyStyle, setFacet:this.setFacet,
+      browseCards, hasBrowse:browseCards.length>0, noBrowse:browseCards.length===0, viewOnMap:this.viewOnMap,
+      detailBack: st.detailFrom==='sector'?'Back to sector':'Back to list', backFromDetail:this.backFromDetail, hasAlts:alts.length>0, alts,
+
+      mapsSearch:st.mapsSearch, onMapsSearch:this.onMapsSearch, areaChips, setMapsArea:this.setMapsArea, librarySections, libEmpty, libTotalText, openSectorMap:this.openSectorMap,
+
+      lightboxOpen:!!lb, lbPhoto, lbHasMany, lbCounter, closeLightbox:this.closeLightbox, lbNext:this.lbNext, lbPrev:this.lbPrev, stop:this.stop,
+
+      invSearch:st.invSearch,onSearch:this.onSearch,invBlockId:st.invBlockId,onInvBlock:this.onInvBlock,invSort:st.invSort,onSort:this.onSort,
+      statusFilters,onStatusFilter:this.onStatusFilter,blockOptions,inventory,
+      invCountText: total+' propert'+(total===1?'y':'ies')+(total>60?' · showing 60':''),
+      onViewOnMap:this.onViewOnMap,onEditPlot:this.onEditPlot,openAdd:this.openAdd,
+      formOpen:st.formOpen, formData:fd||{blockId:'',no:'',size:'',plotType:'Residential',roadFacing:'Not specified',status:'available'}, formTitle:st.formMode==='edit'?'Edit property':'Add property',
+      plotTypeOptions:this.PLOT_TYPES, roadOptions:this.ROADS,
+      onBackdrop:this.onBackdrop,closeForm:this.closeForm,saveForm:this.saveForm,
+      onFormBlock:this.onFormBlock,onFormNo:this.onFormNo,onFormSize:this.onFormSize,onFormType:this.onFormType,onFormRoad:this.onFormRoad,onFormStatus:this.onFormStatus,
+      onPlacePin:this.onPlacePin, formPinStyle, formStatusOptions,
+    };
+  }
+}
+</script>
+</body>
+</html>

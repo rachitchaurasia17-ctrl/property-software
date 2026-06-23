@@ -1,0 +1,12 @@
+# Broken doubled-extension duplicates — corrected copies live in public/plotmap-assets/
+*.png.png
+*.svg.svg
+
+# Local dev / temp
+_server.log
+_preview/
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db

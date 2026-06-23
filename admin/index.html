@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>PlotMap — Polygon Annotation (Admin)</title>
+<style>
+  :root { --bg:#0f1419; --panel:#1a212b; --line:#2c3744; --txt:#e6edf3; --mut:#8b98a8; --acc:#3b82f6; --ok:#22c55e; --warn:#f59e0b; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.4 system-ui,sans-serif; background:var(--bg); color:var(--txt); height:100vh; display:grid; grid-template-columns:240px 1fr 300px; overflow:hidden; }
+  .col { height:100vh; overflow:auto; padding:12px; }
+  .left { background:var(--panel); border-right:1px solid var(--line); }
+  .right { background:var(--panel); border-left:1px solid var(--line); }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--mut); margin:14px 0 6px; }
+  .map-item { padding:8px; border-radius:6px; cursor:pointer; border:1px solid transparent; }
+  .map-item:hover { background:#222b36; }
+  .map-item.active { background:#1e293b; border-color:var(--acc); }
+  .map-item small { color:var(--mut); display:block; }
+  #stage { position:relative; height:100vh; overflow:hidden; background:#000; cursor:grab; }
+  #stage.drawing { cursor:crosshair; }
+  #stage.panning { cursor:grabbing; }
+  #world { position:absolute; transform-origin:0 0; }
+  #map { display:block; user-select:none; -webkit-user-drag:none; }
+  svg { position:absolute; top:0; left:0; overflow:visible; }
+  polygon { fill:rgba(59,130,246,.22); stroke:#3b82f6; stroke-width:2; vector-effect:non-scaling-stroke; cursor:pointer; }
+  polygon.sel { fill:rgba(34,197,94,.3); stroke:#22c55e; }
+  .vtx { fill:#fff; stroke:#22c55e; stroke-width:2; cursor:move; vector-effect:non-scaling-stroke; }
+  .lbl { fill:#fff; font:bold 13px sans-serif; paint-order:stroke; stroke:#000; stroke-width:3px; pointer-events:none; }
+  button { background:#243042; color:var(--txt); border:1px solid var(--line); padding:7px 10px; border-radius:6px; cursor:pointer; font-size:13px; }
+  button:hover { background:#2c3a4f; }
+  button.primary { background:var(--acc); border-color:var(--acc); }
+  button.ok { background:var(--ok); border-color:var(--ok); }
+  button.danger { background:#7f1d1d; border-color:#991b1b; }
+  input { width:100%; padding:7px; border-radius:6px; border:1px solid var(--line); background:#0d1117; color:var(--txt); }
+  .row { display:flex; gap:6px; margin:6px 0; }
+  .plot-row { display:flex; justify-content:space-between; align-items:center; padding:6px 8px; border-radius:6px; cursor:pointer; }
+  .plot-row:hover { background:#222b36; }
+  .plot-row.sel { background:#1e293b; }
+  .hint { color:var(--mut); font-size:12px; }
+  #toast { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:var(--ok); color:#031; padding:8px 16px; border-radius:8px; opacity:0; transition:.3s; font-weight:600; }
+  .badge { background:#243042; color:var(--mut); border-radius:10px; padding:1px 7px; font-size:11px; }
+</style>
+</head>
+<body>
+  <div class="col left">
+    <h2>Sectors</h2>
+    <div id="mapList"></div>
+    <h2>Legend</h2>
+    <div class="hint">Blue = saved polygon<br/>Green = selected<br/>Coords stored in image pixels</div>
+  </div>
+
+  <div id="stage">
+    <div id="world">
+      <img id="map" alt=""/>
+      <svg id="svg"></svg>
+    </div>
+  </div>
+
+  <div class="col right">
+    <h2>Tools</h2>
+    <div class="row">
+      <button class="primary" id="btnNew">+ New polygon</button>
+      <button id="btnFit">Fit</button>
+    </div>
+    <div class="hint" id="drawHint">Pick a sector, then click <b>New polygon</b> and click points on the map. Press <b>Enter</b> to close, <b>Esc</b> to cancel.</div>
+    <h2>Plot number</h2>
+    <input id="plotNo" placeholder="e.g. 64" />
+    <h2>Search plot</h2>
+    <input id="search" placeholder="type plot no…" />
+    <h2>Plots <span class="badge" id="count">0</span></h2>
+    <div id="plotList"></div>
+    <div class="row" style="margin-top:14px">
+      <button class="ok" id="btnSave">Save to disk</button>
+      <button id="btnExport">Export JSON</button>
+    </div>
+    <div class="row">
+      <button class="danger" id="btnDel">Delete selected</button>
+    </div>
+    <div class="hint" id="status"></div>
+  </div>
+  <div id="toast"></div>
+
+<script>
+const NS='http://www.w3.org/2000/svg';
+let maps=[], current=null, plots=[], selected=-1;
+let scale=1, tx=0, ty=0, imgW=0, imgH=0;
+let mode='idle', draft=[], dragVtx=null;
+const $=s=>document.querySelector(s);
+const world=$('#world'), stage=$('#stage'), svg=$('#svg'), img=$('#map');
+
+function toast(m,bad){const t=$('#toast');t.textContent=m;t.style.background=bad?'#f59e0b':'#22c55e';t.style.opacity=1;setTimeout(()=>t.style.opacity=0,1600);}
+function applyTransform(){ world.style.transform=`translate(${tx}px,${ty}px) scale(${scale})`; }
+
+async function loadMaps(){
+  maps = await fetch('/api/maps').then(r=>r.json()).catch(()=>[]);
+  const list=$('#mapList'); list.innerHTML='';
+  maps.forEach(m=>{
+    const d=document.createElement('div'); d.className='map-item'; d.dataset.id=m.id;
+    d.innerHTML=`${m.city} — Sector ${m.sector}<small>${m.width}×${m.height} · ${m.hasPolygons?'annotated':'no polygons'}</small>`;
+    d.onclick=()=>selectMap(m); list.appendChild(d);
+  });
+  if(maps[0]) selectMap(maps[0]);
+}
+
+async function selectMap(m){
+  current=m; selected=-1; draft=[]; mode='idle';
+  document.querySelectorAll('.map-item').forEach(e=>e.classList.toggle('active',e.dataset.id===m.id));
+  img.src = m.image + '?t='+Date.now();
+  await new Promise(r=>{ img.onload=r; });
+  imgW=m.width; imgH=m.height;
+  svg.setAttribute('width',imgW); svg.setAttribute('height',imgH);
+  svg.setAttribute('viewBox',`0 0 ${imgW} ${imgH}`);
+  plots = await fetch(`/maps/polygons/${m.id}.json?t=`+Date.now()).then(r=>r.ok?r.json():null).then(j=>j&&j.plots?j.plots:[]).catch(()=>[]);
+  fit(); render();
+}
+
+function fit(){
+  const r=stage.getBoundingClientRect();
+  scale=Math.min(r.width/imgW, r.height/imgH)*0.96;
+  tx=(r.width-imgW*scale)/2; ty=(r.height-imgH*scale)/2; applyTransform();
+}
+
+function centroid(pts){ let x=0,y=0; pts.forEach(p=>{x+=p[0];y+=p[1];}); return [Math.round(x/pts.length),Math.round(y/pts.length)]; }
+
+function render(){
+  svg.innerHTML='';
+  plots.forEach((pl,i)=>{
+    const poly=document.createElementNS(NS,'polygon');
+    poly.setAttribute('points',pl.polygon.map(p=>p.join(',')).join(' '));
+    if(i===selected) poly.classList.add('sel');
+    poly.onclick=e=>{e.stopPropagation();selectPlot(i);};
+    svg.appendChild(poly);
+    const c=pl.centroid||centroid(pl.polygon);
+    const t=document.createElementNS(NS,'text'); t.setAttribute('x',c[0]);t.setAttribute('y',c[1]);
+    t.setAttribute('class','lbl');t.setAttribute('text-anchor','middle');t.textContent=pl.plotNo;
+    svg.appendChild(t);
+    if(i===selected) pl.polygon.forEach((p,vi)=>{
+      const c2=document.createElementNS(NS,'circle');c2.setAttribute('cx',p[0]);c2.setAttribute('cy',p[1]);c2.setAttribute('r',5);c2.setAttribute('class','vtx');
+      c2.onpointerdown=e=>{e.stopPropagation();dragVtx={pi:i,vi};};
+      svg.appendChild(c2);
+    });
+  });
+  if(draft.length){
+    const poly=document.createElementNS(NS,'polygon');poly.setAttribute('points',draft.map(p=>p.join(',')).join(' '));
+    poly.setAttribute('style','fill:rgba(245,158,11,.25);stroke:#f59e0b');svg.appendChild(poly);
+    draft.forEach(p=>{const c=document.createElementNS(NS,'circle');c.setAttribute('cx',p[0]);c.setAttribute('cy',p[1]);c.setAttribute('r',5);c.setAttribute('class','vtx');svg.appendChild(c);});
+  }
+  // plot list
+  const pl=$('#plotList'); pl.innerHTML=''; $('#count').textContent=plots.length;
+  const q=$('#search').value.trim().toLowerCase();
+  plots.forEach((p,i)=>{
+    if(q && !String(p.plotNo).toLowerCase().includes(q)) return;
+    const d=document.createElement('div');d.className='plot-row'+(i===selected?' sel':'');
+    d.innerHTML=`<span>Plot ${p.plotNo}</span><span class="hint">${p.polygon.length} pts</span>`;
+    d.onclick=()=>{selectPlot(i);flashTo(p);}; pl.appendChild(d);
+  });
+}
+
+function selectPlot(i){ selected=i; if(plots[i]) $('#plotNo').value=plots[i].plotNo; render(); }
+function flashTo(p){ const c=p.centroid||centroid(p.polygon); const r=stage.getBoundingClientRect();
+  scale=Math.max(scale, Math.min(r.width,r.height)/600); tx=r.width/2 - c[0]*scale; ty=r.height/2 - c[1]*scale; applyTransform(); }
+
+// screen -> image coords
+function toImg(e){ const r=world.getBoundingClientRect(); return [ (e.clientX-r.left)/scale, (e.clientY-r.top)/scale ]; }
+
+stage.addEventListener('wheel',e=>{ e.preventDefault();
+  const r=stage.getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top;
+  const f=e.deltaY<0?1.12:1/1.12, ns=Math.min(20,Math.max(0.05,scale*f));
+  tx=mx-(mx-tx)*(ns/scale); ty=my-(my-ty)*(ns/scale); scale=ns; applyTransform();
+},{passive:false});
+
+let panning=false,ps={};
+stage.addEventListener('pointerdown',e=>{
+  if(mode==='draw'){ const p=toImg(e); draft.push([Math.round(p[0]),Math.round(p[1])]); render(); return; }
+  if(dragVtx) return;
+  panning=true; stage.classList.add('panning'); ps={x:e.clientX,y:e.clientY,tx,ty};
+});
+window.addEventListener('pointermove',e=>{
+  if(dragVtx){ const p=toImg(e); plots[dragVtx.pi].polygon[dragVtx.vi]=[Math.round(p[0]),Math.round(p[1])]; plots[dragVtx.pi].centroid=centroid(plots[dragVtx.pi].polygon); render(); return; }
+  if(panning){ tx=ps.tx+(e.clientX-ps.x); ty=ps.ty+(e.clientY-ps.y); applyTransform(); }
+});
+window.addEventListener('pointerup',()=>{ panning=false; dragVtx=null; stage.classList.remove('panning'); });
+
+$('#btnNew').onclick=()=>{ if(!current)return; mode='draw'; draft=[]; selected=-1; stage.classList.add('drawing'); $('#status').textContent='Drawing… click points, Enter to close.'; render(); };
+$('#btnFit').onclick=fit;
+window.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&mode==='draw'&&draft.length>=3){ const no=$('#plotNo').value.trim()||('P'+(plots.length+1));
+    plots.push({plotNo:no, polygon:draft.slice(), centroid:centroid(draft)}); draft=[]; mode='idle'; stage.classList.remove('drawing'); $('#status').textContent='Added plot '+no; render(); }
+  if(e.key==='Escape'){ draft=[]; mode='idle'; stage.classList.remove('drawing'); render(); }
+});
+$('#search').oninput=render;
+$('#plotNo').oninput=()=>{ if(selected>=0){ plots[selected].plotNo=$('#plotNo').value.trim(); render(); } };
+$('#btnDel').onclick=()=>{ if(selected>=0){ plots.splice(selected,1); selected=-1; render(); } };
+
+function payload(){ return JSON.stringify({ mapId:current.id, city:current.city, sector:current.sector, imageWidth:imgW, imageHeight:imgH, plots }, null, 2); }
+$('#btnSave').onclick=async()=>{ if(!current)return;
+  const r=await fetch('/api/polygons/'+current.id,{method:'POST',body:payload()}).then(r=>r.json()).catch(e=>({ok:false,error:e.message}));
+  if(r.ok){ toast('Saved '+current.id); } else { toast('Save failed: '+r.error,true); }
+};
+$('#btnExport').onclick=()=>{ const b=new Blob([payload()],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=current.id+'.json'; a.click(); };
+
+loadMaps();
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "id": "panchkula-sector-25",
+  "city": "Panchkula",
+  "sector": "25",
+  "image": "/maps/enhanced/panchkula-sector-25.png",
+  "width": 4000,
+  "height": 2828,
+  "sourceBrand": "EasiMap",
+  "status": "processed",
+  "polygons": "/maps/polygons/panchkula-sector-25.json",
+  "hasPolygons": false
+}
