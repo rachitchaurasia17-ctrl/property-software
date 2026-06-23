@@ -137,7 +137,7 @@
   function buildMap() {
     const kind = mapKind(); const sig = state.areaId + '|' + kind; const fresh = sig !== builtSig;
     const l = layer(); if (!l) return;
-    if (kind === 'easy') { LW = EW; LH = EH; } else { LW = 1080; LH = 921; }
+    if (kind === 'easy') { LW = EW; LH = EH; } else { LW = 3880; LH = 3069; }
     l.style.width = LW + 'px'; l.style.height = LH + 'px';
     l.className = 'maplayer ' + kind;
     if (kind === 'original') l.innerHTML = `<img class="orig" src="${DS.assets.original}" alt="Official masterplan">` + origSVG();
@@ -366,7 +366,7 @@
       <div style="display:flex;gap:3px"><button class="tab ${state.section === 'master' ? 'on' : ''}" id="tabMaster">Masterplan</button><button class="tab ${state.section === 'props' && state.propView !== 'sector' ? 'on' : ''}" id="tabProps">Properties</button><button class="tab ${state.section === 'sectors' ? 'on' : ''}" id="tabSectors">Sector Maps</button></div>
       <div class="spacer"></div>
       ${showBack ? '<button class="back-btn" id="backMaster"><span>‹</span> Back to Masterplan</button>' : ''}
-      <button class="present-btn" id="presentBtn">${state.present ? '✕ Exit presentation' : '◧ Presentation'}</button>
+
       ${state.areaMenuOpen ? areaMenuHTML() : ''}
     </div>
     <div class="body">
@@ -392,16 +392,11 @@
       ${state.previewId ? previewHTML() : ''}`;
   }
 
-  /* ---------- RIGHT  /* ---------- RIGHT PANEL ---------- */
+  /* ---------- RIGHT PANEL ---------- */
   function panelHTML() {
     if (state.section === 'props' && state.propView === 'sector') return sectorPanelHTML();
     
     return `<div class="scroll" style="padding-top:16px;">
-        <div style="display:flex;gap:6px;margin-bottom:20px;">
-          <button class="quick-btn ${state.mapMode === 'original' ? 'on' : ''}" data-mode="original" style="${state.mapMode==='original'?'background:#0B1A36;color:#fff;border-color:#0B1A36':''}">Original Map</button>
-          <button class="quick-btn ${state.mapMode === 'easy' ? 'on' : ''}" data-mode="easy" style="${state.mapMode==='easy'?'background:#0B1A36;color:#fff;border-color:#0B1A36':''}">Easy Map</button>
-          <button class="quick-btn" id="qAllSectors">Sector Maps</button>
-        </div>
         <div style="font-size:12px;font-weight:750;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Map Layers</div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px">
           ${activeCategories().map(c => `
@@ -410,37 +405,38 @@
             </button>`).join('')}
         </div>
 
+        ${state.selectedIds.size > 0 ? previewCardHTML() : (state.catId ? `
+          <div style="background:#fff;border:1px solid #EBE1CC;border-radius:12px;padding:20px;text-align:center;margin-bottom:24px;">
+            <div style="color:#6A6150;font-size:14px;font-weight:550;line-height:1.5">
+              All ${esc(catById(state.catId).label.toLowerCase())} are active on the map.<br>Select items below to focus them and view context.
+            </div>
+          </div>
+        ` : '')}
+
+        ${state.selectedIds.size > 0 ? `
+          <div style="background:#F9F7F1;border:1px solid #EBE1CC;border-radius:14px;padding:14px;margin-bottom:24px;margin-top:24px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <span style="font-size:12px;font-weight:750;color:#8A5E22;text-transform:uppercase;letter-spacing:1px;">Active Selection</span>
+              <button id="clearAllItems" style="background:none;border:none;color:#16356A;font-weight:680;font-size:12.5px;cursor:pointer;padding:0;">Clear All</button>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              ${Array.from(state.selectedIds).map(id => `<span class="tray-chip" style="background:#fff;border:1px solid #DCD0B6;border-radius:8px;padding:5px 8px 5px 10px;font-size:12.5px;font-weight:650;display:flex;align-items:center;gap:6px;">${esc(itemObj(id).name)} <button data-unsel="${id}" style="border:none;background:none;cursor:pointer;color:#8A5E22;font-size:14px;line-height:1;padding:0;transition:color .15s;">&times;</button></span>`).join('')}
+            </div>
+          </div>
+        ` : ''}
+
         ${state.catId ? `
-          <div style="font-size:12px;font-weight:750;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Select Items in ${esc(catById(state.catId).label)}</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:24px">
+          <div style="font-size:12px;font-weight:750;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;margin-top:24px;">Select Items in ${esc(catById(state.catId).label)}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px">
             ${catItems(state.catId).map(i => `
               <button class="item-chip ${state.selectedIds.has(i.id) ? 'act' : ''}" data-item="${i.id}" data-kind="${i.kind}">
                 ${esc(i.name)}
               </button>`).join('')}
           </div>
         ` : ''}
-
-        ${state.selectedIds.size > 0 ? `
-          <div style="background:#F9F7F1;border:1px solid #EBE1CC;border-radius:14px;padding:14px;margin-bottom:24px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-              <span style="font-size:12px;font-weight:750;color:#8A5E22;text-transform:uppercase;letter-spacing:1px;">Active Selection</span>
-              <button id="clearAllItems" style="background:none;border:none;color:#16356A;font-weight:680;font-size:12.5px;cursor:pointer;padding:0;">Clear All</button>
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:6px;">
-              ${Array.from(state.selectedIds).map(id => `<span class="tray-chip" style="background:#fff;border:1px solid #DCD0B6;border-radius:8px;padding:5px 8px 5px 10px;font-size:12.5px;font-weight:650;display:flex;align-items:center;gap:6px;">${esc(itemObj(id).name)} <button data-unsel="${id}" style="border:none;background:none;cursor:pointer;color:#8A5E22;font-size:14px;line-height:1;padding:0;">&times;</button></span>`).join('')}
-            </div>
-          </div>
-        ` : ''}
-
-        ${state.selectedIds.size > 0 ? previewCardHTML() : (state.catId ? `
-          <div style="background:#fff;border:1px solid #EBE1CC;border-radius:12px;padding:20px;text-align:center">
-            <div style="color:#6A6150;font-size:14px;font-weight:550;line-height:1.5">
-              All ${esc(catById(state.catId).label.toLowerCase())} are active on the map.<br>Select chips above to focus them and view context.
-            </div>
-          </div>
-        ` : '')}
       </div>`;
   }
+
   function previewCardHTML() {
     const ids = Array.from(state.selectedIds);
     if (ids.length === 1) {
