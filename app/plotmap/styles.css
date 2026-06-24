@@ -483,11 +483,12 @@ input{font-family:inherit;-webkit-appearance:none;}
 #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#0B1A36;color:#FFFFFF;padding:11px 20px;border-radius:11px;font-weight:650;z-index:99;box-shadow:0 10px 28px rgba(0,0,0,.28);opacity:0;transition:opacity .25s;pointer-events:none;}
 
 @media(max-width:880px){ .panel{width:340px;} }
-.orig-ov .o-pin { opacity:0; transition:opacity .3s, transform .3s cubic-bezier(.34,1.56,.64,1); pointer-events:none; }
-.orig-ov .o-pin.soft { opacity:.4; transform:translateY(8px) scale(0.95) !important; }
-.orig-ov .o-pin.show { opacity:1; }
-.orig-ov .o-pin.hide { opacity:0; }
-.orig-ov .o-pin .pin-lbl-bg { stroke:#fff; stroke-width:6; }
+.orig-ov .o-pin { opacity:0; transition:opacity .3s; pointer-events:none; }
+.orig-ov .o-pin.show { opacity:1; pointer-events:auto; cursor:pointer; z-index:20; }
+.orig-ov .o-pin.hide { opacity:0; pointer-events:none; }
+.orig-ov .o-pin .pin-inner { transition: transform 0.4s cubic-bezier(.34,1.56,.64,1); transform: scale(0.6) translateY(40px); }
+.orig-ov .o-pin.show .pin-inner { transform: scale(1) translateY(0); }
+.orig-ov .o-pin.show:hover .pin-inner { transform: scale(1.08) translateY(-8px); }
 
 .orig-ov .o-block { fill:color-mix(in srgb, var(--bfill, #2E5A86) 45%, transparent); stroke:color-mix(in srgb, var(--bfill, #2E5A86) 80%, transparent); stroke-width:10; stroke-linecap:round; stroke-linejoin:round; opacity:0; transition:.3s cubic-bezier(0.2, 0, 0, 1); cursor:pointer; }
 .orig-ov .o-block.soft { opacity:.4; filter:drop-shadow(0 4px 0px color-mix(in srgb, var(--bfill, #2E5A86) 40%, #001)) drop-shadow(0 6px 8px rgba(0,0,0,0.15)); transform:translateY(-4px); }

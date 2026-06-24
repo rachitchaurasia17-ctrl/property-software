@@ -264,9 +264,13 @@
       else return;
       const c = catColor(item.cat);
       pinsHTML.push(`<g class="o-pin" data-hit="${kind}:${item.id}" data-itempath="${item.id}" style="transform:translate(${cx}px,${cy}px)">
-        <circle cx="0" cy="0" r="32" fill="${c}" stroke="#fff" stroke-width="10" class="pin-dot"/>
-        <rect x="-140" y="50" width="280" height="70" rx="35" fill="${hexA(c, .95)}" class="pin-lbl-bg"/>
-        <text x="0" y="96" class="pin-lbl" fill="#fff" text-anchor="middle" font-size="32" font-weight="700">${esc(item.name)}</text>
+        <g class="pin-inner">
+          <ellipse cx="0" cy="0" rx="18" ry="8" fill="rgba(0,0,0,0.35)" filter="blur(4px)"/>
+          <path d="M 0 0 C -24 -30, -36 -48, -36 -72 A 36 36 0 1 1 36 -72 C 36 -48, 24 -30, 0 0 Z" fill="${c}" stroke="#ffffff" stroke-width="5" filter="drop-shadow(0 12px 16px rgba(0,0,0,0.4))"/>
+          <circle cx="0" cy="-72" r="14" fill="#ffffff" />
+          <rect x="-140" y="-165" width="280" height="70" rx="35" fill="${hexA(c, 0.95)}" stroke="rgba(255,255,255,0.7)" stroke-width="4" filter="drop-shadow(0 10px 15px rgba(0,0,0,0.3))" />
+          <text x="0" y="-116" class="pin-lbl" fill="#ffffff" text-anchor="middle" font-size="28" font-weight="800" font-family="'Inter', sans-serif" letter-spacing="0.5">${esc(item.name)}</text>
+        </g>
       </g>`);
     };
     scopedBlocks().filter(b => !b.svgId || !GEO.paths || !GEO.paths[b.svgId]).forEach(b => addPin(b, 'block')); // Fallback
@@ -339,9 +343,11 @@
         const on = relate(id, itemKindOf(id));
         const inCat = !!cat && cat === itemCategory(id);
         const isSel = selIds.has(id);
-        g.classList.toggle('soft', inCat && on && !isSel);
-        g.classList.toggle('hide', hasSel ? !isSel && !inCat : (cat ? !on : true));
-        g.classList.toggle('show', isSel || (on && !g.classList.contains('hide')));
+        const isActive = isSel || (inCat && on);
+        g.classList.toggle('act', isSel);
+        g.classList.toggle('soft', false);
+        g.classList.toggle('hide', !isActive);
+        g.classList.toggle('show', isActive);
       });
       const sp = l.querySelector('#oSpot'); if (sp) { sp.innerHTML = '';
         if (hasSel) {
@@ -509,7 +515,7 @@
           </div>
         ` : ''}
 
-        ${state.catId ? `
+        ${state.catId && catItems(state.catId).some(i => i.kind !== 'pin') ? `
           <div style="font-size:12px;font-weight:750;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;margin-top:24px;">Select Items in ${esc(catById(state.catId).label)}</div>
           <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px">
             ${catItems(state.catId).map(i => `
