@@ -446,21 +446,23 @@
     const showBack = state.section !== 'master';
     const split = state.section === 'master' || (state.section === 'props' && state.propView === 'sector');
     const full = !split;
-    return `
-    <div class="topbar">
-      <div class="brand"><span class="logo"><i></i></span><span class="brand-name">PlotMap</span></div>
-      <button class="area-switch" id="areaToggle"><span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.1"><span class="cur">${esc(area().name)}</span><span class="lab">View all maps</span></span><span class="caret">▾</span></button>
-      <div class="divider"></div>
-      <div style="display:flex;gap:3px"><button class="tab ${state.section === 'master' ? 'on' : ''}" id="tabMaster">Masterplan</button><button class="tab ${state.section === 'props' && state.propView !== 'sector' ? 'on' : ''}" id="tabProps">Properties</button><button class="tab ${state.section === 'sectors' ? 'on' : ''}" id="tabSectors">Sector Maps</button></div>
-      <div class="spacer"></div>
-      ${showBack ? '<button class="back-btn" id="backMaster"><span>‹</span> Back to Masterplan</button>' : ''}
+    return `<div style="flex:1; display:flex; flex-direction:column; min-width:0; position:relative;">
+      <div class="topbar">
+        <div class="brand"><span class="logo"><i></i></span><span class="brand-name">PlotMap</span></div>
+        <button class="area-switch" id="areaToggle"><span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.1"><span class="cur">${esc(area().name)}</span><span class="lab">View all maps</span></span><span class="caret">▾</span></button>
+        <div class="divider"></div>
+        <div style="display:flex;gap:3px"><button class="tab ${state.section === 'master' ? 'on' : ''}" id="tabMaster">Masterplan</button><button class="tab ${state.section === 'props' && state.propView !== 'sector' ? 'on' : ''}" id="tabProps">Properties</button><button class="tab ${state.section === 'sectors' ? 'on' : ''}" id="tabSectors">Sector Maps</button></div>
+        <div class="spacer"></div>
+        ${showBack ? '<button class="back-btn" id="backMaster"><span>‹</span> Back to Masterplan</button>' : ''}
 
-      ${state.areaMenuOpen ? areaMenuHTML() : ''}
+        ${state.areaMenuOpen ? areaMenuHTML() : ''}
+      </div>
+      <div class="body" style="flex:1; display:flex; position:relative; min-height:0;">
+        ${split ? `<div class="mapwrap" id="mapwrap"><div class="maplayer" id="maplayer"></div>${mapControlsHTML()}</div>`
+          : `<div class="full" id="full">${fullHTML()}</div>`}
+      </div>
     </div>
-    <div class="body">
-      ${split ? `<div class="mapwrap" id="mapwrap"><div class="maplayer" id="maplayer"></div>${mapControlsHTML()}</div>${state.present ? '' : `<div class="panel" id="panel">${panelHTML()}</div>`}`
-        : `<div class="full" id="full">${fullHTML()}</div>`}
-    </div>
+    ${split && !state.present ? `<div class="panel" id="panel">${panelHTML()}</div>` : ''}
     ${state.lightbox ? lightboxHTML() : ''}`;
   }
   function areaMenuHTML() {
@@ -485,7 +487,9 @@
     if (state.section === 'props' && state.propView === 'sector') return sectorPanelHTML();
     
     return `<div class="scroll" style="padding-top:16px;">
-        <div style="font-size:12px;font-weight:750;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Map Layers</div>
+        ${state.selectedIds.size > 0 ? previewCardHTML() : ''}
+        
+        <div style="font-size:12px;font-weight:750;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;margin-top:${state.selectedIds.size > 0 ? '16px' : '0'}">Map Layers</div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px">
           ${activeCategories().map(c => `
             <button class="layer-pill ${state.catId === c.id ? 'act' : ''}" data-cat="${c.id}">
@@ -493,13 +497,13 @@
             </button>`).join('')}
         </div>
 
-        ${state.selectedIds.size > 0 ? previewCardHTML() : (state.catId ? `
+        ${!state.selectedIds.size && state.catId ? `
           <div style="background:#fff;border:1px solid #EBE1CC;border-radius:12px;padding:20px;text-align:center;margin-bottom:24px;">
             <div style="color:#6A6150;font-size:14px;font-weight:550;line-height:1.5">
               All ${esc(catById(state.catId).label.toLowerCase())} are active on the map.<br>Select items below to focus them and view context.
             </div>
           </div>
-        ` : '')}
+        ` : ''}
 
         ${state.selectedIds.size > 0 ? `
           <div style="background:#F9F7F1;border:1px solid #EBE1CC;border-radius:14px;padding:14px;margin-bottom:24px;margin-top:24px;">
@@ -558,7 +562,7 @@
        </div>`;
     }
 
-    return `<div class="preview-card" style="margin-top:12px; border:none; padding:0; box-shadow:none; background:transparent;">
+    return `<div class="preview-card" style="margin-top:0; border:none; padding:0; box-shadow:none; background:transparent;">
       ${navHTML}
       <div class="pc-cat" style="color:${cat.color}">${esc(cat.label)}</div>
       <div class="pc-name" style="font-size:24px; margin-bottom:6px;">${esc(it.name)}</div>
