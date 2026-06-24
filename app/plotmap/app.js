@@ -265,11 +265,9 @@
       const c = catColor(item.cat);
       pinsHTML.push(`<g class="o-pin" data-hit="${kind}:${item.id}" data-itempath="${item.id}" style="transform:translate(${cx}px,${cy}px)">
         <g class="pin-inner">
-          <ellipse cx="0" cy="0" rx="18" ry="8" fill="rgba(0,0,0,0.35)" filter="blur(4px)"/>
-          <path d="M 0 0 C -24 -30, -36 -48, -36 -72 A 36 36 0 1 1 36 -72 C 36 -48, 24 -30, 0 0 Z" fill="${c}" stroke="#ffffff" stroke-width="5" filter="drop-shadow(0 12px 16px rgba(0,0,0,0.4))"/>
-          <circle cx="0" cy="-72" r="14" fill="#ffffff" />
-          <rect x="-140" y="-165" width="280" height="70" rx="35" fill="${hexA(c, 0.95)}" stroke="rgba(255,255,255,0.7)" stroke-width="4" filter="drop-shadow(0 10px 15px rgba(0,0,0,0.3))" />
-          <text x="0" y="-116" class="pin-lbl" fill="#ffffff" text-anchor="middle" font-size="28" font-weight="800" font-family="'Inter', sans-serif" letter-spacing="0.5">${esc(item.name)}</text>
+          <ellipse cx="0" cy="-4" rx="12" ry="4" fill="rgba(0,0,0,0.25)" filter="blur(3px)"/>
+          <path class="pin-shape" d="M 0 -80 H 112 A 28 28 0 0 1 140 -52 A 28 28 0 0 1 112 -24 H 14 L 0 0 L -14 -24 H -112 A 28 28 0 0 1 -140 -52 A 28 28 0 0 1 -112 -80 Z" fill="${c}" stroke="#ffffff" stroke-width="3.5" filter="drop-shadow(0 8px 12px rgba(0,0,0,0.25))"/>
+          <text x="0" y="-49" class="pin-lbl" fill="#ffffff" text-anchor="middle" font-size="24" font-weight="750" font-family="'Inter', sans-serif" letter-spacing="0.3">${esc(item.name)}</text>
         </g>
       </g>`);
     };
@@ -340,10 +338,10 @@
       });
       l.querySelectorAll('.o-pin').forEach(g => {
         const id = g.getAttribute('data-itempath');
-        const on = relate(id, itemKindOf(id));
         const inCat = !!cat && cat === itemCategory(id);
         const isSel = selIds.has(id);
-        const isActive = isSel || (inCat && on);
+        // If the category is active, all pins in it should be visible. Or if this specific pin is selected.
+        const isActive = isSel || inCat;
         g.classList.toggle('act', isSel);
         g.classList.toggle('soft', false);
         g.classList.toggle('hide', !isActive);
