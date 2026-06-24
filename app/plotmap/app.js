@@ -203,7 +203,12 @@
     const hits = roadPaths.map(r => `<path d="${GEO.paths[r.svgId]}" class="o-hit" data-hit="line:${r.id}"/>`).join('');
     
     const blockPaths = scopedBlocks().filter(b => b.svgId && GEO.paths && GEO.paths[b.svgId]);
-    const blocksHTML = blockPaths.map(b => `<path d="${GEO.paths[b.svgId]}" class="o-block" style="${b.color ? `--bfill:${b.color}` : ''}" data-itempath="${b.id}" data-hit="block:${b.id}"/>`).join('');
+    const blocksHTML = blockPaths.map(b => {
+      let cx = ((b.x + b.w/2) / EW) * IW;
+      let cy = ((b.y + b.h/2) / EH) * IH;
+      let shortLabel = b.name.replace(/^(Block|Sector|Pocket)\s+/i, '');
+      return `<path d="${GEO.paths[b.svgId]}" class="o-block" style="${b.color ? `--bfill:${b.color}` : ''}" data-itempath="${b.id}" data-hit="block:${b.id}"/><text x="${cx}" y="${cy}" class="o-block-lbl" data-itempath="${b.id}">${esc(shortLabel)}</text>`;
+    }).join('');
 
     const zonePaths = scopedZones().filter(z => z.svgId && GEO.paths && GEO.paths[z.svgId]);
     const zonesHTML = zonePaths.map(z => `<path d="${GEO.paths[z.svgId]}" class="o-zone cat-${z.cat}" style="--zfill:${catColor(z.cat)}" data-itempath="${z.id}" data-hit="zone:${z.id}"/>`).join('');
@@ -273,7 +278,7 @@
         p.classList.remove('act', 'show', 'soft');
         p.classList.add('hide');
       });
-      l.querySelectorAll('.o-block, .o-zone').forEach(p => { 
+      l.querySelectorAll('.o-block, .o-zone, .o-block-lbl').forEach(p => { 
         const id = p.getAttribute('data-itempath'); 
         const on = relate(id, itemKindOf(id)); 
         const inCat = !!cat && cat === itemCategory(id);
