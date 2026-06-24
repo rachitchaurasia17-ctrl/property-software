@@ -250,12 +250,19 @@
     }).join('');
 
     const zonePaths = scopedZones().filter(z => z.svgId && GEO.paths && GEO.paths[z.svgId]);
-    const zonesHTML = zonePaths.map(z => `<path d="${GEO.paths[z.svgId]}" class="o-zone cat-${z.cat}" style="--zfill:${catColor(z.cat)}" data-itempath="${z.id}" data-hit="zone:${z.id}"/>`).join('');
+    const pinZonePaths = scopedPins().filter(p => p.svgId && GEO.paths && GEO.paths[p.svgId]);
+    
+    const zonesHTML = zonePaths.map(z => `<path d="${GEO.paths[z.svgId]}" class="o-zone cat-${z.cat}" style="--zfill:${catColor(z.cat)}" data-itempath="${z.id}" data-hit="zone:${z.id}"/>`).join('') +
+                      pinZonePaths.map(p => `<path d="${GEO.paths[p.svgId]}" class="o-zone cat-${p.cat}" style="--zfill:${catColor(p.cat)}" data-itempath="${p.id}" data-hit="pin:${p.id}"/>`).join('');
 
     const pinsHTML = [];
     const addPin = (item, kind) => {
       let cx = 0, cy = 0;
-      if (item.at) { cx = (item.at[0] / EW) * IW; cy = (item.at[1] / EH) * IH; }
+      if (item.svgId && GEO.paths && GEO.paths[item.svgId]) {
+         const center = getPathCenter(GEO.paths[item.svgId]);
+         cx = center.cx; cy = center.cy;
+      }
+      else if (item.at) { cx = (item.at[0] / EW) * IW; cy = (item.at[1] / EH) * IH; }
       else if (item.w) { cx = ((item.x + item.w/2) / EW) * IW; cy = ((item.y + item.h/2) / EH) * IH; }
       else return;
       const c = catColor(item.cat);
