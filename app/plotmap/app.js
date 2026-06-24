@@ -19,7 +19,7 @@
   const state = {
     space: 'area', areaId: 'aerotropolis', areaMenuOpen: false,
     section: 'master', mapMode: 'original', showProps: false,
-    catId: 'roads', selectedIds: new Set(), itemOpen: false,
+    catId: null, selectedIds: new Set(), itemOpen: false,
     propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null,
     filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set() },
     secQ: '', secArea: 'all',
@@ -486,10 +486,12 @@
   function panelHTML() {
     if (state.section === 'props' && state.propView === 'sector') return sectorPanelHTML();
     
+    const displayCatId = (state.selectedIds.size === 0 && !state.catId) ? 'roads' : state.catId;
+    
     return `<div class="scroll" style="padding-top:16px;">
-        ${state.selectedIds.size > 0 || state.catId ? previewCardHTML() : ''}
+        ${state.selectedIds.size > 0 || displayCatId ? previewCardHTML(displayCatId) : ''}
         
-        <div style="font-size:12px;font-weight:750;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;margin-top:${state.selectedIds.size > 0 || state.catId ? '16px' : '0'}">Map Layers</div>
+        <div style="font-size:12px;font-weight:750;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;margin-top:${state.selectedIds.size > 0 || displayCatId ? '16px' : '0'}">Map Layers</div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px">
           ${activeCategories().map(c => `
             <button class="layer-pill ${state.catId === c.id ? 'act' : ''}" data-cat="${c.id}">
@@ -497,12 +499,10 @@
             </button>`).join('')}
         </div>
 
-
-
-        ${state.catId && catItems(state.catId).some(i => i.kind !== 'pin') ? `
-          <div style="font-size:12px;font-weight:750;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;margin-top:24px;">Select Items in ${esc(catById(state.catId).label)}</div>
+        ${displayCatId && catItems(displayCatId).some(i => i.kind !== 'pin') ? `
+          <div style="font-size:12px;font-weight:750;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;margin-top:24px;">Select Items in ${esc(catById(displayCatId).label)}</div>
           <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px">
-            ${catItems(state.catId).map(i => `
+            ${catItems(displayCatId).map(i => `
               <button class="item-chip ${state.selectedIds.has(i.id) ? 'act' : ''}" data-item="${i.id}" data-kind="${i.kind}">
                 ${esc(i.name)}
               </button>`).join('')}
@@ -511,7 +511,7 @@
       </div>`;
   }
 
-  function previewCardHTML() {
+  function previewCardHTML(fallbackCatId) {
     const ids = Array.from(state.selectedIds);
     let idx = state.previewIdx || 0;
     if (idx < 0 || idx >= ids.length) {
@@ -521,12 +521,12 @@
     
     let cat, name, metaLine, hasPhotos, id = null, kind = null, it = null;
 
-    if (ids.length === 0 && state.catId) {
-      cat = catById(state.catId) || { label: 'Category', color: '#16356A' };
+    if (ids.length === 0 && fallbackCatId) {
+      cat = catById(fallbackCatId) || { label: 'Category', color: '#16356A' };
       name = `All ${cat.label}`;
       metaLine = `Official ${cat.label.toLowerCase()}`;
       hasPhotos = true;
-      id = state.catId;
+      id = fallbackCatId;
     } else {
       if (ids.length === 0) return '';
       id = ids[idx];
@@ -728,12 +728,15 @@
 
     each('[data-cat]', b => b.addEventListener('click', () => { 
       const c = b.getAttribute('data-cat');
-      if (state.catId !== c) {
+      if (state.catId === c) {
+        state.catId = null;
+        state.selectedIds.clear();
+      } else {
         state.catId = c;
         state.selectedIds.clear();
         state.previewIdx = 0;
-        render(); 
       }
+      render(); 
     }));
     on('backCats', () => { state.catId = null; state.selectedIds.clear(); state.itemOpen = false; render(); });
     each('[data-item]', b => b.addEventListener('click', () => selectItem(b.getAttribute('data-item'), b.getAttribute('data-kind'))));
