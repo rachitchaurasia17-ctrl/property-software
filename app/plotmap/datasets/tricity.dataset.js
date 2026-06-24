@@ -32,14 +32,14 @@ window.PM.registerDataset('tricity-aerotropolis', {
   ],
 
   blocks: [
-    { id:'ac-a', area:'Aerocity', cat:'sectors', name:'Sector 66A', svgId:'SECTOR-Aerocity-Sector-66A', x:300, y:300, w:150, h:115 },
-    { id:'ac-b', area:'Aerocity', cat:'sectors', name:'Sector 66B', svgId:'SECTOR-Aerocity-Sector-66B', x:300, y:445, w:150, h:115 },
-    { id:'ac-c', area:'Aerocity', cat:'sectors', name:'Sector 82', svgId:'SECTOR-Aerocity-Sector-82', x:300, y:590, w:150, h:115 },
-    { id:'ac-1', area:'Aerocity', cat:'sectors', name:'Sector 82A', svgId:'SECTOR-Aerocity-Sector-82A', x:140, y:445, w:135, h:115 },
-    { id:'ac-83a', area:'Aerocity', cat:'sectors', name:'Sector 83A', svgId:'SECTOR-Aerocity-Sector-83A', x:300, y:445, w:135, h:115 },
-    { id:'ac-101', area:'Aerocity', cat:'sectors', name:'Sector 101', svgId:'SECTOR-Aerocity-Sector-101', x:300, y:445, w:135, h:115 },
-    { id:'ac-102', area:'Aerocity', cat:'sectors', name:'Sector 102 Alpha', svgId:'SECTOR-Aerocity-Sector-102-Alpha', x:300, y:445, w:135, h:115 },
-    { id:'ac-82c', area:'Aerocity', cat:'sectors', name:'Sector 82-C', svgId:'SECTOR-Aerocity-Sector-82-C', x:300, y:445, w:135, h:115 },
+    { id:'ac-a', area:'Aerocity', cat:'sectors', name:'Sector 66A', svgId:'SECTOR-Aerocity-Sector-66A', color:'#4DB6AC', x:300, y:300, w:150, h:115 },
+    { id:'ac-b', area:'Aerocity', cat:'sectors', name:'Sector 66B', svgId:'SECTOR-Aerocity-Sector-66B', color:'#7986CB', x:300, y:445, w:150, h:115 },
+    { id:'ac-c', area:'Aerocity', cat:'sectors', name:'Sector 82', svgId:'SECTOR-Aerocity-Sector-82', color:'#FF8A65', x:300, y:590, w:150, h:115 },
+    { id:'ac-1', area:'Aerocity', cat:'sectors', name:'Sector 82A', svgId:'SECTOR-Aerocity-Sector-82A', color:'#81C784', x:140, y:445, w:135, h:115 },
+    { id:'ac-83a', area:'Aerocity', cat:'sectors', name:'Sector 83A', svgId:'SECTOR-Aerocity-Sector-83A', color:'#E57373', x:300, y:445, w:135, h:115 },
+    { id:'ac-101', area:'Aerocity', cat:'sectors', name:'Sector 101', svgId:'SECTOR-Aerocity-Sector-101', color:'#E0B04A', x:300, y:445, w:135, h:115 },
+    { id:'ac-102', area:'Aerocity', cat:'sectors', name:'Sector 102 Alpha', svgId:'SECTOR-Aerocity-Sector-102-Alpha', color:'#3B82F6', x:300, y:445, w:135, h:115 },
+    { id:'ac-82c', area:'Aerocity', cat:'sectors', name:'Sector 82-C', svgId:'SECTOR-Aerocity-Sector-82-C', color:'#B39DDB', x:300, y:445, w:135, h:115 },
 
     { id:'at-a', area:'Aerocity', cat:'blocks', name:'Block A', svgId:'BLOCK-Aerotropolis-Block-A', color:'#E0B04A', x:660, y:430, w:150, h:120 }, // warm gold
     { id:'at-b', area:'Aerocity', cat:'blocks', name:'Block B', svgId:'BLOCK-Aerotropolis-Block-B', color:'#3B82F6', x:825, y:430, w:150, h:120 }, // premium blue

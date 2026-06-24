@@ -202,10 +202,49 @@
     const lines = roadPaths.map(r => `<path d="${GEO.paths[r.svgId]}" class="o-road" style="--rfill:${catColor('roads')}" data-roadpath="${r.id}"/>`).join('');
     const hits = roadPaths.map(r => `<path d="${GEO.paths[r.svgId]}" class="o-hit" data-hit="line:${r.id}"/>`).join('');
     
+    function getPathCenter(d) {
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      let currX = 0, currY = 0;
+      const regex = /([MLHVCZmlhvcz])([^MLHVCZmlhvcz]*)/g;
+      let match;
+      while ((match = regex.exec(d)) !== null) {
+        const cmd = match[1].toUpperCase();
+        if (cmd === 'Z') continue;
+        const args = [...match[2].matchAll(/-?\d+(\.\d+)?/g)].map(m => parseFloat(m[0]));
+        if (cmd === 'H') {
+          args.forEach(x => { currX = x; updateBounds(); });
+        } else if (cmd === 'V') {
+          args.forEach(y => { currY = y; updateBounds(); });
+        } else if (cmd === 'C') {
+           for (let i = 0; i < args.length; i += 6) {
+               currX = args[i+4]; currY = args[i+5]; updateBounds();
+               let cx1=args[i], cy1=args[i+1], cx2=args[i+2], cy2=args[i+3];
+               if (cx1 < minX) minX = cx1; if (cx1 > maxX) maxX = cx1;
+               if (cy1 < minY) minY = cy1; if (cy1 > maxY) maxY = cy1;
+               if (cx2 < minX) minX = cx2; if (cx2 > maxX) maxX = cx2;
+               if (cy2 < minY) minY = cy2; if (cy2 > maxY) maxY = cy2;
+           }
+        } else if (cmd === 'M' || cmd === 'L') {
+          for (let i = 0; i < args.length; i += 2) {
+            currX = args[i]; currY = args[i+1];
+            updateBounds();
+          }
+        }
+      }
+      function updateBounds() {
+        if (currX < minX) minX = currX;
+        if (currX > maxX) maxX = currX;
+        if (currY < minY) minY = currY;
+        if (currY > maxY) maxY = currY;
+      }
+      return { cx: (minX + maxX) / 2, cy: (minY + maxY) / 2 };
+    }
+
     const blockPaths = scopedBlocks().filter(b => b.svgId && GEO.paths && GEO.paths[b.svgId]);
     const blocksHTML = blockPaths.map(b => {
-      let cx = ((b.x + b.w/2) / EW) * IW;
-      let cy = ((b.y + b.h/2) / EH) * IH;
+      const center = getPathCenter(GEO.paths[b.svgId]);
+      let cx = center.cx;
+      let cy = center.cy;
       let shortLabel = b.name.replace(/^(Block|Sector|Pocket)\s+/i, '');
       return `<path d="${GEO.paths[b.svgId]}" class="o-block" style="${b.color ? `--bfill:${b.color}` : ''}" data-itempath="${b.id}" data-hit="block:${b.id}"/><text x="${cx}" y="${cy}" class="o-block-lbl" data-itempath="${b.id}">${esc(shortLabel)}</text>`;
     }).join('');
