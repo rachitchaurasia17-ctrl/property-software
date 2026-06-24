@@ -748,8 +748,8 @@
         state.displayCatId = null;
       }
       
-      state.selectedIds.clear();
-      state.previewIdx = 0;
+      // Removed state.selectedIds.clear() to allow cross-category multi-selection
+      // Removed state.previewIdx = 0 to avoid losing preview position when toggling categories
       render(); 
     }));
     on('backCats', () => { state.activeCats.clear(); state.displayCatId = null; state.selectedIds.clear(); state.itemOpen = false; render(); });
@@ -820,7 +820,7 @@
        state.previewIdx = state.selectedIds.size - 1;
     }
     state.itemOpen = false;
-    state.activeCats.clear();
+    // Removed state.activeCats.clear() so we can keep multiple categories active
     state.activeCats.add(itemCategory(id));
     state.displayCatId = itemCategory(id);
     state.section = 'master';
