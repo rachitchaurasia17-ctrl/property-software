@@ -21,7 +21,7 @@
     section: 'master', mapMode: 'original', showProps: false,
     activeCats: new Set(), displayCatId: null, selectedIds: new Set(), itemOpen: false,
     propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null,
-    filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set() },
+    filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set(), blockId: new Set() },
     secQ: '', secArea: 'all',
     lightbox: null, present: false
   };
@@ -428,7 +428,7 @@
     root.className = state.present ? 'present' : '';
     root.innerHTML = planHTML(); bindPlan(); bindMap(); buildMap();
   }
-  function resetPlan(extra) { return Object.assign({ section: 'master', mapMode: 'original', showProps: false, activeCats: new Set(), displayCatId: null, selectedIds: new Set(), previewIdx: 0, itemOpen: false, propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, areaMenuOpen: false, filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set() }, secQ: '', secArea: 'all' }, extra || {}); }
+  function resetPlan(extra) { return Object.assign({ section: 'master', mapMode: 'original', showProps: false, activeCats: new Set(), displayCatId: null, selectedIds: new Set(), previewIdx: 0, itemOpen: false, propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, areaMenuOpen: false, filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set(), blockId: new Set() }, secQ: '', secArea: 'all' }, extra || {}); }
 
   /* ---------- AREA SELECT ---------- */
   function areaSelectHTML() {
@@ -576,7 +576,7 @@
 
       <div class="pc-actions" style="display:flex; gap:8px; height:40px;">
         ${hasPhotos ? `<button class="btn-primary" data-photos="${id}" style="flex:1; max-width:200px;">View Gallery</button>` : ''}
-        ${kind === 'block' ? `<button class="pc-ghost" data-viewprops="${id}" style="flex:1; max-width:200px;">Properties</button>` : ''}
+        <button class="pc-ghost" id="btnPreviewProps" style="flex:1; max-width:200px;">Properties</button>
         ${ids.length > 1 ? `
           <div style="display:flex; align-items:center; background:#F8FAFC; border-radius:8px; border:1px solid #EBE1CC; flex:1; justify-content:space-between; padding:0 12px; height:100%;">
             <button id="prevItemBtn" style="border:none; background:none; cursor:pointer; font-size:22px; line-height:1; color:#16356A; font-weight:700; padding:0;">&lsaquo;</button>
@@ -584,7 +584,6 @@
             <button id="nextItemBtn" style="border:none; background:none; cursor:pointer; font-size:22px; line-height:1; color:#16356A; font-weight:700; padding:0;">&rsaquo;</button>
           </div>
         ` : ''}
-        ${it && it.mapsUrl ? `<a href="${it.mapsUrl}" target="_blank" rel="noopener" class="pc-ghost" style="flex:none; padding:0 16px; text-decoration:none; display:flex; align-items:center; height:100%;">Map</a>` : ''}
       </div>
     </div>`;
   }
@@ -632,12 +631,13 @@
     if (f.area.size && !f.area.has(p.area)) return false;
     if (f.size.size && !f.size.has(p.size)) return false;
     if (f.location.size && ![...f.location].some(l => p.near.includes(l))) return false;
+    if (f.blockId && f.blockId.size && !f.blockId.has(p.blockId)) return false;
     if (f.type.size && ![...f.type].some(t => p.plotType === t || p.roadFacing === t || (t === 'Road Facing' && /Road/.test(p.roadFacing)) || (t === 'Corner Plot' && /Corner/.test(p.roadFacing)) || (t === 'Park Facing' && /Park/.test(p.roadFacing)))) return false;
     return true;
   }
   function browseHTML() {
     const list = mapProperties().filter(matchProp);
-    const active = ['type', 'area', 'location', 'size'].reduce((n, k) => n + state.filters[k].size, 0);
+    const active = ['type', 'area', 'location', 'size', 'blockId'].reduce((n, k) => n + state.filters[k].size, 0);
     const grp = (key) => { const g = DS.filters[key]; return `<div class="fgroup"><div class="fglabel">${g.label}</div><div class="fchips">${g.values.map(v => { const val = v.val || v, lab = v.label || v; const on = state.filters[key].has(val); return `<button class="fchip ${on ? 'on' : ''}" data-fk="${key}" data-fv="${esc(val)}">${esc(lab)}</button>`; }).join('')}</div></div>`; };
     return `<div class="full-in">
       <div class="eyebrow">Selected properties</div>
@@ -766,7 +766,24 @@
     on('nextItemBtn', () => { state.previewIdx = (state.previewIdx + 1) % state.selectedIds.size; render(); });
     
     each('[data-focus]', b => b.addEventListener('click', () => focusItem(b.getAttribute('data-focus'))));
-    each('[data-viewprops]', b => b.addEventListener('click', () => { const bl = blockById(b.getAttribute('data-viewprops')); Object.assign(state, { section: 'props', propView: 'browse', filters: { type: new Set(), area: new Set(bl ? [bl.area] : []), location: new Set(), size: new Set() } }); render(); }));
+    const btnPreviewProps = el('btnPreviewProps');
+    if (btnPreviewProps) btnPreviewProps.addEventListener('click', () => {
+      let locs = new Set(), blocks = new Set();
+      if (state.selectedIds.size > 0) {
+        state.selectedIds.forEach(id => {
+          if (itemKindOf(id) === 'block') blocks.add(id);
+          else locs.add(id);
+        });
+      } else if (state.displayCatId) {
+        catItems(state.displayCatId).forEach(i => {
+          if (i.kind === 'block') blocks.add(i.id);
+          else locs.add(i.id);
+        });
+      }
+      Object.assign(state, { section: 'props', propView: 'browse', filters: { type: new Set(), area: new Set(), location: locs, size: new Set(), blockId: blocks } });
+      builtSig = '';
+      render();
+    });
     each('[data-blocksector]', b => b.addEventListener('click', () => { const bl = blockById(b.getAttribute('data-blocksector')); const sm = bl && readySectorMaps().find(s => s.area === bl.area && s.block === bl.name); if (sm) openSectorHub(sm.id); }));
 
     const lay = el('maplayer');
@@ -807,7 +824,7 @@
   function zoomBtn(f) { const r = wrap().getBoundingClientRect(); zoomAt(r.left + wrap().clientWidth / 2, r.top + wrap().clientHeight / 2, f); }
   function focusProps() { const ps = mapProperties(); if (!ps.length) return; const cx = ps.reduce((s, p) => { const b = blockById(p.blockId) || { x: 700, w: 100 }; return s + b.x + b.w / 2; }, 0) / ps.length; const cy = ps.reduce((s, p) => { const b = blockById(p.blockId) || { y: 500, h: 100 }; return s + b.y + b.h / 2; }, 0) / ps.length; setTimeout(() => focusBox(cx, cy, 760, 520, 1.7), 60); }
   function toggleProps() { state.showProps = !state.showProps; state.previewId = null; refreshControls(); updateMapOverlays(); if (state.showProps) focusProps(); else fit(); }
-  function clearFilters() { state.filters = { type: new Set(), area: new Set(), location: new Set(), size: new Set() }; render(); }
+  function clearFilters() { state.filters = { type: new Set(), area: new Set(), location: new Set(), size: new Set(), blockId: new Set() }; render(); }
 
   function selectItem(id, kind) {
     if (state.selectedIds.has(id)) {
