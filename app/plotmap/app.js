@@ -505,17 +505,7 @@
           </div>
         ` : ''}
 
-        ${state.selectedIds.size > 0 ? `
-          <div style="background:#F9F7F1;border:1px solid #EBE1CC;border-radius:14px;padding:14px;margin-bottom:24px;margin-top:24px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-              <span style="font-size:12px;font-weight:750;color:#8A5E22;text-transform:uppercase;letter-spacing:1px;">Active Selection</span>
-              <button id="clearAllItems" style="background:none;border:none;color:#16356A;font-weight:680;font-size:12.5px;cursor:pointer;padding:0;">Clear All</button>
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:6px;">
-              ${Array.from(state.selectedIds).map(id => `<span class="tray-chip" style="background:#fff;border:1px solid #DCD0B6;border-radius:8px;padding:5px 8px 5px 10px;font-size:12.5px;font-weight:650;display:flex;align-items:center;gap:6px;">${esc(itemObj(id).name)} <button data-unsel="${id}" style="border:none;background:none;cursor:pointer;color:#8A5E22;font-size:14px;line-height:1;padding:0;transition:color .15s;">&times;</button></span>`).join('')}
-            </div>
-          </div>
-        ` : ''}
+
 
         ${state.catId && catItems(state.catId).some(i => i.kind !== 'pin') ? `
           <div style="font-size:12px;font-weight:750;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;margin-top:24px;">Select Items in ${esc(catById(state.catId).label)}</div>
@@ -564,9 +554,19 @@
 
     return `<div class="preview-card" style="margin-top:0; border:none; padding:0; box-shadow:none; background:transparent;">
       ${navHTML}
-      <div class="pc-cat" style="color:${cat.color}">${esc(cat.label)}</div>
-      <div class="pc-name" style="font-size:24px; margin-bottom:6px;">${esc(it.name)}</div>
-      <div class="pc-desc" style="color:#6A6150; font-size:14px; margin-bottom:16px;">${esc(metaLine)}</div>
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
+        <div style="flex:1; padding-right:12px; min-width:0;">
+          <div class="pc-cat" style="color:${cat.color}">${esc(cat.label)}</div>
+          <div class="pc-name" style="font-size:24px; margin-bottom:6px; line-height:1.1;">${esc(it.name)}</div>
+          <div class="pc-desc" style="color:#6A6150; font-size:14px;">${esc(metaLine)}</div>
+        </div>
+        <div style="flex:none; max-width:180px; text-align:right;">
+          <div style="font-size:10px; font-weight:750; color:#8A5E22; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Active Selection <button id="clearAllItems" style="background:none;border:none;color:#16356A;font-weight:680;font-size:11px;cursor:pointer;padding:0;margin-left:4px;">Clear</button></div>
+          <div style="display:flex; flex-wrap:wrap; gap:4px; justify-content:flex-end;">
+            ${Array.from(state.selectedIds).map(selId => `<span class="tray-chip" style="background:#F9F7F1;border:1px solid #EBE1CC;border-radius:6px;padding:3px 5px 3px 7px;font-size:11px;font-weight:650;display:flex;align-items:center;gap:3px;white-space:nowrap;color:#5A554A;">${esc(itemObj(selId).name)} <button data-unsel="${selId}" style="border:none;background:none;cursor:pointer;color:#8A5E22;font-size:14px;line-height:1;padding:0;transition:color .15s;">&times;</button></span>`).join('')}
+          </div>
+        </div>
+      </div>
       
       <div class="pc-photo-area" style="width:100%; height:180px; border-radius:12px; background:${hasPhotos ? PM.grads[itemCategory(id)] || '#A0AAB5' : '#F4EFE6'}; display:flex; align-items:center; justify-content:center; margin-bottom:16px; position:relative; overflow:hidden;">
         ${hasPhotos ? `
