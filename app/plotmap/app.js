@@ -322,17 +322,13 @@
         const on = relate(id, itemKindOf(id)); 
         const inCat = !!cat && cat === itemCategory(id);
         const isSel = selIds.has(id);
-        if (hasSel) {
-          p.classList.toggle('act', isSel);
-          p.classList.toggle('soft', !isSel && inCat);
-          p.classList.toggle('hide', !isSel && !inCat);
-          p.classList.toggle('show', isSel || inCat);
-        } else {
-          p.classList.toggle('act', inCat && on);
-          p.classList.toggle('soft', false);
-          p.classList.toggle('hide', !inCat);
-          p.classList.toggle('show', inCat && on);
-        }
+        
+        const isActive = isSel || (inCat && on);
+        
+        p.classList.toggle('act', isActive);
+        p.classList.toggle('soft', false);
+        p.classList.toggle('show', false);
+        p.classList.toggle('hide', !isActive);
       });
       l.querySelectorAll('.o-pin').forEach(g => {
         const id = g.getAttribute('data-itempath');
@@ -719,7 +715,16 @@
     on('propSwitch', toggleProps);
     on('zin', () => zoomBtn(1.2)); on('zout', () => zoomBtn(1 / 1.2)); on('zfit', fit);
 
-    each('[data-cat]', b => b.addEventListener('click', () => { state.catId = b.getAttribute('data-cat'); render(); }));
+    each('[data-cat]', b => b.addEventListener('click', () => { 
+      const c = b.getAttribute('data-cat');
+      if (state.catId === c) {
+        state.catId = null;
+        state.selectedIds.clear();
+      } else {
+        state.catId = c;
+      }
+      render(); 
+    }));
     on('backCats', () => { state.catId = null; state.selectedIds.clear(); state.itemOpen = false; render(); });
     each('[data-item]', b => b.addEventListener('click', () => selectItem(b.getAttribute('data-item'), b.getAttribute('data-kind'))));
     each('[data-photoico]', b => b.addEventListener('click', e => { e.stopPropagation(); const id = b.getAttribute('data-photoico'); state.selectedIds = new Set([id]); openLightbox(0); }));
