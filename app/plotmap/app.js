@@ -250,10 +250,7 @@
     }).join('');
 
     const zonePaths = scopedZones().filter(z => z.svgId && GEO.paths && GEO.paths[z.svgId]);
-    const pinZonePaths = scopedPins().filter(p => p.svgId && GEO.paths && GEO.paths[p.svgId]);
-    
-    const zonesHTML = zonePaths.map(z => `<path d="${GEO.paths[z.svgId]}" class="o-zone cat-${z.cat}" style="--zfill:${catColor(z.cat)}" data-itempath="${z.id}" data-hit="zone:${z.id}"/>`).join('') +
-                      pinZonePaths.map(p => `<path d="${GEO.paths[p.svgId]}" class="o-zone cat-${p.cat}" style="--zfill:${catColor(p.cat)}" data-itempath="${p.id}" data-hit="pin:${p.id}"/>`).join('');
+    const zonesHTML = zonePaths.map(z => `<path d="${GEO.paths[z.svgId]}" class="o-zone cat-${z.cat}" style="--zfill:${catColor(z.cat)}" data-itempath="${z.id}" data-hit="zone:${z.id}"/>`).join('');
 
     const pinsHTML = [];
     const addPin = (item, kind) => {
