@@ -284,7 +284,7 @@
           p.classList.toggle('hide', !isSel && !inCat);
           p.classList.toggle('show', isSel || inCat);
         } else {
-          p.classList.toggle('act', false);
+          p.classList.toggle('act', inCat && on);
           p.classList.toggle('soft', false);
           p.classList.toggle('hide', !inCat);
           p.classList.toggle('show', inCat && on);
