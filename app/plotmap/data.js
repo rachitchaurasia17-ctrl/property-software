@@ -10,7 +10,7 @@ window.PM = {
   /* shared value-driver taxonomy (datasets map their items onto these) */
   categories: [
     { id:'roads',        label:'Key Roads',                color:'#16356A', kind:'line' },
-    { id:'blocks',       label:'Blocks & Pockets',         color:'#2E5A86', kind:'block' },
+    { id:'blocks',       label:'Blocks',                   color:'#2E5A86', kind:'block' },
     { id:'sectors',      label:'Sectors',                  color:'#3F6B4A', kind:'block' },
     { id:'commercial',   label:'Commercial Zones',         color:'#B8823A', kind:'zone' },
     { id:'institutions', label:'Education',                color:'#7A4A6E', kind:'zone' },

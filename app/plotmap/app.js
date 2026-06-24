@@ -19,7 +19,7 @@
   const state = {
     space: 'area', areaId: 'aerotropolis', areaMenuOpen: false,
     section: 'master', mapMode: 'original', showProps: false,
-    catId: null, selectedIds: new Set(), itemOpen: false,
+    activeCats: new Set(), displayCatId: null, selectedIds: new Set(), itemOpen: false,
     propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null,
     filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set() },
     secQ: '', secArea: 'all',
@@ -75,7 +75,7 @@
       .concat(scopedPins().filter(p => p.cat === catId).map(p => ({ id: p.id, name: p.name, sub: c.label, kind: 'pin', color: c.color, photos: p.photos })));
   }
   const catCount = (id) => catItems(id).length;
-  const inCatItem = (id) => state.catId && catItems(state.catId).some(i => i.id === id);
+  const inCatItem = (id) => { const cid = getCatId(); return cid && catItems(cid).some(i => i.id === id); };
 
   /* ---------- premium warm photo placeholder ---------- */
   function photo(grad, h, attrs) {
@@ -133,6 +133,11 @@
   function pathPoints(d) { return (d.match(/-?\d+(\.\d+)?/g) || []).map(Number).reduce((a, n, i, arr) => { if (i % 2 === 0) a.push([n, arr[i + 1]]); return a; }, []); }
 
   /* ====================== MAP build ====================== */
+  const getCatId = () => {
+    if (state.displayCatId) return state.displayCatId;
+    if (state.activeCats.size > 0) return Array.from(state.activeCats).pop();
+    return null;
+  };
   function mapKind() { if (state.section === 'props' && state.propView === 'sector') return 'sector'; return state.mapMode === 'original' ? 'original' : 'easy'; }
   function buildMap() {
     const kind = mapKind(); const sig = state.areaId + '|' + kind; const fresh = sig !== builtSig;
@@ -295,19 +300,19 @@
   function updateMapOverlays() {
     const kind = mapKind(); const l = layer(); if (!l) return;
     if (kind === 'sector') { renderProof(); return; }
-    const selIds = state.selectedIds, cat = state.catId;
+    const selIds = state.selectedIds;
     const hasSel = selIds.size > 0;
-    const dimAll = hasSel || cat;
+    const dimAll = hasSel || state.activeCats.size > 0;
     const relate = (id, k) => { // is this item active (selected or in selected category)?
       if (hasSel) return selIds.has(id);
-      if (cat) { const ic = (k === 'line') ? 'roads' : itemCategory(id); return ic === cat; }
+      if (state.activeCats.size > 0) { const ic = (k === 'line') ? 'roads' : itemCategory(id); return state.activeCats.has(ic); }
       return true;
     };
     if (kind === 'easy') {
       l.querySelectorAll('.e-road').forEach(p => { const id = p.getAttribute('data-roadpath'); const on = relate(id, 'line'); p.classList.toggle('act', !!(hasSel || cat) && on); p.classList.toggle('dim', !!dimAll && !on); });
-      l.querySelectorAll('.e-block').forEach(g => { const id = g.getAttribute('data-bid'); const on = relate(id, 'block'); g.classList.toggle('act', on && (selIds.has(id) || cat === itemCategory(id))); g.classList.toggle('dim', !!dimAll && !on); });
-      l.querySelectorAll('.e-zone').forEach(g => { const id = g.getAttribute('data-zid'); const on = relate(id, 'zone'); g.classList.toggle('act', on && (selIds.has(id) || cat === itemCategory(id))); g.classList.toggle('dim', !!dimAll && !on); });
-      l.querySelectorAll('.e-pin').forEach(g => { const id = g.getAttribute('data-pid'); const on = relate(id, 'pin'); g.classList.toggle('act', on && (selIds.has(id) || cat === itemCategory(id))); g.classList.toggle('dim', (!!dimAll && !on) || (state.showProps && !hasSel && !cat)); });
+      l.querySelectorAll('.e-block').forEach(g => { const id = g.getAttribute('data-bid'); const on = relate(id, 'block'); g.classList.toggle('act', on && (selIds.has(id) || state.activeCats.has(itemCategory(id)))); g.classList.toggle('dim', !!dimAll && !on); });
+      l.querySelectorAll('.e-zone').forEach(g => { const id = g.getAttribute('data-zid'); const on = relate(id, 'zone'); g.classList.toggle('act', on && (selIds.has(id) || state.activeCats.has(itemCategory(id)))); g.classList.toggle('dim', !!dimAll && !on); });
+      l.querySelectorAll('.e-pin').forEach(g => { const id = g.getAttribute('data-pid'); const on = relate(id, 'pin'); g.classList.toggle('act', on && (selIds.has(id) || state.activeCats.has(itemCategory(id)))); g.classList.toggle('dim', (!!dimAll && !on) || (state.showProps && !hasSel && state.activeCats.size === 0)); });
       l.querySelectorAll('.e-rlabel-g').forEach(g => { const id = g.getAttribute('data-roadlabel'); g.classList.toggle('act', selIds.has(id)); g.classList.toggle('dim', !!dimAll && !relate(id, 'line')); });
       // spotlight selected road (layered) in easy
       const sp = l.querySelector('#eSpot'); if (sp) { sp.innerHTML = '';
@@ -326,7 +331,7 @@
       l.querySelectorAll('.o-block, .o-zone, .o-block-lbl').forEach(p => { 
         const id = p.getAttribute('data-itempath'); 
         const on = relate(id, itemKindOf(id)); 
-        const inCat = !!cat && cat === itemCategory(id);
+        const inCat = state.activeCats.size > 0 && state.activeCats.has(itemCategory(id));
         const isSel = selIds.has(id);
         
         const isActive = isSel || (inCat && on);
@@ -338,7 +343,7 @@
       });
       l.querySelectorAll('.o-pin').forEach(g => {
         const id = g.getAttribute('data-itempath');
-        const inCat = !!cat && cat === itemCategory(id);
+        const inCat = state.activeCats.size > 0 && state.activeCats.has(itemCategory(id));
         const isSel = selIds.has(id);
         // If the category is active, all pins in it should be visible. Or if this specific pin is selected.
         const isActive = isSel || inCat;
@@ -377,7 +382,7 @@
              }
            });
            if (pinHtml) sp.insertAdjacentHTML('beforeend', pinHtml);
-        } else if (cat === 'roads') {
+        } else if (state.activeCats.has('roads')) {
            const paths = catItems('roads').map(item => GEO.paths[roadById(item.id).svgId]).filter(Boolean);
            let html = '';
            html += `<g filter="url(#eglow)" style="fill:none;stroke:#2BD0E6;stroke-width:44;opacity:.4;stroke-linecap:round;stroke-linejoin:round">`;
@@ -395,7 +400,7 @@
            sp.insertAdjacentHTML('beforeend', html);
         }
       }
-      l.classList.toggle('dimmed', !!(hasSel || cat));
+      l.classList.toggle('dimmed', !!(hasSel || state.activeCats.size > 0));
     }
   }
   function renderTags() {
@@ -423,7 +428,7 @@
     root.className = state.present ? 'present' : '';
     root.innerHTML = planHTML(); bindPlan(); bindMap(); buildMap();
   }
-  function resetPlan(extra) { return Object.assign({ section: 'master', mapMode: 'original', showProps: false, catId: null, selectedIds: new Set(), previewIdx: 0, itemOpen: false, propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, areaMenuOpen: false, filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set() }, secQ: '', secArea: 'all' }, extra || {}); }
+  function resetPlan(extra) { return Object.assign({ section: 'master', mapMode: 'original', showProps: false, activeCats: new Set(), displayCatId: null, selectedIds: new Set(), previewIdx: 0, itemOpen: false, propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, areaMenuOpen: false, filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set() }, secQ: '', secArea: 'all' }, extra || {}); }
 
   /* ---------- AREA SELECT ---------- */
   function areaSelectHTML() {
@@ -486,7 +491,7 @@
   function panelHTML() {
     if (state.section === 'props' && state.propView === 'sector') return sectorPanelHTML();
     
-    const displayCatId = (state.selectedIds.size === 0 && !state.catId) ? 'roads' : state.catId;
+    const displayCatId = (state.selectedIds.size === 0 && state.activeCats.size === 0) ? 'roads' : getCatId();
     
     return `<div class="scroll" style="padding-top:16px;">
         ${state.selectedIds.size > 0 || displayCatId ? previewCardHTML(displayCatId) : ''}
@@ -494,7 +499,7 @@
         <div style="font-size:12px;font-weight:750;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;margin-top:${state.selectedIds.size > 0 || displayCatId ? '16px' : '0'}">Map Layers</div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px">
           ${activeCategories().map(c => `
-            <button class="layer-pill ${state.catId === c.id ? 'act' : ''}" data-cat="${c.id}">
+            <button class="layer-pill ${state.activeCats.has(c.id) ? 'act' : ''}" data-cat="${c.id}">
               ${esc(c.label)}
             </button>`).join('')}
         </div>
@@ -728,17 +733,26 @@
 
     each('[data-cat]', b => b.addEventListener('click', () => { 
       const c = b.getAttribute('data-cat');
-      if (state.catId === c) {
-        state.catId = null;
-        state.selectedIds.clear();
+      if (state.activeCats.has(c)) {
+        state.activeCats.delete(c);
       } else {
-        state.catId = c;
-        state.selectedIds.clear();
-        state.previewIdx = 0;
+        state.activeCats.add(c);
+        state.displayCatId = c;
       }
+      
+      if (state.activeCats.size > 0) {
+        if (!state.activeCats.has(state.displayCatId)) {
+          state.displayCatId = Array.from(state.activeCats).pop();
+        }
+      } else {
+        state.displayCatId = null;
+      }
+      
+      state.selectedIds.clear();
+      state.previewIdx = 0;
       render(); 
     }));
-    on('backCats', () => { state.catId = null; state.selectedIds.clear(); state.itemOpen = false; render(); });
+    on('backCats', () => { state.activeCats.clear(); state.displayCatId = null; state.selectedIds.clear(); state.itemOpen = false; render(); });
     each('[data-item]', b => b.addEventListener('click', () => selectItem(b.getAttribute('data-item'), b.getAttribute('data-kind'))));
     each('[data-photoico]', b => b.addEventListener('click', e => { e.stopPropagation(); const id = b.getAttribute('data-photoico'); state.selectedIds = new Set([id]); openLightbox(0); }));
     each('[data-photos]', b => b.addEventListener('click', () => { state.selectedIds = new Set([b.getAttribute('data-photos')]); openLightbox(0); }));
@@ -806,7 +820,9 @@
        state.previewIdx = state.selectedIds.size - 1;
     }
     state.itemOpen = false;
-    state.catId = itemCategory(id);
+    state.activeCats.clear();
+    state.activeCats.add(itemCategory(id));
+    state.displayCatId = itemCategory(id);
     state.section = 'master';
     render();
   }
