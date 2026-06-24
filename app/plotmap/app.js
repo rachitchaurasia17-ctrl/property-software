@@ -487,23 +487,15 @@
     if (state.section === 'props' && state.propView === 'sector') return sectorPanelHTML();
     
     return `<div class="scroll" style="padding-top:16px;">
-        ${state.selectedIds.size > 0 ? previewCardHTML() : ''}
+        ${state.selectedIds.size > 0 || state.catId ? previewCardHTML() : ''}
         
-        <div style="font-size:12px;font-weight:750;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;margin-top:${state.selectedIds.size > 0 ? '16px' : '0'}">Map Layers</div>
+        <div style="font-size:12px;font-weight:750;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;margin-top:${state.selectedIds.size > 0 || state.catId ? '16px' : '0'}">Map Layers</div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px">
           ${activeCategories().map(c => `
             <button class="layer-pill ${state.catId === c.id ? 'act' : ''}" data-cat="${c.id}">
               ${esc(c.label)}
             </button>`).join('')}
         </div>
-
-        ${!state.selectedIds.size && state.catId ? `
-          <div style="background:#fff;border:1px solid #EBE1CC;border-radius:12px;padding:20px;text-align:center;margin-bottom:24px;">
-            <div style="color:#6A6150;font-size:14px;font-weight:550;line-height:1.5">
-              All ${esc(catById(state.catId).label.toLowerCase())} are active on the map.<br>Select items below to focus them and view context.
-            </div>
-          </div>
-        ` : ''}
 
 
 
@@ -521,26 +513,35 @@
 
   function previewCardHTML() {
     const ids = Array.from(state.selectedIds);
-    if (ids.length === 0) return '';
-    
     let idx = state.previewIdx || 0;
     if (idx < 0 || idx >= ids.length) {
       idx = Math.max(0, ids.length - 1);
       state.previewIdx = idx;
     }
     
-    const id = ids[idx];
-    const kind = itemKindOf(id);
-    const it = itemObj(id);
-    const cat = catById(itemCategory(id)) || { label: 'Value driver', color: '#16356A' };
-    const hasPhotos = it.photos !== false;
+    let cat, name, metaLine, hasPhotos, id = null, kind = null, it = null;
 
-    let metaLine = '';
-    if (kind === 'block') {
-      const props = propsInBlock(id);
-      metaLine = `${props.length} available propert${props.length === 1 ? 'y' : 'ies'}`;
+    if (ids.length === 0 && state.catId) {
+      cat = catById(state.catId) || { label: 'Category', color: '#16356A' };
+      name = `All ${cat.label}`;
+      metaLine = `Official ${cat.label.toLowerCase()}`;
+      hasPhotos = true;
+      id = state.catId;
     } else {
-      metaLine = it.sub || `Official ${cat.label.toLowerCase()}`;
+      if (ids.length === 0) return '';
+      id = ids[idx];
+      kind = itemKindOf(id);
+      it = itemObj(id);
+      cat = catById(itemCategory(id)) || { label: 'Value driver', color: '#16356A' };
+      hasPhotos = it.photos !== false;
+
+      if (kind === 'block') {
+        const props = propsInBlock(id);
+        metaLine = `${props.length} available propert${props.length === 1 ? 'y' : 'ies'}`;
+      } else {
+        metaLine = it.sub || `Official ${cat.label.toLowerCase()}`;
+      }
+      name = it.name;
     }
 
     let navHTML = '';
@@ -557,18 +558,20 @@
       <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
         <div style="flex:1; padding-right:12px; min-width:0;">
           <div class="pc-cat" style="color:${cat.color}">${esc(cat.label)}</div>
-          <div class="pc-name" style="font-size:24px; margin-bottom:6px; line-height:1.1;">${esc(it.name)}</div>
+          <div class="pc-name" style="font-size:24px; margin-bottom:6px; line-height:1.1;">${esc(name)}</div>
           <div class="pc-desc" style="color:#6A6150; font-size:14px;">${esc(metaLine)}</div>
         </div>
+        ${ids.length > 0 ? `
         <div style="flex:none; max-width:180px; text-align:right;">
           <div style="font-size:10px; font-weight:750; color:#8A5E22; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Active Selection <button id="clearAllItems" style="background:none;border:none;color:#16356A;font-weight:680;font-size:11px;cursor:pointer;padding:0;margin-left:4px;">Clear</button></div>
           <div style="display:flex; flex-wrap:wrap; gap:4px; justify-content:flex-end;">
-            ${Array.from(state.selectedIds).map(selId => `<span class="tray-chip" style="background:#F9F7F1;border:1px solid #EBE1CC;border-radius:6px;padding:3px 5px 3px 7px;font-size:11px;font-weight:650;display:flex;align-items:center;gap:3px;white-space:nowrap;color:#5A554A;">${esc(itemObj(selId).name)} <button data-unsel="${selId}" style="border:none;background:none;cursor:pointer;color:#8A5E22;font-size:14px;line-height:1;padding:0;transition:color .15s;">&times;</button></span>`).join('')}
+            ${ids.map(selId => `<span class="tray-chip" style="background:#F9F7F1;border:1px solid #EBE1CC;border-radius:6px;padding:3px 5px 3px 7px;font-size:11px;font-weight:650;display:flex;align-items:center;gap:3px;white-space:nowrap;color:#5A554A;">${esc(itemObj(selId).name)} <button data-unsel="${selId}" style="border:none;background:none;cursor:pointer;color:#8A5E22;font-size:14px;line-height:1;padding:0;transition:color .15s;">&times;</button></span>`).join('')}
           </div>
         </div>
+        ` : ''}
       </div>
       
-      <div class="pc-photo-area" style="width:100%; height:180px; border-radius:12px; background:${hasPhotos ? PM.grads[itemCategory(id)] || '#A0AAB5' : '#F4EFE6'}; display:flex; align-items:center; justify-content:center; margin-bottom:16px; position:relative; overflow:hidden;">
+      <div class="pc-photo-area" style="width:100%; height:180px; border-radius:12px; background:${hasPhotos ? PM.grads[itemCategory(id) || id] || '#A0AAB5' : '#F4EFE6'}; display:flex; align-items:center; justify-content:center; margin-bottom:16px; position:relative; overflow:hidden;">
         ${hasPhotos ? `
            <span style="color:rgba(255,255,255,0.9); font-weight:600; font-size:14px; position:relative; z-index:2">Preview Available</span>
         ` : `
@@ -579,8 +582,8 @@
       <div class="pc-actions" style="display:flex; gap:8px;">
         ${hasPhotos ? `<button class="btn-primary" data-photos="${id}" style="flex:1;">View Gallery</button>` : ''}
         ${kind === 'block' ? `<button class="pc-ghost" data-viewprops="${id}" style="flex:1;">Properties</button>` : ''}
-        <button class="pc-ghost" data-focus="${id}" style="${hasPhotos || kind === 'block' ? 'flex:none; padding:0 16px;' : 'flex:1;'}">Focus Map</button>
-        ${it.mapsUrl ? `<a href="${it.mapsUrl}" target="_blank" rel="noopener" class="pc-ghost" style="flex:none; padding:0 16px; text-decoration:none; display:flex; align-items:center;">Map</a>` : ''}
+        ${ids.length > 0 ? `<button class="pc-ghost" data-focus="${id}" style="${hasPhotos || kind === 'block' ? 'flex:none; padding:0 16px;' : 'flex:1;'}">Focus Map</button>` : ''}
+        ${it && it.mapsUrl ? `<a href="${it.mapsUrl}" target="_blank" rel="noopener" class="pc-ghost" style="flex:none; padding:0 16px; text-decoration:none; display:flex; align-items:center;">Map</a>` : ''}
       </div>
     </div>`;
   }
