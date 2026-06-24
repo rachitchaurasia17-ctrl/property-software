@@ -19,7 +19,7 @@
   const state = {
     space: 'area', areaId: 'aerotropolis', areaMenuOpen: false,
     section: 'master', mapMode: 'original', showProps: false,
-    catId: null, selectedIds: new Set(), itemOpen: false,
+    catId: 'roads', selectedIds: new Set(), itemOpen: false,
     propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null,
     filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set() },
     secQ: '', secArea: 'all',
@@ -544,17 +544,7 @@
       name = it.name;
     }
 
-    let navHTML = '';
-    if (ids.length > 1) {
-       navHTML = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; background:#F8FAFC; padding:6px 12px; border-radius:8px; border:1px solid #EBE1CC;">
-         <button id="prevItemBtn" style="border:none; background:none; cursor:pointer; font-size:22px; line-height:1; color:#16356A; font-weight:700; padding:0 8px;">&lsaquo;</button>
-         <span style="font-size:12.5px; font-weight:650; color:#3F3A30;">Item ${idx + 1} of ${ids.length}</span>
-         <button id="nextItemBtn" style="border:none; background:none; cursor:pointer; font-size:22px; line-height:1; color:#16356A; font-weight:700; padding:0 8px;">&rsaquo;</button>
-       </div>`;
-    }
-
     return `<div class="preview-card" style="margin-top:0; border:none; padding:0; box-shadow:none; background:transparent;">
-      ${navHTML}
       <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
         <div style="flex:1; padding-right:12px; min-width:0;">
           <div class="pc-cat" style="color:${cat.color}">${esc(cat.label)}</div>
@@ -579,11 +569,17 @@
         `}
       </div>
 
-      <div class="pc-actions" style="display:flex; gap:8px;">
-        ${hasPhotos ? `<button class="btn-primary" data-photos="${id}" style="flex:1;">View Gallery</button>` : ''}
-        ${kind === 'block' ? `<button class="pc-ghost" data-viewprops="${id}" style="flex:1;">Properties</button>` : ''}
-        ${ids.length > 0 ? `<button class="pc-ghost" data-focus="${id}" style="${hasPhotos || kind === 'block' ? 'flex:none; padding:0 16px;' : 'flex:1;'}">Focus Map</button>` : ''}
-        ${it && it.mapsUrl ? `<a href="${it.mapsUrl}" target="_blank" rel="noopener" class="pc-ghost" style="flex:none; padding:0 16px; text-decoration:none; display:flex; align-items:center;">Map</a>` : ''}
+      <div class="pc-actions" style="display:flex; gap:8px; height:40px;">
+        ${hasPhotos ? `<button class="btn-primary" data-photos="${id}" style="flex:1; max-width:200px;">View Gallery</button>` : ''}
+        ${kind === 'block' ? `<button class="pc-ghost" data-viewprops="${id}" style="flex:1; max-width:200px;">Properties</button>` : ''}
+        ${ids.length > 1 ? `
+          <div style="display:flex; align-items:center; background:#F8FAFC; border-radius:8px; border:1px solid #EBE1CC; flex:1; justify-content:space-between; padding:0 12px; height:100%;">
+            <button id="prevItemBtn" style="border:none; background:none; cursor:pointer; font-size:22px; line-height:1; color:#16356A; font-weight:700; padding:0;">&lsaquo;</button>
+            <span style="font-size:12.5px; font-weight:650; color:#3F3A30;">Item ${idx + 1} of ${ids.length}</span>
+            <button id="nextItemBtn" style="border:none; background:none; cursor:pointer; font-size:22px; line-height:1; color:#16356A; font-weight:700; padding:0;">&rsaquo;</button>
+          </div>
+        ` : ''}
+        ${it && it.mapsUrl ? `<a href="${it.mapsUrl}" target="_blank" rel="noopener" class="pc-ghost" style="flex:none; padding:0 16px; text-decoration:none; display:flex; align-items:center; height:100%;">Map</a>` : ''}
       </div>
     </div>`;
   }
@@ -732,13 +728,12 @@
 
     each('[data-cat]', b => b.addEventListener('click', () => { 
       const c = b.getAttribute('data-cat');
-      if (state.catId === c) {
-        state.catId = null;
-        state.selectedIds.clear();
-      } else {
+      if (state.catId !== c) {
         state.catId = c;
+        state.selectedIds.clear();
+        state.previewIdx = 0;
+        render(); 
       }
-      render(); 
     }));
     on('backCats', () => { state.catId = null; state.selectedIds.clear(); state.itemOpen = false; render(); });
     each('[data-item]', b => b.addEventListener('click', () => selectItem(b.getAttribute('data-item'), b.getAttribute('data-kind'))));
