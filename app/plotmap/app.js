@@ -494,7 +494,7 @@
   }
   function mapControlsHTML() {
     const showModes = state.section === 'master';
-    return `${showModes ? `<div class="mode-switch"><button class="${state.mapMode === 'original' ? 'on' : ''}" data-mode="original">Original Map</button><button class="${state.mapMode === 'easy' ? 'on' : ''}" data-mode="easy">Easy Map</button><div class="divider" style="margin: 3px 6px; width:1px; background:#E1D6BF;"></div><button class="transparent-btn" data-prebuilt="A">A</button><button class="transparent-btn" data-prebuilt="B">B</button><button class="transparent-btn" data-prebuilt="C">C</button><button class="transparent-btn" data-prebuilt="D">D</button><button class="transparent-btn" data-prebuilt="E">E</button></div>` : ''}
+    return `${showModes ? `<div class="mode-switch"><button class="${state.mapMode === 'original' ? 'on' : ''}" data-mode="original">Original Map</button><button class="${state.mapMode === 'easy' ? 'on' : ''}" data-mode="easy">Easy Map</button><div class="divider" style="margin: 3px 6px; width:1px; background:#E1D6BF;"></div><button class="transparent-btn" data-prebuilt="A">A</button><button class="transparent-btn" data-prebuilt="B">B</button><button class="transparent-btn" data-prebuilt="C">C</button><button class="transparent-btn" data-prebuilt="D">D</button></div>` : ''}
       ${showModes && state.mapMode === 'easy' ? `<div class="prop-switch ${state.showProps ? 'on' : ''}" id="propSwitch"><span class="lbl">Show Properties</span><span class="knob"><i></i></span></div>` : ''}
       <div class="zoom"><button id="zin" title="Zoom in">+</button><div class="zsep"></div><button id="zout" title="Zoom out">−</button><div class="zsep"></div><button id="zfit" title="Reset view">⤢</button></div>
       ${state.previewId ? previewHTML() : ''}`;
@@ -744,10 +744,9 @@
     each('[data-prebuilt]', b => b.addEventListener('click', () => {
       const map = {
         'A': ['at-a'],
-        'B': ['at-b'],
-        'C': ['at-c'],
-        'D': ['at-d'],
-        'E': ['at-e']
+        'B': ['at-b', 'at-c'],
+        'C': ['at-d'],
+        'D': ['ac-c', 'ac-82c', 'ac-83a']
       };
       const keys = b.getAttribute('data-prebuilt');
       const targetIds = map[keys] || [];
