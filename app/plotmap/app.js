@@ -481,7 +481,6 @@
           : `<div class="full" id="full">${fullHTML()}</div>`}
       </div>
     </div>
-    ${split && !state.present ? `<div class="panel" id="panel">${panelHTML()}</div>` : ''}
     ${state.lightbox ? lightboxHTML() : ''}`;
   }
   function areaMenuHTML() {
@@ -495,7 +494,7 @@
   }
   function mapControlsHTML() {
     const showModes = state.section === 'master';
-    return `${showModes ? `<div class="mode-switch"><button class="${state.mapMode === 'original' ? 'on' : ''}" data-mode="original">Original Map</button><button class="${state.mapMode === 'easy' ? 'on' : ''}" data-mode="easy">Easy Map</button></div>` : ''}
+    return `${showModes ? `<div class="mode-switch"><button class="${state.mapMode === 'original' ? 'on' : ''}" data-mode="original">Original Map</button><button class="${state.mapMode === 'easy' ? 'on' : ''}" data-mode="easy">Easy Map</button><div class="divider" style="margin: 3px 6px; width:1px; background:#E1D6BF;"></div><button class="transparent-btn" data-prebuilt="A">A</button><button class="transparent-btn" data-prebuilt="B">B</button><button class="transparent-btn" data-prebuilt="C">C</button><button class="transparent-btn" data-prebuilt="D">D</button><button class="transparent-btn" data-prebuilt="E">E</button></div>` : ''}
       ${showModes && state.mapMode === 'easy' ? `<div class="prop-switch ${state.showProps ? 'on' : ''}" id="propSwitch"><span class="lbl">Show Properties</span><span class="knob"><i></i></span></div>` : ''}
       <div class="zoom"><button id="zin" title="Zoom in">+</button><div class="zsep"></div><button id="zout" title="Zoom out">−</button><div class="zsep"></div><button id="zfit" title="Reset view">⤢</button></div>
       ${state.previewId ? previewHTML() : ''}`;
@@ -742,6 +741,31 @@
     on('presentBtn', () => { state.present = !state.present; render(); setTimeout(fit, 70); });
 
     each('[data-mode]', b => b.addEventListener('click', () => { state.mapMode = b.getAttribute('data-mode'); if (state.mapMode === 'original') state.showProps = false; builtSig = ''; render(); }));
+    each('[data-prebuilt]', b => b.addEventListener('click', () => {
+      const map = {
+        'A': ['at-a'],
+        'B': ['at-b'],
+        'C': ['at-c'],
+        'D': ['at-d'],
+        'E': ['at-e']
+      };
+      const keys = b.getAttribute('data-prebuilt');
+      const targetIds = map[keys] || [];
+      const currentlyActive = targetIds.every(id => state.selectedIds.has(id)) && targetIds.length === state.selectedIds.size;
+      
+      state.selectedIds.clear();
+      state.activeCats.clear();
+      state.displayCatId = null;
+
+      if (!currentlyActive) {
+        targetIds.forEach(id => state.selectedIds.add(id));
+      }
+      
+      state.mapMode = 'original';
+      state.showProps = false;
+      builtSig = '';
+      render();
+    }));
     on('propSwitch', toggleProps);
     on('zin', () => zoomBtn(1.2)); on('zout', () => zoomBtn(1 / 1.2)); on('zfit', fit);
 
