@@ -35,7 +35,17 @@
       "qualityClass": "good",
       "notes": [
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:16.636Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-21-panchkula-sector-21",
@@ -70,7 +80,17 @@
       "qualityClass": "good",
       "notes": [
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:20.624Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-25-panchkula-sector-25",
@@ -105,7 +125,17 @@
       "qualityClass": "good",
       "notes": [
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:23.920Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-7-panchkula-sector-7",
@@ -140,7 +170,17 @@
       "qualityClass": "good",
       "notes": [
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:27.643Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-8-panchkula-sector-8",
@@ -175,7 +215,17 @@
       "qualityClass": "good",
       "notes": [
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:30.819Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-70-70",
@@ -201,14 +251,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "duplicate candidate",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": "dup-001",
       "recommendedKeep": true,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:31.237Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-aero-city-map",
@@ -242,7 +304,19 @@
       "notes": [
         "Small source; plot labels may not survive processing.",
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:31.781Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-block-a",
@@ -276,7 +350,19 @@
       "notes": [
         "Small source; plot labels may not survive processing.",
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:32.496Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-block-b",
@@ -310,7 +396,19 @@
       "notes": [
         "Small source; plot labels may not survive processing.",
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:32.932Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-block-g",
@@ -344,7 +442,19 @@
       "notes": [
         "Small source; plot labels may not survive processing.",
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:33.438Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-block-i",
@@ -378,7 +488,19 @@
       "notes": [
         "Small source; plot labels may not survive processing.",
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:34.038Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-block-j",
@@ -412,7 +534,19 @@
       "notes": [
         "Small source; plot labels may not survive processing.",
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:34.465Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-block-c",
@@ -446,7 +580,19 @@
       "notes": [
         "Small source; plot labels may not survive processing.",
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:34.901Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-block-d",
@@ -480,7 +626,19 @@
       "notes": [
         "Small source; plot labels may not survive processing.",
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:35.331Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-block-e",
@@ -514,7 +672,19 @@
       "notes": [
         "Small source; plot labels may not survive processing.",
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:35.704Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-block-f",
@@ -548,7 +718,19 @@
       "notes": [
         "Small source; plot labels may not survive processing.",
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:36.153Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-aerocity-mohali-1",
@@ -577,14 +759,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
-      "usable": true,
+      "reviewNeeded": true,
+      "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:39.731Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 4,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-aerocity-mohali",
@@ -610,14 +804,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "duplicate candidate",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": "dup-002",
       "recommendedKeep": true,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:40.317Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-116-ansal-sector-116-1",
@@ -646,14 +852,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
-      "usable": true,
+      "reviewNeeded": true,
+      "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:43.948Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 4,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-116-ansal-sector-116",
@@ -682,14 +900,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
-      "usable": true,
+      "reviewNeeded": true,
+      "usable": false,
       "duplicateGroupId": "near-018",
       "recommendedKeep": true,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:47.509Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 4,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-108",
@@ -715,14 +945,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:48.174Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-109",
@@ -748,14 +990,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:48.791Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-99-emaar-mgf-sector-99-104-105-106-108-109-1",
@@ -781,14 +1035,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:49.421Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-99-emaar-mgf-sector-99-104-105-106-108-109",
@@ -814,14 +1080,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:49.902Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-115-ggp-sector-115",
@@ -847,14 +1125,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:50.346Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-127-gillco-valley-sector-127",
@@ -880,14 +1170,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": "near-019",
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:51.004Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-125-gulmohar-city-sector-125",
@@ -913,14 +1215,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:51.461Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-116-gulmohar-sector-116",
@@ -946,14 +1260,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": "near-018",
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:52.003Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-highway-city",
@@ -979,14 +1305,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:52.772Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-122",
@@ -1010,14 +1348,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "not-selected",
       "recommendation": "duplicate candidate",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": "dup-002",
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:53.036Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-industrial-area-phase-2-3",
@@ -1043,14 +1393,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:53.520Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-industrial-area-phase-7",
@@ -1076,14 +1438,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:53.985Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-industrial-area-phase-i",
@@ -1109,14 +1483,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:54.359Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-industrial-area-phase-ix",
@@ -1142,14 +1528,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:54.809Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-industrial-area-phase-vi",
@@ -1175,14 +1573,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:55.191Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-industrial-focal-point-phase-v",
@@ -1208,14 +1618,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:55.703Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-industrial-focal-point-phase-viii",
@@ -1241,14 +1663,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:56.332Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-industrial-growth",
@@ -1274,14 +1708,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:56.857Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-98",
@@ -1307,14 +1753,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:57.443Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-janta-township-90-91",
@@ -1340,14 +1798,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:58.062Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-82",
@@ -1373,14 +1843,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:58.476Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-94",
@@ -1406,14 +1888,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:58.820Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-115-jtpl-city-sector-115",
@@ -1439,14 +1933,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:59.243Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-masterplan",
@@ -1472,14 +1978,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:22:59.605Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-ndustrial-area-phase-viii-b",
@@ -1505,14 +2023,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:00.061Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-100-pearls-city-sector-100-1",
@@ -1538,14 +2068,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": "near-020",
       "recommendedKeep": true,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:00.505Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-100-pearls-city-sector-100-2",
@@ -1571,14 +2113,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": "near-020",
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:00.867Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-100-pearls-city-sector-100",
@@ -1604,14 +2158,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:01.204Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-104",
@@ -1637,14 +2203,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:01.525Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-112",
@@ -1670,14 +2248,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:01.980Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-53",
@@ -1703,14 +2293,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:02.583Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-54",
@@ -1736,14 +2338,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:03.211Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-55",
@@ -1769,14 +2383,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:03.744Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-56",
@@ -1802,14 +2428,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:04.248Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-59",
@@ -1835,14 +2473,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:04.855Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-60",
@@ -1868,14 +2518,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:05.311Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-61",
@@ -1901,14 +2563,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:05.578Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-62",
@@ -1934,14 +2608,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:05.856Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-63",
@@ -1967,14 +2653,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:06.159Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-64",
@@ -2000,14 +2698,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:06.460Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-65",
@@ -2033,14 +2743,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:06.983Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-66",
@@ -2066,14 +2788,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:07.438Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-67",
@@ -2099,14 +2833,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:08.018Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-68",
@@ -2132,14 +2878,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:08.785Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-69",
@@ -2165,14 +2923,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:09.291Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-70-sector-70-mohali",
@@ -2196,14 +2966,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "not-selected",
       "recommendation": "duplicate candidate",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": "dup-001",
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:09.475Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-71",
@@ -2229,14 +3011,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:09.999Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-77",
@@ -2262,14 +3056,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:10.667Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-78",
@@ -2295,14 +3101,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:11.243Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-79",
@@ -2328,14 +3146,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:11.820Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-80",
@@ -2361,14 +3191,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:12.426Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-shiva-enclave",
@@ -2394,14 +3236,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:12.979Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-125-shivalik-avenue-sector-125",
@@ -2427,14 +3281,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:13.431Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-127-shivalik-city-sector-127-1",
@@ -2460,14 +3326,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": "near-019",
       "recommendedKeep": true,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:13.915Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-127-shivalik-city-sector-127",
@@ -2493,14 +3371,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:14.406Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-111",
@@ -2526,14 +3416,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:15.113Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-110",
@@ -2559,14 +3461,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:15.724Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-117",
@@ -2592,14 +3506,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:16.326Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-97",
@@ -2625,14 +3551,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:17.039Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "mohali-sector-85",
@@ -2658,14 +3596,26 @@
       "watermarkType": "diagonal tiled watermark",
       "processingStatus": "processed",
       "recommendation": "watermark reduction attempt",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
       "notes": [
         "Use reduction variants only; review plot labels carefully."
-      ]
+      ],
+      "qualityNotes": [
+        "diagonal tiled watermark remains a human-review class even when thumbnails exist"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:17.602Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-10",
@@ -2698,7 +3648,19 @@
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:20.455Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-11",
@@ -2729,7 +3691,19 @@
       "duplicateGroupId": "dup-003",
       "recommendedKeep": true,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:20.928Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-15",
@@ -2758,7 +3732,19 @@
       "duplicateGroupId": "dup-003",
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:21.062Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-16",
@@ -2791,7 +3777,19 @@
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:23.429Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-17",
@@ -2824,7 +3822,19 @@
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:25.860Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-18",
@@ -2857,7 +3867,19 @@
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:27.990Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-19",
@@ -2888,7 +3910,19 @@
       "duplicateGroupId": "dup-004",
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:28.715Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-19",
@@ -2919,7 +3953,19 @@
       "duplicateGroupId": "dup-004",
       "recommendedKeep": true,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:29.217Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-2",
@@ -2952,7 +3998,19 @@
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:31.635Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-20",
@@ -2981,7 +4039,19 @@
       "duplicateGroupId": "dup-004",
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:31.797Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-21",
@@ -3012,7 +4082,19 @@
       "duplicateGroupId": "dup-005",
       "recommendedKeep": true,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:32.270Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-22",
@@ -3041,7 +4123,19 @@
       "duplicateGroupId": "dup-005",
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:32.362Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-23",
@@ -3074,7 +4168,19 @@
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:34.521Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-24",
@@ -3107,7 +4213,19 @@
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:36.236Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-26",
@@ -3140,7 +4258,19 @@
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:38.566Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-27",
@@ -3171,7 +4301,19 @@
       "duplicateGroupId": "dup-006",
       "recommendedKeep": true,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:39.336Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-28",
@@ -3200,7 +4342,19 @@
       "duplicateGroupId": "dup-006",
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:39.521Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-29",
@@ -3233,7 +4387,19 @@
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:41.921Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-3",
@@ -3266,7 +4432,19 @@
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:44.320Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-30",
@@ -3297,7 +4475,19 @@
       "duplicateGroupId": "dup-007",
       "recommendedKeep": true,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:44.855Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-31",
@@ -3326,7 +4516,19 @@
       "duplicateGroupId": "dup-007",
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:44.990Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-32",
@@ -3359,7 +4561,19 @@
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:47.156Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-33",
@@ -3392,7 +4606,19 @@
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:49.754Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-34",
@@ -3423,7 +4649,19 @@
       "duplicateGroupId": "dup-008",
       "recommendedKeep": true,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:50.169Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-35",
@@ -3452,7 +4690,19 @@
       "duplicateGroupId": "dup-008",
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:50.274Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-36",
@@ -3485,7 +4735,19 @@
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:52.317Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-37",
@@ -3516,7 +4778,19 @@
       "duplicateGroupId": "dup-009",
       "recommendedKeep": true,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:52.898Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-38",
@@ -3545,7 +4819,19 @@
       "duplicateGroupId": "dup-009",
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:53.056Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-39",
@@ -3578,7 +4864,19 @@
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:54.620Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-4",
@@ -3611,7 +4909,19 @@
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:56.216Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-40",
@@ -3642,7 +4952,19 @@
       "duplicateGroupId": "dup-010",
       "recommendedKeep": true,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:56.540Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-41",
@@ -3671,7 +4993,19 @@
       "duplicateGroupId": "dup-010",
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:56.655Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-42",
@@ -3704,7 +5038,19 @@
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:23:58.590Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-43",
@@ -3737,7 +5083,19 @@
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:00.820Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-44",
@@ -3770,7 +5128,19 @@
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:02.695Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-45",
@@ -3803,7 +5173,19 @@
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:04.444Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-46",
@@ -3834,7 +5216,19 @@
       "duplicateGroupId": "dup-011",
       "recommendedKeep": true,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:05.134Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-47",
@@ -3863,7 +5257,19 @@
       "duplicateGroupId": "dup-011",
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:05.272Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-48",
@@ -3894,7 +5300,19 @@
       "duplicateGroupId": "dup-012",
       "recommendedKeep": true,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:05.840Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-49",
@@ -3923,7 +5341,19 @@
       "duplicateGroupId": "dup-012",
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:05.966Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-50",
@@ -3954,7 +5384,19 @@
       "duplicateGroupId": "dup-013",
       "recommendedKeep": true,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:06.555Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-51",
@@ -3983,7 +5425,19 @@
       "duplicateGroupId": "dup-013",
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:06.725Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-52",
@@ -4016,7 +5470,19 @@
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:09.079Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-8",
@@ -4047,7 +5513,19 @@
       "duplicateGroupId": "dup-014",
       "recommendedKeep": true,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:09.546Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-sector-9",
@@ -4076,7 +5554,19 @@
       "duplicateGroupId": "dup-014",
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:09.674Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-aerocity-mohali-map",
@@ -4104,7 +5594,19 @@
       "qualityClass": "unknown",
       "notes": [
         "PDF rasterization deferred unless Poppler/Ghostscript is added."
-      ]
+      ],
+      "qualityNotes": [
+        "PDF deferred; no raster output verified"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:09.675Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-dlf-hyde-park-commercial-citi-centre",
@@ -4132,7 +5634,19 @@
       "qualityClass": "unknown",
       "notes": [
         "PDF rasterization deferred unless Poppler/Ghostscript is added."
-      ]
+      ],
+      "qualityNotes": [
+        "PDF deferred; no raster output verified"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:09.675Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-dlf-hyde-park-commercial-r1",
@@ -4160,7 +5674,19 @@
       "qualityClass": "unknown",
       "notes": [
         "PDF rasterization deferred unless Poppler/Ghostscript is added."
-      ]
+      ],
+      "qualityNotes": [
+        "PDF deferred; no raster output verified"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:09.675Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-dlf-hyde-park-commercial-r2",
@@ -4188,7 +5714,19 @@
       "qualityClass": "unknown",
       "notes": [
         "PDF rasterization deferred unless Poppler/Ghostscript is added."
-      ]
+      ],
+      "qualityNotes": [
+        "PDF deferred; no raster output verified"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:09.675Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-dlf-hyde-park-independent-floors-new-chandigarh-1",
@@ -4216,7 +5754,19 @@
       "qualityClass": "unknown",
       "notes": [
         "PDF rasterization deferred unless Poppler/Ghostscript is added."
-      ]
+      ],
+      "qualityNotes": [
+        "PDF deferred; no raster output verified"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:09.675Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-dlf-hyde-park-new-chandigarh-map",
@@ -4244,7 +5794,19 @@
       "qualityClass": "unknown",
       "notes": [
         "PDF rasterization deferred unless Poppler/Ghostscript is added."
-      ]
+      ],
+      "qualityNotes": [
+        "PDF deferred; no raster output verified"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:09.675Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-dlf-valley",
@@ -4272,7 +5834,19 @@
       "qualityClass": "unknown",
       "notes": [
         "PDF rasterization deferred unless Poppler/Ghostscript is added."
-      ]
+      ],
+      "qualityNotes": [
+        "PDF deferred; no raster output verified"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:09.675Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-eco-city-i-map",
@@ -4300,7 +5874,19 @@
       "qualityClass": "unknown",
       "notes": [
         "PDF rasterization deferred unless Poppler/Ghostscript is added."
-      ]
+      ],
+      "qualityNotes": [
+        "PDF deferred; no raster output verified"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:09.675Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-eco-city-ii-map",
@@ -4328,7 +5914,19 @@
       "qualityClass": "unknown",
       "notes": [
         "PDF rasterization deferred unless Poppler/Ghostscript is added."
-      ]
+      ],
+      "qualityNotes": [
+        "PDF deferred; no raster output verified"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:09.676Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-emaar-mgf",
@@ -4356,7 +5954,19 @@
       "qualityClass": "unknown",
       "notes": [
         "PDF rasterization deferred unless Poppler/Ghostscript is added."
-      ]
+      ],
+      "qualityNotes": [
+        "PDF deferred; no raster output verified"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:09.676Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-it-city-map",
@@ -4384,7 +5994,19 @@
       "qualityClass": "unknown",
       "notes": [
         "PDF rasterization deferred unless Poppler/Ghostscript is added."
-      ]
+      ],
+      "qualityNotes": [
+        "PDF deferred; no raster output verified"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:09.676Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-landchester",
@@ -4412,7 +6034,19 @@
       "qualityClass": "unknown",
       "notes": [
         "PDF rasterization deferred unless Poppler/Ghostscript is added."
-      ]
+      ],
+      "qualityNotes": [
+        "PDF deferred; no raster output verified"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:09.676Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-omaxe-commercial-phase-1",
@@ -4440,7 +6074,19 @@
       "qualityClass": "unknown",
       "notes": [
         "PDF rasterization deferred unless Poppler/Ghostscript is added."
-      ]
+      ],
+      "qualityNotes": [
+        "PDF deferred; no raster output verified"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:09.676Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-omaxe-new-chandigarh-map",
@@ -4468,7 +6114,19 @@
       "qualityClass": "unknown",
       "notes": [
         "PDF rasterization deferred unless Poppler/Ghostscript is added."
-      ]
+      ],
+      "qualityNotes": [
+        "PDF deferred; no raster output verified"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:09.676Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-pcl-map",
@@ -4496,7 +6154,19 @@
       "qualityClass": "unknown",
       "notes": [
         "PDF rasterization deferred unless Poppler/Ghostscript is added."
-      ]
+      ],
+      "qualityNotes": [
+        "PDF deferred; no raster output verified"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:09.676Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-ph-1-1",
@@ -4525,7 +6195,19 @@
       "duplicateGroupId": "dup-015",
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:09.782Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-ph-1",
@@ -4556,7 +6238,19 @@
       "duplicateGroupId": "dup-015",
       "recommendedKeep": true,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [
+        "corner-logo cleanup requires human visual review"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:10.231Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-suntec-city",
@@ -4584,7 +6278,19 @@
       "qualityClass": "unknown",
       "notes": [
         "PDF rasterization deferred unless Poppler/Ghostscript is added."
-      ]
+      ],
+      "qualityNotes": [
+        "PDF deferred; no raster output verified"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:10.231Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-the-greater-punjab-officers-co-op-society",
@@ -4612,7 +6318,19 @@
       "qualityClass": "unknown",
       "notes": [
         "PDF rasterization deferred unless Poppler/Ghostscript is added."
-      ]
+      ],
+      "qualityNotes": [
+        "PDF deferred; no raster output verified"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:10.232Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "new-chandigarh-zonal-plan-new-chandigarhl1",
@@ -4640,7 +6358,19 @@
       "qualityClass": "unknown",
       "notes": [
         "PDF rasterization deferred unless Poppler/Ghostscript is added."
-      ]
+      ],
+      "qualityNotes": [
+        "PDF deferred; no raster output verified"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:10.232Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-amravti",
@@ -4676,7 +6406,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:12.701Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-10",
@@ -4712,7 +6454,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:15.458Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-11",
@@ -4748,7 +6502,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:19.521Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-12",
@@ -4784,7 +6550,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:22.875Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-12a",
@@ -4820,7 +6598,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:25.779Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-14",
@@ -4856,7 +6646,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:27.734Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-15",
@@ -4892,7 +6694,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:30.503Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-16",
@@ -4928,7 +6742,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:32.739Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-17",
@@ -4964,7 +6790,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:35.364Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-25-sector-25-p",
@@ -5000,7 +6838,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:38.150Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-26",
@@ -5036,7 +6886,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2864/3508)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:40.631Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-3",
@@ -5072,7 +6934,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:42.476Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-4-sector-4-p",
@@ -5108,7 +6982,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:44.335Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-5-sector-5-p",
@@ -5144,7 +7030,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:47.130Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-6-sector-6-p",
@@ -5180,7 +7078,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:50.408Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-7-sector-7-p",
@@ -5216,7 +7126,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:53.487Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-8-sector-8-p",
@@ -5250,7 +7172,17 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:54.048Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-18",
@@ -5286,7 +7218,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:56.451Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-19",
@@ -5322,7 +7266,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:24:58.997Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-2-sector-p-2-mansa-devi",
@@ -5350,15 +7306,27 @@
       "watermarkType": "bottom-margin credit",
       "processingStatus": "processed",
       "recommendation": "crop bottom margin",
-      "reviewNeeded": false,
-      "usable": true,
+      "reviewNeeded": true,
+      "usable": false,
       "duplicateGroupId": "near-024",
       "recommendedKeep": false,
       "qualityClass": "excellent",
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:25:01.376Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": true,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-21-sector-p-21",
@@ -5394,7 +7362,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:25:04.467Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-23",
@@ -5430,7 +7410,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:25:06.612Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-24",
@@ -5466,7 +7458,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:25:08.352Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-27",
@@ -5502,7 +7506,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:25:10.820Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-28",
@@ -5538,7 +7554,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:25:14.101Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-31",
@@ -5574,7 +7602,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:25:16.825Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-4-sector-p-4-mansa-devi",
@@ -5602,15 +7642,27 @@
       "watermarkType": "bottom-margin credit",
       "processingStatus": "processed",
       "recommendation": "crop bottom margin",
-      "reviewNeeded": false,
-      "usable": true,
+      "reviewNeeded": true,
+      "usable": false,
       "duplicateGroupId": "near-021",
       "recommendedKeep": false,
       "qualityClass": "excellent",
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:25:18.952Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": true,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-5-sector-p-5-mansa-devi",
@@ -5638,15 +7690,27 @@
       "watermarkType": "bottom-margin credit",
       "processingStatus": "processed",
       "recommendation": "crop bottom margin",
-      "reviewNeeded": false,
-      "usable": true,
+      "reviewNeeded": true,
+      "usable": false,
       "duplicateGroupId": "near-022",
       "recommendedKeep": false,
       "qualityClass": "excellent",
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:25:21.398Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": true,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-6-sector-p-6-mansa-devi",
@@ -5674,15 +7738,27 @@
       "watermarkType": "bottom-margin credit",
       "processingStatus": "processed",
       "recommendation": "crop bottom margin",
-      "reviewNeeded": false,
-      "usable": true,
+      "reviewNeeded": true,
+      "usable": false,
       "duplicateGroupId": "near-023",
       "recommendedKeep": false,
       "qualityClass": "excellent",
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:25:23.361Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": true,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-8-sector-p-8",
@@ -5706,7 +7782,7 @@
       "watermarkType": "bottom-margin credit",
       "processingStatus": "not-selected",
       "recommendation": "duplicate candidate",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": "dup-016",
       "recommendedKeep": false,
@@ -5714,7 +7790,17 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:25:23.509Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-9",
@@ -5750,7 +7836,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:25:26.369Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-20-sector-p20",
@@ -5786,7 +7884,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:25:28.746Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-1",
@@ -5822,7 +7932,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:25:30.881Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "panchkula-sector-2-sector2-p",
@@ -5858,7 +7980,19 @@
       "notes": [
         "High-resolution map; enhancement should be mild.",
         "Likely safe to crop/mask only if credit is outside map content."
-      ]
+      ],
+      "qualityNotes": [
+        "bottom crop may be too aggressive (2865/4000)"
+      ],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:25:34.001Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 3,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "unknown-aerotropolis-annotated-reference",
@@ -5882,12 +8016,22 @@
       "watermarkType": "unknown",
       "processingStatus": "not-selected",
       "recommendation": "duplicate candidate",
-      "reviewNeeded": false,
+      "reviewNeeded": true,
       "usable": false,
       "duplicateGroupId": "dup-017",
       "recommendedKeep": false,
       "qualityClass": "good",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:25:35.066Z",
+        "originalExists": true,
+        "thumbnailExists": false,
+        "bestProcessedExists": false,
+        "processedPathCount": 0,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "unknown-aerotropolis-easy-map-reference",
@@ -5918,7 +8062,17 @@
       "duplicateGroupId": "dup-017",
       "recommendedKeep": true,
       "qualityClass": "good",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:25:36.298Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "unknown-aerotropolis-original-web",
@@ -5950,7 +8104,17 @@
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "usable",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:25:38.015Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 2,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "unknown-aerotropolis-original",
@@ -5982,7 +8146,17 @@
       "duplicateGroupId": null,
       "recommendedKeep": false,
       "qualityClass": "good",
-      "notes": []
+      "notes": [],
+      "qualityNotes": [],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:25:41.541Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": true,
+        "processedPathCount": 2,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     },
     {
       "id": "unknown-sector-map",
@@ -6015,7 +8189,31 @@
       "qualityClass": "low",
       "notes": [
         "Small source; plot labels may not survive processing."
-      ]
+      ],
+      "qualityNotes": [],
+      "verification": {
+        "verifiedAt": "2026-06-25T12:25:41.975Z",
+        "originalExists": true,
+        "thumbnailExists": true,
+        "bestProcessedExists": false,
+        "processedPathCount": 1,
+        "movedToReview": false,
+        "brokenPath": false
+      }
     }
-  ]
+  ],
+  "verifiedAt": "2026-06-25T12:25:41.975Z",
+  "clientVisibilityRule": "Show only usable === true && reviewNeeded === false && processingStatus === \"processed\"; hide duplicate non-keep entries when recommendedKeep is false.",
+  "verificationSummary": {
+    "total": 184,
+    "thumbnailPaths": 149,
+    "bestPaths": 62,
+    "usable": 35,
+    "movedToReview": 4,
+    "brokenPaths": 0,
+    "duplicateGroups": 24,
+    "deferredPdf": 18,
+    "missingThumbnails": 0,
+    "unreadableImages": 0
+  }
 }

@@ -69,6 +69,18 @@ Refresh the manifest from already-existing local processed outputs without writi
 node tools/enhance-map-assets.js --manifest-only
 ```
 
+Verify the manifest and generated outputs before wiring into the client UI:
+
+```bash
+node tools/verify-map-assets.js
+```
+
+Outputs:
+
+- updates `app/plotmap/map-assets.manifest.json`
+- updates `tools/map-processing-review.md`
+- creates `tools/map-review-gallery.html`
+
 Run a larger batch only after reviewing samples:
 
 ```bash
@@ -129,6 +141,7 @@ PDF maps are deferred for now. They are included in audit counts when `--include
 After processing, inspect:
 
 - `tools/map-processing-review.md`
+- `tools/map-review-gallery.html`
 - `app/plotmap/map-assets.manifest.json`
 - Files under `public/plotmap-assets/processed/`
 

@@ -104,3 +104,33 @@ Generated: 2026-06-25T11:13:42.821Z
 - Review processed samples under `public/plotmap-assets/processed/` before approving them for client use.
 - Run larger batches by city after checking sample quality, especially for diagonal tiled watermark maps.
 - Keep originals untouched; connect approved `bestProcessedPath` values to the Sector Maps hub later.
+
+## Verification Result
+
+Generated: 2026-06-25T12:25:41.975Z
+
+| Metric | Value |
+| --- | --- |
+| manifest entries verified | 184 |
+| thumbnail paths existing | 149 |
+| bestProcessedPath existing | 62 |
+| client-usable maps after verification | 35 |
+| entries moved to reviewNeeded | 4 |
+| broken paths found | 0 |
+| duplicate groups remaining | 24 |
+| deferred PDFs | 18 |
+
+### Issue Status
+
+| Issue Type | Status |
+| --- | --- |
+| missing processed files | fixed |
+| missing thumbnails | fixed for non-PDF processed entries |
+| dry-run paths | fixed: client-facing best/thumbnail paths only point to existing files |
+| bottom-margin watermark | improved: processed and usable when crop checks pass |
+| diagonal tiled watermark | improved but review needed: thumbnails exist, full reduction remains human-review |
+| corner logos | improved but review needed: cleanup variants exist, visual review required |
+| duplicates | improved: duplicateGroupId/recommendedKeep/matchKey available for filtering |
+| deferred PDFs | deferred |
+| low-resolution maps | not fixed: marked review-needed/needs better source where applicable |
+| broken/corrupt image files | fixed: no unreadable committed client paths |

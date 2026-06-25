@@ -56,7 +56,7 @@ It documents audit, enhancement, watermark reduction, review, approval, and futu
 
 Additional pipeline/docs commit should follow after final verification in this session.
 
-## Known Current Counts
+## Verified Current Counts
 
 Latest audit scanned 184 files including PDFs.
 
@@ -68,15 +68,19 @@ High-level audit buckets:
 - none: 2
 - unknown: 21
 - deferred PDFs: 18
-- duplicate/near-duplicate files: 35
+- duplicate/near-duplicate files: 49 across 24 groups
 
-Current manifest after sample processing:
+Current manifest after verification:
 
 - total manifest entries: 184
-- processed sample entries: 9
-- planned entries from dry run: 139
+- processed entries: 149
+- entries with thumbnails: 149
+- entries with bestProcessedPath: 62
+- client-usable entries: 35
 - deferred PDFs: 18
-- review-needed entries: 76
+- review-needed entries: 80
+- broken paths found: 0
+- duplicate non-keep usable entries: 0
 
 ## Important Caveats
 
@@ -96,7 +100,7 @@ Current manifest after sample processing:
 6. Apply the same manifest pattern to future masterplans and sector/block maps.
 7. Keep originals untouched and out of destructive workflows.
 
-## Next Antigravity task: wire map-assets.manifest.json into View Sector Maps
+## Next Antigravity Task: Wire Verified Sector Maps
 
 Manifest location:
 
@@ -128,7 +132,7 @@ What path to use:
 
 Client visibility rule:
 
-- Default client UI should show only `usable === true` entries.
+- Default client UI should show only `usable === true`, `reviewNeeded === false`, and `processingStatus === "processed"` entries.
 - Hide `reviewNeeded === true` maps unless there is an explicit reviewed/approved override.
 - Hide `processingStatus === "deferred-pdf"` maps.
 - Hide duplicate candidates where `recommendedKeep === false`.
