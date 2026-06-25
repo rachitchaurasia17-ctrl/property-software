@@ -6,6 +6,7 @@
 _server.log
 _preview/
 node_modules/
+public/plotmap-assets/processed/
 
 # OS
 .DS_Store
