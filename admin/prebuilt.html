@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>PlotMap — Prebuilt Maps Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root { --bg:#0f1419; --panel:#1a212b; --line:#2c3744; --txt:#e6edf3; --mut:#8b98a8; --acc:#3b82f6; --ok:#22c55e; --warn:#f59e0b; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.4 system-ui,sans-serif; background:var(--bg); color:var(--txt); padding: 40px; }
+  h1 { font-size: 24px; color: #fff; margin-bottom: 8px; }
+  p.subtitle { color: var(--mut); margin-bottom: 24px; }
+  
+  /* AEROCITY LAYOUT SYLES */
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 24px; max-width: 600px; margin-bottom: 24px; }
+  
+  label { display: block; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--mut); margin-bottom: 6px; margin-top: 16px; }
+  input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--line); background: #0d1117; color: var(--txt); font-size: 14px; }
+  
+  /* Item Chips from Aerocity */
+  .item-chip {
+    display: inline-flex; align-items: center; background: #fff;
+    border: 1px solid #EBE1CC; border-radius: 10px; padding: 8px 14px;
+    font-size: 13.5px; font-weight: 640; color: #3F3A30;
+    transition: all 0.2s cubic-bezier(0.2,0,0,1);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    margin-right: 8px;
+    margin-bottom: 8px;
+  }
+  
+  /* Primary Button */
+  .btn-primary {
+    border: none; border-radius: 13px; background: #3b82f6;
+    color: #FFFFFF; font-weight: 720; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    padding: 12px 24px; margin-top: 20px; transition: 0.15s;
+  }
+  .btn-primary:hover { background: #2563eb; }
+  
+  /* Ghost Button */
+  .btn-ghost {
+    border: 1px solid var(--line); border-radius: 13px; background: transparent;
+    font-weight: 680; color: #f87171; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 8px 16px; transition: 0.15s;
+  }
+  .btn-ghost:hover { border-color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+  
+  .list-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--line); }
+  .list-item:last-child { border-bottom: none; }
+  .list-item-title { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
+  
+  #toast { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:var(--ok); color:#031; padding:12px 24px; border-radius:8px; opacity:0; transition:.3s; font-weight:600; pointer-events:none; }
+</style>
+</head>
+<body>
+
+  <h1>PlotMap Admin</h1>
+  <p class="subtitle">Remotely manage Prebuilt Map Buttons (A, B, C, D, etc.)</p>
+
+  <div class="card">
+    <h2>Add New Button</h2>
+    <label>Button Label (e.g. "E")</label>
+    <input type="text" id="btnLabel" placeholder="Enter label..." />
+    
+    <label>Blocks to Highlight (comma separated IDs)</label>
+    <input type="text" id="btnBlocks" placeholder="e.g. at-e, ac-c" />
+    <div style="margin-top:8px; font-size:12px; color:var(--mut);">Available blocks: at-a, at-b, at-c, at-d, at-e, ac-a, ac-b, ac-c, ac-82c, ac-83a</div>
+    
+    <button class="btn-primary" onclick="addPrebuiltMap()">Save Button</button>
+  </div>
+
+  <div class="card">
+    <h2>Active Buttons</h2>
+    <div id="activeList">Loading...</div>
+  </div>
+
+  <div id="toast">Saved!</div>
+
+<script>
+  // Initialize Supabase
+  const SUPABASE_URL = 'https://czmkfmkmgqlienmdihul.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_DGqcs0JaDVgzImUGGgg_FQ_Q_SkgnhX';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  function toast(msg, err=false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.background = err ? 'var(--warn)' : 'var(--ok)';
+    t.style.opacity = 1;
+    setTimeout(() => t.style.opacity = 0, 3000);
+  }
+
+  async function loadPrebuiltMaps() {
+    document.getElementById('activeList').innerHTML = 'Loading...';
+    const { data, error } = await supabase.from('prebuilt_maps').select('*').order('created_at', { ascending: true });
+    
+    if (error) {
+      document.getElementById('activeList').innerHTML = `<div style="color:var(--warn)">Error loading data: ${error.message}. Have you run the SQL script to create the table?</div>`;
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      document.getElementById('activeList').innerHTML = 'No buttons found. Create one above!';
+      return;
+    }
+
+    let html = '';
+    data.forEach(item => {
+      const blocksHtml = item.blocks.map(b => `<span class="item-chip">${b}</span>`).join('');
+      html += `
+        <div class="list-item">
+          <div>
+            <div class="list-item-title">${item.label}</div>
+            <div>${blocksHtml}</div>
+          </div>
+          <button class="btn-ghost" onclick="deletePrebuiltMap('${item.id}')">Delete</button>
+        </div>
+      `;
+    });
+    
+    document.getElementById('activeList').innerHTML = html;
+  }
+
+  async function addPrebuiltMap() {
+    const label = document.getElementById('btnLabel').value.trim();
+    const blocksStr = document.getElementById('btnBlocks').value.trim();
+    
+    if (!label || !blocksStr) {
+      toast('Please fill in both fields', true);
+      return;
+    }
+
+    const blocks = blocksStr.split(',').map(b => b.trim()).filter(b => b);
+
+    const { error } = await supabase.from('prebuilt_maps').insert([{ label, blocks }]);
+    
+    if (error) {
+      toast(error.message, true);
+    } else {
+      toast('Button added successfully!');
+      document.getElementById('btnLabel').value = '';
+      document.getElementById('btnBlocks').value = '';
+      loadPrebuiltMaps();
+    }
+  }
+
+  async function deletePrebuiltMap(id) {
+    if (!confirm('Are you sure you want to delete this button?')) return;
+    
+    const { error } = await supabase.from('prebuilt_maps').delete().eq('id', id);
+    if (error) {
+      toast(error.message, true);
+    } else {
+      toast('Deleted successfully');
+      loadPrebuiltMaps();
+    }
+  }
+
+  // Load on mount
+  loadPrebuiltMaps();
+</script>
+</body>
+</html>

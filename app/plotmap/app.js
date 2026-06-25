@@ -16,8 +16,13 @@
     else GEO = { viewBox: `0 0 ${IW} ${IH}`, cyan: [], red: [], black: [] };
   }
 
+  const supabaseUrl = 'https://czmkfmkmgqlienmdihul.supabase.co';
+  const supabaseKey = 'sb_publishable_DGqcs0JaDVgzImUGGgg_FQ_Q_SkgnhX';
+  const supabase = window.supabase ? window.supabase.createClient(supabaseUrl, supabaseKey) : null;
+
   const state = {
     space: 'area', areaId: 'aerotropolis', areaMenuOpen: false,
+    prebuiltMaps: [],
     section: 'master', mapMode: 'original', showProps: false,
     activeCats: new Set(), displayCatId: null, selectedIds: new Set(), itemOpen: false,
     propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null,
@@ -494,7 +499,9 @@
   }
   function mapControlsHTML() {
     const showModes = state.section === 'master';
-    return `${showModes ? `<div class="mode-switch"><button class="${state.mapMode === 'original' ? 'on' : ''}" data-mode="original">Original Map</button><button class="${state.mapMode === 'easy' ? 'on' : ''}" data-mode="easy">Easy Map</button><div class="divider" style="margin: 3px 6px; width:1px; background:#E1D6BF;"></div><button class="transparent-btn" data-prebuilt="A">A</button><button class="transparent-btn" data-prebuilt="B">B</button><button class="transparent-btn" data-prebuilt="C">C</button><button class="transparent-btn" data-prebuilt="D">D</button></div>` : ''}
+    const prebuiltBtns = state.prebuiltMaps.map(m => `<button class="transparent-btn" data-prebuilt="${m.id}">${esc(m.label)}</button>`).join('');
+    const divider = state.prebuiltMaps.length > 0 ? `<div class="divider" style="margin: 3px 6px; width:1px; background:#E1D6BF;"></div>` : '';
+    return `${showModes ? `<div class="mode-switch"><button class="${state.mapMode === 'original' ? 'on' : ''}" data-mode="original">Original Map</button><button class="${state.mapMode === 'easy' ? 'on' : ''}" data-mode="easy">Easy Map</button>${divider}${prebuiltBtns}</div>` : ''}
       ${showModes && state.mapMode === 'easy' ? `<div class="prop-switch ${state.showProps ? 'on' : ''}" id="propSwitch"><span class="lbl">Show Properties</span><span class="knob"><i></i></span></div>` : ''}
       <div class="zoom"><button id="zin" title="Zoom in">+</button><div class="zsep"></div><button id="zout" title="Zoom out">−</button><div class="zsep"></div><button id="zfit" title="Reset view">⤢</button></div>
       ${state.previewId ? previewHTML() : ''}`;
@@ -742,14 +749,9 @@
 
     each('[data-mode]', b => b.addEventListener('click', () => { state.mapMode = b.getAttribute('data-mode'); if (state.mapMode === 'original') state.showProps = false; builtSig = ''; render(); }));
     each('[data-prebuilt]', b => b.addEventListener('click', () => {
-      const map = {
-        'A': ['at-a'],
-        'B': ['at-b', 'at-c'],
-        'C': ['at-d'],
-        'D': ['ac-c', 'ac-82c', 'ac-83a']
-      };
-      const keys = b.getAttribute('data-prebuilt');
-      const targetIds = map[keys] || [];
+      const pbmId = b.getAttribute('data-prebuilt');
+      const prebuilt = state.prebuiltMaps.find(m => m.id === pbmId);
+      const targetIds = prebuilt ? prebuilt.blocks : [];
       const currentlyActive = targetIds.every(id => state.selectedIds.has(id)) && targetIds.length === state.selectedIds.size;
       
       state.selectedIds.clear();
@@ -911,5 +913,11 @@
 
   window.addEventListener('resize', () => { if (state.space === 'plan') fit(); });
   await useDataset(state.areaId);
+  
+  if (supabase) {
+    const { data } = await supabase.from('prebuilt_maps').select('*').order('created_at', { ascending: true });
+    if (data) state.prebuiltMaps = data;
+  }
+  
   render();
 })();
