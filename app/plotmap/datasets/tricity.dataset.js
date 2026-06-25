@@ -54,10 +54,10 @@ window.PM.registerDataset('tricity-aerotropolis', {
   ],
 
   zones: [
-    { id:'commercial-a', cat:'commercial', name:'Commercial Zone A', svgId:'ZONE-Commercial-Zone-A', x:1010, y:430, w:200, h:170, photos:true },
-    { id:'commercial-b', cat:'commercial', name:'Commercial Zone B', svgId:'ZONE-Commercial-Zone-B', x:1010, y:430, w:200, h:170, photos:true },
-    { id:'commercial-c', cat:'commercial', name:'Commercial Zone C', svgId:'ZONE-Commercial-Zone-C', x:1010, y:430, w:200, h:170, photos:true },
-    { id:'commercial-c2', cat:'commercial', name:'Commercial Zone C2', svgId:'ZONE-Commercial-Zone-C_2', x:1010, y:430, w:200, h:170, photos:true },
+    { id:'commercial-a', cat:'commercial', name:'Commercial Zone A', svgId:'ZONE-Commercial-Zone-A', labelAt: [3270, 1345], x:1010, y:430, w:200, h:170, photos:true },
+    { id:'commercial-b', cat:'commercial', name:'Commercial Zone B', svgId:'ZONE-Commercial-Zone-B', labelAt: [3230, 1265], x:1010, y:430, w:200, h:170, photos:true },
+    { id:'commercial-c', cat:'commercial', name:'Commercial Zone C', svgId:'ZONE-Commercial-Zone-C', labelAt: [2820, 1345], x:1010, y:430, w:200, h:170, photos:true },
+    { id:'commercial-c2', cat:'commercial', name:'Commercial Zone C2', svgId:'ZONE-Commercial-Zone-C_2', labelAt: [2820, 1420], x:1010, y:430, w:200, h:170, photos:true },
     { id:'green-belt', cat:'green', name:'Green & Open Belt', x:120, y:610, w:300, h:250, mapsUrl:'https://www.google.com/maps/search/?api=1&query=Aerocity+Green+Belt', related:['Aerocity'], photos:true },
     { id:'growth', cat:'growth', name:'Future Growth Pockets', x:620, y:730, w:360, h:140, dashed:true, related:['Aerocity','Future Growth'], photos:true }
   ],
