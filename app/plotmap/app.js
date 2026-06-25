@@ -199,7 +199,7 @@
     return { minX, minY, maxX, maxY };
   }
   function pathCenter(d) { const b = pathBounds(d); return { cx: (b.minX + b.maxX) / 2, cy: (b.minY + b.maxY) / 2 }; }
-  const geoToLayer = (gx, gy) => mapKind() === 'easy' ? [gx - EOX, gy - EOY] : [gx, gy];
+  const geoToLayer = (gx, gy) => { const k = mapKind(); if (k === 'easy') return [gx - EOX, gy - EOY]; if (k === 'markings') return [gx - 2493, gy - 1084]; return [gx, gy]; };
 
   /* ====================== MAP build ====================== */
   const getCatId = () => {
@@ -215,11 +215,13 @@
     if (kind === 'easy') {
       // easySVG() computes the geometry frame (EGW/EGH) before we size the layer
       html = easySVG(); LW = EGW; LH = EGH;
+    } else if (kind === 'markings') {
+      LW = 862; LH = 1028;
     } else { LW = 3880; LH = 3069; }
     l.style.width = LW + 'px'; l.style.height = LH + 'px';
     l.className = 'maplayer ' + kind;
     if (kind === 'original') l.innerHTML = `<img class="orig" src="${DS.assets.original}" alt="Official masterplan">` + origSVG();
-    else if (kind === 'markings') l.innerHTML = `<img class="orig" src="/public/plotmap-assets/markings.jpg" alt="Masterplan Marking">`;
+    else if (kind === 'markings') l.innerHTML = `<img class="orig-crop" src="/public/plotmap-assets/markings.jpg" alt="Masterplan Marking">` + origSVG();
     else if (kind === 'sector') { const sm = activeSectorMap(); const sectorAsset = (sm && sm.bestProcessedPath) || DS.assets.sector; l.innerHTML = `<div class="sector-wrap" style="width:${LW}px;height:${LH}px;background-image:url('${sectorAsset}')"></div><div id="proofG"></div>`; }
     else l.innerHTML = html;
     builtSig = sig; updateMapOverlays();
@@ -436,7 +438,7 @@
           `<g ${flt ? `filter="${flt}"` : ''} style="fill:none;stroke:${col};stroke-width:${w};opacity:${op};stroke-linecap:round;stroke-linejoin:round">${paths.map(d => `<path d="${d}"/>`).join('')}</g>`).join('') : '';
       }
       renderTags();
-    } else if (kind === 'original') {
+    } else if (kind === 'original' || kind === 'markings') {
       l.querySelectorAll('.o-road, .o-road-case').forEach(p => { 
         p.classList.remove('act', 'show', 'soft');
         p.classList.add('hide');
