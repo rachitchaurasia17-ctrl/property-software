@@ -207,7 +207,7 @@
     if (state.activeCats.size > 0) return Array.from(state.activeCats).pop();
     return null;
   };
-  function mapKind() { if (state.section === 'props' && state.propView === 'sector') return 'sector'; return state.mapMode === 'original' ? 'original' : 'easy'; }
+  function mapKind() { if (state.section === 'markings') return 'markings'; if (state.section === 'props' && state.propView === 'sector') return 'sector'; return state.mapMode === 'original' ? 'original' : 'easy'; }
   function buildMap() {
     const kind = mapKind(); const sig = state.areaId + '|' + kind; const fresh = sig !== builtSig;
     const l = layer(); if (!l) return;
@@ -219,6 +219,7 @@
     l.style.width = LW + 'px'; l.style.height = LH + 'px';
     l.className = 'maplayer ' + kind;
     if (kind === 'original') l.innerHTML = `<img class="orig" src="${DS.assets.original}" alt="Official masterplan">` + origSVG();
+    else if (kind === 'markings') l.innerHTML = `<img class="orig" src="/public/plotmap-assets/markings.png" alt="Masterplan Marking">`;
     else if (kind === 'sector') { const sm = activeSectorMap(); const sectorAsset = (sm && sm.bestProcessedPath) || DS.assets.sector; l.innerHTML = `<div class="sector-wrap" style="width:${LW}px;height:${LH}px;background-image:url('${sectorAsset}')"></div><div id="proofG"></div>`; }
     else l.innerHTML = html;
     builtSig = sig; updateMapOverlays();
@@ -563,16 +564,17 @@
 
   /* ---------- PLAN SHELL ---------- */
   function planHTML() {
-    const showBack = state.section !== 'master';
-    const split = state.section === 'master' || (state.section === 'props' && state.propView === 'sector');
+    const showBack = state.section !== 'master' && state.section !== 'markings';
+    const split = state.section === 'master' || state.section === 'markings' || (state.section === 'props' && state.propView === 'sector');
     const full = !split;
     return `<div style="flex:1; display:flex; flex-direction:column; min-width:0; position:relative;">
       <div class="topbar">
         <div class="brand"><span class="logo"><i></i></span><span class="brand-name">PlotMap</span></div>
         <button class="area-switch" id="areaToggle"><span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.1"><span class="cur">${esc(area().name)}</span><span class="lab">View all maps</span></span><span class="caret">▾</span></button>
         <div class="divider"></div>
-        <div style="display:flex;gap:3px"><button class="tab ${state.section === 'master' ? 'on' : ''}" id="tabMaster">Masterplan</button><button class="tab ${state.section === 'props' && state.propView !== 'sector' ? 'on' : ''}" id="tabProps">Properties</button><button class="tab ${state.section === 'sectors' ? 'on' : ''}" id="tabSectors">Sector Maps</button></div>
+        <div style="display:flex;gap:3px"><button class="tab ${state.section === 'master' ? 'on' : ''}" id="tabMaster">Masterplan</button><button class="tab ${state.section === 'props' && state.propView !== 'sector' ? 'on' : ''}" id="tabProps">Properties</button><button class="tab ${state.section === 'sectors' ? 'on' : ''}" id="tabSectors">Sector Maps</button><button class="tab ${state.section === 'markings' ? 'on' : ''}" id="tabMarkings">Masterplan Marking</button></div>
         <div class="spacer"></div>
+        <a href="/admin/editor.html" style="color:#A19B8D; font-size:12px; font-weight:600; text-decoration:none; margin-right:16px;">Editor</a>
         ${showBack ? '<button class="back-btn" id="backMaster"><span>‹</span> Back to Masterplan</button>' : ''}
 
         ${state.areaMenuOpen ? areaMenuHTML() : ''}
@@ -841,6 +843,7 @@
     on('viewAllSectors', () => { Object.assign(state, { section: 'sectors', areaMenuOpen: false }); render(); });
     each('[data-sw]', b => b.addEventListener('click', async () => { const a = PM.areas.find(x => x.id === b.getAttribute('data-sw')); if (!a || !a.live) return; Object.assign(state, resetPlan({ areaId: a.id })); await useDataset(a.id); builtSig = ''; render(); }));
     on('tabMaster', () => { Object.assign(state, { section: 'master' }); builtSig = ''; render(); });
+    on('tabMarkings', () => { Object.assign(state, { section: 'markings' }); builtSig = ''; render(); });
     on('tabProps', () => { Object.assign(state, { section: 'props', propView: 'browse', selectedId: null, previewId: null }); render(); });
     on('tabSectors', () => { Object.assign(state, { section: 'sectors' }); render(); });
     on('qAllMaps', () => { state.areaMenuOpen = true; render(); });
