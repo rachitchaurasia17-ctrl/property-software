@@ -12,7 +12,7 @@ const path = require('path');
 const url = require('url');
 
 const ROOT = path.resolve(__dirname, '..');
-const PORT = 5173;
+const PORT = process.env.PORT || 5173;
 const MIME = { '.html':'text/html', '.js':'text/javascript', '.json':'application/json',
   '.png':'image/png', '.jpg':'image/jpeg', '.css':'text/css', '.svg':'image/svg+xml' };
 

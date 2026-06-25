@@ -5,7 +5,8 @@
       "name": "plotmap",
       "runtimeExecutable": "node",
       "runtimeArgs": ["tools/server.js"],
-      "port": 5173
+      "port": 5173,
+      "autoPort": true
     }
   ]
 }
