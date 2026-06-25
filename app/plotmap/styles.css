@@ -732,3 +732,8 @@ input{font-family:inherit;-webkit-appearance:none;}
 .orig-ov .o-zone-lbl.cat-commercial.show { transform: none !important; }
 .orig-ov .o-zone-lbl.cat-commercial.act { transform: none !important; }
 .orig-ov .o-zone.cat-growth { stroke-dasharray: 24 16; }
+
+/* A/B/C/D highlight-set shortcut buttons (beside Original/Easy toggle) */
+.transparent-btn{border:none;cursor:pointer;border-radius:11px;min-width:34px;height:34px;padding:0 8px;font-size:14px;font-weight:800;background:transparent;color:#6A6453;display:inline-flex;align-items:center;justify-content:center;transition:.15s;}
+.transparent-btn:hover{background:rgba(11,26,54,.08);color:#0B1A36;}
+.transparent-btn.on{background:#0B1A36;color:#FFFFFF;box-shadow:0 2px 8px rgba(22,53,106,.3);}

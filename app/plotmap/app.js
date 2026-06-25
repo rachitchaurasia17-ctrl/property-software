@@ -22,7 +22,7 @@
 
   const state = {
     space: 'area', areaId: 'aerotropolis', areaMenuOpen: false,
-    prebuiltMaps: [],
+    prebuiltMaps: [], activeLetter: null,
     section: 'master', mapMode: 'original', showProps: false,
     activeCats: new Set(), displayCatId: null, selectedIds: new Set(), itemOpen: false,
     propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null,
@@ -499,8 +499,9 @@
   }
   function mapControlsHTML() {
     const showModes = state.section === 'master';
-    const prebuiltBtns = state.prebuiltMaps.map(m => `<button class="transparent-btn" data-prebuilt="${m.id}">${esc(m.label)}</button>`).join('');
-    const divider = state.prebuiltMaps.length > 0 ? `<div class="divider" style="margin: 3px 6px; width:1px; background:#E1D6BF;"></div>` : '';
+    const LETTERS = ['A', 'B', 'C', 'D'];
+    const prebuiltBtns = LETTERS.map(L => `<button class="transparent-btn ${state.activeLetter === L ? 'on' : ''}" data-prebuilt-label="${L}" title="Highlight set ${L}">${L}</button>`).join('');
+    const divider = `<div class="divider" style="margin: 3px 6px; width:1px; background:#E1D6BF;"></div>`;
     return `${showModes ? `<div class="mode-switch"><button class="${state.mapMode === 'original' ? 'on' : ''}" data-mode="original">Original Map</button><button class="${state.mapMode === 'easy' ? 'on' : ''}" data-mode="easy">Easy Map</button>${divider}${prebuiltBtns}</div>` : ''}
       ${showModes && state.mapMode === 'easy' ? `<div class="prop-switch ${state.showProps ? 'on' : ''}" id="propSwitch"><span class="lbl">Show Properties</span><span class="knob"><i></i></span></div>` : ''}
       <div class="zoom"><button id="zin" title="Zoom in">+</button><div class="zsep"></div><button id="zout" title="Zoom out">−</button><div class="zsep"></div><button id="zfit" title="Reset view">⤢</button></div>
@@ -748,20 +749,23 @@
     on('presentBtn', () => { state.present = !state.present; render(); setTimeout(fit, 70); });
 
     each('[data-mode]', b => b.addEventListener('click', () => { state.mapMode = b.getAttribute('data-mode'); if (state.mapMode === 'original') state.showProps = false; builtSig = ''; render(); }));
-    each('[data-prebuilt]', b => b.addEventListener('click', () => {
-      const pbmId = b.getAttribute('data-prebuilt');
-      const prebuilt = state.prebuiltMaps.find(m => m.id === pbmId);
-      const targetIds = prebuilt ? prebuilt.blocks : [];
-      const currentlyActive = targetIds.every(id => state.selectedIds.has(id)) && targetIds.length === state.selectedIds.size;
-      
+    each('[data-prebuilt-label]', b => b.addEventListener('click', () => {
+      const L = b.getAttribute('data-prebuilt-label');
+      const row = state.prebuiltMaps.find(m => String(m.label || '').trim().toUpperCase() === L);
+      const targetIds = (row && Array.isArray(row.blocks)) ? row.blocks : [];
+      const currentlyActive = state.activeLetter === L;
+
       state.selectedIds.clear();
       state.activeCats.clear();
       state.displayCatId = null;
 
-      if (!currentlyActive) {
+      if (!currentlyActive && targetIds.length) {
         targetIds.forEach(id => state.selectedIds.add(id));
+        state.activeLetter = L;
+      } else {
+        state.activeLetter = null;
       }
-      
+
       state.mapMode = 'original';
       state.showProps = false;
       builtSig = '';
@@ -770,8 +774,9 @@
     on('propSwitch', toggleProps);
     on('zin', () => zoomBtn(1.2)); on('zout', () => zoomBtn(1 / 1.2)); on('zfit', fit);
 
-    each('[data-cat]', b => b.addEventListener('click', () => { 
+    each('[data-cat]', b => b.addEventListener('click', () => {
       const c = b.getAttribute('data-cat');
+      state.activeLetter = null;
       if (state.activeCats.has(c)) {
         state.activeCats.delete(c);
       } else {
