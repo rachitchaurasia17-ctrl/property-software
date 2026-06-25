@@ -101,3 +101,69 @@ editor loads but Save returns "table not found", and the A/B/C/D buttons highlig
 show A/B/C/D highlight on Easy Map too (currently forces Original Map on click).
 **Next steps (Codex):** tighten `prebuilt_maps` RLS (writes behind auth), add a manifest
 generator, no-price audit in CI.
+
+---
+
+## Original / Easy Map structure (this pass — Claude)
+
+**Done & verified in-browser (Original, Easy, and View Sector Maps all work, no
+console errors):**
+
+- **Original Map = official proof, preserved.** Real masterplan image
+  (`assets.original`) + highlight overlay from the real `geo.json` geometry.
+  Unchanged behaviour.
+- **Easy Map = premium, geometry-accurate trace (re-architected).** It now draws
+  the **same real `geo.json` paths** as the Original Map — same coordinate system
+  — with no photo, a calm light background, road hierarchy (`tier`), soft raised
+  real-boundary parcels, distinct-but-calm commercial zones, and clean labels.
+  - **No invented geometry / no approximate grid.** Roads follow real road paths;
+    blocks/sectors follow real boundary polygons; pins sit at real marker
+    centroids. Earlier schematic-rectangle attempt was removed.
+  - Frame is **stable**: the Easy Map always renders the full traced geometry and
+    uses dim/highlight for focus (Apple-Maps style) — selecting a block does not
+    reframe or hide the rest.
+  - Features without a traced path (green belt, future-growth pockets, entry pins)
+    are **not drawn** on the Easy Map and are marked `// needs tracing` in the
+    dataset. Trace them into `geo.json` to surface them — never fake them.
+- **Bug fixed:** Easy Map highlighting threw a `ReferenceError` (`cat`
+  undefined in `updateMapOverlays`) — corrected.
+- **CSS repaired:** an unterminated `.o-zone.cat-commercial.act` rule was dropping
+  ~85 lines of styles (A/B/C/D buttons, etc.); brace closed; authoritative `.eg-*`
+  Easy-Map layer appended.
+- **Dataset:** added road `tier` metadata; clarified that `svgId → geo.json` is
+  the real geometry and `x/y/w/h` / `at` are schematic fallback only.
+- **Tooling:** `tools/server.js` now honours `PORT` (defaults to 5173).
+- **Docs:** added `app/plotmap/EASY-MAP-PIPELINE.md` (full add-map workflow + schema
+  + checklist).
+- **View Sector Maps untouched** — still manifest-driven via `readySectorMaps()`
+  (≈35 client-ready). Do not break.
+
+Checks run & passing: `node --check app/plotmap/app.js`, `data.js`,
+`datasets/tricity.dataset.js`, `tools/server.js`; `node tools/audit-plotmap.js`.
+
+## Next step after Claude
+
+1. Claude completed the Original/Easy Map structure (Easy Map is a real-geometry
+   premium trace; Original Map preserved as proof).
+2. **Antigravity** should now wire all usable maps into **View Sector Maps**
+   (pitch / library mode).
+3. Use pitch-mode filtering.
+4. **Do not** require `showInClientDefault` for pitch mode.
+5. Prefer `bestProcessedPath`, then `processedPaths[0]`, then a browser-safe
+   `originalPath` (only if it resolves to a served file).
+6. Show converted PDFs only when `pdfConverted === true` & `conversionStatus ===
+   "converted"` & converted paths exist. Hide only broken/missing/failed PDFs and
+   `duplicateDisplayStatus === "hidden-duplicate"`.
+7. Then **Codex** can continue watermark cleanup variants and gradually promote
+   maps to `client-ready` after human review.
+
+## Remaining limitations / follow-ups
+
+- Green belt, future-growth pockets, and entry/exit pins have **no traced
+  geometry** yet, so they do not appear on the Easy Map. Trace them into
+  `geo.json` (add `svgId`) to surface them.
+- The right-hand category/layer panel (`panelHTML()`) is defined but not currently
+  mounted; masterplan interaction is via map clicks + the A/B/C/D sets. Out of
+  scope for this pass.
+- Some traced education/IT markers sit close together in the real layout, so their
+  Easy-Map labels can overlap at full-zoom-out; they separate on zoom-in.
