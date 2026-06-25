@@ -1,6 +1,6 @@
 # PlotMap Map Processing Review
 
-Generated: 2026-06-25T11:13:42.821Z
+Generated: 2026-06-25T14:47:54.396Z
 
 ## Summary
 
@@ -107,18 +107,47 @@ Generated: 2026-06-25T11:13:42.821Z
 
 ## Verification Result
 
-Generated: 2026-06-25T12:25:41.975Z
+Generated: 2026-06-25T14:55:32.373Z
 
 | Metric | Value |
 | --- | --- |
 | manifest entries verified | 184 |
-| thumbnail paths existing | 149 |
-| bestProcessedPath existing | 62 |
+| thumbnail paths existing | 159 |
+| bestProcessedPath existing | 72 |
 | client-usable maps after verification | 35 |
-| entries moved to reviewNeeded | 4 |
+| entries moved to reviewNeeded | 7 |
 | broken paths found | 0 |
 | duplicate groups remaining | 24 |
-| deferred PDFs | 18 |
+| deferred PDFs | 8 |
+
+## Launch Tier Classification
+
+| Launch Tier | Count |
+| --- | --- |
+| client-ready | 35 |
+| deferred-pdf | 8 |
+| internal-review | 108 |
+| proof-usable | 33 |
+
+| Metric | Value |
+| --- | --- |
+| default client library count | 35 |
+| expanded library count | 68 |
+| client-ready | 35 |
+| proof-usable | 33 |
+| internal-review | 108 |
+| deferred-pdf | 8 |
+
+## PDF Conversion Results
+
+| Metric | Value |
+| --- | --- |
+| total PDFs found | 18 |
+| PDFs converted successfully | 10 |
+| PDF conversion failed | 8 |
+| PDFs still deferred | 8 |
+| converted PDF proof-usable/client-ready | 10 |
+| output folder | /public/plotmap-assets/processed/pdf-converted/ |
 
 ### Issue Status
 
@@ -131,6 +160,6 @@ Generated: 2026-06-25T12:25:41.975Z
 | diagonal tiled watermark | improved but review needed: thumbnails exist, full reduction remains human-review |
 | corner logos | improved but review needed: cleanup variants exist, visual review required |
 | duplicates | improved: duplicateGroupId/recommendedKeep/matchKey available for filtering |
-| deferred PDFs | deferred |
+| deferred PDFs | improved: converted PDFs included where ffmpeg succeeded |
 | low-resolution maps | not fixed: marked review-needed/needs better source where applicable |
 | broken/corrupt image files | fixed: no unreadable committed client paths |

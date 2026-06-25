@@ -1,0 +1,458 @@
+{
+  "generatedAt": "2026-06-25T14:38:19.664Z",
+  "entries": [
+    {
+      "originalPath": "/new chandigarh/AEROCITY-Mohali-Map.pdf",
+      "relativePath": "new chandigarh/AEROCITY-Mohali-Map.pdf",
+      "city": "New Chandigarh",
+      "area": "New Chandigarh",
+      "fileName": "AEROCITY-Mohali-Map.pdf",
+      "page": 1,
+      "pdfPageCount": 18,
+      "displayName": "New Chandigarh AEROCITY Mohali Map (Page 1)",
+      "matchKey": "new-chandigarh-aerocity-mohali-map-page-1",
+      "mapType": "map",
+      "sectorOrBlockName": "AEROCITY Mohali Map",
+      "conversionStatus": "converted",
+      "pdfConverted": true,
+      "conversionNeeded": false,
+      "convertedImagePath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/aerocity-mohali-map-page-1.webp",
+      "bestProcessedPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/aerocity-mohali-map-page-1-enhanced.webp",
+      "thumbnailPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/aerocity-mohali-map-page-1-thumb.webp",
+      "dimensions": {
+        "width": 1113,
+        "height": 740
+      },
+      "notes": [
+        "Converted from PDF with ffmpeg; visual review recommended before default client exposure."
+      ]
+    },
+    {
+      "originalPath": "/new chandigarh/DLF-Hyde-Park-Commercial-Citi-Centre.pdf",
+      "relativePath": "new chandigarh/DLF-Hyde-Park-Commercial-Citi-Centre.pdf",
+      "city": "New Chandigarh",
+      "area": "New Chandigarh",
+      "fileName": "DLF-Hyde-Park-Commercial-Citi-Centre.pdf",
+      "page": 1,
+      "pdfPageCount": 1,
+      "displayName": "New Chandigarh DLF Hyde Park Commercial Citi Centre",
+      "matchKey": "new-chandigarh-dlf-hyde-park-commercial-citi-centre",
+      "mapType": "map",
+      "sectorOrBlockName": "DLF Hyde Park Commercial Citi Centre",
+      "conversionStatus": "converted",
+      "pdfConverted": true,
+      "conversionNeeded": false,
+      "convertedImagePath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/dlf-hyde-park-commercial-citi-centre-page-1.webp",
+      "bestProcessedPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/dlf-hyde-park-commercial-citi-centre-page-1-enhanced.webp",
+      "thumbnailPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/dlf-hyde-park-commercial-citi-centre-page-1-thumb.webp",
+      "dimensions": {
+        "width": 1920,
+        "height": 2716
+      },
+      "notes": [
+        "ffmpeg PDF render failed; used largest embedded JPEG stream fallback.",
+        "Converted from PDF with ffmpeg; visual review recommended before default client exposure."
+      ]
+    },
+    {
+      "originalPath": "/new chandigarh/DLF-Hyde-Park-Commercial-R1.pdf",
+      "relativePath": "new chandigarh/DLF-Hyde-Park-Commercial-R1.pdf",
+      "city": "New Chandigarh",
+      "area": "New Chandigarh",
+      "fileName": "DLF-Hyde-Park-Commercial-R1.pdf",
+      "page": 1,
+      "pdfPageCount": 1,
+      "displayName": "New Chandigarh DLF Hyde Park Commercial R1",
+      "matchKey": "new-chandigarh-dlf-hyde-park-commercial-r1",
+      "mapType": "map",
+      "sectorOrBlockName": "DLF Hyde Park Commercial R1",
+      "conversionStatus": "converted",
+      "pdfConverted": true,
+      "conversionNeeded": false,
+      "convertedImagePath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/dlf-hyde-park-commercial-r1-page-1.webp",
+      "bestProcessedPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/dlf-hyde-park-commercial-r1-page-1-enhanced.webp",
+      "thumbnailPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/dlf-hyde-park-commercial-r1-page-1-thumb.webp",
+      "dimensions": {
+        "width": 3508,
+        "height": 2481
+      },
+      "notes": [
+        "ffmpeg PDF render failed; used largest embedded JPEG stream fallback.",
+        "Converted from PDF with ffmpeg; visual review recommended before default client exposure."
+      ]
+    },
+    {
+      "originalPath": "/new chandigarh/DLF-Hyde-Park-Commercial-R2.pdf",
+      "relativePath": "new chandigarh/DLF-Hyde-Park-Commercial-R2.pdf",
+      "city": "New Chandigarh",
+      "area": "New Chandigarh",
+      "fileName": "DLF-Hyde-Park-Commercial-R2.pdf",
+      "page": 1,
+      "pdfPageCount": 1,
+      "displayName": "New Chandigarh DLF Hyde Park Commercial R2",
+      "matchKey": "new-chandigarh-dlf-hyde-park-commercial-r2",
+      "mapType": "map",
+      "sectorOrBlockName": "DLF Hyde Park Commercial R2",
+      "conversionStatus": "converted",
+      "pdfConverted": true,
+      "conversionNeeded": false,
+      "convertedImagePath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/dlf-hyde-park-commercial-r2-page-1.webp",
+      "bestProcessedPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/dlf-hyde-park-commercial-r2-page-1-enhanced.webp",
+      "thumbnailPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/dlf-hyde-park-commercial-r2-page-1-thumb.webp",
+      "dimensions": {
+        "width": 984,
+        "height": 1280
+      },
+      "notes": [
+        "Converted from PDF with ffmpeg; visual review recommended before default client exposure."
+      ]
+    },
+    {
+      "originalPath": "/new chandigarh/DLF-Hyde-Park-Independent-Floors-New-Chandigarh-1.pdf",
+      "relativePath": "new chandigarh/DLF-Hyde-Park-Independent-Floors-New-Chandigarh-1.pdf",
+      "city": "New Chandigarh",
+      "area": "New Chandigarh",
+      "fileName": "DLF-Hyde-Park-Independent-Floors-New-Chandigarh-1.pdf",
+      "page": 1,
+      "pdfPageCount": 1,
+      "displayName": "New Chandigarh DLF Hyde Park Independent Floors New Chandigarh 1",
+      "matchKey": "new-chandigarh-dlf-hyde-park-independent-floors-new-chandigarh-1",
+      "mapType": "map",
+      "sectorOrBlockName": "DLF Hyde Park Independent Floors New Chandigarh 1",
+      "conversionStatus": "converted",
+      "pdfConverted": true,
+      "conversionNeeded": false,
+      "convertedImagePath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/dlf-hyde-park-independent-floors-new-chandigarh-1-page-1.webp",
+      "bestProcessedPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/dlf-hyde-park-independent-floors-new-chandigarh-1-page-1-enhanced.webp",
+      "thumbnailPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/dlf-hyde-park-independent-floors-new-chandigarh-1-page-1-thumb.webp",
+      "dimensions": {
+        "width": 3400,
+        "height": 1568
+      },
+      "notes": [
+        "ffmpeg PDF render failed; used largest embedded JPEG stream fallback.",
+        "Converted from PDF with ffmpeg; visual review recommended before default client exposure."
+      ]
+    },
+    {
+      "originalPath": "/new chandigarh/DLF-Hyde-Park-New-Chandigarh-Map.pdf",
+      "relativePath": "new chandigarh/DLF-Hyde-Park-New-Chandigarh-Map.pdf",
+      "city": "New Chandigarh",
+      "area": "New Chandigarh",
+      "fileName": "DLF-Hyde-Park-New-Chandigarh-Map.pdf",
+      "page": 1,
+      "pdfPageCount": 1,
+      "displayName": "New Chandigarh DLF Hyde Park New Chandigarh Map",
+      "matchKey": "new-chandigarh-dlf-hyde-park-new-chandigarh-map",
+      "mapType": "map",
+      "sectorOrBlockName": "DLF Hyde Park New Chandigarh Map",
+      "conversionStatus": "failed",
+      "pdfConverted": false,
+      "conversionNeeded": true,
+      "convertedImagePath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/dlf-hyde-park-new-chandigarh-map-page-1.webp",
+      "bestProcessedPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/dlf-hyde-park-new-chandigarh-map-page-1-enhanced.webp",
+      "thumbnailPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/dlf-hyde-park-new-chandigarh-map-page-1-thumb.webp",
+      "dimensions": null,
+      "notes": [
+        "PDF conversion failed: Command failed: ffmpeg -y -loglevel error -i C:\\Users\\rachi_l35wosr\\OneDrive\\Desktop\\xyz\\public\\plotmap-assets\\processed\\pdf-converted\\new-chandigarh\\dlf-hyde-park-new-chandigarh-map-page-1-embedded.jpg -vf scale=w='min(3600,iw)':h='min(3600,ih)':force_original_aspect_ratio=decrease -quality 86 C:\\Users\\rachi_l35wosr\\OneDrive\\Desktop\\xyz\\public\\plotmap-assets\\processed\\pdf-converted\\new-chandigarh\\dlf-hyde-park-new-chandigarh-map-page-1.webp\n[mjpeg @ 000001572ea9acc0] dqt: invalid precision\r\n[mjpeg @ 000001572ef0d740] mjpeg: unsupported coding type (c9)\r\n[mjpeg @ 000001572ef0d740] mjpeg: unsupported coding type (ca)\r\n[mjpeg @ 000001572ef0d740] mjpeg: unsupported coding type (cb)\r\n[mjpeg @ 000001572ef0d740] huffman table decode error\r\n[vist#0:0/mjpeg @ 000001572eaa2600] [dec:mjpeg @ 000001572eae5c00] Error submitting packet to decoder: Invalid data found when processing input\r\n[vist#0:0/mjpeg @ 000001572eaa2600] [dec:mjpeg @ 000001572eae5c00] Decode error rate 1 exceeds maximum 0.666667\r\n[vf#0:0 @ 000001572eae3b00] Cannot determine format of input 0:0 after EOF\r\n[vf#0:0 @ 000001572eae3b00] Task finished with error code: -1094995529 (Invalid data found when processing input)\r\n[vist#0:0/mjpeg @ 000001572eaa2600] [dec:mjpeg @ 000001572eae5c00] Task finished with error code: -1145393733 (Error number -1145393733 occurred)\r\n[vist#0:0/mjpeg @ 000001572eaa2600] [dec:mjpeg @ 000001572eae5c00] Terminating thread with return code -1145393733 (Error number -1145393733 occurred)\r\n[vost#0:0/libwebp_anim @ 000001572eae33c0] [enc:libwebp_anim @ 000001572ea531c0] Could not open encoder before EOF\r\n[vost#0:0/libwebp_anim @ 000001572eae33c0] Task finished with error code: -22 (Invalid argument)\r\n[vost#0:0/libwebp_anim @ 000001572eae33c0] Terminating thread with return code -22 (Invalid argument)\r\n[vf#0:0 @ 000001572eae3b00] Terminating thread with return code -1094995529 (Invalid data found when processing input)\r\n[out#0/webp @ 000001572ea1bd80] Nothing was written into output file, because at least one of its streams received no packets.\r\n"
+      ]
+    },
+    {
+      "originalPath": "/new chandigarh/Dlf-Valley.pdf",
+      "relativePath": "new chandigarh/Dlf-Valley.pdf",
+      "city": "New Chandigarh",
+      "area": "New Chandigarh",
+      "fileName": "Dlf-Valley.pdf",
+      "page": 1,
+      "pdfPageCount": null,
+      "displayName": "New Chandigarh Dlf Valley",
+      "matchKey": "new-chandigarh-dlf-valley",
+      "mapType": "map",
+      "sectorOrBlockName": "Dlf Valley",
+      "conversionStatus": "failed",
+      "pdfConverted": false,
+      "conversionNeeded": true,
+      "convertedImagePath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/dlf-valley-page-1.webp",
+      "bestProcessedPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/dlf-valley-page-1-enhanced.webp",
+      "thumbnailPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/dlf-valley-page-1-thumb.webp",
+      "dimensions": null,
+      "notes": [
+        "PDF conversion failed: Command failed: ffmpeg -y -loglevel error -i C:\\Users\\rachi_l35wosr\\OneDrive\\Desktop\\xyz\\public\\plotmap-assets\\processed\\pdf-converted\\new-chandigarh\\dlf-valley-page-1-embedded.jpg -vf scale=w='min(3600,iw)':h='min(3600,ih)':force_original_aspect_ratio=decrease -quality 86 C:\\Users\\rachi_l35wosr\\OneDrive\\Desktop\\xyz\\public\\plotmap-assets\\processed\\pdf-converted\\new-chandigarh\\dlf-valley-page-1.webp\n[mjpeg @ 0000020a0494af40] bits 151 is invalid\r\n[mjpeg @ 0000020a0494dec0] bits 151 is invalid\r\n[vist#0:0/mjpeg @ 0000020a048b8100] [dec:mjpeg @ 0000020a0494bec0] Error submitting packet to decoder: Invalid data found when processing input\r\n[vist#0:0/mjpeg @ 0000020a048b8100] [dec:mjpeg @ 0000020a0494bec0] Decode error rate 1 exceeds maximum 0.666667\r\n[vf#0:0 @ 0000020a0494b400] Cannot determine format of input 0:0 after EOF\r\n[vf#0:0 @ 0000020a0494b400] Task finished with error code: -1094995529 (Invalid data found when processing input)\r\n[vf#0:0 @ 0000020a0494b400] Terminating thread with return code -1094995529 (Invalid data found when processing input)\r\n[vist#0:0/mjpeg @ 0000020a048b8100] [dec:mjpeg @ 0000020a0494bec0] Task finished with error code: -1145393733 (Error number -1145393733 occurred)\r\n[vist#0:0/mjpeg @ 0000020a048b8100] [dec:mjpeg @ 0000020a0494bec0] Terminating thread with return code -1145393733 (Error number -1145393733 occurred)\r\n[vost#0:0/libwebp_anim @ 0000020a06733cc0] [enc:libwebp_anim @ 0000020a04902a00] Could not open encoder before EOF\r\n[vost#0:0/libwebp_anim @ 0000020a06733cc0] Task finished with error code: -22 (Invalid argument)\r\n[vost#0:0/libwebp_anim @ 0000020a06733cc0] Terminating thread with return code -22 (Invalid argument)\r\n[out#0/webp @ 0000020a048cabc0] Nothing was written into output file, because at least one of its streams received no packets.\r\n"
+      ]
+    },
+    {
+      "originalPath": "/new chandigarh/Eco-City-I-Map.pdf",
+      "relativePath": "new chandigarh/Eco-City-I-Map.pdf",
+      "city": "New Chandigarh",
+      "area": "New Chandigarh",
+      "fileName": "Eco-City-I-Map.pdf",
+      "page": 1,
+      "pdfPageCount": null,
+      "displayName": "New Chandigarh Eco City I Map",
+      "matchKey": "new-chandigarh-eco-city-i-map",
+      "mapType": "map",
+      "sectorOrBlockName": "Eco City I Map",
+      "conversionStatus": "converted",
+      "pdfConverted": true,
+      "conversionNeeded": false,
+      "convertedImagePath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/eco-city-i-map-page-1.webp",
+      "bestProcessedPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/eco-city-i-map-page-1-enhanced.webp",
+      "thumbnailPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/eco-city-i-map-page-1-thumb.webp",
+      "dimensions": {
+        "width": 3600,
+        "height": 2250
+      },
+      "notes": [
+        "ffmpeg PDF render failed; used largest embedded JPEG stream fallback.",
+        "Converted from PDF with ffmpeg; visual review recommended before default client exposure."
+      ]
+    },
+    {
+      "originalPath": "/new chandigarh/Eco-city-II-Map.pdf",
+      "relativePath": "new chandigarh/Eco-city-II-Map.pdf",
+      "city": "New Chandigarh",
+      "area": "New Chandigarh",
+      "fileName": "Eco-city-II-Map.pdf",
+      "page": 1,
+      "pdfPageCount": null,
+      "displayName": "New Chandigarh Eco city II Map",
+      "matchKey": "new-chandigarh-eco-city-ii-map",
+      "mapType": "map",
+      "sectorOrBlockName": "Eco city II Map",
+      "conversionStatus": "failed",
+      "pdfConverted": false,
+      "conversionNeeded": true,
+      "convertedImagePath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/eco-city-ii-map-page-1.webp",
+      "bestProcessedPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/eco-city-ii-map-page-1-enhanced.webp",
+      "thumbnailPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/eco-city-ii-map-page-1-thumb.webp",
+      "dimensions": null,
+      "notes": [
+        "PDF conversion failed: Command failed: ffmpeg -y -loglevel error -i C:\\Users\\rachi_l35wosr\\OneDrive\\Desktop\\xyz\\public\\plotmap-assets\\processed\\pdf-converted\\new-chandigarh\\eco-city-ii-map-page-1-embedded.jpg -vf scale=w='min(3600,iw)':h='min(3600,ih)':force_original_aspect_ratio=decrease -quality 86 C:\\Users\\rachi_l35wosr\\OneDrive\\Desktop\\xyz\\public\\plotmap-assets\\processed\\pdf-converted\\new-chandigarh\\eco-city-ii-map-page-1.webp\n[mjpeg @ 00000227e1fdb200] app: invalid len 21432\r\n[mjpeg @ 00000227e1fdb200] unable to decode APP fields: Invalid data found when processing input\r\n[mjpeg @ 00000227e1fdb200] app: invalid len 51726\r\n[mjpeg @ 00000227e1fdb200] unable to decode APP fields: Invalid data found when processing input\r\n[mjpeg @ 00000227e1fdb200] sof: invalid len 26587\r\n[mjpeg @ 00000227e1fe9280] app: invalid len 21432\r\n[mjpeg @ 00000227e1fe9280] unable to decode APP fields: Invalid data found when processing input\r\n[mjpeg @ 00000227e1fe9280] app: invalid len 51726\r\n[mjpeg @ 00000227e1fe9280] unable to decode APP fields: Invalid data found when processing input\r\n[mjpeg @ 00000227e1fe9280] sof: invalid len 26587\r\n[vist#0:0/mjpeg @ 00000227e20233c0] [dec:mjpeg @ 00000227e2025e40] Error submitting packet to decoder: Invalid data found when processing input\r\n[vist#0:0/mjpeg @ 00000227e20233c0] [dec:mjpeg @ 00000227e2025e40] Decode error rate 1 exceeds maximum 0.666667\r\n[vf#0:0 @ 00000227e2024580] Cannot determine format of input 0:0 after EOF\r\n[vf#0:0 @ 00000227e2024580] Task finished with error code: -1094995529 (Invalid data found when processing input)\r\n[vist#0:0/mjpeg @ 00000227e20233c0] [dec:mjpeg @ 00000227e2025e40] Task finished with error code: -1145393733 (Error number -1145393733 occurred)\r\n[vist#0:0/mjpeg @ 00000227e20233c0] [dec:mjpeg @ 00000227e2025e40] Terminating thread with return code -1145393733 (Error number -1145393733 occurred)\r\n[vost#0:0/libwebp_anim @ 00000227e2023dc0] [enc:libwebp_anim @ 00000227e1f92bc0] Could not open encoder before EOF\r\n[vost#0:0/libwebp_anim @ 00000227e2023dc0] Task finished with error code: -22 (Invalid argument)\r\n[vost#0:0/libwebp_anim @ 00000227e2023dc0] Terminating thread with return code -22 (Invalid argument)\r\n[vf#0:0 @ 00000227e2024580] Terminating thread with return code -1094995529 (Invalid data found when processing input)\r\n[out#0/webp @ 00000227e1f5b400] Nothing was written into output file, because at least one of its streams received no packets.\r\n"
+      ]
+    },
+    {
+      "originalPath": "/new chandigarh/Emaar-Mgf.pdf",
+      "relativePath": "new chandigarh/Emaar-Mgf.pdf",
+      "city": "New Chandigarh",
+      "area": "New Chandigarh",
+      "fileName": "Emaar-Mgf.pdf",
+      "page": 1,
+      "pdfPageCount": 1,
+      "displayName": "New Chandigarh Emaar Mgf",
+      "matchKey": "new-chandigarh-emaar-mgf",
+      "mapType": "map",
+      "sectorOrBlockName": "Emaar Mgf",
+      "conversionStatus": "converted",
+      "pdfConverted": true,
+      "conversionNeeded": false,
+      "convertedImagePath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/emaar-mgf-page-1.webp",
+      "bestProcessedPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/emaar-mgf-page-1-enhanced.webp",
+      "thumbnailPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/emaar-mgf-page-1-thumb.webp",
+      "dimensions": {
+        "width": 3600,
+        "height": 2649
+      },
+      "notes": [
+        "ffmpeg PDF render failed; used largest embedded JPEG stream fallback.",
+        "Converted from PDF with ffmpeg; visual review recommended before default client exposure."
+      ]
+    },
+    {
+      "originalPath": "/new chandigarh/IT-City-Map.pdf",
+      "relativePath": "new chandigarh/IT-City-Map.pdf",
+      "city": "New Chandigarh",
+      "area": "New Chandigarh",
+      "fileName": "IT-City-Map.pdf",
+      "page": 1,
+      "pdfPageCount": null,
+      "displayName": "New Chandigarh IT City Map",
+      "matchKey": "new-chandigarh-it-city-map",
+      "mapType": "map",
+      "sectorOrBlockName": "IT City Map",
+      "conversionStatus": "failed",
+      "pdfConverted": false,
+      "conversionNeeded": true,
+      "convertedImagePath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/it-city-map-page-1.webp",
+      "bestProcessedPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/it-city-map-page-1-enhanced.webp",
+      "thumbnailPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/it-city-map-page-1-thumb.webp",
+      "dimensions": null,
+      "notes": [
+        "PDF conversion failed: Command failed: ffmpeg -y -loglevel error -i C:\\Users\\rachi_l35wosr\\OneDrive\\Desktop\\xyz\\public\\plotmap-assets\\processed\\pdf-converted\\new-chandigarh\\it-city-map-page-1-embedded.jpg -vf scale=w='min(3600,iw)':h='min(3600,ih)':force_original_aspect_ratio=decrease -quality 86 C:\\Users\\rachi_l35wosr\\OneDrive\\Desktop\\xyz\\public\\plotmap-assets\\processed\\pdf-converted\\new-chandigarh\\it-city-map-page-1.webp\n[mjpeg @ 000001c838d0ad00] [IMGUTILS @ 00000006abbfdc40] Picture size 30904x24353 is invalid\r\n[mjpeg @ 000001c838d0da80] mjpeg: unsupported coding type (ce)\r\n[mjpeg @ 000001c838d0da80] [IMGUTILS @ 00000006ac5ff610] Picture size 30904x24353 is invalid\r\n[vist#0:0/mjpeg @ 000001c838d0ad00] [dec:mjpeg @ 000001c838d0cc40] Error submitting packet to decoder: Invalid data found when processing input\r\n[vist#0:0/mjpeg @ 000001c838d0ad00] [dec:mjpeg @ 000001c838d0cc40] Decode error rate 1 exceeds maximum 0.666667\r\n[vf#0:0 @ 000001c838d0bf40] Cannot determine format of input 0:0 after EOF\r\n[vf#0:0 @ 000001c838d0bf40] Task finished with error code: -1094995529 (Invalid data found when processing input)\r\n[vist#0:0/mjpeg @ 000001c838d0ad00] [dec:mjpeg @ 000001c838d0cc40] Task finished with error code: -1145393733 (Error number -1145393733 occurred)\r\n[vf#0:0 @ 000001c838d0bf40] Terminating thread with return code -1094995529 (Invalid data found when processing input)\r\n[vost#0:0/libwebp_anim @ 000001c838d0b780] [enc:libwebp_anim @ 000001c838cc2cc0] Could not open encoder before EOF\r\n[vost#0:0/libwebp_anim @ 000001c838d0b780] Task finished with error code: -22 (Invalid argument)\r\n[vost#0:0/libwebp_anim @ 000001c838d0b780] Terminating thread with return code -22 (Invalid argument)\r\n[vist#0:0/mjpeg @ 000001c838d0ad00] [dec:mjpeg @ 000001c838d0cc40] Terminating thread with return code -1145393733 (Error number -1145393733 occurred)\r\n[out#0/webp @ 000001c838c8ac00] Nothing was written into output file, because at least one of its streams received no packets.\r\n"
+      ]
+    },
+    {
+      "originalPath": "/new chandigarh/LANDCHESTER.pdf",
+      "relativePath": "new chandigarh/LANDCHESTER.pdf",
+      "city": "New Chandigarh",
+      "area": "New Chandigarh",
+      "fileName": "LANDCHESTER.pdf",
+      "page": 1,
+      "pdfPageCount": 1,
+      "displayName": "New Chandigarh LANDCHESTER",
+      "matchKey": "new-chandigarh-landchester",
+      "mapType": "map",
+      "sectorOrBlockName": "LANDCHESTER",
+      "conversionStatus": "failed",
+      "pdfConverted": false,
+      "conversionNeeded": true,
+      "convertedImagePath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/landchester-page-1.webp",
+      "bestProcessedPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/landchester-page-1-enhanced.webp",
+      "thumbnailPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/landchester-page-1-thumb.webp",
+      "dimensions": null,
+      "notes": [
+        "PDF conversion failed: No embedded JPEG stream found in PDF"
+      ]
+    },
+    {
+      "originalPath": "/new chandigarh/OMAXE-Commercial-Phase-1.pdf",
+      "relativePath": "new chandigarh/OMAXE-Commercial-Phase-1.pdf",
+      "city": "New Chandigarh",
+      "area": "New Chandigarh",
+      "fileName": "OMAXE-Commercial-Phase-1.pdf",
+      "page": 1,
+      "pdfPageCount": 1,
+      "displayName": "New Chandigarh OMAXE Commercial Phase 1",
+      "matchKey": "new-chandigarh-omaxe-commercial-phase-1",
+      "mapType": "map",
+      "sectorOrBlockName": "OMAXE Commercial Phase 1",
+      "conversionStatus": "converted",
+      "pdfConverted": true,
+      "conversionNeeded": false,
+      "convertedImagePath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/omaxe-commercial-phase-1-page-1.webp",
+      "bestProcessedPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/omaxe-commercial-phase-1-page-1-enhanced.webp",
+      "thumbnailPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/omaxe-commercial-phase-1-page-1-thumb.webp",
+      "dimensions": {
+        "width": 3600,
+        "height": 2546
+      },
+      "notes": [
+        "ffmpeg PDF render failed; used largest embedded JPEG stream fallback.",
+        "Converted from PDF with ffmpeg; visual review recommended before default client exposure."
+      ]
+    },
+    {
+      "originalPath": "/new chandigarh/Omaxe-New-Chandigarh-map.pdf",
+      "relativePath": "new chandigarh/Omaxe-New-Chandigarh-map.pdf",
+      "city": "New Chandigarh",
+      "area": "New Chandigarh",
+      "fileName": "Omaxe-New-Chandigarh-map.pdf",
+      "page": 1,
+      "pdfPageCount": 1,
+      "displayName": "New Chandigarh Omaxe New Chandigarh map",
+      "matchKey": "new-chandigarh-omaxe-new-chandigarh-map",
+      "mapType": "map",
+      "sectorOrBlockName": "Omaxe New Chandigarh map",
+      "conversionStatus": "converted",
+      "pdfConverted": true,
+      "conversionNeeded": false,
+      "convertedImagePath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/omaxe-new-chandigarh-map-page-1.webp",
+      "bestProcessedPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/omaxe-new-chandigarh-map-page-1-enhanced.webp",
+      "thumbnailPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/omaxe-new-chandigarh-map-page-1-thumb.webp",
+      "dimensions": {
+        "width": 3346,
+        "height": 3600
+      },
+      "notes": [
+        "ffmpeg PDF render failed; used largest embedded JPEG stream fallback.",
+        "Converted from PDF with ffmpeg; visual review recommended before default client exposure."
+      ]
+    },
+    {
+      "originalPath": "/new chandigarh/PCL-MAP.pdf",
+      "relativePath": "new chandigarh/PCL-MAP.pdf",
+      "city": "New Chandigarh",
+      "area": "New Chandigarh",
+      "fileName": "PCL-MAP.pdf",
+      "page": 1,
+      "pdfPageCount": null,
+      "displayName": "New Chandigarh PCL MAP",
+      "matchKey": "new-chandigarh-pcl-map",
+      "mapType": "map",
+      "sectorOrBlockName": "PCL MAP",
+      "conversionStatus": "failed",
+      "pdfConverted": false,
+      "conversionNeeded": true,
+      "convertedImagePath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/pcl-map-page-1.webp",
+      "bestProcessedPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/pcl-map-page-1-enhanced.webp",
+      "thumbnailPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/pcl-map-page-1-thumb.webp",
+      "dimensions": null,
+      "notes": [
+        "PDF conversion failed: Command failed: ffmpeg -y -loglevel error -i C:\\Users\\rachi_l35wosr\\OneDrive\\Desktop\\xyz\\public\\plotmap-assets\\processed\\pdf-converted\\new-chandigarh\\pcl-map-page-1-embedded.jpg -vf scale=w='min(3600,iw)':h='min(3600,ih)':force_original_aspect_ratio=decrease -quality 86 C:\\Users\\rachi_l35wosr\\OneDrive\\Desktop\\xyz\\public\\plotmap-assets\\processed\\pdf-converted\\new-chandigarh\\pcl-map-page-1.webp\n[mjpeg @ 000002464fd0bf80] bits 35 is invalid\r\n[mjpeg @ 000002464fd11d80] bits 35 is invalid\r\n[vist#0:0/mjpeg @ 0000024651ba45c0] [dec:mjpeg @ 000002464fc78140] Error submitting packet to decoder: Invalid data found when processing input\r\n[vist#0:0/mjpeg @ 0000024651ba45c0] [dec:mjpeg @ 000002464fc78140] Decode error rate 1 exceeds maximum 0.666667\r\n[vf#0:0 @ 000002464fd0c580] Cannot determine format of input 0:0 after EOF\r\n[vf#0:0 @ 000002464fd0c580] Task finished with error code: -1094995529 (Invalid data found when processing input)\r\n[vist#0:0/mjpeg @ 0000024651ba45c0] [dec:mjpeg @ 000002464fc78140] Task finished with error code: -1145393733 (Error number -1145393733 occurred)\r\n[vist#0:0/mjpeg @ 0000024651ba45c0] [dec:mjpeg @ 000002464fc78140] Terminating thread with return code -1145393733 (Error number -1145393733 occurred)\r\n[vost#0:0/libwebp_anim @ 000002464fd0bf80] [enc:libwebp_anim @ 000002464fd0fbc0] Could not open encoder before EOF\r\n[vost#0:0/libwebp_anim @ 000002464fd0bf80] Task finished with error code: -22 (Invalid argument)\r\n[vost#0:0/libwebp_anim @ 000002464fd0bf80] Terminating thread with return code -22 (Invalid argument)\r\n[vf#0:0 @ 000002464fd0c580] Terminating thread with return code -1094995529 (Invalid data found when processing input)\r\n[out#0/webp @ 000002464fc8da80] Nothing was written into output file, because at least one of its streams received no packets.\r\n"
+      ]
+    },
+    {
+      "originalPath": "/new chandigarh/SUNTEC-CITY.pdf",
+      "relativePath": "new chandigarh/SUNTEC-CITY.pdf",
+      "city": "New Chandigarh",
+      "area": "New Chandigarh",
+      "fileName": "SUNTEC-CITY.pdf",
+      "page": 1,
+      "pdfPageCount": null,
+      "displayName": "New Chandigarh SUNTEC CITY",
+      "matchKey": "new-chandigarh-suntec-city",
+      "mapType": "map",
+      "sectorOrBlockName": "SUNTEC CITY",
+      "conversionStatus": "failed",
+      "pdfConverted": false,
+      "conversionNeeded": true,
+      "convertedImagePath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/suntec-city-page-1.webp",
+      "bestProcessedPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/suntec-city-page-1-enhanced.webp",
+      "thumbnailPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/suntec-city-page-1-thumb.webp",
+      "dimensions": null,
+      "notes": [
+        "PDF conversion failed: Command failed: ffmpeg -y -loglevel error -i C:\\Users\\rachi_l35wosr\\OneDrive\\Desktop\\xyz\\public\\plotmap-assets\\processed\\pdf-converted\\new-chandigarh\\suntec-city-page-1-embedded.jpg -vf scale=w='min(3600,iw)':h='min(3600,ih)':force_original_aspect_ratio=decrease -quality 86 C:\\Users\\rachi_l35wosr\\OneDrive\\Desktop\\xyz\\public\\plotmap-assets\\processed\\pdf-converted\\new-chandigarh\\suntec-city-page-1.webp\n[mjpeg @ 000001c1940bc7c0] dqt: invalid precision\r\n[mjpeg @ 000001c1940bfac0] invalid id 63\r\n[vist#0:0/mjpeg @ 000001c1940c4100] [dec:mjpeg @ 000001c1940bf100] Error submitting packet to decoder: Invalid data found when processing input\r\n[vist#0:0/mjpeg @ 000001c1940c4100] [dec:mjpeg @ 000001c1940bf100] Decode error rate 1 exceeds maximum 0.666667\r\n[vf#0:0 @ 000001c1940bd1c0] Cannot determine format of input 0:0 after EOF\r\n[vf#0:0 @ 000001c1940bd1c0] Task finished with error code: -1094995529 (Invalid data found when processing input)\r\n[vf#0:0 @ 000001c1940bd1c0] Terminating thread with return code -1094995529 (Invalid data found when processing input)\r\n[vist#0:0/mjpeg @ 000001c1940c4100] [dec:mjpeg @ 000001c1940bf100] Task finished with error code: -1145393733 (Error number -1145393733 occurred)\r\n[vist#0:0/mjpeg @ 000001c1940c4100] [dec:mjpeg @ 000001c1940bf100] Terminating thread with return code -1145393733 (Error number -1145393733 occurred)\r\n[vost#0:0/libwebp_anim @ 000001c1945cbc00] [enc:libwebp_anim @ 000001c194072d00] Could not open encoder before EOF\r\n[vost#0:0/libwebp_anim @ 000001c1945cbc00] Task finished with error code: -22 (Invalid argument)\r\n[vost#0:0/libwebp_anim @ 000001c1945cbc00] Terminating thread with return code -22 (Invalid argument)\r\n[out#0/webp @ 000001c19403c1c0] Nothing was written into output file, because at least one of its streams received no packets.\r\n"
+      ]
+    },
+    {
+      "originalPath": "/new chandigarh/The-Greater-Punjab-Officers-Co.op_.-Society.pdf",
+      "relativePath": "new chandigarh/The-Greater-Punjab-Officers-Co.op_.-Society.pdf",
+      "city": "New Chandigarh",
+      "area": "New Chandigarh",
+      "fileName": "The-Greater-Punjab-Officers-Co.op_.-Society.pdf",
+      "page": 1,
+      "pdfPageCount": 1,
+      "displayName": "New Chandigarh The Greater Punjab Officers Co.op . Society",
+      "matchKey": "new-chandigarh-the-greater-punjab-officers-co-op-society",
+      "mapType": "map",
+      "sectorOrBlockName": "The Greater Punjab Officers Co.op . Society",
+      "conversionStatus": "converted",
+      "pdfConverted": true,
+      "conversionNeeded": false,
+      "convertedImagePath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/the-greater-punjab-officers-co-op-society-page-1.webp",
+      "bestProcessedPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/the-greater-punjab-officers-co-op-society-page-1-enhanced.webp",
+      "thumbnailPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/the-greater-punjab-officers-co-op-society-page-1-thumb.webp",
+      "dimensions": {
+        "width": 3600,
+        "height": 2903
+      },
+      "notes": [
+        "ffmpeg PDF render failed; used largest embedded JPEG stream fallback.",
+        "Converted from PDF with ffmpeg; visual review recommended before default client exposure."
+      ]
+    },
+    {
+      "originalPath": "/new chandigarh/zonal_plan_new_chandigarhl1.pdf",
+      "relativePath": "new chandigarh/zonal_plan_new_chandigarhl1.pdf",
+      "city": "New Chandigarh",
+      "area": "New Chandigarh",
+      "fileName": "zonal_plan_new_chandigarhl1.pdf",
+      "page": 1,
+      "pdfPageCount": 1,
+      "displayName": "New Chandigarh zonal plan new chandigarhl1",
+      "matchKey": "new-chandigarh-zonal-plan-new-chandigarhl1",
+      "mapType": "map",
+      "sectorOrBlockName": "zonal plan new chandigarhl1",
+      "conversionStatus": "failed",
+      "pdfConverted": false,
+      "conversionNeeded": true,
+      "convertedImagePath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/zonal-plan-new-chandigarhl1-page-1.webp",
+      "bestProcessedPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/zonal-plan-new-chandigarhl1-page-1-enhanced.webp",
+      "thumbnailPath": "/public/plotmap-assets/processed/pdf-converted/new-chandigarh/zonal-plan-new-chandigarhl1-page-1-thumb.webp",
+      "dimensions": null,
+      "notes": [
+        "PDF conversion failed: Command failed: ffmpeg -y -loglevel error -i C:\\Users\\rachi_l35wosr\\OneDrive\\Desktop\\xyz\\public\\plotmap-assets\\processed\\pdf-converted\\new-chandigarh\\zonal-plan-new-chandigarhl1-page-1-embedded.jpg -vf scale=w='min(3600,iw)':h='min(3600,ih)':force_original_aspect_ratio=decrease -quality 86 C:\\Users\\rachi_l35wosr\\OneDrive\\Desktop\\xyz\\public\\plotmap-assets\\processed\\pdf-converted\\new-chandigarh\\zonal-plan-new-chandigarhl1-page-1.webp\n[mjpeg @ 0000014d8091b080] No JPEG data found in image\r\n[mjpeg @ 0000014d8091d6c0] No JPEG data found in image\r\n[vist#0:0/mjpeg @ 0000014d8091b080] [dec:mjpeg @ 0000014d8091d080] Error submitting packet to decoder: Invalid data found when processing input\r\n[vist#0:0/mjpeg @ 0000014d8091b080] [dec:mjpeg @ 0000014d8091d080] Decode error rate 1 exceeds maximum 0.666667\r\n[vf#0:0 @ 0000014d8091c380] Cannot determine format of input 0:0 after EOF\r\n[vf#0:0 @ 0000014d8091c380] Task finished with error code: -1094995529 (Invalid data found when processing input)\r\n[vf#0:0 @ 0000014d8091c380] Terminating thread with return code -1094995529 (Invalid data found when processing input)\r\n[vist#0:0/mjpeg @ 0000014d8091b080] [dec:mjpeg @ 0000014d8091d080] Task finished with error code: -1145393733 (Error number -1145393733 occurred)\r\n[vist#0:0/mjpeg @ 0000014d8091b080] [dec:mjpeg @ 0000014d8091d080] Terminating thread with return code -1145393733 (Error number -1145393733 occurred)\r\n[vost#0:0/libwebp_anim @ 0000014d8091bc40] [enc:libwebp_anim @ 0000014d808d3440] Could not open encoder before EOF\r\n[vost#0:0/libwebp_anim @ 0000014d8091bc40] Task finished with error code: -22 (Invalid argument)\r\n[vost#0:0/libwebp_anim @ 0000014d8091bc40] Terminating thread with return code -22 (Invalid argument)\r\n[out#0/webp @ 0000014d8089bc00] Nothing was written into output file, because at least one of its streams received no packets.\r\n"
+      ]
+    }
+  ],
+  "outputRoot": "/public/plotmap-assets/processed/pdf-converted"
+}

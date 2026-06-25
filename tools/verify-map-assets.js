@@ -14,6 +14,8 @@ const { execFileSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 const MANIFEST_PATH = path.join(ROOT, 'app', 'plotmap', 'map-assets.manifest.json');
+const GROUPED_PATH = path.join(ROOT, 'app', 'plotmap', 'map-assets.grouped.json');
+const PDF_RESULTS_PATH = path.join(ROOT, 'tools', 'pdf-conversion-results.json');
 const REVIEW_MD = path.join(ROOT, 'tools', 'map-processing-review.md');
 const GALLERY_PATH = path.join(ROOT, 'tools', 'map-review-gallery.html');
 
@@ -168,7 +170,7 @@ function verifyEntry(entry) {
   if (entry.watermarkType === 'corner logo') {
     qualityNotes.push('corner-logo cleanup requires human visual review');
   }
-  if (entry.fileType === 'pdf') {
+  if (entry.fileType === 'pdf' && !entry.pdfConverted) {
     qualityNotes.push('PDF deferred; no raster output verified');
   }
 
@@ -180,7 +182,7 @@ function verifyEntry(entry) {
   const duplicateNonKeep = !!entry.duplicateGroupId && entry.recommendedKeep === false;
   const watermarkReview = entry.watermarkType === 'diagonal tiled watermark' || entry.watermarkType === 'corner logo';
   const recommendationReview = /manual|needs better source|defer PDF/i.test(entry.recommendation || '');
-  const baseReview = watermarkReview || recommendationReview || entry.fileType === 'pdf';
+  const baseReview = watermarkReview || recommendationReview || (entry.fileType === 'pdf' && !entry.pdfConverted);
   entry.qualityNotes = unique([...(entry.qualityNotes || []), ...qualityNotes]);
   entry.notes = unique([...(entry.notes || []), ...notes]);
   entry.reviewNeeded = baseReview || hasBrokenClientPath || hasRiskyBest;
@@ -196,6 +198,116 @@ function verifyEntry(entry) {
     brokenPath: hasBrokenClientPath
   };
   return entry.verification;
+}
+
+function loadPdfConversions() {
+  if (!fs.existsSync(PDF_RESULTS_PATH)) return new Map();
+  try {
+    const data = JSON.parse(fs.readFileSync(PDF_RESULTS_PATH, 'utf8'));
+    const map = new Map();
+    for (const e of data.entries || []) {
+      const key = `${e.originalPath}|${e.page || 1}`;
+      map.set(key, e);
+    }
+    return map;
+  } catch {
+    return new Map();
+  }
+}
+
+function applyPdfConversion(entry, conversions) {
+  if (entry.fileType !== 'pdf') return;
+  const conv = conversions.get(`${entry.originalPath}|1`);
+  entry.conversionNeeded = true;
+  entry.pdfConverted = false;
+  entry.conversionStatus = conv ? conv.conversionStatus : 'manual-needed';
+  if (!conv || conv.conversionStatus !== 'converted') return;
+  entry.convertedImagePath = conv.convertedImagePath;
+  entry.bestProcessedPath = conv.bestProcessedPath;
+  entry.thumbnailPath = conv.thumbnailPath;
+  entry.processedPaths = unique([...(entry.processedPaths || []), conv.convertedImagePath, conv.bestProcessedPath, conv.thumbnailPath]);
+  entry.convertedFileType = 'image';
+  entry.pdfConverted = true;
+  entry.conversionNeeded = false;
+  entry.conversionStatus = 'converted';
+  entry.processingStatus = 'processed';
+  entry.mapType = conv.mapType || entry.mapType || 'map';
+  entry.displayName = conv.displayName || entry.displayName;
+  entry.matchKey = conv.matchKey || entry.matchKey;
+  entry.sectorOrBlockName = conv.sectorOrBlockName || entry.sectorOrBlockName;
+  entry.dimensions = conv.dimensions || entry.dimensions;
+  entry.notes = unique([...(entry.notes || []), ...(conv.notes || [])]);
+}
+
+function classifyLaunchTier(entry) {
+  const duplicateNonKeep = !!entry.duplicateGroupId && entry.recommendedKeep === false;
+  const broken = entry.verification && entry.verification.brokenPath;
+  if (entry.fileType === 'pdf' && !entry.pdfConverted) return 'deferred-pdf';
+  if (entry.conversionStatus === 'failed' || entry.conversionStatus === 'tool-unavailable') return 'deferred-pdf';
+  if (broken || duplicateNonKeep || /needs better source/i.test(entry.recommendation || '')) return 'internal-review';
+  if (entry.processingStatus !== 'processed' || !entry.bestProcessedPath) return 'internal-review';
+  if (entry.reviewNeeded) return 'proof-usable';
+  return 'client-ready';
+}
+
+function applyLaunchFlags(entry) {
+  entry.launchTier = classifyLaunchTier(entry);
+  entry.needsHumanReview = entry.launchTier === 'proof-usable' || entry.launchTier === 'internal-review';
+  entry.showInClientDefault = entry.launchTier === 'client-ready';
+  entry.showInExpandedLibrary = entry.launchTier === 'client-ready' || entry.launchTier === 'proof-usable';
+  if (entry.launchTier === 'deferred-pdf' || entry.launchTier === 'internal-review') {
+    entry.showInClientDefault = false;
+    entry.showInExpandedLibrary = false;
+  }
+  if (entry.duplicateGroupId) {
+    entry.duplicateDisplayStatus = entry.recommendedKeep === false ? 'hidden-duplicate' : 'keep';
+  } else {
+    entry.duplicateDisplayStatus = 'unique';
+  }
+  if (entry.duplicateDisplayStatus === 'hidden-duplicate') {
+    entry.showInClientDefault = false;
+    entry.showInExpandedLibrary = false;
+  }
+}
+
+function writeGroupedManifest(entries) {
+  const grouped = {
+    generatedAt: new Date().toISOString(),
+    source: '/app/plotmap/map-assets.manifest.json',
+    cities: {}
+  };
+  for (const e of entries) {
+    if (!grouped.cities[e.city || 'Unknown']) grouped.cities[e.city || 'Unknown'] = {};
+    const city = grouped.cities[e.city || 'Unknown'];
+    const type = e.mapType || 'map';
+    if (!city[type]) city[type] = [];
+    city[type].push({
+      id: e.id,
+      matchKey: e.matchKey,
+      displayName: e.displayName || e.sectorOrBlockName,
+      sectorOrBlockName: e.sectorOrBlockName,
+      sectorNumber: e.sectorNumber || null,
+      blockName: e.blockName || null,
+      launchTier: e.launchTier,
+      showInClientDefault: e.showInClientDefault,
+      showInExpandedLibrary: e.showInExpandedLibrary,
+      thumbnailPath: e.thumbnailPath,
+      bestProcessedPath: e.bestProcessedPath,
+      originalPath: e.originalPath,
+      mapType: e.mapType,
+      fileType: e.fileType,
+      pdfConverted: !!e.pdfConverted,
+      reviewNeeded: !!e.reviewNeeded,
+      duplicateGroupId: e.duplicateGroupId,
+      duplicateDisplayStatus: e.duplicateDisplayStatus
+    });
+  }
+  for (const city of Object.values(grouped.cities)) {
+    for (const list of Object.values(city)) {
+      list.sort((a, b) => String(a.displayName).localeCompare(String(b.displayName), undefined, { numeric: true }));
+    }
+  }
+  fs.writeFileSync(GROUPED_PATH, JSON.stringify(grouped, null, 2));
 }
 
 function countsBy(entries, fn) {
@@ -238,6 +350,39 @@ function updateReviewMd(manifest, summary) {
     { label: 'Value', value: r => r[1] }
   ]));
   lines.push('');
+  lines.push('## Launch Tier Classification');
+  lines.push('');
+  lines.push(table(Object.entries(summary.byLaunchTier || {}), [
+    { label: 'Launch Tier', value: r => r[0] },
+    { label: 'Count', value: r => r[1] }
+  ]));
+  lines.push('');
+  lines.push(table([
+    ['default client library count', summary.showDefault],
+    ['expanded library count', summary.showExpanded],
+    ['client-ready', (summary.byLaunchTier || {})['client-ready'] || 0],
+    ['proof-usable', (summary.byLaunchTier || {})['proof-usable'] || 0],
+    ['internal-review', (summary.byLaunchTier || {})['internal-review'] || 0],
+    ['deferred-pdf', (summary.byLaunchTier || {})['deferred-pdf'] || 0]
+  ], [
+    { label: 'Metric', value: r => r[0] },
+    { label: 'Value', value: r => r[1] }
+  ]));
+  lines.push('');
+  lines.push('## PDF Conversion Results');
+  lines.push('');
+  lines.push(table([
+    ['total PDFs found', summary.pdfTotal],
+    ['PDFs converted successfully', summary.pdfConverted],
+    ['PDF conversion failed', summary.pdfFailed],
+    ['PDFs still deferred', summary.pdfDeferred],
+    ['converted PDF proof-usable/client-ready', summary.pdfLaunchable],
+    ['output folder', '/public/plotmap-assets/processed/pdf-converted/']
+  ], [
+    { label: 'Metric', value: r => r[0] },
+    { label: 'Value', value: r => r[1] }
+  ]));
+  lines.push('');
   lines.push('### Issue Status');
   lines.push('');
   lines.push(table([
@@ -248,7 +393,7 @@ function updateReviewMd(manifest, summary) {
     ['diagonal tiled watermark', 'improved but review needed: thumbnails exist, full reduction remains human-review'],
     ['corner logos', 'improved but review needed: cleanup variants exist, visual review required'],
     ['duplicates', 'improved: duplicateGroupId/recommendedKeep/matchKey available for filtering'],
-    ['deferred PDFs', 'deferred'],
+    ['deferred PDFs', summary.pdfConverted ? 'improved: converted PDFs included where ffmpeg succeeded' : 'deferred'],
     ['low-resolution maps', 'not fixed: marked review-needed/needs better source where applicable'],
     ['broken/corrupt image files', summary.unreadableImages ? 'improved but review needed' : 'fixed: no unreadable committed client paths']
   ], [
@@ -320,7 +465,9 @@ ${section('Review-needed maps', entries.filter(e => e.reviewNeeded).slice(0, 80)
 ${section('Diagonal watermark reduction attempts', entries.filter(e => e.watermarkType === 'diagonal tiled watermark').slice(0, 80))}
 ${section('Bottom-margin cleaned maps', entries.filter(e => e.watermarkType === 'bottom-margin credit' && e.bestProcessedPath).slice(0, 80))}
 ${section('Duplicate groups', dupEntries)}
-${section('Deferred PDFs', entries.filter(e => e.processingStatus === 'deferred-pdf'))}
+${section('Converted PDF maps', entries.filter(e => e.pdfConverted))}
+${section('Failed PDF conversions', entries.filter(e => e.fileType === 'pdf' && e.conversionStatus === 'failed'))}
+${section('Deferred PDFs', entries.filter(e => e.launchTier === 'deferred-pdf'))}
 </body>
 </html>`;
   fs.writeFileSync(GALLERY_PATH, html);
@@ -333,19 +480,22 @@ function main() {
   }
   const manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8'));
   const entries = manifest.entries || [];
+  const conversions = loadPdfConversions();
   let movedToReview = 0;
   let brokenPaths = 0;
   let unreadableImages = 0;
   for (const entry of entries) {
+    applyPdfConversion(entry, conversions);
     const before = !!entry.usable;
     const v = verifyEntry(entry);
+    applyLaunchFlags(entry);
     if (before && entry.verification.movedToReview) movedToReview++;
     if (v.brokenPath) brokenPaths++;
     if ((entry.notes || []).some(n => /not a readable image/i.test(n))) unreadableImages++;
   }
   const duplicateGroups = new Set(entries.filter(e => e.duplicateGroupId).map(e => e.duplicateGroupId)).size;
   manifest.verifiedAt = new Date().toISOString();
-  manifest.clientVisibilityRule = 'Show only usable === true && reviewNeeded === false && processingStatus === "processed"; hide duplicate non-keep entries when recommendedKeep is false.';
+  manifest.clientVisibilityRule = 'Default: showInClientDefault === true. Expanded: showInExpandedLibrary === true. Hide internal-review/deferred-pdf and hidden duplicates.';
   const summary = {
     total: entries.length,
     thumbnailPaths: entries.filter(e => e.thumbnailPath).length,
@@ -356,10 +506,21 @@ function main() {
     duplicateGroups,
     deferredPdf: entries.filter(e => e.processingStatus === 'deferred-pdf').length,
     missingThumbnails: entries.filter(e => e.processingStatus === 'processed' && !e.thumbnailPath).length,
-    unreadableImages
+    unreadableImages,
+    byLaunchTier: countsBy(entries, e => e.launchTier),
+    byCity: countsBy(entries, e => e.city),
+    byMapType: countsBy(entries, e => e.mapType),
+    showDefault: entries.filter(e => e.showInClientDefault).length,
+    showExpanded: entries.filter(e => e.showInExpandedLibrary).length,
+    pdfTotal: entries.filter(e => e.fileType === 'pdf').length,
+    pdfConverted: entries.filter(e => e.fileType === 'pdf' && e.pdfConverted).length,
+    pdfFailed: entries.filter(e => e.fileType === 'pdf' && e.conversionStatus === 'failed').length,
+    pdfDeferred: entries.filter(e => e.fileType === 'pdf' && e.launchTier === 'deferred-pdf').length,
+    pdfLaunchable: entries.filter(e => e.fileType === 'pdf' && (e.launchTier === 'client-ready' || e.launchTier === 'proof-usable')).length
   };
   manifest.verificationSummary = summary;
   fs.writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2));
+  writeGroupedManifest(entries);
   updateReviewMd(manifest, summary);
   writeGallery(entries);
   console.log(JSON.stringify(summary, null, 2));

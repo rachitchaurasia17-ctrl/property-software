@@ -73,6 +73,7 @@ function matchKeyFor(rec) {
 }
 
 function mapTypeFor(rec) {
+  if (rec.fileType === 'pdf') return 'pdf';
   const name = String(rec.sectorOrBlockName || '').toLowerCase();
   if (name.startsWith('sector ')) return 'sector';
   if (name.startsWith('block ')) return 'block';
@@ -312,6 +313,9 @@ function buildManifest(records, resultByPath) {
         id: uniqueIdFor(rec),
         matchKey: matchKeyFor(rec),
         mapType: mapTypeFor(rec),
+        displayName: rec.displayName || `${rec.city} ${rec.sectorOrBlockName}`,
+        sectorNumber: rec.sectorNumber || null,
+        blockName: rec.blockName || null,
         originalPath: '/' + rec.relativePath,
         processedPaths,
         plannedProcessedPaths: args.dryRun ? outputs.planned.map(o => o.path) : [],
@@ -321,6 +325,10 @@ function buildManifest(records, resultByPath) {
         area: rec.city,
         sectorOrBlockName: rec.sectorOrBlockName,
         fileType: rec.fileType,
+        conversionNeeded: rec.fileType === 'pdf',
+        pdfPageCount: rec.pdfPageCount || null,
+        conversionStatus: rec.fileType === 'pdf' ? 'manual-needed' : null,
+        pdfConverted: false,
         dimensions: rec.dimensions,
         megapixels: rec.megapixels,
         fileSizeBytes: rec.fileSizeBytes,

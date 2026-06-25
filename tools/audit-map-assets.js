@@ -134,6 +134,52 @@ function inferSectorOrBlock(fileName) {
   return base;
 }
 
+function mapTypeForName(name, fileType) {
+  if (fileType === 'pdf') return 'pdf';
+  const lower = String(name || '').toLowerCase();
+  if (lower.startsWith('sector ')) return 'sector';
+  if (lower.startsWith('block ')) return 'block';
+  if (lower.includes('pocket')) return 'pocket';
+  if (lower.includes('master') || lower.includes('zonal')) return 'masterplan';
+  return 'map';
+}
+
+function sectorNumberForName(name) {
+  const m = /\bsector\s+([0-9]+[a-z]?)\b/i.exec(String(name || ''));
+  return m ? m[1].toUpperCase() : null;
+}
+
+function blockNameForName(name) {
+  const m = /\bblock\s+([a-z0-9]+)\b/i.exec(String(name || ''));
+  return m ? `Block ${m[1].toUpperCase()}` : null;
+}
+
+function displayNameFor(city, name) {
+  const n = String(name || '').trim();
+  if (!n) return city || 'Unknown Map';
+  if (String(city || '').toLowerCase() === 'unknown') return n;
+  return `${city} ${n}`;
+}
+
+function matchKeyFor(city, name) {
+  return displayNameFor(city, name)
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function pdfPageCount(abs) {
+  try {
+    const text = fs.readFileSync(abs, 'latin1');
+    const pages = new Set();
+    for (const m of text.matchAll(/\/Type\s*\/Page\b/g)) pages.add(m.index);
+    return pages.size || null;
+  } catch {
+    return null;
+  }
+}
+
 function qualityClass(mp, width, height, fileType) {
   if (fileType === 'pdf') return 'unknown';
   if (!mp) return 'unknown';
@@ -229,6 +275,7 @@ function audit() {
     const city = inferCity(rel, sourceMap);
     const q = qualityClass(mp, dims.width, dims.height, fileType);
     const wm = classifyWatermark(rel, city, ext, dims.width, dims.height, sourceMap);
+    const inferredName = inferSectorOrBlock(path.basename(abs));
     const rec = {
       originalPath: abs,
       relativePath: rel,
@@ -240,7 +287,16 @@ function audit() {
       megapixels: mp,
       aspectRatio,
       city,
-      sectorOrBlockName: inferSectorOrBlock(path.basename(abs)),
+      area: city,
+      sectorOrBlockName: inferredName,
+      sectorNumber: sectorNumberForName(inferredName),
+      blockName: blockNameForName(inferredName),
+      displayName: displayNameFor(city, inferredName),
+      matchKey: matchKeyFor(city, inferredName),
+      mapType: mapTypeForName(inferredName, fileType),
+      conversionNeeded: fileType === 'pdf',
+      pdfPageCount: fileType === 'pdf' ? pdfPageCount(abs) : null,
+      status: fileType === 'pdf' ? 'pdf-pending-conversion' : 'source-audited',
       qualityClass: q,
       readabilityRisk: readabilityRisk(q, mp, fileType),
       watermarkType: wm,

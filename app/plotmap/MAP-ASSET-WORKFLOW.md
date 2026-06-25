@@ -78,6 +78,7 @@ node tools/verify-map-assets.js
 Outputs:
 
 - updates `app/plotmap/map-assets.manifest.json`
+- updates `app/plotmap/map-assets.grouped.json`
 - updates `tools/map-processing-review.md`
 - creates `tools/map-review-gallery.html`
 
@@ -134,7 +135,29 @@ Diagonal watermark removal is inherently hard. These outputs are reduction attem
 
 ### PDFs
 
-PDF maps are deferred for now. They are included in audit counts when `--include-pdf` is used, but not rasterized by this pipeline because the current environment relies on Node and ffmpeg only.
+PDF maps are included in audit counts when `--include-pdf` is used. Convert them separately so PDF failures do not block the image-map batch:
+
+```bash
+node tools/convert-pdf-maps.js --dry-run
+node tools/convert-pdf-maps.js --limit 2
+node tools/convert-pdf-maps.js --force
+```
+
+Converted PDF outputs are written under:
+
+- `public/plotmap-assets/processed/pdf-converted/`
+
+The converter never overwrites source PDFs. It first tries ffmpeg PDF rendering, then falls back to extracting the largest embedded JPEG stream for page 1 when direct rendering fails. Results are recorded in:
+
+- `tools/pdf-conversion-results.json`
+
+After conversion, refresh the manifest and grouped launch-tier manifest:
+
+```bash
+node tools/verify-map-assets.js
+```
+
+PDFs that convert successfully are added to the manifest with `pdfConverted: true`, `conversionStatus: "converted"`, a `thumbnailPath`, and a `bestProcessedPath`. PDFs that fail remain in the manifest as `launchTier: "deferred-pdf"` and must be hidden from the client UI.
 
 ## Review
 
@@ -188,11 +211,20 @@ Each manifest entry includes:
 - `watermarkType`
 - `processingStatus`
 - `recommendation`
+- `launchTier`
+- `needsHumanReview`
+- `showInClientDefault`
+- `showInExpandedLibrary`
 - `reviewNeeded`
 - `usable`
 - `duplicateGroupId`
+- `duplicateDisplayStatus`
 - `recommendedKeep`
 - `qualityClass`
+- `conversionNeeded`
+- `pdfConverted`
+- `conversionStatus`
+- `pdfPageCount`
 - `notes`
 
 Use `matchKey` for UI matching and grouping, for example:
@@ -204,9 +236,37 @@ Use `matchKey` for UI matching and grouping, for example:
 
 Use `id` as the unique entry key. Duplicate source files may share the same `matchKey` but must have distinct `id` values.
 
+## Launch Tiers
+
+The verifier classifies every manifest entry into a launch tier:
+
+- `client-ready`: default client library candidate. Use `thumbnailPath` on cards and `bestProcessedPath` when opened.
+- `proof-usable`: usable for an expanded/internal-approved library, but still needs human review before default client exposure.
+- `internal-review`: keep out of client UI until reviewed.
+- `deferred-pdf`: PDF exists but no usable converted image was generated.
+
+Default client UI should use:
+
+```js
+entry.showInClientDefault === true
+```
+
+Expanded review/approved UI can use:
+
+```js
+entry.showInExpandedLibrary === true
+```
+
+Hide entries with:
+
+- `launchTier === "internal-review"`
+- `launchTier === "deferred-pdf"`
+- `duplicateDisplayStatus === "hidden-duplicate"`
+- missing `thumbnailPath` or missing `bestProcessedPath`
+
 ## Connecting to PlotMap Later
 
-Antigravity/Codex should connect only entries where `usable === true` by default. Use `thumbnailPath` for cards and `bestProcessedPath` for the opened sector/block map. Hide `reviewNeeded` maps from the client UI unless an explicit review/approval workflow allows them. Do not connect every processed output automatically.
+Antigravity/Codex should connect only `showInClientDefault === true` entries by default. Use `thumbnailPath` for cards and `bestProcessedPath` for the opened sector/block map. Hide `needsHumanReview` maps from the client UI unless an explicit review/approval workflow allows them. Do not connect every processed output automatically.
 
 The client-facing app should continue to use:
 
