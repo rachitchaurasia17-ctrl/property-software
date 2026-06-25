@@ -219,7 +219,7 @@
     l.style.width = LW + 'px'; l.style.height = LH + 'px';
     l.className = 'maplayer ' + kind;
     if (kind === 'original') l.innerHTML = `<img class="orig" src="${DS.assets.original}" alt="Official masterplan">` + origSVG();
-    else if (kind === 'markings') l.innerHTML = `<img class="orig" src="/public/plotmap-assets/markings.png" alt="Masterplan Marking">`;
+    else if (kind === 'markings') l.innerHTML = `<img class="orig" src="/public/plotmap-assets/markings.jpg" alt="Masterplan Marking">`;
     else if (kind === 'sector') { const sm = activeSectorMap(); const sectorAsset = (sm && sm.bestProcessedPath) || DS.assets.sector; l.innerHTML = `<div class="sector-wrap" style="width:${LW}px;height:${LH}px;background-image:url('${sectorAsset}')"></div><div id="proofG"></div>`; }
     else l.innerHTML = html;
     builtSig = sig; updateMapOverlays();
