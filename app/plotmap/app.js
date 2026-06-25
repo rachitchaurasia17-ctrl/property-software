@@ -163,7 +163,7 @@
       + scopedRoads().map(r => `<path d="${r.easyD}" class="e-road-hit" data-hit="line:${r.id}"/>`).join('');
     const zones = scopedZones().map(z => {
       const c = catColor(z.cat);
-      return `<g class="e-zone" data-hit="zone:${z.id}" data-zid="${z.id}">
+      return `<g class="e-zone cat-${z.cat}" data-hit="zone:${z.id}" data-zid="${z.id}">
         <rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="18" fill="${hexA(c, .16)}" stroke="${hexA(c, .55)}" stroke-width="2" ${z.dashed ? 'stroke-dasharray="11 8"' : ''} class="zfill"/>
         <text x="${z.x + z.w / 2}" y="${z.y + 26}" class="e-zlabel" fill="${c}" text-anchor="middle">${esc(z.name)}</text>
         ${(z.pins || []).map(p => `<g><circle cx="${p.at[0]}" cy="${p.at[1]}" r="4.5" fill="${c}"/><text x="${p.at[0]}" y="${p.at[1] + 20}" class="e-sublabel" text-anchor="middle">${esc(p.name)}</text></g>`).join('')}
@@ -188,6 +188,10 @@
       <defs>
         <radialGradient id="sand" cx="42%" cy="38%" r="80%"><stop offset="0%" stop-color="#F1E7D0"/><stop offset="100%" stop-color="#E4D7BB"/></radialGradient>
         <filter id="eglow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="6"/></filter>
+        <pattern id="e-commercial-hatch" width="16" height="16" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+          <rect width="16" height="16" fill="color-mix(in srgb, #F05A28 15%, transparent)"/>
+          <line x1="0" y1="0" x2="0" y2="16" stroke="#F05A28" stroke-width="4" stroke-opacity="0.3"/>
+        </pattern>
       </defs>
       <rect x="0" y="0" width="${EW}" height="${EH}" fill="url(#sand)"/>
       <g id="eInternal">${internal}</g>
@@ -285,6 +289,10 @@
         <filter id="eglow" x="-30%" y="-30%" width="160%" height="160%">
           <feGaussianBlur stdDeviation="15"/>
         </filter>
+        <pattern id="commercial-hatch" width="30" height="30" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+          <rect width="30" height="30" fill="color-mix(in srgb, #F05A28 25%, transparent)"/>
+          <line x1="0" y1="0" x2="0" y2="30" stroke="#F05A28" stroke-width="8" stroke-opacity="0.4"/>
+        </pattern>
       </defs>
       <g id="oRoadCase">${casing}</g>
       <g id="oBlocks">${blocksHTML}</g>

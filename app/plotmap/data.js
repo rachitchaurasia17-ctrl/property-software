@@ -12,7 +12,7 @@ window.PM = {
     { id:'roads',        label:'Key Roads',                color:'#16356A', kind:'line' },
     { id:'blocks',       label:'Blocks',                   color:'#2E5A86', kind:'block' },
     { id:'sectors',      label:'Sectors',                  color:'#3F6B4A', kind:'block' },
-    { id:'commercial',   label:'Commercial Zones',         color:'#B8823A', kind:'zone' },
+    { id:'commercial',   label:'Commercial Zones',         color:'#F05A28', kind:'zone' },
     { id:'institutions', label:'Education',                color:'#7A4A6E', kind:'zone' },
     { id:'it',           label:'IT & Employment',          color:'#2F7E78', kind:'zone' },
     { id:'green',        label:'Green & Open Areas',       color:'#6E9456', kind:'zone' },
