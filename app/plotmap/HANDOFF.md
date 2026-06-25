@@ -77,3 +77,27 @@ node tools/audit-plotmap.js
 - Presentation-mode polish.
 - Gallery/photo treatment once real assets exist.
 - Future brand theming after the map/data workflow is stable.
+
+---
+
+## A/B/C/D Highlight Sets + Admin Editor (this pass)
+
+**Done & pushed:**
+- Main site shows 4 fixed buttons **A B C D** beside the Original/Easy toggle
+  (`app/plotmap/app.js` → `mapControlsHTML` / `[data-prebuilt-label]` handler).
+  Each resolves its `prebuilt_maps` row by `label` and highlights those item ids
+  on the Original Map.
+- **Admin visual editor**: `admin/editor.html` — official map in the middle,
+  A/B/C/D on the left. Click verified items (map shapes or grouped chips) to assign
+  them to a set; **Save** upserts to Supabase `prebuilt_maps` (by label) → live on the site.
+  Reuses the golden verified geometry (only items whose `svgId` exists in `geo.json` are selectable).
+
+**ONE manual step required (Supabase project `czmkfmkmgqlienmdihul`):**
+Run `supabase_setup.sql` once in the Supabase Dashboard → SQL Editor. It creates
+`prebuilt_maps`, adds anon read+write RLS policies, and seeds A/B/C/D. Until then the
+editor loads but Save returns "table not found", and the A/B/C/D buttons highlight nothing.
+
+**Next steps (Antigravity):** lazy-load editor map image; optional per-letter rename;
+show A/B/C/D highlight on Easy Map too (currently forces Original Map on click).
+**Next steps (Codex):** tighten `prebuilt_maps` RLS (writes behind auth), add a manifest
+generator, no-price audit in CI.
