@@ -207,7 +207,7 @@
     if (state.activeCats.size > 0) return Array.from(state.activeCats).pop();
     return null;
   };
-  function mapKind() { if (state.section === 'markings') return 'markings'; if (state.section === 'props' && state.propView === 'sector') return 'sector'; return state.mapMode === 'original' ? 'original' : 'easy'; }
+  function mapKind() { if (state.section === 'props' && state.propView === 'sector') return 'sector'; return state.mapMode; }
   function buildMap() {
     const kind = mapKind(); const sig = state.areaId + '|' + kind; const fresh = sig !== builtSig;
     const l = layer(); if (!l) return;
@@ -564,15 +564,16 @@
 
   /* ---------- PLAN SHELL ---------- */
   function planHTML() {
-    const showBack = state.section !== 'master' && state.section !== 'markings';
-    const split = state.section === 'master' || state.section === 'markings' || (state.section === 'props' && state.propView === 'sector');
+    const showBack = state.section !== 'master';
+    const split = state.section === 'master' || (state.section === 'props' && state.propView === 'sector');
     const full = !split;
     return `<div style="flex:1; display:flex; flex-direction:column; min-width:0; position:relative;">
       <div class="topbar">
         <div class="brand"><span class="logo"><i></i></span><span class="brand-name">PlotMap</span></div>
         <button class="area-switch" id="areaToggle"><span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.1"><span class="cur">${esc(area().name)}</span><span class="lab">View all maps</span></span><span class="caret">▾</span></button>
         <div class="divider"></div>
-        <div style="display:flex;gap:3px"><button class="tab ${state.section === 'master' ? 'on' : ''}" id="tabMaster">Masterplan</button><button class="tab ${state.section === 'props' && state.propView !== 'sector' ? 'on' : ''}" id="tabProps">Properties</button><button class="tab ${state.section === 'sectors' ? 'on' : ''}" id="tabSectors">Sector Maps</button><button class="tab ${state.section === 'markings' ? 'on' : ''}" id="tabMarkings">Masterplan Marking</button></div>
+        <div style="display:flex;gap:3px"><button class="tab ${state.section === 'master' ? 'on' : ''}" id="tabMaster">Masterplan</button><button class="tab ${state.section === 'props' && state.propView !== 'sector' ? 'on' : ''}" id="tabProps">Properties</button><button class="tab ${state.section === 'sectors' ? 'on' : ''}" id="tabSectors">Sector Maps</button></div>
+        ${state.section === 'master' ? `<div class="divider"></div><div class="mode-switch topbar-mode"><button class="${state.mapMode === 'original' ? 'on' : ''}" data-mode="original">Original Map</button><button class="${state.mapMode === 'easy' ? 'on' : ''}" data-mode="easy">Easy Map</button><button class="${state.mapMode === 'markings' ? 'on' : ''}" data-mode="markings">Aerocity Blocks</button><div class="divider" style="margin:3px 6px;width:1px;background:#1B3F7C"></div>${['A','B','C','D'].map(L => `<button class="transparent-btn ${state.activeLetter === L ? 'on' : ''}" data-prebuilt-label="${L}" title="Highlight set ${L}">${L}</button>`).join('')}</div>` : ''}
         <div class="spacer"></div>
         <a href="/admin/editor.html" style="color:#A19B8D; font-size:12px; font-weight:600; text-decoration:none; margin-right:16px;">Editor</a>
         ${showBack ? '<button class="back-btn" id="backMaster"><span>‹</span> Back to Masterplan</button>' : ''}
@@ -597,11 +598,7 @@
   }
   function mapControlsHTML() {
     const showModes = state.section === 'master';
-    const LETTERS = ['A', 'B', 'C', 'D'];
-    const prebuiltBtns = LETTERS.map(L => `<button class="transparent-btn ${state.activeLetter === L ? 'on' : ''}" data-prebuilt-label="${L}" title="Highlight set ${L}">${L}</button>`).join('');
-    const divider = `<div class="divider" style="margin: 3px 6px; width:1px; background:#E1D6BF;"></div>`;
-    return `${showModes ? `<div class="mode-switch"><button class="${state.mapMode === 'original' ? 'on' : ''}" data-mode="original">Original Map</button><button class="${state.mapMode === 'easy' ? 'on' : ''}" data-mode="easy">Easy Map</button>${divider}${prebuiltBtns}</div>` : ''}
-      ${showModes && state.mapMode === 'easy' ? `<div class="prop-switch ${state.showProps ? 'on' : ''}" id="propSwitch"><span class="lbl">Show Properties</span><span class="knob"><i></i></span></div>` : ''}
+    return `${showModes && state.mapMode === 'easy' ? `<div class="prop-switch ${state.showProps ? 'on' : ''}" id="propSwitch"><span class="lbl">Show Properties</span><span class="knob"><i></i></span></div>` : ''}
       <div class="zoom"><button id="zin" title="Zoom in">+</button><div class="zsep"></div><button id="zout" title="Zoom out">−</button><div class="zsep"></div><button id="zfit" title="Reset view">⤢</button></div>
       ${state.previewId ? previewHTML() : ''}`;
   }
@@ -843,7 +840,6 @@
     on('viewAllSectors', () => { Object.assign(state, { section: 'sectors', areaMenuOpen: false }); render(); });
     each('[data-sw]', b => b.addEventListener('click', async () => { const a = PM.areas.find(x => x.id === b.getAttribute('data-sw')); if (!a || !a.live) return; Object.assign(state, resetPlan({ areaId: a.id })); await useDataset(a.id); builtSig = ''; render(); }));
     on('tabMaster', () => { Object.assign(state, { section: 'master' }); builtSig = ''; render(); });
-    on('tabMarkings', () => { Object.assign(state, { section: 'markings' }); builtSig = ''; render(); });
     on('tabProps', () => { Object.assign(state, { section: 'props', propView: 'browse', selectedId: null, previewId: null }); render(); });
     on('tabSectors', () => { Object.assign(state, { section: 'sectors' }); render(); });
     on('qAllMaps', () => { state.areaMenuOpen = true; render(); });
