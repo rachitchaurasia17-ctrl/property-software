@@ -5,6 +5,15 @@
   const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   /* ---- reusable map engine: resolve the active dataset + its geometry ---- */
+  let PM_MANIFEST = null;
+  const verifiedManifestMaps = () => {
+    if (!PM_MANIFEST || !PM_MANIFEST.entries) return [];
+    return PM_MANIFEST.entries.filter(e => 
+      e.usable === true && e.reviewNeeded === false && e.processingStatus === 'processed' &&
+      (!e.duplicateGroupId || e.recommendedKeep === true)
+    );
+  };
+
   let DS = null, GEO = { viewBox: '0 0 4599 3069', cyan: [], red: [], black: [] };
   let EW = 1440, EH = 960, IW = 4599, IH = 3069;
   const geoCache = {};
@@ -42,20 +51,26 @@
   const mapZones = () => (DS.zones || []).filter(z => z && z.clientVisible !== false && z.id && z.name && z.cat && rectOk(z));
   const mapPins = () => (DS.pins || []).filter(p => p && p.clientVisible !== false && p.id && p.name && p.cat && Array.isArray(p.at) && p.at.length === 2);
   const mapProperties = () => (DS.properties || []).filter(p => p && p.clientVisible !== false && p.id && p.plotNumber && p.blockId && blockById(p.blockId));
-  const readySectorMaps = () => (DS.sectorMaps || []).filter(s => s && s.status === 'ready' && (s.asset || DS.assets.sector));
-  const roadById = (id) => keyRoads().find(r => r.id === id);
-  const zoneById = (id) => mapZones().find(z => z.id === id);
-  const pinById = (id) => mapPins().find(p => p.id === id);
-  const blockById = (id) => mapBlocks().find(b => b.id === id);
-  const propById = (id) => mapProperties().find(p => p.id === id);
-  const scopedRoads = () => { const f = area().focusArea; return f ? keyRoads().filter(r => !r.related || r.related.includes(f) || r.related.some(x => x.includes(f))) : keyRoads(); };
-  const scopedBlocks = () => { const f = area().focusArea; return f ? mapBlocks().filter(b => b.area === f) : mapBlocks(); };
-  const scopedZones = () => { const f = area().focusArea; return f ? mapZones().filter(z => !z.related || z.related.includes(f) || z.related.some(x => x.includes(f))) : mapZones(); };
-  const scopedPins = () => { const f = area().focusArea; return f ? mapPins().filter(p => !p.related || p.related.includes(f) || p.related.some(x => x.includes(f))) : mapPins(); };
-  const scopedProperties = () => { const f = area().focusArea; return f ? mapProperties().filter(p => p.area === f) : mapProperties(); };
-  const propsInBlock = (bid) => mapProperties().filter(p => p.blockId === bid);
+  const readySectorMaps = verifiedManifestMaps;
   const sectorMapById = (id) => readySectorMaps().find(s => s.id === id);
-  const sectorMapForProperty = (p) => p && readySectorMaps().find(s => s.area === p.area && s.block === p.block);
+  const sectorMapForProperty = (p) => {
+    if (!p) return null;
+    const blk = (p.block || '').toLowerCase().replace(/ /g,'-');
+    return readySectorMaps().find(s => 
+      (s.matchKey && s.matchKey.toLowerCase() === blk) ||
+      (s.sectorOrBlockName && s.sectorOrBlockName.toLowerCase() === (p.block || '').toLowerCase())
+    );
+  };
+  const sectorMapForItem = (id) => {
+    const it = itemObj(id);
+    if (!it) return null;
+    const n = (it.name || '').toLowerCase();
+    const cleanN = n.replace(/ /g,'-');
+    return readySectorMaps().find(s => 
+      (s.matchKey && s.matchKey.toLowerCase() === cleanN) ||
+      (s.sectorOrBlockName && s.sectorOrBlockName.toLowerCase() === n)
+    );
+  };
   const activeSectorMap = () => sectorMapById(state.sectorBlock) || sectorMapForProperty(propById(state.selectedId)) || readySectorMaps()[0] || null;
   const hasSectorMap = (p) => !!sectorMapForProperty(p);
   const itemObj = (id) => roadById(id) || zoneById(id) || pinById(id) || blockById(id);
@@ -151,7 +166,7 @@
     l.style.width = LW + 'px'; l.style.height = LH + 'px';
     l.className = 'maplayer ' + kind;
     if (kind === 'original') l.innerHTML = `<img class="orig" src="${DS.assets.original}" alt="Official masterplan">` + origSVG();
-    else if (kind === 'sector') { const sm = activeSectorMap(); const sectorAsset = (sm && sm.asset) || DS.assets.sector; l.innerHTML = `<div class="sector-wrap" style="width:${LW}px;height:${LH}px;background-image:url('${sectorAsset}')"></div><div id="proofG"></div>`; }
+    else if (kind === 'sector') { const sm = activeSectorMap(); const sectorAsset = (sm && sm.bestProcessedPath) || DS.assets.sector; l.innerHTML = `<div class="sector-wrap" style="width:${LW}px;height:${LH}px;background-image:url('${sectorAsset}')"></div><div id="proofG"></div>`; }
     else l.innerHTML = easySVG();
     builtSig = sig; updateMapOverlays();
     if (fresh) requestAnimationFrame(fit); else applyT(false);
@@ -597,6 +612,7 @@
 
       <div class="pc-actions" style="display:flex; gap:8px; height:40px;">
         ${hasPhotos ? `<button class="btn-primary" data-photos="${id}" style="flex:1; max-width:200px;">View Gallery</button>` : ''}
+        ${sectorMapForItem(id) ? `<button class="btn-primary" data-opensec="${sectorMapForItem(id).id}" style="flex:1; max-width:200px;">View Map</button>` : ''}
         <button class="pc-ghost" id="btnPreviewProps" style="flex:1; max-width:200px;">Properties</button>
         ${ids.length > 1 ? `
           <div style="display:flex; align-items:center; background:#F8FAFC; border-radius:8px; border:1px solid #EBE1CC; flex:1; justify-content:space-between; padding:0 12px; height:100%;">
@@ -622,7 +638,7 @@
     const b = activeSectorMap();
     return `<div class="head" style="padding-bottom:14px">
         <button class="backlink" id="backToSectors">‹ All sector maps</button>
-        <div class="serif" style="font-size:26px;font-weight:560;margin-top:10px">${b ? esc(b.name) : 'Sector Map'}</div>
+        <div class="serif" style="font-size:26px;font-weight:560;margin-top:10px">${b ? esc(b.sectorOrBlockName) : 'Sector Map'}</div>
         <div style="font-size:13.5px;color:#9C957F;font-weight:600;margin-top:3px">Exact layout — official sector map proof</div></div>
       <div class="scroll"><div class="note-soft">Pinch / scroll to zoom into the exact plots on this sector layout.</div>
         <button class="btn-ghost wfull" id="backMaster2" style="height:46px;margin-top:16px">Back to Masterplan</button></div>`;
@@ -701,25 +717,27 @@
   function sectorsHubHTML() {
     const q = state.secQ.trim().toLowerCase();
     let list = readySectorMaps();
-    if (state.secArea !== 'all') list = list.filter(s => s.area === state.secArea);
-    if (q) list = list.filter(s => (s.name + ' ' + s.block).toLowerCase().includes(q));
-    const areas = [...new Set(readySectorMaps().map(s => s.area))];
+    if (state.secArea !== 'all') list = list.filter(s => (s.area || '').toLowerCase() === state.secArea.toLowerCase());
+    if (q) list = list.filter(s => (s.sectorOrBlockName + ' ' + (s.area||'') + ' ' + (s.city||'')).toLowerCase().includes(q));
+    const areas = [...new Set(list.map(s => s.area).filter(Boolean))];
     const chips = [['all', 'All']].concat(areas.map(a => [a, a]));
     return `<div class="full-in">
       <div class="eyebrow">Exact plot proof</div>
       <div class="serif" style="font-size:40px;font-weight:560;letter-spacing:-1px;line-height:1.02;margin-top:6px">Sector Maps</div>
       <div class="chips" style="margin-top:16px">${chips.map(([v, l]) => `<button class="chip ${state.secArea === v ? 'on' : ''}" data-secarea="${v}">${l}</button>`).join('')}</div>
-      <div class="search"><span class="ic"></span><input id="secSearch" value="${esc(state.secQ)}" placeholder="Search sector or block… e.g. Block A, Aerotropolis"></div>
+      <div class="search"><span class="ic"></span><input id="secSearch" value="${esc(state.secQ)}" placeholder="Search sector or block… e.g. Block A, Sector 20"></div>
       ${list.length ? `<div class="grid-cards" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr));margin-top:22px">${list.map(secCardHTML).join('')}</div>` : `<div class="empty" style="background:#fff; border:1px solid #EBE1CC; border-radius:18px; padding:60px 40px; margin-top:24px;"><div style="font-size:36px; margin-bottom:12px;">🗺️</div><div style="font-size:18px; font-weight:700; color:#0B1A36;">No sector maps match</div><div style="font-size:14px; margin-top:6px; color:#6B6456;">Try adjusting your search or area filter.</div></div>`}
     </div>`;
   }
   function secCardHTML(s) {
-    const block = mapBlocks().find(b => b.area === s.area && b.name === s.block);
-    const accent = catColor(block ? block.cat : 'roads');
+    const block = mapBlocks().find(b => b.area === s.area && b.name === s.sectorOrBlockName);
+    const accent = catColor(block ? block.cat : 'sectors');
+    const thumb = s.thumbnailPath ? esc(s.thumbnailPath) : '';
     return `<div class="seccard">
-      <div class="sec-thumb" style="--a:${accent}"><span class="sec-grid"></span><span class="sec-big">${esc(s.block.replace(/[^A-Z0-9]/gi, '').slice(-2))}</span><span class="sec-tag ready">Ready</span></div>
-      <div class="sec-body"><div class="sec-name">${esc(s.block)}</div><div class="sec-area">${esc(s.area)}</div>
-        <button class="btn-primary wfull" style="height:44px;margin-top:11px;font-size:13.5px" data-opensec="${s.id}">Open Sector Map</button></div></div>`;
+      <div class="sec-thumb" style="--a:${accent}; background-image:url('${thumb}'); background-size:cover; background-position:center;">
+        <span class="sec-tag ready">Verified Map</span></div>
+      <div class="sec-body"><div class="sec-name">${esc(s.sectorOrBlockName)}</div><div class="sec-area">${esc(s.city || '')}${s.city && s.area ? ' · ' : ''}${esc(s.area || '')}</div>
+        <button class="btn-primary wfull" style="height:44px;margin-top:11px;font-size:13.5px" data-opensec="${s.id}">Open Map</button></div></div>`;
   }
   function lightboxHTML() {
     const lb = state.lightbox; const ph = lb.photos[lb.index];
@@ -917,6 +935,12 @@
   function toast(msg) { let t = el('toast'); if (!t) { t = document.createElement('div'); t.id = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.style.opacity = '1'; clearTimeout(t._h); t._h = setTimeout(() => t.style.opacity = '0', 1900); }
 
   window.addEventListener('resize', () => { if (state.space === 'plan') fit(); });
+  
+  try {
+    const mRes = await fetch('./map-assets.manifest.json');
+    PM_MANIFEST = await mRes.json();
+  } catch(e) { console.error('Failed to load map manifest', e); }
+
   await useDataset(state.areaId);
   
   if (supabase) {
