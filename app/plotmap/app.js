@@ -259,7 +259,13 @@
     }).join('');
 
     const zonePaths = scopedZones().filter(z => z.svgId && GEO.paths && GEO.paths[z.svgId]);
-    const zonesHTML = zonePaths.map(z => `<path d="${GEO.paths[z.svgId]}" class="o-zone cat-${z.cat}" style="--zfill:${catColor(z.cat)}" data-itempath="${z.id}" data-hit="zone:${z.id}"/>`).join('');
+    const zonesHTML = zonePaths.map(z => {
+      const center = getPathCenter(GEO.paths[z.svgId]);
+      let cx = center.cx, cy = center.cy;
+      let shortLabel = z.name.replace(/^(Commercial Zone|Zone)\s+/i, '');
+      return `<path d="${GEO.paths[z.svgId]}" class="o-zone cat-${z.cat}" style="--zfill:${catColor(z.cat)}" data-itempath="${z.id}" data-hit="zone:${z.id}"/>
+        <text x="${cx}" y="${cy}" class="o-zone-lbl cat-${z.cat}" data-itempath="${z.id}">${esc(shortLabel)}</text>`;
+    }).join('');
 
     const pinsHTML = [];
     const addPin = (item, kind) => {
@@ -336,7 +342,7 @@
         p.classList.remove('act', 'show', 'soft');
         p.classList.add('hide');
       });
-      l.querySelectorAll('.o-block, .o-zone, .o-block-lbl').forEach(p => { 
+      l.querySelectorAll('.o-block, .o-zone, .o-block-lbl, .o-zone-lbl').forEach(p => { 
         const id = p.getAttribute('data-itempath'); 
         const on = relate(id, itemKindOf(id)); 
         const inCat = state.activeCats.size > 0 && state.activeCats.has(itemCategory(id));

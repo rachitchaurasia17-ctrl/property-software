@@ -702,6 +702,11 @@ input{font-family:inherit;-webkit-appearance:none;}
 .orig-ov .o-block-lbl.act { opacity:1; transform:translateY(-20px); filter:drop-shadow(0 6px 16px rgba(0,0,0,0.5)); }
 .orig-ov .o-block-lbl.hide { opacity:0; }
 
+.orig-ov .o-zone-lbl { font-family:'Hanken Grotesk',sans-serif; font-weight:800; font-size:38px; fill:#ffffff; opacity:0; transition:.3s cubic-bezier(0.2, 0, 0, 1); pointer-events:none; text-anchor:middle; dominant-baseline:central; paint-order:stroke; stroke:#0B1A36; stroke-width:6px; stroke-opacity:0.6; }
+.orig-ov .o-zone-lbl.show { opacity:0; transform:translateY(-6px); }
+.orig-ov .o-zone-lbl.act { opacity:1; transform:translateY(-14px); filter:drop-shadow(0 4px 12px rgba(0,0,0,0.5)); }
+.orig-ov .o-zone-lbl.hide { opacity:0; }
+
 .orig-ov .o-zone { fill:color-mix(in srgb, var(--zfill, #B8823A) 35%, transparent); stroke:color-mix(in srgb, var(--zfill, #B8823A) 80%, transparent); stroke-width:10; stroke-dasharray:16 12; stroke-linecap:round; stroke-linejoin:round; opacity:0; transition:.3s cubic-bezier(0.2, 0, 0, 1); cursor:pointer; }
 .orig-ov .o-zone.soft { opacity:.4; filter:drop-shadow(0 4px 0px color-mix(in srgb, var(--zfill, #B8823A) 40%, #001)) drop-shadow(0 6px 8px rgba(0,0,0,0.15)); transform:translateY(-4px); }
 .orig-ov .o-zone.hide { opacity:0; pointer-events:none; }
@@ -718,6 +723,14 @@ input{font-family:inherit;-webkit-appearance:none;}
   fill: color-mix(in srgb, #F05A28 85%, #fff) !important;
   stroke: #ffffff !important;
   stroke-dasharray: 28 12 !important;
+  transform: none !important;
+  filter: none !important;
 }
+.orig-ov .o-zone.cat-commercial.soft { transform: none !important; filter: none !important; opacity: 0.6; }
+.orig-ov .o-zone.cat-commercial.show { transform: none !important; filter: none !important; }
+.orig-ov .o-zone.cat-commercial.show:hover, .orig-ov .o-zone.cat-commercial.soft:hover, .orig-ov .o-zone.cat-commercial.act:hover { transform: none !important; filter: none !important; }
+
+.orig-ov .o-zone-lbl.cat-commercial.show { transform: none !important; }
+.orig-ov .o-zone-lbl.cat-commercial.act { transform: none !important; }
 
 .orig-ov .o-zone.cat-growth { stroke-dasharray: 24 16; }
