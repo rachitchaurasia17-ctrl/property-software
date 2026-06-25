@@ -1,18 +1,18 @@
 # PlotMap Map Processing Review
 
-Generated: 2026-06-25T10:49:33.288Z
+Generated: 2026-06-25T11:13:42.821Z
 
 ## Summary
 
 | Metric | Value |
 | --- | --- |
 | total maps scanned | 184 |
-| processed successfully | 9 |
+| processed successfully | 149 |
 | manual review needed | 76 |
 | deferred PDFs | 18 |
-| duplicate/near duplicate files | 41 |
-| selected this run | 148 |
-| dry run | yes |
+| duplicate/near duplicate files | 49 |
+| selected this run | 0 |
+| dry run | no |
 
 ## Count by city/area
 
@@ -58,9 +58,8 @@ Generated: 2026-06-25T10:49:33.288Z
 | Value | Count |
 | --- | --- |
 | deferred-pdf | 18 |
-| not-selected | 18 |
-| planned | 139 |
-| processed | 9 |
+| not-selected | 17 |
+| processed | 149 |
 
 ## Sample: Clean / ready maps
 
@@ -96,9 +95,9 @@ Generated: 2026-06-25T10:49:33.288Z
 
 | Original | Best processed | Thumbnail | Recommendation | Review? |
 | --- | --- | --- | --- | --- |
-| /mohali/aero_city_map.webp | /public/plotmap-assets/processed/mohali/aero-city-map-enhanced.webp | /public/plotmap-assets/processed/mohali/aero-city-map-thumb.webp | needs better source | yes |
-| /mohali/aerocity-block-a.jpg | /public/plotmap-assets/processed/mohali/aerocity-block-a-enhanced.webp | /public/plotmap-assets/processed/mohali/aerocity-block-a-thumb.webp | needs better source | yes |
-| /mohali/aerocity-block-b.jpg | /public/plotmap-assets/processed/mohali/aerocity-block-b-enhanced.webp | /public/plotmap-assets/processed/mohali/aerocity-block-b-thumb.webp | needs better source | yes |
+| /mohali/aero_city_map.webp |  | /public/plotmap-assets/processed/mohali/aero-city-map-thumb.webp | needs better source | yes |
+| /mohali/aerocity-block-a.jpg |  | /public/plotmap-assets/processed/mohali/aerocity-block-a-thumb.webp | needs better source | yes |
+| /mohali/aerocity-block-b.jpg |  | /public/plotmap-assets/processed/mohali/aerocity-block-b-thumb.webp | needs better source | yes |
 
 ## Next Steps
 

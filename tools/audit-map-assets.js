@@ -119,10 +119,15 @@ function inferCity(rel, sourceMap) {
 function inferSectorOrBlock(fileName) {
   const base = path.basename(fileName, path.extname(fileName))
     .replace(/[_-]+/g, ' ')
+    .replace(/\bscctor\b/gi, 'sector')
     .replace(/\s+/g, ' ')
     .trim();
-  const sector = /\bsector\s*[- ]?([0-9]+[a-z]?)\b/i.exec(base) || /^([0-9]+[a-z]?)$/i.exec(base);
+  const sector = /\bsector\s*(?:p\s*)?([0-9]+[a-z]?)\b/i.exec(base)
+    || /\bsector\s*([0-9]+[a-z]?)\s*p\b/i.exec(base)
+    || /^([0-9]+[a-z]?)$/i.exec(base);
   if (sector) return `Sector ${sector[1].toUpperCase()}`;
+  const aeroBlock = /\baerocity\s+(?:block\s*)?([a-z])\b/i.exec(base);
+  if (aeroBlock) return `Block ${aeroBlock[1].toUpperCase()}`;
   const block = /\bblock\s*[- ]?([a-z0-9]+)\b/i.exec(base);
   if (block) return `Block ${block[1].toUpperCase()}`;
   if (/aerocity/i.test(base)) return base;
@@ -195,6 +200,7 @@ function collectFiles(sourceMap) {
   for (const r of roots) {
     for (const abs of walk(r)) {
       const rel = path.relative(ROOT, abs).replace(/\\/g, '/');
+      if (rel.startsWith('public/plotmap-assets/processed/')) continue;
       if (seen.has(rel)) continue;
       seen.add(rel);
       const ext = path.extname(abs).toLowerCase();

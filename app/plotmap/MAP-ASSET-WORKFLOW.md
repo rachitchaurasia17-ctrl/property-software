@@ -57,6 +57,18 @@ node tools/enhance-map-assets.js --city mohali --recommendation "watermark reduc
 node tools/enhance-map-assets.js --city "new chandigarh" --recommendation "auto-clean" --limit 3
 ```
 
+Generate thumbnails for all image maps:
+
+```bash
+node tools/enhance-map-assets.js --thumbnails-only
+```
+
+Refresh the manifest from already-existing local processed outputs without writing new images:
+
+```bash
+node tools/enhance-map-assets.js --manifest-only
+```
+
 Run a larger batch only after reviewing samples:
 
 ```bash
@@ -146,6 +158,8 @@ The review report includes:
 Each manifest entry includes:
 
 - `id`
+- `matchKey`
+- `mapType`
 - `originalPath`
 - `processedPaths`
 - `plannedProcessedPaths`
@@ -162,13 +176,24 @@ Each manifest entry includes:
 - `processingStatus`
 - `recommendation`
 - `reviewNeeded`
+- `usable`
 - `duplicateGroupId`
+- `recommendedKeep`
 - `qualityClass`
 - `notes`
 
+Use `matchKey` for UI matching and grouping, for example:
+
+- `mohali-sector-78`
+- `mohali-sector-70`
+- `panchkula-sector-20`
+- `mohali-block-a`
+
+Use `id` as the unique entry key. Duplicate source files may share the same `matchKey` but must have distinct `id` values.
+
 ## Connecting to PlotMap Later
 
-Antigravity/Codex should connect only approved `bestProcessedPath` and `thumbnailPath` values into sector-map data. Do not connect every processed output automatically.
+Antigravity/Codex should connect only entries where `usable === true` by default. Use `thumbnailPath` for cards and `bestProcessedPath` for the opened sector/block map. Hide `reviewNeeded` maps from the client UI unless an explicit review/approval workflow allows them. Do not connect every processed output automatically.
 
 The client-facing app should continue to use:
 

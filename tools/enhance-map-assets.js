@@ -25,12 +25,14 @@ const MANIFEST_PATH = path.join(ROOT, 'app', 'plotmap', 'map-assets.manifest.jso
 const REVIEW_PATH = path.join(ROOT, 'tools', 'map-processing-review.md');
 
 function parseArgs(argv) {
-  const out = { dryRun: false, sample: false, force: false, city: '', recommendation: '', limit: 0 };
+  const out = { dryRun: false, sample: false, force: false, manifestOnly: false, thumbnailsOnly: false, city: '', recommendation: '', limit: 0 };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--dry-run') out.dryRun = true;
     else if (a === '--sample') out.sample = true;
     else if (a === '--force') out.force = true;
+    else if (a === '--manifest-only') out.manifestOnly = true;
+    else if (a === '--thumbnails-only') out.thumbnailsOnly = true;
     else if (a === '--city') out.city = String(argv[++i] || '').toLowerCase();
     else if (a === '--recommendation' || a === '--only') out.recommendation = String(argv[++i] || '').toLowerCase();
     else if (a === '--limit') out.limit = Number(argv[++i] || 0);
@@ -59,6 +61,23 @@ function safeBaseName(rec) {
     .replace(/&/g, ' and ')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '') || 'map';
+}
+
+function matchKeyFor(rec) {
+  const name = rec.sectorOrBlockName || safeBaseName(rec);
+  return `${rec.city || 'unknown'} ${name}`
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function mapTypeFor(rec) {
+  const name = String(rec.sectorOrBlockName || '').toLowerCase();
+  if (name.startsWith('sector ')) return 'sector';
+  if (name.startsWith('block ')) return 'block';
+  if (name.includes('pocket')) return 'pocket';
+  return 'map';
 }
 
 function outDirFor(rec) {
@@ -181,6 +200,7 @@ function processOne(rec) {
   const outputs = { planned: [], written: [], skipped: [], errors: [] };
   try {
     writeVariant(rec, 'thumb', thumbFilters(), outputs);
+    if (args.thumbnailsOnly) return outputs;
     if (/ready|enhance|manual review|needs better source/i.test(rec.processingRecommendation)) {
       writeVariant(rec, 'enhanced', enhancedFilters(), outputs);
     }
@@ -214,14 +234,14 @@ function statusFor(rec, outputs) {
 function bestPath(outputs) {
   const preferred = ['cleaned-enhanced', 'watermark-reduced', 'corner-cleaned', 'enhanced', 'cleaned'];
   for (const suffix of preferred) {
-    const found = [...outputs.written, ...outputs.skipped, ...outputs.planned].find(o => o.suffix === suffix);
+    const found = [...outputs.written, ...outputs.skipped].find(o => o.suffix === suffix);
     if (found) return found.path;
   }
   return null;
 }
 
 function thumbPath(outputs) {
-  const found = [...outputs.written, ...outputs.skipped, ...outputs.planned].find(o => o.suffix === 'thumb');
+  const found = [...outputs.written, ...outputs.skipped].find(o => o.suffix === 'thumb');
   return found ? found.path : null;
 }
 
@@ -243,6 +263,20 @@ function buildManifest(records, resultByPath) {
     'watermark-reduced',
     'watermark-reduced-strong'
   ];
+  const baseIds = records.map(rec => matchKeyFor(rec));
+  const baseCounts = baseIds.reduce((acc, id) => {
+    acc[id] = (acc[id] || 0) + 1;
+    return acc;
+  }, {});
+  const seenIds = {};
+  function uniqueIdFor(rec) {
+    const base = matchKeyFor(rec);
+    if (baseCounts[base] <= 1) return base;
+    const withSource = `${base}-${safeBaseName(rec)}`;
+    seenIds[withSource] = (seenIds[withSource] || 0) + 1;
+    return seenIds[withSource] === 1 ? withSource : `${withSource}-${seenIds[withSource]}`;
+  }
+
   return {
     generatedAt: new Date().toISOString(),
     processedRoot: '/public/plotmap-assets/processed/',
@@ -270,10 +304,14 @@ function buildManifest(records, resultByPath) {
           : processedPaths.length
             ? 'processed'
             : args.dryRun && outputs.planned.length
-              ? 'planned'
-              : 'not-selected';
+            ? 'planned'
+            : 'not-selected';
+      const needsReview = reviewNeeded(rec, outputs);
+      const usable = status === 'processed' && !needsReview && !!bestPath(allOutputs);
       return {
-        id: `${String(rec.city || 'unknown').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${safeBaseName(rec)}`,
+        id: uniqueIdFor(rec),
+        matchKey: matchKeyFor(rec),
+        mapType: mapTypeFor(rec),
         originalPath: '/' + rec.relativePath,
         processedPaths,
         plannedProcessedPaths: args.dryRun ? outputs.planned.map(o => o.path) : [],
@@ -289,8 +327,10 @@ function buildManifest(records, resultByPath) {
         watermarkType: rec.watermarkType,
         processingStatus: status,
         recommendation: rec.processingRecommendation,
-        reviewNeeded: reviewNeeded(rec, outputs),
+        reviewNeeded: needsReview,
+        usable,
         duplicateGroupId: rec.duplicateGroupId,
+        recommendedKeep: rec.recommendedKeep,
         qualityClass: rec.qualityClass,
         notes: [...(rec.notes || []), ...outputs.errors.map(e => `Processing error: ${e}`)]
       };
@@ -392,7 +432,7 @@ function main() {
   }
   const audit = JSON.parse(fs.readFileSync(AUDIT_PATH, 'utf8'));
   const eligible = audit.records.filter(shouldProcess);
-  let selected = sampleRecords(eligible);
+  let selected = args.manifestOnly ? [] : sampleRecords(eligible);
   if (args.limit > 0) selected = selected.slice(0, args.limit);
 
   const resultByPath = new Map();

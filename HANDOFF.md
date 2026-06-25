@@ -96,6 +96,53 @@ Current manifest after sample processing:
 6. Apply the same manifest pattern to future masterplans and sector/block maps.
 7. Keep originals untouched and out of destructive workflows.
 
+## Next Antigravity task: wire map-assets.manifest.json into View Sector Maps
+
+Manifest location:
+
+- `app/plotmap/map-assets.manifest.json`
+
+How to read it:
+
+- Load `entries`.
+- Treat `id` as the unique row key.
+- Treat `matchKey` as the user-facing matching/grouping key.
+- Treat `mapType` as `sector`, `block`, `pocket`, or `map`.
+
+How to match sector/block names:
+
+- Prefer `matchKey` for deterministic matching.
+- Examples:
+  - `mohali-sector-78` => Mohali Sector 78
+  - `mohali-sector-70` => Mohali Sector 70
+  - `panchkula-sector-20` => Panchkula Sector 20
+  - `mohali-block-a` => Aerocity/Mohali Block A
+- Show `sectorOrBlockName` as the label in the UI.
+- If multiple entries share a `matchKey`, use `recommendedKeep === true` first, then prefer `usable === true`, then newest visual review decision.
+
+What path to use:
+
+- Use `thumbnailPath` for the View Sector Maps card thumbnail.
+- Use `bestProcessedPath` for the opened sector/block map if it exists.
+- Fall back to `originalPath` only for internal review; do not make fallback-to-original automatic in the client UI for watermarked maps.
+
+Client visibility rule:
+
+- Default client UI should show only `usable === true` entries.
+- Hide `reviewNeeded === true` maps unless there is an explicit reviewed/approved override.
+- Hide `processingStatus === "deferred-pdf"` maps.
+- Hide duplicate candidates where `recommendedKeep === false`.
+
+Current useful manifest states:
+
+- `usable: true` means processed, non-review, and has a real `bestProcessedPath`.
+- `thumbnailPath` may exist even when `usable` is false; this is useful for internal browsing/review but should not imply the map is approved.
+- Diagonal watermark maps generally remain review-needed even if thumbnails exist.
+
+Suggested next prompt for Antigravity:
+
+> Wire `app/plotmap/map-assets.manifest.json` into the View Sector Maps page. Show only entries where `usable === true`, `reviewNeeded === false`, and `processingStatus === "processed"`. Use `thumbnailPath` on cards and `bestProcessedPath` when opening a map. Group duplicate entries by `matchKey`; prefer `recommendedKeep === true`. Do not show review-needed, deferred PDF, or duplicate non-keep maps in the client UI.
+
 ## Codex Next Steps
 
 1. Harden `tools/audit-map-assets.js` duplicate detection with a lightweight perceptual hash if needed.

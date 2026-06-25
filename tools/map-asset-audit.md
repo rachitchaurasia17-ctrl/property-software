@@ -1,14 +1,14 @@
 # PlotMap Map Asset Audit
 
-Generated: 2026-06-25T10:43:05.553Z
+Generated: 2026-06-25T11:03:51.136Z
 
 ## Summary
 
 | Metric | Value |
 | --- | --- |
 | totalFiles | 184 |
-| duplicateCandidateFiles | 41 |
-| duplicateGroups | 20 |
+| duplicateCandidateFiles | 49 |
+| duplicateGroups | 24 |
 | pdfDeferred | 18 |
 
 ## By city/area
@@ -101,9 +101,9 @@ Generated: 2026-06-25T10:43:05.553Z
 | dup-014 |  | 1 | new chandigarh/9.jpg | Exact content hash, dimensions, and file size match. |
 | dup-015 |  | 1 | new chandigarh/PH-1 (1).jpg | Exact content hash, dimensions, and file size match. |
 | dup-015 | yes | 1 | new chandigarh/PH-1.jpg | Exact content hash, dimensions, and file size match. |
-| dup-016 | yes | 1 | panchulka/sector 8 p.jpg | Exact content hash, dimensions, and file size match. |
-| dup-016 |  | 1 | panchulka/sector p 8.jpg | Exact content hash, dimensions, and file size match. |
-| dup-017 |  | 1 | public/plotmap-assets/aerotropolis-annotated-reference.png | Exact content hash, dimensions, and file size match. |
+| near-021 | yes | 0.72 | panchulka/sector 4 p.jpg | Similar city, inferred name, and resolution; visually review before deleting. |
+| near-022 | yes | 0.72 | panchulka/sector 5 p.jpg | Similar city, inferred name, and resolution; visually review before deleting. |
+| near-023 | yes | 0.72 | panchulka/sector 6 p.jpg | Similar city, inferred name, and resolution; visually review before deleting. |
 
 ## Manual Review / Hard Cases
 
