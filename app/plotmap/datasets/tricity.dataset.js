@@ -18,19 +18,27 @@ window.PM.registerDataset('tricity-aerotropolis', {
     sector:     '/public/plotmap-assets/sector-map.jpg'
   },
 
-  /* KEY ROADS: easyD = clean path (design space); svgId -> overlay geometry (Original) */
+  /* KEY ROADS: easyD = clean path (design space); svgId -> overlay geometry (Original).
+     tier drives Easy Map road hierarchy: 'major' (primary connectivity, strongest),
+     'arterial' (important sector roads), 'secondary' (lighter internal links). */
   keyRoads: [
-    { id:'airport-road', name:'Airport Road', svgId:'ROAD-Airport-Road', easyD:'M 70 250 C 470 215 980 225 1370 205', labelAt:[770,205], photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=Airport+Road+Mohali', related:['Aerocity','IT City Side'] },
-    { id:'pr7',  name:'PR-7 Road',  svgId:'ROAD-PR-7-Road', easyD:'M 585 110 L 600 910', labelAt:[600,150], vertical:true, photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=PR7+Road+Mohali', related:['Aerocity','Sector 66B'] },
-    { id:'mohali-sirhind', name:'Mohali–Sirhind Road', svgId:'ROAD-Mohali-Sirhind-Road', easyD:'M 960 110 L 985 910', labelAt:[985,150], vertical:true, photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=Mohali+Sirhind+Road', related:['Aerocity Blocks'] },
-    { id:'pr8',  name:'PR-8 Road',  svgId:'ROAD-PR-8-Road', easyD:'M 70 705 C 470 685 980 690 1370 705', labelAt:[300,690], photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=PR8+Road+Mohali', related:['Aerocity Blocks'] },
-    { id:'bharatmala', name:'Zirakpur–Banur Corridor', label:'Bharatmala Corridor', svgId:'ROAD-Bharatmala-Zirakpur-Banur-Corridor', easyD:'M 70 880 L 1370 690', labelAt:[1010,765], photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=Zirakpur+Banur+Highway', related:['Aerocity','Future Growth'] },
-    { id:'pr11', name:'PR-11 Road', svgId:'ROAD-PR-11-Road', easyD:'M 70 560 C 360 552 760 556 1370 545', labelAt:[1180,548], photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=PR11+Road+Mohali', related:['Aerocity'] },
-    { id:'pr12', name:'PR-12 Road', svgId:'ROAD-PR-12-Road', easyD:'M 1180 120 L 1205 900', labelAt:[1205,160], vertical:true, photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=PR12+Road+Mohali', related:['Aerocity'] },
-    { id:'railway', name:'Railway Station Road', svgId:'ROAD-Mohali-Railway-Station-Road', easyD:'M 1010 255 C 1130 380 1210 560 1290 880', labelAt:[1235,720], photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=Mohali+Railway+Station', related:['Aerocity'] },
-    { id:'pr5', name:'PR-5 Road', svgId:'ROAD-PR-5-Road', easyD:'M 300 430 L 940 430', labelAt:[420,430], photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=PR5+Road+Mohali', related:['Aerocity Blocks'] }
+    { id:'airport-road', name:'Airport Road', tier:'major', svgId:'ROAD-Airport-Road', easyD:'M 70 250 C 470 215 980 225 1370 205', labelAt:[770,205], photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=Airport+Road+Mohali', related:['Aerocity','IT City Side'] },
+    { id:'pr7',  name:'PR-7 Road', tier:'major',  svgId:'ROAD-PR-7-Road', easyD:'M 585 110 L 600 910', labelAt:[600,150], vertical:true, photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=PR7+Road+Mohali', related:['Aerocity','Sector 66B'] },
+    { id:'mohali-sirhind', name:'Mohali–Sirhind Road', tier:'arterial', svgId:'ROAD-Mohali-Sirhind-Road', easyD:'M 960 110 L 985 910', labelAt:[985,150], vertical:true, photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=Mohali+Sirhind+Road', related:['Aerocity Blocks'] },
+    { id:'pr8',  name:'PR-8 Road', tier:'arterial',  svgId:'ROAD-PR-8-Road', easyD:'M 70 705 C 470 685 980 690 1370 705', labelAt:[300,690], photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=PR8+Road+Mohali', related:['Aerocity Blocks'] },
+    { id:'bharatmala', name:'Zirakpur–Banur Corridor', label:'Bharatmala Corridor', tier:'major', svgId:'ROAD-Bharatmala-Zirakpur-Banur-Corridor', easyD:'M 70 880 L 1370 690', labelAt:[1010,765], photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=Zirakpur+Banur+Highway', related:['Aerocity','Future Growth'] },
+    { id:'pr11', name:'PR-11 Road', tier:'arterial', svgId:'ROAD-PR-11-Road', easyD:'M 70 560 C 360 552 760 556 1370 545', labelAt:[1180,548], photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=PR11+Road+Mohali', related:['Aerocity'] },
+    { id:'pr12', name:'PR-12 Road', tier:'arterial', svgId:'ROAD-PR-12-Road', easyD:'M 1180 120 L 1205 900', labelAt:[1205,160], vertical:true, photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=PR12+Road+Mohali', related:['Aerocity'] },
+    { id:'railway', name:'Railway Station Road', tier:'arterial', svgId:'ROAD-Mohali-Railway-Station-Road', easyD:'M 1010 255 C 1130 380 1210 560 1290 880', labelAt:[1235,720], photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=Mohali+Railway+Station', related:['Aerocity'] },
+    { id:'pr5', name:'PR-5 Road', tier:'secondary', svgId:'ROAD-PR-5-Road', easyD:'M 300 430 L 940 430', labelAt:[420,430], photos:true, mapsUrl:'https://www.google.com/maps/search/?api=1&query=PR5+Road+Mohali', related:['Aerocity Blocks'] }
   ],
 
+  /* blocks/sectors: svgId -> geo.json gives the REAL traced boundary used by BOTH
+     the Original Map and the Easy Map. x/y/w/h are schematic fallback coordinates
+     only (used by the rect filter and as a focus fallback when a shape has no
+     traced geometry); they are NOT the Easy Map geometry and are never drawn when
+     a geo path exists. To add a block: trace its boundary into geo.json and point
+     svgId at it — do not approximate with x/y/w/h. */
   blocks: [
     { id:'ac-a', area:'Aerocity', cat:'sectors', name:'Sector 66A', svgId:'SECTOR-Aerocity-Sector-66A', color:'#4DB6AC', x:300, y:300, w:150, h:115 },
     { id:'ac-b', area:'Aerocity', cat:'sectors', name:'Sector 66B', svgId:'SECTOR-Aerocity-Sector-66B', color:'#7986CB', x:300, y:445, w:150, h:115 },
@@ -53,21 +61,29 @@ window.PM.registerDataset('tricity-aerotropolis', {
     { id:'at-j', area:'Aerocity', cat:'blocks', name:'Block J', svgId:'BLOCK-Aerotropolis-Block-J', color:'#FF8A65', x:825, y:565, w:150, h:120 }  // coral
   ],
 
+  /* zones: commercial zones have traced geometry (svgId -> geo.json) and appear on
+     BOTH maps. green-belt and growth have NO svgId yet — they are NOT drawn on the
+     Easy Map (it never invents geometry); trace their polygons into geo.json and add
+     an svgId to surface them. x/y/w/h are schematic fallback only. */
   zones: [
     { id:'commercial-a', cat:'commercial', name:'Commercial Zone C1', svgId:'ZONE-Commercial-Zone-A', labelAt: [3550, 1340], x:1010, y:430, w:200, h:170, photos:true },
     { id:'commercial-b', cat:'commercial', name:'Commercial Zone C2', svgId:'ZONE-Commercial-Zone-B', labelAt: [2990, 1120], x:1010, y:430, w:200, h:170, photos:true },
     { id:'commercial-c', cat:'commercial', name:'Commercial Zone C3', svgId:'ZONE-Commercial-Zone-C', labelAt: [2820, 1349], x:1010, y:430, w:200, h:170, photos:true },
     { id:'commercial-c2', cat:'commercial', name:'Commercial Zone C4', svgId:'ZONE-Commercial-Zone-C_2', labelAt: [2820, 1413], x:1010, y:430, w:200, h:170, photos:true },
-    { id:'green-belt', cat:'green', name:'Green & Open Belt', x:120, y:610, w:300, h:250, mapsUrl:'https://www.google.com/maps/search/?api=1&query=Aerocity+Green+Belt', related:['Aerocity'], photos:true },
-    { id:'growth', cat:'growth', name:'Future Growth Pockets', x:620, y:730, w:360, h:140, dashed:true, related:['Aerocity','Future Growth'], photos:true }
+    { id:'green-belt', cat:'green', name:'Green & Open Belt', x:120, y:610, w:300, h:250, mapsUrl:'https://www.google.com/maps/search/?api=1&query=Aerocity+Green+Belt', related:['Aerocity'], photos:true }, // needs tracing: add svgId -> geo.json to show on Easy Map
+    { id:'growth', cat:'growth', name:'Future Growth Pockets', x:620, y:730, w:360, h:140, dashed:true, related:['Aerocity','Future Growth'], photos:true } // needs tracing: add svgId -> geo.json to show on Easy Map
   ],
 
+  /* pins: svgId -> geo.json is the REAL marker location, used by BOTH maps. `at`
+     is a schematic Easy-Map [x,y] fallback only — entry/exit pins have no svgId, so
+     they appear on the Original Map (via `at`) but are NOT drawn on the geometry-
+     accurate Easy Map until traced. Trace a marker into geo.json to surface it. */
   pins: [
     { id:'pin-city-centre', cat:'landmarks', name:'City Centre', svgId:'PIN-Mohali-City-Centre', at:[1130,360], photos:true },
     { id:'pin-jubilee', cat:'landmarks', name:'Jubilee Square', svgId:'PIN-Jubilee-Square', at:[1130,360], photos:true },
     { id:'pin-cp67', cat:'landmarks', name:'CP67 Mall', svgId:'PIN-CP67-Mall', at:[1130,360], photos:true },
     { id:'medicity',  cat:'landmarks', name:'Medicity', svgId:'PIN-Institute-Mohali', at:[1130,360], mapsUrl:'https://www.google.com/maps/search/?api=1&query=Medicity+Mohali', related:['Aerocity'], photos:true },
-    
+
     { id:'pin-iiser', cat:'institutions', name:'IISER Mohali', svgId:'PIN-IISER-Mohali', at:[700,315], photos:true },
     { id:'pin-nabi', cat:'institutions', name:'NABI', svgId:'PIN-NABI-Mohali', at:[700,315], photos:true },
     { id:'pin-isb', cat:'institutions', name:'ISB Mohali', svgId:'PIN-ISB-Mohali', at:[700,315], photos:true },

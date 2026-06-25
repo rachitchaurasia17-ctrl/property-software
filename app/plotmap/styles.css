@@ -660,6 +660,8 @@ input{font-family:inherit;-webkit-appearance:none;}
   stroke-dasharray: none !important;
   stroke-width: 8 !important;
   transform: none !important;
+  filter: drop-shadow(0 8px 16px rgba(139, 0, 0, 0.35)) !important;
+}
 .as-tile:hover:not(.soon){transform:translateY(-3px);box-shadow:0 18px 44px rgba(6,14,32,.4);}
 .as-tile.soon{opacity:.6;cursor:default;}
 .as-name{font-family:'Newsreader',serif;font-size:28px;font-weight:560;letter-spacing:-.4px;color:#1B2A1F;}
@@ -737,3 +739,58 @@ input{font-family:inherit;-webkit-appearance:none;}
 .transparent-btn{border:none;cursor:pointer;border-radius:11px;min-width:34px;height:34px;padding:0 8px;font-size:14px;font-weight:800;background:transparent;color:#6A6453;display:inline-flex;align-items:center;justify-content:center;transition:.15s;}
 .transparent-btn:hover{background:rgba(11,26,54,.08);color:#0B1A36;}
 .transparent-btn.on{background:#0B1A36;color:#FFFFFF;box-shadow:0 2px 8px rgba(22,53,106,.3);}
+
+/* ============================================================
+   EASY MAP — premium, geometry-accurate explanation layer (authoritative).
+   Placed last so it wins on source order; scoped to .easy-svg.eg-ov so the
+   Original Map proof overlay (.orig-ov) is never affected. The Easy Map draws
+   the SAME real geometry as the Original Map (geo.json paths), so all sizes
+   below are in REAL geometry units (geo space), matching the Original's scale.
+   Visual goal: Apple-Maps clarity + luxury township brochure.
+   ============================================================ */
+.maplayer.easy{background:#EFEADC;}
+.easy-svg.eg-ov{position:absolute;left:0;top:0;width:100%;height:100%;display:block;}
+
+/* roads — real paths, tiered weight (major strongest, secondary lightest) */
+.eg-road-casing{fill:none;stroke:#FBF7EC;stroke-linecap:round;stroke-linejoin:round;}
+.eg-road-casing.tier-major{stroke-width:38;}
+.eg-road-casing.tier-arterial{stroke-width:28;}
+.eg-road-casing.tier-secondary{stroke-width:20;}
+.eg-road{fill:none;stroke-linecap:round;stroke-linejoin:round;transition:.3s cubic-bezier(.2,0,0,1);}
+.eg-road.tier-major{stroke:#5B6B82;stroke-width:22;}
+.eg-road.tier-arterial{stroke:#8C9BB0;stroke-width:15;}
+.eg-road.tier-secondary{stroke:#AEB9C8;stroke-width:10;}
+.eg-road.act{stroke:#0B1A36 !important;stroke-width:26 !important;}
+.eg-road.dim{opacity:.22;}
+.eg-road-hit{fill:none;stroke:rgba(0,0,0,0);stroke-width:70;stroke-linecap:round;cursor:pointer;}
+
+/* blocks / sectors — actual traced boundaries, soft raised parcels */
+.eg-block{cursor:pointer;transition:opacity .3s;}
+.eg-block .egfill{fill:color-mix(in srgb,var(--egc,#2E5A86) 16%,#FFFFFF);stroke:color-mix(in srgb,var(--egc,#2E5A86) 62%,transparent);stroke-width:5;stroke-linejoin:round;transition:.3s;}
+.eg-block:hover .egfill{fill:color-mix(in srgb,var(--egc,#2E5A86) 34%,#fff);}
+.eg-block.act .egfill{fill:color-mix(in srgb,var(--egc,#2E5A86) 62%,#fff);stroke:#fff;stroke-width:10;}
+.eg-block.dim{opacity:.32;}
+.eg-blabel{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:52px;fill:#22303F;text-anchor:middle;dominant-baseline:central;paint-order:stroke;stroke:#FBF7EC;stroke-width:7px;pointer-events:none;}
+.eg-block.act .eg-blabel{fill:#0B1A36;}
+
+/* commercial zones — actual polygons, distinct but calm (not loud) */
+.eg-zone{cursor:pointer;transition:opacity .3s;}
+.eg-zone .egfill{fill:color-mix(in srgb,#F05A28 14%,#FCF8F1);stroke:#D9712E;stroke-width:5;stroke-linejoin:round;transition:.3s;}
+.eg-zone.act .egfill{fill:color-mix(in srgb,#F05A28 26%,#fff);stroke-width:9;}
+.eg-zone.dim{opacity:.32;}
+.eg-zlabel{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:40px;fill:#B4521E;text-anchor:middle;dominant-baseline:central;paint-order:stroke;stroke:#FBF7EC;stroke-width:6px;pointer-events:none;}
+
+/* pins — at the real traced marker centroid */
+.eg-pin{cursor:pointer;transition:opacity .3s;}
+.eg-pin .eg-dot{fill:var(--egc,#B5604F);stroke:#fff;stroke-width:5;transition:.25s cubic-bezier(.34,1.56,.64,1);}
+.eg-pin.act .eg-dot{r:30;}
+.eg-pin.dim{opacity:.34;}
+.eg-plabel{font-family:'Hanken Grotesk',sans-serif;font-weight:750;font-size:32px;fill:#33414F;text-anchor:middle;paint-order:stroke;stroke:#FBF7EC;stroke-width:6px;pointer-events:none;}
+.eg-pin.act .eg-plabel{fill:#0B2552;font-weight:820;}
+
+/* road name labels at the real road centre */
+.eg-rlabel{font-family:'Hanken Grotesk',sans-serif;font-weight:720;font-size:34px;fill:#4A5666;text-anchor:middle;paint-order:stroke;stroke:#FBF7EC;stroke-width:6px;pointer-events:none;}
+.eg-rlabel-g.tier-major .eg-rlabel{font-size:42px;font-weight:800;fill:#36435A;}
+.eg-rlabel-g.tier-secondary .eg-rlabel{font-size:28px;fill:#76808E;}
+.eg-rlabel-g.act .eg-rlabel{fill:#0B2552;}
+.eg-rlabel-g.dim{opacity:.28;}

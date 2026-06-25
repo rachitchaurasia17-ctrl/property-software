@@ -16,6 +16,11 @@
 
   let DS = null, GEO = { viewBox: '0 0 4599 3069', cyan: [], red: [], black: [] };
   let EW = 1440, EH = 960, IW = 4599, IH = 3069;
+  // Easy Map viewport, in REAL geometry space (same coordinates as the Original
+  // Map / geo.json). Computed in easySVG() from the bounding box of the actual
+  // traced paths so the Easy Map is a framed, spatially-accurate trace — never
+  // an invented layout. EOX/EOY = top-left offset; EGW/EGH = framed width/height.
+  let EOX = 0, EOY = 0, EGW = 1440, EGH = 960;
   const geoCache = {};
   async function useDataset(areaId) {
     const ds = PM.datasetFor(areaId); if (!ds) return;
@@ -50,7 +55,20 @@
   const mapBlocks = () => (DS.blocks || []).filter(b => b && b.clientVisible !== false && b.id && b.name && b.cat && rectOk(b));
   const mapZones = () => (DS.zones || []).filter(z => z && z.clientVisible !== false && z.id && z.name && z.cat && rectOk(z));
   const mapPins = () => (DS.pins || []).filter(p => p && p.clientVisible !== false && p.id && p.name && p.cat && Array.isArray(p.at) && p.at.length === 2);
+  const blockById = (id) => mapBlocks().find(b => b.id === id);
+  const roadById = (id) => keyRoads().find(r => r.id === id);
+  const zoneById = (id) => mapZones().find(z => z.id === id);
+  const pinById = (id) => mapPins().find(p => p.id === id);
   const mapProperties = () => (DS.properties || []).filter(p => p && p.clientVisible !== false && p.id && p.plotNumber && p.blockId && blockById(p.blockId));
+  const propById = (id) => mapProperties().find(p => p.id === id);
+  const propsInBlock = (blockId) => mapProperties().filter(p => p.blockId === blockId);
+
+  const scopedRoads = () => state.activeCats.size > 0 ? keyRoads().filter(r => state.activeCats.has('roads')) : keyRoads();
+  const scopedBlocks = () => state.activeCats.size > 0 ? mapBlocks().filter(b => state.activeCats.has(b.cat)) : mapBlocks();
+  const scopedZones = () => state.activeCats.size > 0 ? mapZones().filter(z => state.activeCats.has(z.cat)) : mapZones();
+  const scopedPins = () => state.activeCats.size > 0 ? mapPins().filter(p => state.activeCats.has(p.cat)) : mapPins();
+  const scopedProperties = () => state.activeCats.size > 0 ? mapProperties().filter(p => { const b = blockById(p.blockId); return b && state.activeCats.has(b.cat); }) : mapProperties();
+
   const readySectorMaps = verifiedManifestMaps;
   const sectorMapById = (id) => readySectorMaps().find(s => s.id === id);
   const sectorMapForProperty = (p) => {
@@ -145,12 +163,43 @@
   }
   function td(e) { return Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }
   function focusItem(id) {
+    const o = itemObj(id); if (!o) return;
     const kind = itemKindOf(id);
-    if (kind === 'block' || kind === 'zone') { const o = itemObj(id); focusBox(o.x + o.w / 2, o.y + o.h / 2, o.w, o.h, 1.7); }
-    else if (kind === 'pin') { const o = itemObj(id); focusBox(o.at[0], o.at[1], 260, 260, 1.5); }
-    else if (kind === 'line') { const r = roadById(id); const pts = pathPoints(r.easyD); const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]); const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys); focusBox((x0 + x1) / 2, (y0 + y1) / 2, Math.max(x1 - x0, 120), Math.max(y1 - y0, 120), 1.35); }
+    // Prefer the real traced geometry (geo.json) so focus is geographically
+    // accurate and works on both Original and Easy maps. geoToLayer() converts
+    // real coordinates into the current layer's pixel space.
+    if (o.svgId && GEO.paths && GEO.paths[o.svgId]) {
+      const b = pathBounds(GEO.paths[o.svgId]);
+      const [cx, cy] = geoToLayer((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2);
+      focusBox(cx, cy, Math.max(b.maxX - b.minX, 300), Math.max(b.maxY - b.minY, 300), kind === 'pin' ? 2 : 1.7);
+      return;
+    }
+    // Fallback for items without traced geometry (schematic coords).
+    if (kind === 'block' || kind === 'zone') { focusBox(o.x + o.w / 2, o.y + o.h / 2, o.w, o.h, 1.7); }
+    else if (kind === 'pin') { focusBox(o.at[0], o.at[1], 260, 260, 1.5); }
   }
   function pathPoints(d) { return (d.match(/-?\d+(\.\d+)?/g) || []).map(Number).reduce((a, n, i, arr) => { if (i % 2 === 0) a.push([n, arr[i + 1]]); return a; }, []); }
+  /* --- real-geometry helpers (shared by Original + Easy maps) ---
+     pathBounds parses an SVG path (M/L/H/V/C/Z) and returns its bounding box in
+     real geometry space. pathCenter returns its centre. geoToLayer maps a real
+     coordinate into the active layer's pixel space: the Easy Map is framed to the
+     geometry bbox (subtract EOX/EOY); the Original Map is 1:1 with geo space. */
+  function pathBounds(d) {
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, cx = 0, cy = 0;
+    const upd = () => { if (cx < minX) minX = cx; if (cx > maxX) maxX = cx; if (cy < minY) minY = cy; if (cy > maxY) maxY = cy; };
+    const re = /([MLHVCZmlhvcz])([^MLHVCZmlhvcz]*)/g; let m;
+    while ((m = re.exec(d)) !== null) {
+      const cmd = m[1].toUpperCase(); if (cmd === 'Z') continue;
+      const a = [...m[2].matchAll(/-?\d+(\.\d+)?/g)].map(x => parseFloat(x[0]));
+      if (cmd === 'H') { a.forEach(x => { cx = x; upd(); }); }
+      else if (cmd === 'V') { a.forEach(y => { cy = y; upd(); }); }
+      else if (cmd === 'C') { for (let i = 0; i < a.length; i += 6) { cx = a[i + 4]; cy = a[i + 5]; upd(); [[a[i], a[i + 1]], [a[i + 2], a[i + 3]]].forEach(([px, py]) => { if (px < minX) minX = px; if (px > maxX) maxX = px; if (py < minY) minY = py; if (py > maxY) maxY = py; }); } }
+      else { for (let i = 0; i < a.length; i += 2) { cx = a[i]; cy = a[i + 1]; upd(); } }
+    }
+    return { minX, minY, maxX, maxY };
+  }
+  function pathCenter(d) { const b = pathBounds(d); return { cx: (b.minX + b.maxX) / 2, cy: (b.minY + b.maxY) / 2 }; }
+  const geoToLayer = (gx, gy) => mapKind() === 'easy' ? [gx - EOX, gy - EOY] : [gx, gy];
 
   /* ====================== MAP build ====================== */
   const getCatId = () => {
@@ -162,64 +211,90 @@
   function buildMap() {
     const kind = mapKind(); const sig = state.areaId + '|' + kind; const fresh = sig !== builtSig;
     const l = layer(); if (!l) return;
-    if (kind === 'easy') { LW = EW; LH = EH; } else { LW = 3880; LH = 3069; }
+    let html = '';
+    if (kind === 'easy') {
+      // easySVG() computes the geometry frame (EGW/EGH) before we size the layer
+      html = easySVG(); LW = EGW; LH = EGH;
+    } else { LW = 3880; LH = 3069; }
     l.style.width = LW + 'px'; l.style.height = LH + 'px';
     l.className = 'maplayer ' + kind;
     if (kind === 'original') l.innerHTML = `<img class="orig" src="${DS.assets.original}" alt="Official masterplan">` + origSVG();
     else if (kind === 'sector') { const sm = activeSectorMap(); const sectorAsset = (sm && sm.bestProcessedPath) || DS.assets.sector; l.innerHTML = `<div class="sector-wrap" style="width:${LW}px;height:${LH}px;background-image:url('${sectorAsset}')"></div><div id="proofG"></div>`; }
-    else l.innerHTML = easySVG();
+    else l.innerHTML = html;
     builtSig = sig; updateMapOverlays();
     if (fresh) requestAnimationFrame(fit); else applyT(false);
   }
 
-  /* ---------- EASY MAP (authored premium schematic) ---------- */
+  /* ---------- EASY MAP (premium, geometry-accurate explanation layer) ----------
+     The Easy Map is a CLEANED, PREMIUM TRACE of the official masterplan: it draws
+     the SAME real geometry as the Original Map (geo.json paths, in real IMG
+     coordinate space) — no photo, calm Apple-Maps-style styling. No invented
+     blocks and no approximate grid; every shape is the actual traced boundary.
+     Items without a traced path (no svgId in geo.json — e.g. future-growth or
+     green areas not yet traced) are intentionally NOT drawn and must be traced
+     first (see EASY-MAP-PIPELINE.md). Interaction hooks (.eg-road/.eg-block/
+     .eg-zone/.eg-pin, data-hit, data-roadpath/-bid/-zid/-pid, #eSpot, #eglow,
+     #tagG) drive updateMapOverlays() and event binding. */
+  const roadTier = (r) => r.tier || 'arterial';
+  const hasGeo = (o) => !!(o && o.svgId && GEO.paths && GEO.paths[o.svgId]);
   function easySVG() {
-    const internal = [
-      'M 200 120 L 200 880', 'M 1240 120 L 1240 880', 'M 120 350 L 1330 350',
-      'M 120 820 L 1330 820', 'M 760 120 L 770 900', 'M 430 120 L 440 900'
-    ].map(d => `<path d="${d}" class="in-road"/>`).join('');
-    const roads = scopedRoads().map(r => `<path d="${r.easyD}" class="e-road-casing"/>`).join('')
-      + scopedRoads().map(r => `<path d="${r.easyD}" class="e-road" data-roadpath="${r.id}"/>`).join('')
-      + scopedRoads().map(r => `<path d="${r.easyD}" class="e-road-hit" data-hit="line:${r.id}"/>`).join('');
-    const zones = scopedZones().map(z => {
-      const c = catColor(z.cat);
-      return `<g class="e-zone cat-${z.cat}" data-hit="zone:${z.id}" data-zid="${z.id}">
-        <rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="18" fill="${hexA(c, .16)}" stroke="${hexA(c, .55)}" stroke-width="2" ${z.dashed ? 'stroke-dasharray="11 8"' : ''} class="zfill"/>
-        <text x="${z.x + z.w / 2}" y="${z.y + 26}" class="e-zlabel" fill="${c}" text-anchor="middle">${esc(z.name)}</text>
-        ${(z.pins || []).map(p => `<g><circle cx="${p.at[0]}" cy="${p.at[1]}" r="4.5" fill="${c}"/><text x="${p.at[0]}" y="${p.at[1] + 20}" class="e-sublabel" text-anchor="middle">${esc(p.name)}</text></g>`).join('')}
-      </g>`;
+    // Always draw the FULL traced geometry so the frame is stable and context
+    // never disappears. Selection/category only dims + highlights (Apple-Maps
+    // style), so picking a block does not reframe or hide the rest of the map.
+    const roads  = keyRoads().filter(hasGeo);
+    const blocks = mapBlocks().filter(hasGeo);
+    const zones  = mapZones().filter(hasGeo);
+    const pins   = mapPins().filter(hasGeo);
+
+    // Frame the Easy Map to the bounding box of the real geometry being shown.
+    let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
+    const acc = (d) => { const b = pathBounds(d); if (b.minX < bx0) bx0 = b.minX; if (b.minY < by0) by0 = b.minY; if (b.maxX > bx1) bx1 = b.maxX; if (b.maxY > by1) by1 = b.maxY; };
+    [roads, blocks, zones, pins].forEach(arr => arr.forEach(o => acc(GEO.paths[o.svgId])));
+    if (!isFinite(bx0)) { const vb = (GEO.viewBox || `0 0 ${IW} ${IH}`).split(/\s+/).map(Number); bx0 = vb[0]; by0 = vb[1]; bx1 = vb[0] + vb[2]; by1 = vb[1] + vb[3]; }
+    const pad = 150;
+    EOX = bx0 - pad; EOY = by0 - pad; EGW = (bx1 - bx0) + pad * 2; EGH = (by1 - by0) + pad * 2;
+
+    const roadsHTML = roads.map(r => `<path d="${GEO.paths[r.svgId]}" class="eg-road-casing tier-${roadTier(r)}"/>`).join('')
+      + roads.map(r => `<path d="${GEO.paths[r.svgId]}" class="eg-road tier-${roadTier(r)}" data-roadpath="${r.id}"/>`).join('')
+      + roads.map(r => `<path d="${GEO.paths[r.svgId]}" class="eg-road-hit" data-hit="line:${r.id}"/>`).join('');
+
+    const blocksHTML = blocks.map(b => {
+      const c = b.color || catColor(b.cat); const ctr = pathCenter(GEO.paths[b.svgId]);
+      const short = (b.name || '').replace(/^(Block|Sector|Pocket)\s+/i, '');
+      return `<g class="eg-block cat-${b.cat}" data-hit="block:${b.id}" data-bid="${b.id}" style="--egc:${c}">
+        <path d="${GEO.paths[b.svgId]}" class="egfill"/>
+        <text x="${ctr.cx}" y="${ctr.cy}" class="eg-blabel">${esc(short)}</text></g>`;
     }).join('');
-    const blocks = scopedBlocks().map(b => {
-      const c = catColor(b.cat);
-      return `<g class="e-block" data-hit="block:${b.id}" data-bid="${b.id}">
-        <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="14" fill="${hexA(c, .2)}" stroke="${hexA(c, .7)}" stroke-width="2" class="bfill"/>
-        <text x="${b.x + b.w / 2}" y="${b.y + b.h / 2 + 6}" class="e-blabel" fill="${c}" text-anchor="middle">${esc(b.name)}</text>
-        <text x="${b.x + b.w / 2}" y="${b.y + b.h / 2 + 24}" class="e-bsub" text-anchor="middle">${esc(b.area)}</text>
-      </g>`;
+
+    const zonesHTML = zones.map(z => {
+      const c = catColor(z.cat); const ctr = pathCenter(GEO.paths[z.svgId]);
+      const short = (z.name || '').replace(/^(Commercial Zone|Zone)\s+/i, '');
+      return `<g class="eg-zone cat-${z.cat}" data-hit="zone:${z.id}" data-zid="${z.id}" style="--egc:${c}">
+        <path d="${GEO.paths[z.svgId]}" class="egfill"/>
+        <text x="${ctr.cx}" y="${ctr.cy}" class="eg-zlabel">${esc(short)}</text></g>`;
     }).join('');
-    const roadLabels = scopedRoads().map(r => `<g class="e-rlabel-g" data-roadlabel="${r.id}"><text x="${r.labelAt[0]}" y="${r.labelAt[1]}" class="e-rlabel" text-anchor="middle">${esc(r.label || r.name)}</text></g>`).join('');
-    const pins = scopedPins().map(p => {
-      const c = catColor(p.cat);
-      return `<g class="e-pin" data-hit="${itemKindOf(p.id)}:${p.id}" data-pid="${p.id}">
-        <circle cx="${p.at[0]}" cy="${p.at[1]}" r="8" fill="${c}" stroke="#fff" stroke-width="2.5"/>
-        <text x="${p.at[0]}" y="${p.at[1] - 14}" class="e-plabel" text-anchor="middle">${esc(p.name)}</text></g>`;
+
+    const pinsHTML = pins.map(p => {
+      const c = catColor(p.cat); const ctr = pathCenter(GEO.paths[p.svgId]);
+      return `<g class="eg-pin cat-${p.cat}" data-hit="${itemKindOf(p.id)}:${p.id}" data-pid="${p.id}" style="--egc:${c}">
+        <circle cx="${ctr.cx}" cy="${ctr.cy}" r="20" class="eg-dot"/>
+        <text x="${ctr.cx}" y="${ctr.cy - 34}" class="eg-plabel">${esc(p.name)}</text></g>`;
     }).join('');
-    return `<svg class="easy-svg" viewBox="0 0 ${EW} ${EH}" preserveAspectRatio="xMidYMid meet">
+
+    // Road name labels at each real road's geometric centre (geographically accurate).
+    const roadLabels = roads.map(r => { const ctr = pathCenter(GEO.paths[r.svgId]); return `<g class="eg-rlabel-g tier-${roadTier(r)}" data-roadlabel="${r.id}"><text x="${ctr.cx}" y="${ctr.cy}" class="eg-rlabel">${esc(r.label || r.name)}</text></g>`; }).join('');
+
+    return `<svg class="easy-svg eg-ov" viewBox="${EOX} ${EOY} ${EGW} ${EGH}" preserveAspectRatio="xMidYMid meet">
       <defs>
-        <radialGradient id="sand" cx="42%" cy="38%" r="80%"><stop offset="0%" stop-color="#F1E7D0"/><stop offset="100%" stop-color="#E4D7BB"/></radialGradient>
-        <filter id="eglow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="6"/></filter>
-        <pattern id="e-commercial-hatch" width="16" height="16" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
-          <rect width="16" height="16" fill="color-mix(in srgb, #F05A28 15%, transparent)"/>
-          <line x1="0" y1="0" x2="0" y2="16" stroke="#F05A28" stroke-width="4" stroke-opacity="0.3"/>
-        </pattern>
+        <linearGradient id="easyBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#F8F5EE"/><stop offset="100%" stop-color="#EFEADC"/></linearGradient>
+        <filter id="eglow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="22"/></filter>
       </defs>
-      <rect x="0" y="0" width="${EW}" height="${EH}" fill="url(#sand)"/>
-      <g id="eInternal">${internal}</g>
-      <g id="eZones">${zones}</g>
-      <g id="eBlocks">${blocks}</g>
-      <g id="eRoads">${roads}</g>
-      <g id="eRoadLabels">${roadLabels}</g>
-      <g id="ePins">${pins}</g>
+      <rect x="${EOX}" y="${EOY}" width="${EGW}" height="${EGH}" fill="url(#easyBg)"/>
+      <g id="egZones">${zonesHTML}</g>
+      <g id="egBlocks">${blocksHTML}</g>
+      <g id="egRoads">${roadsHTML}</g>
+      <g id="egRoadLabels">${roadLabels}</g>
+      <g id="egPins">${pinsHTML}</g>
       <g id="eSpot"></g>
     </svg><div id="tagG"></div>`;
   }
@@ -343,18 +418,21 @@
       return true;
     };
     if (kind === 'easy') {
-      l.querySelectorAll('.e-road').forEach(p => { const id = p.getAttribute('data-roadpath'); const on = relate(id, 'line'); p.classList.toggle('act', !!(hasSel || cat) && on); p.classList.toggle('dim', !!dimAll && !on); });
-      l.querySelectorAll('.e-block').forEach(g => { const id = g.getAttribute('data-bid'); const on = relate(id, 'block'); g.classList.toggle('act', on && (selIds.has(id) || state.activeCats.has(itemCategory(id)))); g.classList.toggle('dim', !!dimAll && !on); });
-      l.querySelectorAll('.e-zone').forEach(g => { const id = g.getAttribute('data-zid'); const on = relate(id, 'zone'); g.classList.toggle('act', on && (selIds.has(id) || state.activeCats.has(itemCategory(id)))); g.classList.toggle('dim', !!dimAll && !on); });
-      l.querySelectorAll('.e-pin').forEach(g => { const id = g.getAttribute('data-pid'); const on = relate(id, 'pin'); g.classList.toggle('act', on && (selIds.has(id) || state.activeCats.has(itemCategory(id)))); g.classList.toggle('dim', (!!dimAll && !on) || (state.showProps && !hasSel && state.activeCats.size === 0)); });
-      l.querySelectorAll('.e-rlabel-g').forEach(g => { const id = g.getAttribute('data-roadlabel'); g.classList.toggle('act', selIds.has(id)); g.classList.toggle('dim', !!dimAll && !relate(id, 'line')); });
-      // spotlight selected road (layered) in easy
-      const sp = l.querySelector('#eSpot'); if (sp) { sp.innerHTML = '';
-        if (hasSel) {
-           selIds.forEach(sel => {
-             if (itemKindOf(sel) === 'line') { const d = roadById(sel).easyD; sp.insertAdjacentHTML('beforeend', `<path d="${d}" filter="url(#eglow)" style="fill:none;stroke:#28C8E0;stroke-width:18;opacity:.5;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#0B2552;stroke-width:11;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#fff;stroke-width:7;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:#2BD0E6;stroke-width:3.5;stroke-linecap:round"/>`); }
-           });
-        }
+      // All real geometry stays visible (premium overview); selection/category emphasizes.
+      l.querySelectorAll('.eg-road').forEach(p => { const id = p.getAttribute('data-roadpath'); const on = relate(id, 'line'); p.classList.toggle('act', on && (selIds.has(id) || state.activeCats.has('roads'))); p.classList.toggle('dim', !!dimAll && !on); });
+      l.querySelectorAll('.eg-block').forEach(g => { const id = g.getAttribute('data-bid'); const on = relate(id, 'block'); g.classList.toggle('act', on && (selIds.has(id) || state.activeCats.has(itemCategory(id)))); g.classList.toggle('dim', !!dimAll && !on); });
+      l.querySelectorAll('.eg-zone').forEach(g => { const id = g.getAttribute('data-zid'); const on = relate(id, 'zone'); g.classList.toggle('act', on && (selIds.has(id) || state.activeCats.has(itemCategory(id)))); g.classList.toggle('dim', !!dimAll && !on); });
+      l.querySelectorAll('.eg-pin').forEach(g => { const id = g.getAttribute('data-pid'); const on = relate(id, 'pin'); g.classList.toggle('act', on && (selIds.has(id) || state.activeCats.has(itemCategory(id)))); g.classList.toggle('dim', (!!dimAll && !on) || (state.showProps && !hasSel && state.activeCats.size === 0)); });
+      l.querySelectorAll('.eg-rlabel-g').forEach(g => { const id = g.getAttribute('data-roadlabel'); const on = relate(id, 'line'); g.classList.toggle('act', on && (selIds.has(id) || state.activeCats.has('roads'))); g.classList.toggle('dim', !!dimAll && !on); });
+      // spotlight selected / active-category roads using the REAL road geometry
+      const sp = l.querySelector('#eSpot'); if (sp) {
+        let roadIds = [];
+        if (hasSel) roadIds = Array.from(selIds).filter(s => itemKindOf(s) === 'line');
+        else if (state.activeCats.has('roads')) roadIds = catItems('roads').map(i => i.id);
+        const paths = roadIds.map(id => { const r = roadById(id); return r && GEO.paths && GEO.paths[r.svgId]; }).filter(Boolean);
+        const widths = [[60, '#2BD0E6', '.4', 'url(#eglow)'], [40, '#0B2552', '1', ''], [20, '#fff', '1', ''], [10, '#2BD0E6', '1', '']];
+        sp.innerHTML = paths.length ? widths.map(([w, col, op, flt]) =>
+          `<g ${flt ? `filter="${flt}"` : ''} style="fill:none;stroke:${col};stroke-width:${w};opacity:${op};stroke-linecap:round;stroke-linejoin:round">${paths.map(d => `<path d="${d}"/>`).join('')}</g>`).join('') : '';
       }
       renderTags();
     } else if (kind === 'original') {
@@ -440,8 +518,11 @@
   function renderTags() {
     const g = layer() && layer().querySelector('#tagG'); if (!g) return;
     if (!(state.mapMode === 'easy' && state.showProps && state.section === 'master')) { g.innerHTML = ''; return; }
-    g.innerHTML = scopedProperties().map(p => { const b = blockById(p.blockId) || { x: 700, y: 480, w: 120, h: 100 };
-      const x = b.x + b.w / 2, y = b.y + 14;
+    g.innerHTML = scopedProperties().map(p => {
+      const b = blockById(p.blockId);
+      let x, y;
+      if (b && hasGeo(b)) { const bd = pathBounds(GEO.paths[b.svgId]); [x, y] = geoToLayer((bd.minX + bd.maxX) / 2, bd.minY); }
+      else { x = EGW / 2; y = EGH / 2; }
       return `<button class="ptag ${p.id === state.previewId ? 'sel' : ''}" data-tag="${p.id}" style="left:${x}px;top:${y}px">
         <span class="no">${esc(p.plotNumber)}</span><span class="sz">${esc(p.size)}</span><span class="av">Available</span></button>`;
     }).join('');
@@ -723,19 +804,21 @@
     const chips = [['all', 'All']].concat(areas.map(a => [a, a]));
     return `<div class="full-in">
       <div class="eyebrow">Exact plot proof</div>
-      <div class="serif" style="font-size:40px;font-weight:560;letter-spacing:-1px;line-height:1.02;margin-top:6px">Sector Maps</div>
+      <div class="serif" style="font-size:40px;font-weight:560;letter-spacing:-1px;line-height:1.02;margin-top:6px">Verified Sector Maps</div>
+      <div style="font-size:16px; color:#6B6456; margin-top:8px; font-weight:600;">${list.length} available maps</div>
       <div class="chips" style="margin-top:16px">${chips.map(([v, l]) => `<button class="chip ${state.secArea === v ? 'on' : ''}" data-secarea="${v}">${l}</button>`).join('')}</div>
       <div class="search"><span class="ic"></span><input id="secSearch" value="${esc(state.secQ)}" placeholder="Search sector or block… e.g. Block A, Sector 20"></div>
-      ${list.length ? `<div class="grid-cards" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr));margin-top:22px">${list.map(secCardHTML).join('')}</div>` : `<div class="empty" style="background:#fff; border:1px solid #EBE1CC; border-radius:18px; padding:60px 40px; margin-top:24px;"><div style="font-size:36px; margin-bottom:12px;">🗺️</div><div style="font-size:18px; font-weight:700; color:#0B1A36;">No sector maps match</div><div style="font-size:14px; margin-top:6px; color:#6B6456;">Try adjusting your search or area filter.</div></div>`}
+      ${list.length ? `<div class="grid-cards" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr));margin-top:22px">${list.map(secCardHTML).join('')}</div>` : `<div class="empty" style="background:#fff; border:1px solid #EBE1CC; border-radius:18px; padding:60px 40px; margin-top:24px;"><div style="font-size:36px; margin-bottom:12px;">🗺️</div><div style="font-size:18px; font-weight:700; color:#0B1A36;">No verified sector maps found.</div><div style="font-size:14px; margin-top:6px; color:#6B6456;">Check manifest filtering or processed asset paths.</div></div>`}
     </div>`;
   }
   function secCardHTML(s) {
     const block = mapBlocks().find(b => b.area === s.area && b.name === s.sectorOrBlockName);
     const accent = catColor(block ? block.cat : 'sectors');
-    const thumb = s.thumbnailPath ? esc(s.thumbnailPath) : '';
+    const thumb = s.thumbnailPath ? esc(s.thumbnailPath) : (s.originalPath ? esc(s.originalPath) : '');
     return `<div class="seccard">
       <div class="sec-thumb" style="--a:${accent}; background-image:url('${thumb}'); background-size:cover; background-position:center;">
-        <span class="sec-tag ready">Verified Map</span></div>
+        ${!thumb ? `<span class="sec-grid"></span><span class="sec-big">${esc((s.sectorOrBlockName || '').replace(/[^A-Z0-9]/gi, '').slice(-2))}</span>` : ''}
+        <span class="sec-tag ready">Verified</span></div>
       <div class="sec-body"><div class="sec-name">${esc(s.sectorOrBlockName)}</div><div class="sec-area">${esc(s.city || '')}${s.city && s.area ? ' · ' : ''}${esc(s.area || '')}</div>
         <button class="btn-primary wfull" style="height:44px;margin-top:11px;font-size:13.5px" data-opensec="${s.id}">Open Map</button></div></div>`;
   }
@@ -884,7 +967,14 @@
     on('lbNext', e => { e.stopPropagation(); state.lightbox.index = (state.lightbox.index + 1) % state.lightbox.photos.length; render(); });
   }
   function zoomBtn(f) { const r = wrap().getBoundingClientRect(); zoomAt(r.left + wrap().clientWidth / 2, r.top + wrap().clientHeight / 2, f); }
-  function focusProps() { const ps = mapProperties(); if (!ps.length) return; const cx = ps.reduce((s, p) => { const b = blockById(p.blockId) || { x: 700, w: 100 }; return s + b.x + b.w / 2; }, 0) / ps.length; const cy = ps.reduce((s, p) => { const b = blockById(p.blockId) || { y: 500, h: 100 }; return s + b.y + b.h / 2; }, 0) / ps.length; setTimeout(() => focusBox(cx, cy, 760, 520, 1.7), 60); }
+  function focusProps() {
+    const ps = scopedProperties(); if (!ps.length) return;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    ps.forEach(p => { const b = blockById(p.blockId); if (b && hasGeo(b)) { const bd = pathBounds(GEO.paths[b.svgId]); if (bd.minX < x0) x0 = bd.minX; if (bd.minY < y0) y0 = bd.minY; if (bd.maxX > x1) x1 = bd.maxX; if (bd.maxY > y1) y1 = bd.maxY; } });
+    if (!isFinite(x0)) return;
+    const [cx, cy] = geoToLayer((x0 + x1) / 2, (y0 + y1) / 2);
+    setTimeout(() => focusBox(cx, cy, Math.max(x1 - x0, 600), Math.max(y1 - y0, 600), 1.5), 60);
+  }
   function toggleProps() { state.showProps = !state.showProps; state.previewId = null; refreshControls(); updateMapOverlays(); if (state.showProps) focusProps(); else fit(); }
   function clearFilters() { state.filters = { type: new Set(), area: new Set(), location: new Set(), size: new Set(), blockId: new Set() }; render(); }
 
@@ -924,7 +1014,7 @@
     render();
   }
   function openSectorHub(smId) { if (!sectorMapById(smId)) return; Object.assign(state, { section: 'props', propView: 'sector', selectedId: null, sectorBlock: smId, previewId: null }); builtSig = ''; render(); }
-  function showAreaContext(id) { const p = propById(id); Object.assign(state, { section: 'master', mapMode: 'easy', showProps: true, selectedId: id, selectedIds: new Set([id]), itemOpen: false, previewId: id }); builtSig = ''; render(); if (p) { const b = blockById(p.blockId); if (b) setTimeout(() => focusBox(b.x + b.w / 2, b.y + b.h / 2, b.w, b.h, 1.7), 80); } }
+  function showAreaContext(id) { const p = propById(id); Object.assign(state, { section: 'master', mapMode: 'easy', showProps: true, selectedId: id, selectedIds: new Set([id]), itemOpen: false, previewId: id }); builtSig = ''; render(); if (p) { const b = blockById(p.blockId); if (b && hasGeo(b)) { const bd = pathBounds(GEO.paths[b.svgId]); const [cx, cy] = geoToLayer((bd.minX + bd.maxX) / 2, (bd.minY + bd.maxY) / 2); setTimeout(() => focusBox(cx, cy, Math.max(bd.maxX - bd.minX, 300), Math.max(bd.maxY - bd.minY, 300), 1.8), 80); } else if (b) { setTimeout(() => focusBox(b.x + b.w / 2, b.y + b.h / 2, b.w, b.h, 1.7), 80); } } }
   function openLightbox(idx) {
     let photos, name;
     if (state.section === 'props' && state.propView === 'detail') { photos = photosFor('property', state.selectedId, 4); name = 'Plot ' + (propById(state.selectedId) || {}).plotNumber; }
@@ -937,9 +1027,16 @@
   window.addEventListener('resize', () => { if (state.space === 'plan') fit(); });
   
   try {
-    const mRes = await fetch('./map-assets.manifest.json');
+    let mRes;
+    try {
+      mRes = await fetch('./map-assets.manifest.json');
+    } catch(err1) {
+      mRes = await fetch('/app/plotmap/map-assets.manifest.json');
+    }
     PM_MANIFEST = await mRes.json();
-  } catch(e) { console.error('Failed to load map manifest', e); }
+  } catch(e) { 
+    console.error('Failed to load map manifest', e); 
+  }
 
   await useDataset(state.areaId);
   
