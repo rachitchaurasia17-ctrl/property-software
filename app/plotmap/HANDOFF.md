@@ -215,3 +215,39 @@ LAUNCH-MAP-WORKFLOW §13 for when a backed save is wanted (anon read, writes beh
 2. Decide the production image-hosting approach (deploy blocker above).
 3. Later: sector-level Easy Maps + per-map road/block/commercial/landmark markings
    (schemas reserved in Admin → Future Updates).
+
+---
+
+## Session: block-click fix + Dealer Command Center + future-ready cities
+
+**Done & pushed to `origin/main` (verified in-browser, no console errors):**
+
+- **Block-click selection FIXED on the Original Map.** Root cause: `.o-block`/
+  `.o-zone`/`.o-pin` were `opacity:0; pointer-events:none` until a category was
+  activated, but no category panel is mounted — so blocks were never clickable (roads
+  worked only via their always-on `.o-hit` layer). Fix: added an always-on transparent
+  hit layer (`.o-fillhit`) for blocks/zones/pins so clicking the feature on the photo
+  selects + highlights it. No geometry invented. Easy Map block-click already worked.
+- **Dealer Command Center** (admin home, `/admin/maps.html#dash`): real-data "what to
+  do next" — hero (maps ready to present), Today's focus (actionable gaps with one-click
+  actions), area intelligence (per-city bars), coverage / inventory / health mini-stats,
+  quick actions. Honest empty states, no fake numbers. Loads dataset properties.
+- **Future-ready map toggles**: Easy Map shows only when a city has `assets.overlayGeo`;
+  "Aerocity Blocks" only when `assets.markings` exists; `mapKind()` falls back to
+  Original for unavailable modes. Adding a city with only an original image shows just
+  the Original Map — no broken Easy button, no fake Easy Map.
+- Unified admin nav label → "Command Center".
+
+**New-files finding (Zirakpur / New Chandigarh masterplans):** none clearly present.
+`new_map_files/` is an unlabeled Figma tracing workspace (base crop + `Vector N`
+shapes; `temp*.svg` hold Aerotropolis geometry) = material for the EXISTING Aerocity
+Easy Map, not new-city masterplans. No Zirakpur image exists. Did **not** guess-wire a
+city onto an official proof map. To add those cities, drop a clearly-named original
+masterplan image per city and follow LAUNCH-MAP-WORKFLOW §21 (now a 1-file step thanks
+to capability gating).
+
+**Remaining / next:** (1) provide clearly-named Zirakpur + New Chandigarh original
+masterplan images to bring those cities live; (2) place real plot pins on the busiest
+sector maps via Admin → Pin Manager (139/140 maps have none yet); (3) production image
+hosting for the gitignored processed sector images (see §16); (4) optional Supabase
+pins table (§13). You manually design Easy Maps in Figma — PlotMap never generates them.

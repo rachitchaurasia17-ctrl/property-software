@@ -190,3 +190,47 @@ Other checks:
 - `node tools/audit-plotmap.js` (no price / debug / internal language in client files)
 - Verify: masterplan modes work; Sector Maps shows all; Open Map → viewer zoom/pan;
   pins render + info card; Admin loads + pin export; client UI shows no internal labels.
+
+---
+
+## 20. Dealer Command Center (admin home)
+
+`/admin/maps.html` opens on the **Command Center** — the dealer's internal "what to
+do next" view (never shown to clients). It is computed from real data only (manifest
++ `sector-pins.js` + dataset properties) with honest empty states — no fake numbers.
+
+- **Hero**: how many sector maps are ready to present, across how many cities.
+- **Today's focus**: prioritized, clickable actions from real gaps — e.g. "X of Y
+  sector maps have no plot pins", "N cities are not live yet", "link properties to a
+  pin". Each has a one-click action (Add pins / Manage maps / etc.).
+- **Area intelligence**: per-city maps / pinned / pins with coverage bars.
+- **Map coverage**, **Inventory & pins** (by type), **Library health** (internal).
+- **Quick actions**: open client app, add a plot pin, manage maps, highlight sets.
+
+It reuses the unified admin nav, so Command Center / Sector Maps / Pin Manager /
+Highlight Sets are one cohesive tool.
+
+## 21. Adding a new main/original masterplan (future-ready)
+
+The app is set up so adding a city is small and safe — and never creates a fake Easy
+Map. To bring a city (e.g. Zirakpur / New Chandigarh) live:
+
+1. Put the official masterplan image under `public/plotmap-assets/<city>/<city>-original-web.jpg`.
+2. Create `app/plotmap/datasets/<city>.dataset.js` modelled on `tricity.dataset.js`,
+   but with **only** `assets.original` set (and `IMG_W`/`IMG_H` = image size). Leave
+   `overlayGeo` and `markings` unset until you trace them.
+3. Register it: in `data.js`, point the city's area `dataset` at the new id and set
+   `live:true`.
+4. Result: the city shows its **Original Map** only. The **Easy Map** and **Aerocity
+   Blocks** toggles are automatically hidden (capability-gated on `assets.overlayGeo`
+   / `assets.markings`) — no broken buttons, no invented geometry.
+5. Later, when YOU manually trace the Easy Map in Figma: export the overlay, build the
+   city's `geo.json`, set `assets.overlayGeo`, and the Easy Map toggle appears on its
+   own (see EASY-MAP-PIPELINE.md). PlotMap never auto-generates Easy Map geometry.
+
+> Note on the current `new_map_files/` drop: it is an unlabeled Figma **tracing
+> workspace** (base crop + individual `Vector N` shapes; `temp*.svg` contain
+> Aerotropolis geometry) — i.e. material for the **existing Aerocity** Easy Map, not a
+> clearly-labelled Zirakpur/New Chandigarh masterplan. No Zirakpur image was present.
+> To add those cities, drop a clearly-named original masterplan image per city and
+> follow the steps above.
