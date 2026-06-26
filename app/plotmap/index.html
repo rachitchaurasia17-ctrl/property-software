@@ -7,16 +7,17 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./styles.css">
+<!-- PLOTMAP_BUILD: bump ?v= on every deploy so browsers/CDN always fetch fresh assets -->
+<link rel="stylesheet" href="./styles.css?v=8">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div id="app"></div>
-<script src="./data.js"></script>
+<script src="./data.js?v=8"></script>
 <!-- map datasets (one per masterplan; add new cities here) -->
-<script src="./datasets/tricity.dataset.js"></script>
+<script src="./datasets/tricity.dataset.js?v=8"></script>
 <!-- sector map pins (normalized % coords; edit via /admin/) -->
-<script src="./datasets/sector-pins.js"></script>
-<script src="./app.js"></script>
+<script src="./datasets/sector-pins.js?v=8"></script>
+<script src="./app.js?v=8"></script>
 </body>
 </html>

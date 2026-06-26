@@ -90,7 +90,7 @@
   const state = {
     space: 'area', areaId: 'aerotropolis', areaMenuOpen: false,
     prebuiltMaps: [], activeLetter: null,
-    section: 'master', mapMode: 'original', showProps: false,
+    section: 'master', mapMode: 'markings', showProps: false,
     activeCats: new Set(), displayCatId: null, selectedIds: new Set(), itemOpen: false,
     propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, activePinId: null,
     filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set(), blockId: new Set() },
@@ -265,6 +265,9 @@
   // them simply don't show those toggles — no broken buttons, no fake Easy Maps.
   const easyMapAvailable = () => !!(DS && DS.assets && DS.assets.overlayGeo);
   const markingsAvailable = () => !!(DS && DS.assets && DS.assets.markings);
+  // The single client-facing masterplan view ("3D Map"): the premium colored-block
+  // markings view if a city has one, else the official original masterplan image.
+  const premiumMasterMode = () => markingsAvailable() ? 'markings' : 'original';
   function mapKind() {
     if (state.section === 'props' && state.propView === 'sector') return 'sector';
     if (state.mapMode === 'easy' && !easyMapAvailable()) return 'original';
@@ -532,14 +535,20 @@
         p.classList.toggle('show', false);
         p.classList.toggle('hide', !isActive);
       });
+      // Landmark / education / IT / entry POIs are shown by DEFAULT (premium, like
+      // Apple Maps). When the dealer focuses a block or A/B/C/D set, POIs dim away
+      // so the highlighted parcels stand out.
+      const POI_CATS = new Set(['landmarks', 'institutions', 'it', 'entry']);
+      const noFocus = !hasSel && state.activeCats.size === 0;
       l.querySelectorAll('.o-pin').forEach(g => {
         const id = g.getAttribute('data-itempath');
-        const inCat = state.activeCats.size > 0 && state.activeCats.has(itemCategory(id));
+        const cat = itemCategory(id);
+        const inCat = state.activeCats.size > 0 && state.activeCats.has(cat);
         const isSel = selIds.has(id);
-        // If the category is active, all pins in it should be visible. Or if this specific pin is selected.
-        const isActive = isSel || inCat;
-        g.classList.toggle('act', isSel);
-        g.classList.toggle('soft', false);
+        const defaultPoi = noFocus && POI_CATS.has(cat);
+        const isActive = isSel || inCat || defaultPoi;
+        g.classList.toggle('act', isSel || inCat);
+        g.classList.toggle('soft', defaultPoi && !isSel && !inCat);
         g.classList.toggle('hide', !isActive);
         g.classList.toggle('show', isActive);
       });
@@ -651,7 +660,7 @@
     root.className = state.present ? 'present' : '';
     root.innerHTML = planHTML(); bindPlan(); bindMap(); buildMap();
   }
-  function resetPlan(extra) { return Object.assign({ section: 'master', mapMode: 'original', showProps: false, activeCats: new Set(), displayCatId: null, selectedIds: new Set(), previewIdx: 0, itemOpen: false, propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, activePinId: null, areaMenuOpen: false, filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set(), blockId: new Set() }, secQ: '', secArea: 'all' }, extra || {}); }
+  function resetPlan(extra) { return Object.assign({ section: 'master', mapMode: 'markings', showProps: false, activeCats: new Set(), displayCatId: null, selectedIds: new Set(), previewIdx: 0, itemOpen: false, propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, activePinId: null, areaMenuOpen: false, filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set(), blockId: new Set() }, secQ: '', secArea: 'all' }, extra || {}); }
 
   /* ---------- AREA SELECT ---------- */
   function areaSelectHTML() {
@@ -680,10 +689,8 @@
         <button class="area-switch" id="areaToggle"><span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.1"><span class="cur">${esc(area().name)}</span><span class="lab">View all maps</span></span><span class="caret">▾</span></button>
         <div class="divider"></div>
         <div style="display:flex;gap:3px"><button class="tab ${state.section === 'master' ? 'on' : ''}" id="tabMaster">Masterplan</button><button class="tab ${state.section === 'props' && state.propView !== 'sector' ? 'on' : ''}" id="tabProps">Properties</button><button class="tab ${state.section === 'sectors' ? 'on' : ''}" id="tabSectors">Sector Maps</button></div>
-        ${state.section === 'master' ? `<div class="divider"></div><div class="mode-switch topbar-mode"><button class="${mapKind() === 'original' ? 'on' : ''}" data-mode="original">Original Map</button>${easyMapAvailable() ? `<button class="${state.mapMode === 'easy' ? 'on' : ''}" data-mode="easy">Easy Map</button>` : ''}${markingsAvailable() ? `<button class="${state.mapMode === 'markings' ? 'on' : ''}" data-mode="markings">Aerocity Blocks</button>` : ''}${easyMapAvailable() ? `<div class="divider" style="margin:3px 6px;width:1px;background:#1B3F7C"></div>${['A','B','C','D'].map(L => `<button class="transparent-btn ${state.activeLetter === L ? 'on' : ''}" data-prebuilt-label="${L}" title="Highlight set ${L}">${L}</button>`).join('')}` : ''}</div>` : ''}
+        ${state.section === 'master' ? `<div class="divider"></div><div class="mode-switch topbar-mode"><button class="${!state.activeLetter ? 'on' : ''}" id="mode3d">3D Map</button>${easyMapAvailable() ? `<div class="divider" style="margin:3px 6px;width:1px;background:#1B3F7C"></div>${['A','B','C','D'].map(L => `<button class="transparent-btn ${state.activeLetter === L ? 'on' : ''}" data-prebuilt-label="${L}" title="Highlight set ${L}">${L}</button>`).join('')}` : ''}</div>` : ''}
         <div class="spacer"></div>
-        <a href="/admin/maps.html" style="color:#A19B8D; font-size:12px; font-weight:600; text-decoration:none; margin-right:12px;">Admin</a>
-        <a href="/admin/editor.html" style="color:#A19B8D; font-size:12px; font-weight:600; text-decoration:none; margin-right:16px;">Editor</a>
         ${showBack ? '<button class="back-btn" id="backMaster"><span>‹</span> Back to Masterplan</button>' : ''}
 
         ${state.areaMenuOpen ? areaMenuHTML() : ''}
@@ -961,6 +968,7 @@
     on('presentBtn', () => { state.present = !state.present; render(); setTimeout(fit, 70); });
 
     each('[data-mode]', b => b.addEventListener('click', () => { state.mapMode = b.getAttribute('data-mode'); if (state.mapMode === 'original') state.showProps = false; builtSig = ''; render(); }));
+    on('mode3d', () => { state.activeLetter = null; state.selectedIds.clear(); state.activeCats.clear(); state.displayCatId = null; state.mapMode = premiumMasterMode(); state.showProps = false; builtSig = ''; render(); });
     each('[data-prebuilt-label]', b => b.addEventListener('click', () => {
       const L = b.getAttribute('data-prebuilt-label');
       const row = state.prebuiltMaps.find(m => String(m.label || '').trim().toUpperCase() === L);
@@ -978,7 +986,7 @@
         state.activeLetter = null;
       }
 
-      state.mapMode = 'original';
+      state.mapMode = premiumMasterMode();
       state.showProps = false;
       builtSig = '';
       render();

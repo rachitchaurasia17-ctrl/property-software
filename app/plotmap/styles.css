@@ -830,3 +830,37 @@ input{font-family:inherit;-webkit-appearance:none;}
 .spin-card-row span{color:#9C957F;font-weight:600;}
 .spin-card-row b{color:#23211C;font-weight:700;text-align:right;}
 .spin-card-notes{margin-top:10px;font-size:13px;color:#6B6456;line-height:1.5;background:#F8F6F0;border-radius:10px;padding:10px 12px;}
+
+/* ============================================================
+   PREMIUM MASTERPLAN — pitch-grade 3D blocks + POI pins.
+   Appended last so it wins on source order; scoped to .orig-ov (the 3D Map /
+   Original overlay). Smooth, springy, "out of the screen" Apple-Maps feel.
+   ============================================================ */
+.orig-ov .o-block, .orig-ov .o-zone, .orig-ov .o-block-lbl, .orig-ov .o-zone-lbl {
+  transition: transform .46s cubic-bezier(.34,1.42,.5,1), filter .4s ease, opacity .3s ease, fill .3s ease, stroke-width .3s ease;
+}
+/* selected block — extruded, lifted off the map */
+.orig-ov .o-block.act {
+  fill: color-mix(in srgb, var(--bfill,#2E5A86) 90%, #fff 10%) !important;
+  stroke:#ffffff !important; stroke-width:13 !important;
+  transform: translateY(-50px) scale(1.02) !important;
+  filter:
+    drop-shadow(0 7px 0 color-mix(in srgb, var(--bfill,#2E5A86) 74%, #000))
+    drop-shadow(0 15px 0 color-mix(in srgb, var(--bfill,#2E5A86) 60%, #000))
+    drop-shadow(0 24px 0 color-mix(in srgb, var(--bfill,#2E5A86) 46%, #000))
+    drop-shadow(0 52px 44px rgba(8,16,32,.62)) !important;
+  z-index:30 !important;
+}
+.orig-ov .o-block-lbl.act { transform: translateY(-58px) !important; fill:#ffffff !important; font-size:58px !important; filter: drop-shadow(0 6px 16px rgba(0,0,0,.65)); }
+/* selected zone — gentler lift */
+.orig-ov .o-zone.act { transform: translateY(-26px) !important; filter: drop-shadow(0 9px 0 color-mix(in srgb,var(--zfill,#B8823A) 60%,#000)) drop-shadow(0 30px 32px rgba(8,16,32,.5)) !important; z-index:25 !important; }
+.orig-ov .o-zone-lbl.act { transform: translateY(-30px) !important; }
+
+/* premium POI pins (colleges / IT / landmarks / entry) */
+.orig-ov .o-pin .pin-inner { transition: transform .32s cubic-bezier(.34,1.5,.5,1); }
+.orig-ov .o-pin .pin-shape { filter: drop-shadow(0 10px 16px rgba(8,16,32,.42)); }
+.orig-ov .o-pin.soft .pin-inner { transform: scale(.9); }
+.orig-ov .o-pin.soft:hover .pin-inner { transform: scale(1.06) translateY(-8px); }
+.orig-ov .o-pin.soft:hover .pin-shape { filter: drop-shadow(0 16px 22px rgba(8,16,32,.5)); }
+.orig-ov .o-pin.act .pin-inner { transform: scale(1.14) translateY(-10px); }
+.orig-ov .o-pin.act .pin-shape { filter: drop-shadow(0 18px 26px rgba(8,16,32,.55)); }
