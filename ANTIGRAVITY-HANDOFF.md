@@ -275,3 +275,46 @@ Redesign the admin UI starting with crm-ui.css to make it look extremely premium
 
 ### Exact Next Steps
 Redesign the admin UI starting with crm-ui.css to make it look extremely premium, mimicking the Stitch design files. Build out the interactive Map Studio canvas.
+
+## Phase 2: Visual Polish + Map Studio Rebuild Complete
+
+### What Was Visually Improved
+- Rewrote crm-ui.css from scratch — new design tokens, shadows, spacing, consistent border-radius, premium SaaS feel.
+- Topbar: sticky header, better proportions, brand icon via CSS, dealer-bar variant with gold accent badge.
+- Cards: improved shadows, hover effects, better padding/hierarchy.
+- Tables: cleaner headers with background tint, tighter rows, subtle hover.
+- Buttons: primary/ghost/danger/sm variants with proper transitions.
+- Status badges: consistent colors — green (ok), orange (warn), red (err), blue (info), gray (neutral), purple variant.
+- Forms: cleaner inputs with focus ring, tighter labels.
+- Metric cards: larger numbers, better spacing.
+- Action cards: subtle lift on hover with branded icon backgrounds.
+- Gateway (index.html): rebuilt with gradient background, polished role cards, clear dealer/team separation.
+- Owner page (owner.html): pulse card now uses a branded gradient instead of plain border. Cleaner layout.
+- Dealer pages (area-intelligence, finance): switched to dealer-bar CSS class, removed inline styles.
+
+### Map Studio Status
+- Rebuilt from a tiny placeholder into a full 3-column professional editor layout:
+  - Left panel: tool buttons (Add Pin, Move Pin, Landmark, Road, Zone, Label), visibility filter, pin list.
+  - Center panel: interactive canvas with click-to-place-pin, real coordinate tracking, zoom controls.
+  - Right panel: inspector with full pin edit form (title, type, area, X/Y %, linked property, description, visibility, notes, save, delete).
+- All pins persist to localStorage CRM store. New pins appear immediately in both the canvas and the pin list.
+- Pin markers are color-coded by type (green for property, blue for landmark, orange for road, purple for zone).
+- Zoom controls are visual/demo level (CSS transform scale).
+
+### Remaining Design Weaknesses
+- No actual map image loaded in Map Studio canvas yet (uses placeholder text). Need to integrate with the actual Aerocity map image.
+- Mobile responsiveness is functional but not optimized for phones.
+- Empty states on tables are plain text, could use icons/illustrations.
+- No dark mode variant.
+- UI is clean/professional but not yet luxury/Stitch-level premium.
+
+### Checks Run
+- node --check admin/crm-data.js passed.
+- node --check admin/crm-store.js passed.
+- node tools/audit-plotmap.js passed.
+- Role enforcement verified: Team pages redirect to gateway for non-team users. Dealer pages redirect for non-dealer users.
+- Nav separation verified: Team nav shows ops pages only. Dealer nav shows command/intelligence/finance only.
+- Data layer intact: all forms still persist to localStorage.
+
+### Exact Next Step
+Load the actual Aerocity map image into Map Studio canvas. Then do the final luxury design pass (Stitch-level) on all admin pages.
