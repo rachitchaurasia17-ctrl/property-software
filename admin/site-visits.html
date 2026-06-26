@@ -8,6 +8,11 @@
 <link rel="stylesheet" href="/admin/crm-ui.css">
 <script src="/admin/crm-data.js"></script>
 <script src="/admin/crm-store.js"></script>
+<script>
+if (localStorage.getItem('plotmap_admin_role') !== 'team') {
+  window.location.href = '/admin/index.html';
+}
+</script>
 </head>
 <body class="pm-shell">
 
@@ -29,8 +34,35 @@
 
 <main class="pm-main">
   <div class="pm-header">
-    <h1>Site Visits</h1>
-    <div class="sub">Track client visits and property viewings.</div>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <h1>Site Visits</h1>
+        <div class="sub">Track client visits and property viewings.</div>
+      </div>
+      <button class="pm-button primary" onclick="document.getElementById('add-sv').style.display='block'">+ Schedule Site Visit</button>
+    </div>
+  </div>
+
+  <div class="pm-card" id="add-sv" style="display:none; margin-bottom:24px;">
+    <div class="pm-card-h">Schedule Site Visit</div>
+    <form class="pm-form" id="add-sv-form">
+      <div class="pm-grid cols-2">
+        <div class="fld">
+          <label>Client</label>
+          <select id="sv-client" required><option value="">Select Client...</option></select>
+        </div>
+        <div class="fld">
+          <label>Property</label>
+          <select id="sv-property" required><option value="">Select Property...</option></select>
+        </div>
+        <div class="fld"><label>Date & Time</label><input type="datetime-local" id="sv-date" required></div>
+        <div class="fld"><label>Area</label><input type="text" id="sv-area"></div>
+        <div class="fld"><label>Notes</label><input type="text" id="sv-notes"></div>
+      </div>
+      <div class="fld" style="margin-top:16px;">
+        <button type="submit" class="pm-button primary" style="width:200px;">Save Site Visit</button>
+      </div>
+    </form>
   </div>
   
   <div class="pm-card">
@@ -85,6 +117,29 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }).join('');
   }
+
+  const selClient = document.getElementById('sv-client');
+  data.clients.forEach(c => {
+    selClient.innerHTML += `<option value="${c.id}">${c.name} (${c.phone})</option>`;
+  });
+  const selProp = document.getElementById('sv-property');
+  data.properties.forEach(p => {
+    selProp.innerHTML += `<option value="${p.id}">${p.title} (${p.area})</option>`;
+  });
+
+  document.getElementById('add-sv-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    crm.addSiteVisit({
+      clientId: document.getElementById('sv-client').value,
+      propertyId: document.getElementById('sv-property').value,
+      dateTime: document.getElementById('sv-date').value,
+      area: document.getElementById('sv-area').value,
+      notes: document.getElementById('sv-notes').value,
+      assignedStaffId: 's1'
+    });
+    crm.updateClientStatus(document.getElementById('sv-client').value, 'Site Visit Planned');
+    window.location.reload();
+  });
 });
 </script>
 </body>

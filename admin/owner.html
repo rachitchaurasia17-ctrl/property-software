@@ -8,6 +8,11 @@
 <link rel="stylesheet" href="/admin/crm-ui.css">
 <script src="/admin/crm-data.js"></script>
 <script src="/admin/crm-store.js"></script>
+<script>
+if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
+  window.location.href = '/admin/index.html';
+}
+</script>
 </head>
 <body class="pm-shell">
 

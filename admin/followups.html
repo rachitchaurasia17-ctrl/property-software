@@ -8,6 +8,11 @@
 <link rel="stylesheet" href="/admin/crm-ui.css">
 <script src="/admin/crm-data.js"></script>
 <script src="/admin/crm-store.js"></script>
+<script>
+if (localStorage.getItem('plotmap_admin_role') !== 'team') {
+  window.location.href = '/admin/index.html';
+}
+</script>
 </head>
 <body class="pm-shell">
 
@@ -29,8 +34,31 @@
 
 <main class="pm-main">
   <div class="pm-header">
-    <h1>Follow-ups</h1>
-    <div class="sub">Track client communication and next steps.</div>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <h1>Follow-ups</h1>
+        <div class="sub">Track client communication and next steps.</div>
+      </div>
+      <button class="pm-button primary" onclick="document.getElementById('add-fw').style.display='block'">+ Schedule Follow-up</button>
+    </div>
+  </div>
+
+  <div class="pm-card" id="add-fw" style="display:none; margin-bottom:24px;">
+    <div class="pm-card-h">Schedule Follow-up</div>
+    <form class="pm-form" id="add-fw-form">
+      <div class="pm-grid cols-2">
+        <div class="fld">
+          <label>Client</label>
+          <select id="fw-client" required><option value="">Select Client...</option></select>
+        </div>
+        <div class="fld"><label>Date & Time</label><input type="datetime-local" id="fw-date" required></div>
+        <div class="fld"><label>Type</label><select id="fw-type"><option>Call</option><option>WhatsApp</option><option>Meeting</option></select></div>
+        <div class="fld"><label>Notes</label><input type="text" id="fw-notes"></div>
+      </div>
+      <div class="fld" style="margin-top:16px;">
+        <button type="submit" class="pm-button primary" style="width:200px;">Save Follow-up</button>
+      </div>
+    </form>
   </div>
   
   <div class="pm-card">
@@ -84,6 +112,23 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }).join('');
   }
+
+  const sel = document.getElementById('fw-client');
+  data.clients.forEach(c => {
+    sel.innerHTML += `<option value="${c.id}">${c.name} (${c.phone})</option>`;
+  });
+
+  document.getElementById('add-fw-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    crm.addFollowup({
+      clientId: document.getElementById('fw-client').value,
+      dateTime: document.getElementById('fw-date').value,
+      type: document.getElementById('fw-type').value,
+      notes: document.getElementById('fw-notes').value,
+      assignedStaffId: 's1'
+    });
+    window.location.reload();
+  });
 });
 </script>
 </body>

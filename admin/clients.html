@@ -8,6 +8,11 @@
 <link rel="stylesheet" href="/admin/crm-ui.css">
 <script src="/admin/crm-data.js"></script>
 <script src="/admin/crm-store.js"></script>
+<script>
+if (localStorage.getItem('plotmap_admin_role') !== 'team') {
+  window.location.href = '/admin/index.html';
+}
+</script>
 </head>
 <body class="pm-shell">
 
@@ -29,8 +34,30 @@
 
 <main class="pm-main">
   <div class="pm-header">
-    <h1>Clients</h1>
-    <div class="sub">Manage buyers, sellers, and investors.</div>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <h1>Clients</h1>
+        <div class="sub">Manage buyers, sellers, and investors.</div>
+      </div>
+      <button class="pm-button primary" onclick="document.getElementById('add-client').style.display='block'">+ Add Client</button>
+    </div>
+  </div>
+
+  <div class="pm-card" id="add-client" style="display:none; margin-bottom:24px;">
+    <div class="pm-card-h">Add New Client</div>
+    <form class="pm-form" id="add-client-form">
+      <div class="pm-grid cols-2">
+        <div class="fld"><label>Name</label><input type="text" id="c-name" required></div>
+        <div class="fld"><label>Phone</label><input type="tel" id="c-phone" required></div>
+        <div class="fld"><label>Client Type</label><select id="c-type"><option>Buyer</option><option>Seller</option><option>Investor</option></select></div>
+        <div class="fld"><label>Interested Area</label><input type="text" id="c-area"></div>
+        <div class="fld"><label>Property Type</label><input type="text" id="c-ptype"></div>
+        <div class="fld"><label>Size Requirement</label><input type="text" id="c-size"></div>
+      </div>
+      <div class="fld" style="margin-top:16px;">
+        <button type="submit" class="pm-button primary" style="width:200px;">Save Client</button>
+      </div>
+    </form>
   </div>
   
   <div class="pm-card" style="margin-bottom:20px;">
@@ -83,6 +110,21 @@ document.addEventListener('DOMContentLoaded', () => {
       </td>
     </tr>
   `).join('');
+
+  document.getElementById('add-client-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    crm.addClient({
+      name: document.getElementById('c-name').value,
+      phone: document.getElementById('c-phone').value,
+      type: document.getElementById('c-type').value,
+      interestedArea: document.getElementById('c-area').value,
+      propertyType: document.getElementById('c-ptype').value,
+      sizeRequirement: document.getElementById('c-size').value,
+      status: 'New',
+      assignedStaff: 's1'
+    });
+    window.location.reload();
+  });
 });
 </script>
 </body>
