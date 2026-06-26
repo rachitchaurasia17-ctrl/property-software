@@ -6,12 +6,65 @@
 
   /* ---- reusable map engine: resolve the active dataset + its geometry ---- */
   let PM_MANIFEST = null;
+  // Strict, internal-only filter (kept for admin/reference). Client UI uses pitchModeMaps().
   const verifiedManifestMaps = () => {
     if (!PM_MANIFEST || !PM_MANIFEST.entries) return [];
-    return PM_MANIFEST.entries.filter(e => 
+    return PM_MANIFEST.entries.filter(e =>
       e.usable === true && e.reviewNeeded === false && e.processingStatus === 'processed' &&
       (!e.duplicateGroupId || e.recommendedKeep === true)
     );
+  };
+
+  /* ---- map asset path + display helpers (shared by client UI + admin) ---- */
+  // Normalize any manifest path to the served "/public/plotmap-assets/…" form
+  // (matches the app + vercel.json convention). Handles Windows backslashes,
+  // strips anything before /public/, and returns null for paths the browser
+  // can't load (e.g. source paths like /maps/enhanced/… or C:\… absolutes).
+  const toPublicAssetPath = (p) => {
+    if (!p || typeof p !== 'string') return null;
+    p = p.replace(/\\/g, '/');
+    const i = p.indexOf('/public/');
+    if (i >= 0) return p.slice(i);                  // …/public/x -> /public/x
+    if (p.startsWith('/public/')) return p;
+    if (p.startsWith('public/')) return '/' + p;    // public/x    -> /public/x
+    if (p.startsWith('/plotmap-assets/')) return '/public' + p;
+    return null;                                    // not browser-served
+  };
+  // Opened-map image: processed first. originalPath is a source path that is not
+  // browser-served, so it is intentionally skipped (would 404).
+  const mapImage = (e) => e && (toPublicAssetPath(e.bestProcessedPath)
+    || toPublicAssetPath((e.processedPaths || [])[0])
+    || toPublicAssetPath(e.thumbnailPath));
+  const mapThumb = (e) => e && (toPublicAssetPath(e.thumbnailPath)
+    || toPublicAssetPath((e.processedPaths || [])[0]) || mapImage(e));
+  const mapCity = (e) => { const c = String((e && e.city) || '').trim(); return c && c.toLowerCase() !== 'unknown' ? c : 'Other'; };
+  // Clean client-facing title — never a raw filename, path, or quality label.
+  const mapTitle = (e) => {
+    if (!e) return 'Sector Map';
+    if (e.sectorOrBlockName) return e.sectorOrBlockName;
+    if (e.displayName) return e.displayName;
+    const raw = String(e.id || '').replace(/\.[a-z0-9]+$/i, '')
+      .replace(/\b(processed|enhanced|cleaned|thumb|thumbnail|web|final|copy)\b/gi, '')
+      .replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+    return raw ? raw.replace(/\b\w/g, c => c.toUpperCase()) : 'Sector Map';
+  };
+  // Pitch/library mode: show ALL usable maps regardless of internal review tier.
+  // Hide only: hidden-duplicate, and entries with no browser-safe image (broken /
+  // missing / failed-or-deferred PDF without a converted image). Dedup by matchKey,
+  // keeping the best representative. Does NOT require showInClientDefault.
+  const mapRank = (e) => (e.recommendedKeep ? 8 : 0) + (e.bestProcessedPath ? 4 : 0)
+    + ((e.processedPaths || []).length ? 2 : 0) + (e.thumbnailPath ? 1 : 0);
+  const pitchModeMaps = () => {
+    if (!PM_MANIFEST || !PM_MANIFEST.entries) return [];
+    const usable = PM_MANIFEST.entries.filter(e =>
+      e.duplicateDisplayStatus !== 'hidden-duplicate' && !!mapImage(e));
+    const byKey = new Map();
+    for (const e of usable) {
+      const k = e.matchKey || e.id;
+      const prev = byKey.get(k);
+      if (!prev || mapRank(e) > mapRank(prev)) byKey.set(k, e);
+    }
+    return Array.from(byKey.values());
   };
 
   let DS = null, GEO = { viewBox: '0 0 4599 3069', cyan: [], red: [], black: [] };
@@ -69,7 +122,7 @@
   const scopedPins = () => state.activeCats.size > 0 ? mapPins().filter(p => state.activeCats.has(p.cat)) : mapPins();
   const scopedProperties = () => state.activeCats.size > 0 ? mapProperties().filter(p => { const b = blockById(p.blockId); return b && state.activeCats.has(b.cat); }) : mapProperties();
 
-  const readySectorMaps = verifiedManifestMaps;
+  const readySectorMaps = pitchModeMaps;
   const sectorMapById = (id) => readySectorMaps().find(s => s.id === id);
   const sectorMapForProperty = (p) => {
     if (!p) return null;
@@ -222,7 +275,7 @@
     l.className = 'maplayer ' + kind;
     if (kind === 'original') l.innerHTML = `<img class="orig" src="${DS.assets.original}" alt="Official masterplan">` + origSVG();
     else if (kind === 'markings') l.innerHTML = `<img class="orig-crop" src="/public/plotmap-assets/markings.jpg" alt="Masterplan Marking">` + origSVG();
-    else if (kind === 'sector') { const sm = activeSectorMap(); const sectorAsset = (sm && sm.bestProcessedPath) || DS.assets.sector; l.innerHTML = `<div class="sector-wrap" style="width:${LW}px;height:${LH}px;background-image:url('${sectorAsset}')"></div><div id="proofG"></div>`; }
+    else if (kind === 'sector') { const sm = activeSectorMap(); const sectorAsset = mapImage(sm) || DS.assets.sector; l.innerHTML = `<div class="sector-wrap" style="width:${LW}px;height:${LH}px;background-image:url('${sectorAsset}')"></div><div id="sectorPinG"></div><div id="proofG"></div>`; }
     else l.innerHTML = html;
     builtSig = sig; updateMapOverlays();
     if (fresh) requestAnimationFrame(fit); else applyT(false);
@@ -798,30 +851,34 @@
   }
   function sectorsHubHTML() {
     const q = state.secQ.trim().toLowerCase();
-    let list = readySectorMaps();
-    if (state.secArea !== 'all') list = list.filter(s => (s.area || '').toLowerCase() === state.secArea.toLowerCase());
-    if (q) list = list.filter(s => (s.sectorOrBlockName + ' ' + (s.area||'') + ' ' + (s.city||'')).toLowerCase().includes(q));
-    const areas = [...new Set(list.map(s => s.area).filter(Boolean))];
-    const chips = [['all', 'All']].concat(areas.map(a => [a, a]));
+    const all = readySectorMaps();
+    let list = all;
+    if (state.secArea !== 'all') list = list.filter(s => mapCity(s).toLowerCase() === state.secArea.toLowerCase());
+    if (q) list = list.filter(s => (mapTitle(s) + ' ' + mapCity(s) + ' ' + (s.area || '')).toLowerCase().includes(q));
+    // City chips: preferred order first, then any others present, then "Other".
+    const present = new Set(all.map(mapCity));
+    const preferred = ['Mohali', 'Panchkula', 'New Chandigarh', 'Aerocity'].filter(c => present.has(c));
+    const extras = [...present].filter(c => !preferred.includes(c) && c !== 'Other').sort();
+    const cities = preferred.concat(extras).concat(present.has('Other') ? ['Other'] : []);
+    const chips = [['all', 'All']].concat(cities.map(c => [c, c]));
     return `<div class="full-in">
       <div class="eyebrow">Exact plot proof</div>
-      <div class="serif" style="font-size:40px;font-weight:560;letter-spacing:-1px;line-height:1.02;margin-top:6px">Verified Sector Maps</div>
-      <div style="font-size:16px; color:#6B6456; margin-top:8px; font-weight:600;">${list.length} available maps</div>
-      <div class="chips" style="margin-top:16px">${chips.map(([v, l]) => `<button class="chip ${state.secArea === v ? 'on' : ''}" data-secarea="${v}">${l}</button>`).join('')}</div>
+      <div class="serif" style="font-size:40px;font-weight:560;letter-spacing:-1px;line-height:1.02;margin-top:6px">Sector Maps</div>
+      <div style="font-size:16px; color:#6B6456; margin-top:8px; font-weight:600;">${list.length} map${list.length === 1 ? '' : 's'}${state.secArea !== 'all' ? ' in ' + esc(state.secArea) : ''}</div>
+      <div class="chips" style="margin-top:16px">${chips.map(([v, l]) => `<button class="chip ${state.secArea === v ? 'on' : ''}" data-secarea="${esc(v)}">${esc(l)}</button>`).join('')}</div>
       <div class="search"><span class="ic"></span><input id="secSearch" value="${esc(state.secQ)}" placeholder="Search sector or block… e.g. Block A, Sector 20"></div>
-      ${list.length ? `<div class="grid-cards" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr));margin-top:22px">${list.map(secCardHTML).join('')}</div>` : `<div class="empty" style="background:#fff; border:1px solid #EBE1CC; border-radius:18px; padding:60px 40px; margin-top:24px;"><div style="font-size:36px; margin-bottom:12px;">🗺️</div><div style="font-size:18px; font-weight:700; color:#0B1A36;">No verified sector maps found.</div><div style="font-size:14px; margin-top:6px; color:#6B6456;">Check manifest filtering or processed asset paths.</div></div>`}
+      ${list.length ? `<div class="grid-cards" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr));margin-top:22px">${list.map(secCardHTML).join('')}</div>` : `<div class="empty" style="background:#fff; border:1px solid #EBE1CC; border-radius:18px; padding:60px 40px; margin-top:24px;"><div style="font-size:36px; margin-bottom:12px;">🗺️</div><div style="font-size:18px; font-weight:700; color:#0B1A36;">No maps match</div><div style="font-size:14px; margin-top:6px; color:#6B6456;">Try a different search or city filter.</div></div>`}
     </div>`;
   }
   function secCardHTML(s) {
-    const block = mapBlocks().find(b => b.area === s.area && b.name === s.sectorOrBlockName);
-    const accent = catColor(block ? block.cat : 'sectors');
-    const thumb = s.thumbnailPath ? esc(s.thumbnailPath) : (s.originalPath ? esc(s.originalPath) : '');
+    const title = mapTitle(s);
+    const accent = catColor('sectors');
+    const thumb = mapThumb(s);
     return `<div class="seccard">
-      <div class="sec-thumb" style="--a:${accent}; background-image:url('${thumb}'); background-size:cover; background-position:center;">
-        ${!thumb ? `<span class="sec-grid"></span><span class="sec-big">${esc((s.sectorOrBlockName || '').replace(/[^A-Z0-9]/gi, '').slice(-2))}</span>` : ''}
-        <span class="sec-tag ready">Verified</span></div>
-      <div class="sec-body"><div class="sec-name">${esc(s.sectorOrBlockName)}</div><div class="sec-area">${esc(s.city || '')}${s.city && s.area ? ' · ' : ''}${esc(s.area || '')}</div>
-        <button class="btn-primary wfull" style="height:44px;margin-top:11px;font-size:13.5px" data-opensec="${s.id}">Open Map</button></div></div>`;
+      <div class="sec-thumb" style="--a:${accent}; background-image:url('${thumb ? esc(thumb) : ''}'); background-size:cover; background-position:center;">
+        ${!thumb ? `<span class="sec-grid"></span><span class="sec-big">${esc(title.replace(/[^A-Z0-9]/gi, '').slice(-2))}</span>` : ''}</div>
+      <div class="sec-body"><div class="sec-name">${esc(title)}</div><div class="sec-area">${esc(mapCity(s))}</div>
+        <button class="btn-primary wfull" style="height:44px;margin-top:11px;font-size:13.5px" data-opensec="${esc(s.id)}">Open Map</button></div></div>`;
   }
   function lightboxHTML() {
     const lb = state.lightbox; const ph = lb.photos[lb.index];
