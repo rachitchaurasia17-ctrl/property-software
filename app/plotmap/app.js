@@ -90,7 +90,7 @@
   const state = {
     space: 'area', areaId: 'aerotropolis', areaMenuOpen: false,
     prebuiltMaps: [], activeLetter: null,
-    section: 'master', mapMode: 'markings', showProps: false,
+    section: 'master', mapMode: 'original', showProps: false,
     activeCats: new Set(), displayCatId: null, selectedIds: new Set(), itemOpen: false,
     propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, activePinId: null,
     filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set(), blockId: new Set() },
@@ -267,7 +267,7 @@
   const markingsAvailable = () => !!(DS && DS.assets && DS.assets.markings);
   // The single client-facing masterplan view ("3D Map"): the premium colored-block
   // markings view if a city has one, else the official original masterplan image.
-  const premiumMasterMode = () => markingsAvailable() ? 'markings' : 'original';
+  const premiumMasterMode = () => 'original';
   function mapKind() {
     if (state.section === 'props' && state.propView === 'sector') return 'sector';
     if (state.mapMode === 'easy' && !easyMapAvailable()) return 'original';
@@ -660,7 +660,7 @@
     root.className = state.present ? 'present' : '';
     root.innerHTML = planHTML(); bindPlan(); bindMap(); buildMap();
   }
-  function resetPlan(extra) { return Object.assign({ section: 'master', mapMode: 'markings', showProps: false, activeCats: new Set(), displayCatId: null, selectedIds: new Set(), previewIdx: 0, itemOpen: false, propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, activePinId: null, areaMenuOpen: false, filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set(), blockId: new Set() }, secQ: '', secArea: 'all' }, extra || {}); }
+  function resetPlan(extra) { return Object.assign({ section: 'master', mapMode: 'original', showProps: false, activeCats: new Set(), displayCatId: null, selectedIds: new Set(), previewIdx: 0, itemOpen: false, propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, activePinId: null, areaMenuOpen: false, filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set(), blockId: new Set() }, secQ: '', secArea: 'all' }, extra || {}); }
 
   /* ---------- AREA SELECT ---------- */
   function areaSelectHTML() {
