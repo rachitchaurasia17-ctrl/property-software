@@ -341,3 +341,14 @@ Load the actual Aerocity map image into Map Studio canvas. Then do the final lux
 ### Exact Next Step
 - Finalize the **Map Studio** by embedding the actual Aerocity base map image so pins can be placed realistically on real coordinates.
 - Proceed to the final Phase 4: **Luxury / Premium UI pass** on all admin components (mimicking the Stitch design).
+
+
+## Phase 4A: Map Studio Integration Complete
+
+### Workflows Confirmed Working End-to-End
+- **Actual Map Integration**: Removed the blank placeholder and integrated the true Aerocity masterplan map image.
+- **Precision Pin Placement**: Rewrote CSS and JS event listeners so X/Y coordinates precisely calculate percentage relative to the map image dimensions.
+- **Audit Passed**: Client-facing app confirmed pitch-safe.
+
+### Exact Next Step
+Ready for Phase 4B: Owner + Finance insight polish.
