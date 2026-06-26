@@ -199,3 +199,52 @@ This document is self-contained. Read it fully before editing.
 >
 > At ~85% context: stop, run checks, commit/push, and append a "## Continuation" section to
 > `ANTIGRAVITY-HANDOFF.md` listing done / partial / next steps + exact next prompt.
+
+## CRM Foundation Complete
+
+### Work Completed
+- Implemented the PlotMap Admin Gateway (/admin/index.html).
+- Built the shared data layer (crm-store.js and crm-data.js) with demo data.
+- Created a modular design system (crm-ui.css).
+- Created the Team Workspace (Clients, Properties, Follow-ups, Site Visits, Deals, Map Studio).
+- Created the Dealer Command Center (Business Pulse, Area Intelligence, Finance).
+- Implemented logEvent tracking in the client-facing app.
+- Verified pitch-safety of the client app (aligned to original map, no admin links).
+
+### Files Changed
+- app/plotmap/app.js (Added tracking, fixed map mode)
+- admin/maps.html (Added Gateway nav link)
+- admin/editor.html (Added Gateway nav link)
+
+### Routes Added
+- /admin/index.html (Gateway)
+- /admin/team.html (Team Workspace)
+- /admin/clients.html (Client Management)
+- /admin/properties.html (Inventory Management)
+- /admin/map-studio.html (Map Pin/Highlight Editor UI)
+- /admin/followups.html (Follow-up Tracker)
+- /admin/site-visits.html (Site Visit Tracker)
+- /admin/deals.html (Deal Closing)
+- /admin/owner.html (Dealer Command Center)
+- /admin/area-intelligence.html (Area Insights)
+- /admin/finance.html (Finance & Revenue)
+
+### Features Working
+- Role gateway branching (Team vs Dealer) via localStorage.plotmap_admin_role.
+- Form submission for Clients, Properties, and Deals with localStorage persistence.
+- Status updates for Follow-ups and Site Visits.
+- Automated owner insights generation based on live data.
+- Client-facing logEvent tracking for map interactions.
+
+### Features Partial
+- Map Studio UI is a placeholder (canvas needs integration).
+- UI is structural, not perfectly styled.
+
+### Known Bugs
+- None identified, but UI might break on very small screens.
+
+### Checks Run
+- node tools/audit-plotmap.js passed.
+
+### Exact Next Prompt
+Redesign the admin UI starting with crm-ui.css to make it look extremely premium, mimicking the Stitch design files. Build out the interactive Map Studio canvas.
