@@ -248,3 +248,30 @@ This document is self-contained. Read it fully before editing.
 
 ### Exact Next Prompt
 Redesign the admin UI starting with crm-ui.css to make it look extremely premium, mimicking the Stitch design files. Build out the interactive Map Studio canvas.
+
+## QA & Functional Audit Complete
+
+### What is Actually Working
+- **Role Enforcement:** Dealer and Team pages are strictly segregated. Accessing a Dealer page as a Team member redirects back to the Gateway.
+- **Client Management:** Adding clients, assigning status, and listing them across the Team and Client pages.
+- **Property Management:** Adding properties, archiving them, and listing inventory.
+- **Deals & Finance:** Closing deals, tracking total value, and accurately computing received/pending commissions.
+- **Activity Tracking:** Scheduling site visits and follow-ups. Marking them as done/missed.
+- **Owner Dashboard:** Area Intelligence and Business Pulse compute dynamic insights based on real localStorage CRM data.
+- **Client App Safety:** The presentation map is 100% pitch-safe, with event tracking working silently in the background.
+
+### What is still Demo/Static
+- **Map Studio:** The Map Studio UI is structurally present but the interactive canvas/pinning system is not yet built.
+- **Notifications/Reminders:** There is no active push/alert system for missed follow-ups beyond the Dashboard feed.
+- **Authentication:** Roles are currently managed via simple localStorage.plotmap_admin_role rather than secure JWT/Supabase auth.
+
+### What is Broken
+- **Nothing critically broken.** The CRM data layer works seamlessly in the browser. 
+- (Minor) The UI might look cramped on extremely small mobile screens.
+
+### What Needs Redesign Tomorrow
+- The entire Admin interface needs a visual overhaul to look "extremely premium" and match the Stitch design files.
+- Forms need better validation and polished input fields.
+
+### Exact Next Steps
+Redesign the admin UI starting with crm-ui.css to make it look extremely premium, mimicking the Stitch design files. Build out the interactive Map Studio canvas.
