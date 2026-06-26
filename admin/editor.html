@@ -17,6 +17,10 @@
   .brand{font-weight:760;font-size:16px;letter-spacing:-.2px;}
   .brand small{font-weight:600;opacity:.6;font-size:12px;margin-left:6px;}
   .top-actions{margin-left:auto;display:flex;align-items:center;gap:10px;}
+  .admin-nav{display:flex;gap:2px;margin-left:10px;}
+  .admin-nav a{color:rgba(251,246,234,.7);text-decoration:none;font-weight:650;font-size:13.5px;padding:8px 13px;border-radius:9px;cursor:pointer;}
+  .admin-nav a:hover{background:rgba(251,246,234,.12);color:#fff;}
+  .admin-nav a.on{background:rgba(251,246,234,.16);color:#fff;}
   .body{flex:1;display:flex;min-height:0;}
   /* LEFT RAIL */
   .rail{width:380px;flex:none;background:#FBF6EA;border-right:1px solid #E6DCC8;display:flex;flex-direction:column;min-height:0;}
@@ -64,7 +68,13 @@
 <body>
 <div class="shell">
   <div class="topbar">
-    <span class="logo"><i></i></span><span class="brand">PlotMap <small>Highlight Sets Editor</small></span>
+    <span class="logo"><i></i></span><span class="brand">PlotMap <small>Admin</small></span>
+    <nav class="admin-nav">
+      <a href="/admin/maps.html#dash">Dashboard</a>
+      <a href="/admin/maps.html#maps">Sector Maps</a>
+      <a href="/admin/maps.html#pins">Pin Manager</a>
+      <a href="/admin/editor.html" class="on">Highlight Sets</a>
+    </nav>
     <div class="top-actions"><a class="btn-ghost" href="/app/plotmap/" style="text-decoration:none;display:inline-flex;align-items:center">↗ Open site</a></div>
   </div>
   <div class="body">

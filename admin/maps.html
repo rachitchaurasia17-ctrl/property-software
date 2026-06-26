@@ -62,10 +62,10 @@
   <a id="navDash" class="on">Dashboard</a>
   <a id="navMaps">Sector Maps</a>
   <a id="navPins">Pin Manager</a>
+  <a href="/admin/editor.html">Highlight Sets</a>
   <a id="navFuture">Future Updates</a>
   <span class="sp"></span>
   <a href="/app/plotmap/">← Client app</a>
-  <a href="/admin/editor.html">Marking Editor</a>
 </div>
 <div class="wrap">
   <!-- DASHBOARD -->
@@ -158,8 +158,11 @@
 
   /* nav */
   const views={Dash:'#viewDash',Maps:'#viewMaps',Pins:'#viewPins',Future:'#viewFuture'};
-  function show(v){ Object.keys(views).forEach(k=>{$(views[k]).classList.toggle('hide',k!==v); $('#nav'+k).classList.toggle('on',k===v);}); if(v==='Maps')renderMaps(); if(v==='Pins')renderPinManager(); }
+  const hashFor={Dash:'dash',Maps:'maps',Pins:'pins',Future:'future'};
+  const viewFor={dash:'Dash',maps:'Maps',pins:'Pins',future:'Future'};
+  function show(v){ Object.keys(views).forEach(k=>{$(views[k]).classList.toggle('hide',k!==v); $('#nav'+k).classList.toggle('on',k===v);}); if(location.hash!=='#'+hashFor[v])location.hash=hashFor[v]; if(v==='Maps')renderMaps(); if(v==='Pins')renderPinManager(); }
   ['Dash','Maps','Pins','Future'].forEach(k=>$('#nav'+k).onclick=()=>show(k));
+  window.addEventListener('hashchange',()=>{ const v=viewFor[(location.hash||'').replace('#','')]; if(v)show(v); });
 
   /* dashboard */
   function renderDash(){
@@ -246,7 +249,7 @@
   $('#btnCopy').onclick=async()=>{ try{ await navigator.clipboard.writeText(jsText()); $('#btnCopy').textContent='Copied!'; setTimeout(()=>$('#btnCopy').textContent='Copy JSON',1200);}catch(e){} };
   $('#btnDownload').onclick=()=>{ const b=new Blob([jsText()],{type:'text/javascript'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='sector-pins.js'; a.click(); };
 
-  cityOptions(); renderDash(); show('Dash');
+  cityOptions(); renderDash(); show(viewFor[(location.hash||'').replace('#','')] || 'Dash');
 })();
 </script>
 </body>
