@@ -423,6 +423,12 @@
         <text x="${cx}" y="${cy}" class="o-zone-lbl cat-${z.cat}" data-itempath="${z.id}">${esc(shortLabel)}</text>`;
     }).join('');
 
+    // Always-on transparent hit layer so blocks/zones/pins are clickable on the
+    // Original Map even while their fill is hidden (mirrors the roads' .o-hit).
+    const blockHits = blockPaths.map(b => `<path d="${GEO.paths[b.svgId]}" class="o-fillhit" data-hit="block:${b.id}"/>`).join('');
+    const zoneHits = zonePaths.map(z => `<path d="${GEO.paths[z.svgId]}" class="o-fillhit" data-hit="zone:${z.id}"/>`).join('');
+    const pinHits = [];
+
     const pinsHTML = [];
     const addPin = (item, kind) => {
       let cx = 0, cy = 0;
@@ -433,6 +439,7 @@
       else if (item.at) { cx = (item.at[0] / EW) * IW; cy = (item.at[1] / EH) * IH; }
       else if (item.w) { cx = ((item.x + item.w/2) / EW) * IW; cy = ((item.y + item.h/2) / EH) * IH; }
       else return;
+      pinHits.push(`<circle cx="${cx}" cy="${cy}" r="95" class="o-fillhit" data-hit="${kind}:${item.id}"/>`);
       const c = catColor(item.cat);
       pinsHTML.push(`<g class="o-pin" data-hit="${kind}:${item.id}" data-itempath="${item.id}" style="transform:translate(${cx}px,${cy}px)">
         <g class="pin-inner">
@@ -456,6 +463,7 @@
           <line x1="0" y1="0" x2="0" y2="30" stroke="#F05A28" stroke-width="8" stroke-opacity="0.4"/>
         </pattern>
       </defs>
+      <g id="oFillHit">${blockHits}${zoneHits}${pinHits.join('')}</g>
       <g id="oRoadCase">${casing}</g>
       <g id="oBlocks">${blocksHTML}</g>
       <g id="oZones">${zonesHTML}</g>

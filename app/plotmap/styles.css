@@ -455,6 +455,9 @@ input{font-family:inherit;-webkit-appearance:none;}
 .orig-ov .o-road.act { stroke-width:18; filter:drop-shadow(0 0 16px var(--rfill)) drop-shadow(0 4px 12px rgba(0,0,0,0.5)); stroke:#FFFFFF; }
 .orig-ov .o-road-case.act { stroke-width:32; filter:drop-shadow(0 0 8px var(--rfill)); }
 .orig-ov .o-hit { fill:none; stroke:rgba(0,0,0,0); stroke-width:60; stroke-linecap:round; cursor:pointer; }
+/* always-on transparent hit layer for blocks/zones/pins (so they're clickable on
+   the Original Map even while their fill is hidden — fixes block-click selection) */
+.orig-ov .o-fillhit { fill:rgba(0,0,0,0); stroke:none; pointer-events:fill; cursor:pointer; }
 /* floating controls */
 .mode-switch{position:absolute;left:18px;top:16px;display:flex;background:rgba(251,246,234,.96);border:1px solid #E1D6BF;border-radius:14px;padding:4px;gap:3px;box-shadow:0 6px 18px rgba(40,28,8,.16);z-index:16;}
 .mode-switch button{border:none;cursor:pointer;border-radius:11px;padding:9px 16px;font-size:13px;font-weight:700;white-space:nowrap;background:transparent;color:#6A6453;}
