@@ -65,7 +65,7 @@
 
   function addProperty(property) {
     const data = getCRM();
-    const newProp = { ...property, id: generateId('p'), internalStatus: 'Available', demo: false };
+    const newProp = { ...property, id: generateId('p'), internalStatus: property.internalStatus || 'Available', demo: false };
     data.properties.push(newProp);
     saveCRM(data);
     logEvent('property_added', { propertyId: newProp.id }, null);

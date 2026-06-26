@@ -116,14 +116,21 @@ document.addEventListener('DOMContentLoaded', () => {
   const recent = [...data.clients].sort((a,b) => b.lastActivityAt - a.lastActivityAt).slice(0, 5);
   
   if (recent.length === 0) {
-    rcTbody.innerHTML = '<tr><td colspan="4">No clients yet.</td></tr>';
+    rcTbody.innerHTML = '<tr><td colspan="4" style="padding:24px; text-align:center; color:var(--pm-text-mut);">No clients yet.</td></tr>';
   } else {
+    function sc(s) {
+      if (s==='Closed') return 'ok';
+      if (s==='Warm'||s==='Property Shared'||s==='Negotiation') return 'warn';
+      if (s==='Site Visit Planned') return 'info';
+      if (s==='Not Answering') return 'err';
+      return 'neutral';
+    }
     rcTbody.innerHTML = recent.map(c => `
       <tr>
         <td style="font-weight:600">${c.name}</td>
-        <td><span class="pm-status ${c.status==='Closed'?'ok':c.status==='Warm'?'info':'neutral'}">${c.status}</span></td>
+        <td><span class="pm-status ${sc(c.status)}">${c.status}</span></td>
         <td>${c.interestedArea || '-'}</td>
-        <td><a href="/admin/clients.html" class="pm-button ghost" style="padding: 4px 8px; font-size:12px;">View</a></td>
+        <td><a href="/admin/clients.html" class="pm-button ghost sm">View</a></td>
       </tr>
     `).join('');
   }

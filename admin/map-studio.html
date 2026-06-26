@@ -257,6 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!d.pins) d.pins = [];
     d.pins.push(newPin);
     crm.saveCRM(d);
+    crm.logEvent('pin_added', { pinId: newPin.id, x: newPin.x, y: newPin.y });
     selectedPinId = newPin.id;
     renderPinList();
     renderCanvasPins();
@@ -324,6 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
     pin.visibility = document.getElementById('pe-vis').value;
     pin.notes = document.getElementById('pe-notes').value;
     crm.saveCRM(d);
+    crm.logEvent('pin_updated', { pinId: pin.id, title: pin.title });
     document.getElementById('inspector-title').textContent = pin.title;
     renderPinList();
     renderCanvasPins();
@@ -332,9 +334,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Delete Pin ---
   document.getElementById('btn-delete-pin').addEventListener('click', () => {
     if (!selectedPinId) return;
+    const deletedId = selectedPinId;
     const d = crm.getCRM();
-    d.pins = (d.pins || []).filter(p => p.id !== selectedPinId);
+    d.pins = (d.pins || []).filter(p => p.id !== deletedId);
     crm.saveCRM(d);
+    crm.logEvent('pin_deleted', { pinId: deletedId });
     hideInspector();
   });
 

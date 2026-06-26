@@ -92,8 +92,18 @@ document.addEventListener('DOMContentLoaded', () => {
     window.location.reload();
   };
   
+  function statusClass(s) {
+    if (s === 'Closed') return 'ok';
+    if (s === 'Warm' || s === 'Property Shared' || s === 'Negotiation') return 'warn';
+    if (s === 'Site Visit Planned') return 'info';
+    if (s === 'Not Answering') return 'err';
+    if (s === 'New') return 'neutral';
+    if (s === 'Future Client') return 'purple';
+    return 'neutral';
+  }
+
   if(data.clients.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6">No clients.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:24px; text-align:center; color:var(--pm-text-mut);">No clients yet. Click "+ Add Client" to start.</td></tr>';
     return;
   }
   
@@ -103,10 +113,18 @@ document.addEventListener('DOMContentLoaded', () => {
       <td>${c.phone}</td>
       <td style="text-transform:capitalize">${c.type || '-'}</td>
       <td>${c.interestedArea || '-'}<br><span style="font-size:12px;color:var(--pm-text-mut)">${c.propertyType||''} ${c.sizeRequirement||''}</span></td>
-      <td><span class="pm-status ${c.status==='Closed'?'ok':c.status==='Warm'?'info':'neutral'}">${c.status}</span></td>
+      <td><span class="pm-status ${statusClass(c.status)}">${c.status}</span></td>
       <td>
-        <button class="pm-button ghost" style="padding:4px 8px;font-size:12px;" onclick="markStatus('${c.id}', 'Warm')">Mark Warm</button>
-        <button class="pm-button ghost" style="padding:4px 8px;font-size:12px;" onclick="markStatus('${c.id}', 'Closed')">Close</button>
+        <select style="font-size:12px; padding:4px 6px; border:1px solid var(--pm-border); border-radius:6px; font-family:inherit; cursor:pointer;" onchange="markStatus('${c.id}', this.value)">
+          <option value="" disabled selected>Change…</option>
+          <option value="New">New</option>
+          <option value="Warm">Warm</option>
+          <option value="Property Shared">Property Shared</option>
+          <option value="Site Visit Planned">Site Visit Planned</option>
+          <option value="Negotiation">Negotiation</option>
+          <option value="Not Answering">Not Answering</option>
+          <option value="Closed">Closed</option>
+        </select>
       </td>
     </tr>
   `).join('');

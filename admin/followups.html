@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <td><span class="pm-status ${f.status==='done'?'ok':f.status==='missed'?'err':'neutral'}">${f.status}</span></td>
         <td style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${f.notes}">${f.notes}</td>
         <td>
-          ${f.status === 'pending' ? `<button class="pm-button ghost" style="padding:4px 8px;font-size:12px;" onclick="markStatus('${f.id}', 'done')">Mark Done</button>` : ''}
+          ${f.status === 'pending' ? `<button class="pm-button ghost sm" onclick="markStatus('${f.id}', 'done')">Done</button> <button class="pm-button danger sm" onclick="markStatus('${f.id}', 'missed')">Missed</button>` : ''}
         </td>
       </tr>
       `;
