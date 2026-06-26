@@ -54,12 +54,51 @@
   .pinrow .dot{width:11px;height:11px;border-radius:50%;flex:none;}
   pre{background:#0B1A36;color:#CFE3FF;padding:14px;border-radius:12px;overflow:auto;font-size:12px;max-height:280px;}
   .note{font-size:12.5px;color:#6B6456;line-height:1.5;background:#F0F4FA;border:1px solid #DDE7F3;border-radius:10px;padding:11px 13px;}
+  /* ---- Command Center ---- */
+  .cc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:16px;}
+  .cc-ready{flex:none;display:flex;align-items:center;gap:13px;background:#0B1A36;color:#fff;border-radius:16px;padding:14px 20px;box-shadow:0 8px 22px rgba(11,26,54,.18);}
+  .cc-ready-n{font-size:40px;font-weight:800;letter-spacing:-1.5px;line-height:1;}
+  .cc-ready-l{font-size:12.5px;font-weight:600;line-height:1.35;color:rgba(255,255,255,.82);}
+  .cc-ready-l span{color:rgba(255,255,255,.55);}
+  .cc-quick{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px;}
+  .cc-qbtn{display:inline-flex;align-items:center;gap:9px;background:#fff;border:1px solid #E2D7C0;border-radius:12px;padding:11px 16px;font-size:13.5px;font-weight:700;color:#23211C;cursor:pointer;transition:.14s;}
+  .cc-qbtn:hover{border-color:#0B1A36;transform:translateY(-1px);box-shadow:0 5px 14px rgba(11,26,54,.08);}
+  .cc-qic{display:inline-flex;width:22px;height:22px;align-items:center;justify-content:center;border-radius:7px;background:#F4EFE6;color:#0B1A36;font-size:14px;}
+  .cc-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:18px;align-items:start;}
+  .cc-col{display:flex;flex-direction:column;gap:18px;}
+  .cc-card{background:#fff;border:1px solid #EBE1CC;border-radius:16px;padding:18px;}
+  .cc-card-h{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;}
+  .cc-card-h b{font-size:15px;font-weight:780;letter-spacing:-.2px;}
+  .cc-card-sub{font-size:11.5px;color:#A89F89;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+  .cc-focus{display:flex;align-items:flex-start;gap:12px;padding:13px 0;border-bottom:1px solid #F2EAD8;}
+  .cc-focus:last-child{border-bottom:none;}
+  .cc-focus-dot{flex:none;width:9px;height:9px;border-radius:50%;margin-top:5px;background:#C9BCA0;}
+  .pri-high .cc-focus-dot{background:#C2502B;} .pri-med .cc-focus-dot{background:#B07A2B;} .pri-low .cc-focus-dot{background:#2E6F8E;} .pri-ok .cc-focus-dot{background:#1C8A57;}
+  .cc-focus-b{flex:1;min-width:0;}
+  .cc-focus-t{font-size:14px;font-weight:740;color:#23211C;letter-spacing:-.2px;}
+  .cc-focus-d{font-size:12.8px;color:#6B6456;line-height:1.5;margin-top:3px;}
+  .cc-focus-act{flex:none;align-self:center;border:1px solid #E2D7C0;background:#fff;border-radius:10px;padding:8px 13px;font-size:12.5px;font-weight:700;color:#0B1A36;cursor:pointer;white-space:nowrap;transition:.14s;}
+  .cc-focus-act:hover{border-color:#0B1A36;background:#0B1A36;color:#fff;}
+  .cc-mini{display:flex;flex-direction:column;}
+  .cc-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F4EEE0;font-size:13.5px;}
+  .cc-row:last-child{border-bottom:none;}
+  .cc-row span{color:#6B6456;font-weight:600;}
+  .cc-row b{font-weight:800;color:#0B1A36;font-size:15px;}
+  .cc-row.warn b{color:#C2502B;}
+  .cc-tbl{width:100%;border-collapse:collapse;font-size:13px;}
+  .cc-tbl th{text-align:left;color:#A89F89;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;padding:6px 8px;border-bottom:1px solid #EEE4CF;}
+  .cc-tbl td{padding:7px 8px;border-bottom:1px solid #F4EEE0;}
+  .cc-tbl tr:last-child td{border-bottom:none;}
+  .cc-bar{position:relative;height:18px;background:#F4EFE6;border-radius:6px;overflow:hidden;min-width:90px;}
+  .cc-bar span{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#2E5A86,#16356A);border-radius:6px;}
+  .cc-bar i{position:absolute;right:7px;top:0;line-height:18px;font-style:normal;font-size:11px;font-weight:800;color:#0B1A36;}
+  @media(max-width:920px){ .cc-grid{grid-template-columns:1fr;} .cc-head{flex-direction:column;} }
 </style>
 </head>
 <body>
 <div class="top">
   <span class="brand">PlotMap Admin</span>
-  <a id="navDash" class="on">Dashboard</a>
+  <a id="navDash" class="on">Command Center</a>
   <a id="navMaps">Sector Maps</a>
   <a id="navPins">Pin Manager</a>
   <a href="/admin/editor.html">Highlight Sets</a>
@@ -70,10 +109,25 @@
 <div class="wrap">
   <!-- DASHBOARD -->
   <section id="viewDash">
-    <h1>Dashboard</h1>
-    <div class="sub">Internal overview of the map library. Client UI never shows quality/status labels.</div>
-    <div class="cards" id="statCards"></div>
-    <div class="note">Pitch mode shows every usable map (any review tier). Maps are hidden only when they have no browser-safe image, are a hidden duplicate, or are a failed/deferred PDF without a converted image.</div>
+    <div class="cc-head">
+      <div>
+        <h1>Command Center</h1>
+        <div class="sub" id="ccDate"></div>
+      </div>
+      <div class="cc-ready" id="ccReady"></div>
+    </div>
+    <div class="cc-quick" id="ccQuick"></div>
+    <div class="cc-grid">
+      <div class="cc-col">
+        <div class="cc-card"><div class="cc-card-h"><b>Today's focus</b><span class="cc-card-sub">What to do next</span></div><div id="ccFocus"></div></div>
+        <div class="cc-card"><div class="cc-card-h"><b>Area intelligence</b><span class="cc-card-sub">Coverage by city</span></div><div id="ccAreas"></div></div>
+      </div>
+      <div class="cc-col">
+        <div class="cc-card"><div class="cc-card-h"><b>Map coverage</b></div><div class="cc-mini" id="ccCoverage"></div></div>
+        <div class="cc-card"><div class="cc-card-h"><b>Inventory &amp; pins</b></div><div class="cc-mini" id="ccInventory"></div></div>
+        <div class="cc-card"><div class="cc-card-h"><b>Library health</b><span class="cc-card-sub">internal</span></div><div class="cc-mini" id="ccHealth"></div></div>
+      </div>
+    </div>
   </section>
 
   <!-- MAPS MANAGER -->
@@ -131,6 +185,8 @@
   </section>
 </div>
 
+<script src="/app/plotmap/data.js"></script>
+<script src="/app/plotmap/datasets/tricity.dataset.js"></script>
 <script src="/app/plotmap/datasets/sector-pins.js"></script>
 <script>
 (async function(){
@@ -166,14 +222,64 @@
 
   /* dashboard */
   function renderDash(){
-    const total=ENTRIES.length, pitch=pitchList().length;
-    const withThumb=ENTRIES.filter(e=>toPublic(e.thumbnailPath)).length;
-    const withBest=ENTRIES.filter(e=>toPublic(e.bestProcessedPath)).length;
+    const PM=window.PM||{};
+    const DS=PM.datasetFor?PM.datasetFor('aerotropolis'):null;
+    const PROPS=(DS&&DS.properties)||[];
+    const AREAS=PM.areas||[];
+    const pitch=pitchList();
+    const total=ENTRIES.length;
+    const withThumb=pitch.filter(e=>toPublic(e.thumbnailPath)).length;
+    const noThumb=pitch.length-withThumb;
     const hiddenDup=ENTRIES.filter(e=>e.duplicateDisplayStatus==='hidden-duplicate').length;
     const noImg=ENTRIES.filter(e=>!hasImg(e)).length;
     const pinTotal=Object.values(PINS).reduce((n,a)=>n+(a?a.length:0),0);
-    const cards=[[total,'Manifest entries'],[pitch,'Visible in pitch'],[total-pitch,'Hidden (dup/no-image)'],[withThumb,'With thumbnail'],[total-withThumb,'No thumbnail'],[withBest,'With processed image'],[hiddenDup,'Hidden duplicates'],[noImg,'No usable image'],[pinTotal,'Pins placed']];
-    $('#statCards').innerHTML=cards.map(([n,l])=>`<div class="stat"><div class="n">${n}</div><div class="l">${esc(l)}</div></div>`).join('');
+    const mapsWithPins=pitch.filter(e=>(PINS[e.id]||[]).length>0);
+    const mapsNoPins=pitch.length-mapsWithPins.length;
+    const cities=[...new Set(pitch.map(mapCity))];
+    const liveCities=AREAS.filter(a=>a.live).length;
+    const soonCities=AREAS.filter(a=>!a.live).length;
+    const pinTypes={}; Object.values(PINS).forEach(a=>(a||[]).forEach(p=>{pinTypes[p.type]=(pinTypes[p.type]||0)+1;}));
+    const PT={'available-property':'Available','highlighted-property':'Highlighted','landmark':'Landmarks','future-update':'Future'};
+
+    // header: readiness = maps that are ready to present (have a browser-safe image)
+    $('#ccDate').textContent = (function(){ try{ return new Date().toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'});}catch(e){return 'Your map library at a glance';} })();
+    $('#ccReady').innerHTML=`<div class="cc-ready-n">${pitch.length}</div><div class="cc-ready-l">sector maps ready to present<br><span>across ${cities.length} ${cities.length===1?'city':'cities'}</span></div>`;
+
+    // quick actions
+    $('#ccQuick').innerHTML=[
+      ['app','Open client app','↗'],['pins','Add a plot pin','＋'],['maps','Manage maps','▦'],['editor','Highlight sets','◧']
+    ].map(([a,l,ic])=>`<button class="cc-qbtn" data-act="${a}"><span class="cc-qic">${ic}</span>${l}</button>`).join('');
+
+    // today's focus — prioritized, actionable, honest
+    const focus=[];
+    if(pinTotal===0){
+      focus.push(['high',`No plot pins added yet`,`Pin your available plots on the sector maps where you have inventory — clients then see exactly what's free.`,'pins','Add the first pin']);
+    } else if(mapsNoPins>0){
+      focus.push(['high',`${mapsNoPins} of ${pitch.length} sector maps have no plot pins`,`Add pins to the sectors where you hold inventory so you can point to exact plots in a meeting.`,'pins','Add pins']);
+    }
+    if(noThumb>0) focus.push(['med',`${noThumb} map${noThumb===1?'':'s'} have no thumbnail`,`Cards still open fine (a clean fallback shows), but a thumbnail makes the library scan faster.`,'maps','Review in Map Manager']);
+    if(soonCities>0) focus.push(['med',`${soonCities} ${soonCities===1?'city is':'cities are'} not live yet`,`${AREAS.filter(a=>!a.live).map(a=>a.name).join(', ')} have no masterplan attached. Drop a masterplan image to launch a city.`,'editor','See how']);
+    if(PROPS.length>0) focus.push(['low',`${PROPS.length} propert${PROPS.length===1?'y':'ies'} on the masterplan`,`Link them to a sector map pin so "View on Sector Map" jumps straight to the plot.`,'pins','Open Pin Manager']);
+    if(!focus.length) focus.push(['ok',`Your library is in great shape`,`All usable maps are showing, thumbnails are in place, and pins are set. You're ready for client meetings.`,'app','Open client app']);
+    $('#ccFocus').innerHTML=focus.map(([pri,t,d,act,btn])=>`<div class="cc-focus pri-${pri}">
+      <div class="cc-focus-dot"></div>
+      <div class="cc-focus-b"><div class="cc-focus-t">${esc(t)}</div><div class="cc-focus-d">${esc(d)}</div></div>
+      <button class="cc-focus-act" data-act="${act}">${esc(btn)} →</button></div>`).join('');
+
+    // area intelligence
+    const byCity=cities.map(c=>{ const ms=pitch.filter(e=>mapCity(e)===c); const wp=ms.filter(e=>(PINS[e.id]||[]).length>0).length; const pins=ms.reduce((n,e)=>n+(PINS[e.id]||[]).length,0); return {c,maps:ms.length,wp,pins}; }).sort((a,b)=>b.maps-a.maps);
+    const maxMaps=Math.max(1,...byCity.map(x=>x.maps));
+    $('#ccAreas').innerHTML=`<table class="cc-tbl"><thead><tr><th>City</th><th>Maps</th><th>Pinned</th><th>Pins</th></tr></thead><tbody>${byCity.map(x=>`<tr><td><b>${esc(x.c)}</b></td><td><div class="cc-bar"><span style="width:${(x.maps/maxMaps*100).toFixed(0)}%"></span><i>${x.maps}</i></div></td><td>${x.wp}</td><td>${x.pins}</td></tr>`).join('')}</tbody></table>`;
+
+    // mini stat lists
+    const mini=(rows)=>rows.map(([l,v,tone])=>`<div class="cc-row ${tone||''}"><span>${esc(l)}</span><b>${v}</b></div>`).join('');
+    $('#ccCoverage').innerHTML=mini([['Sector maps shown',pitch.length],['With thumbnail',withThumb],['Maps with plot pins',mapsWithPins.length],['Maps without pins',mapsNoPins,mapsNoPins?'warn':''],['Cities covered',cities.length]]);
+    $('#ccInventory').innerHTML=mini([['Plot pins placed',pinTotal],...Object.keys(PT).map(k=>[PT[k]+' pins',pinTypes[k]||0]),['Properties on masterplan',PROPS.length]]);
+    $('#ccHealth').innerHTML=mini([['Manifest entries',total],['Hidden duplicates',hiddenDup],['No usable image',noImg,noImg?'warn':''],['Without thumbnail',noThumb,noThumb?'warn':'']]);
+
+    // wire actions
+    document.querySelectorAll('#viewDash [data-act]').forEach(b=>b.onclick=()=>{ const a=b.getAttribute('data-act');
+      if(a==='app')location.href='/app/plotmap/'; else if(a==='editor')location.href='/admin/editor.html'; else if(a==='maps')show('Maps'); else if(a==='pins')show('Pins'); });
   }
 
   /* maps manager */

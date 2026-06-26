@@ -14,7 +14,8 @@ window.PM.registerDataset('tricity-aerotropolis', {
   assets: {
     original:   '/public/plotmap-assets/aerotropolis-original-web.jpg',
     overlay:    '/public/plotmap-assets/aerotropolis-overlays.svg',
-    overlayGeo: '/app/plotmap/geo.json',          // extracted geometry for Original-Map highlights
+    overlayGeo: '/app/plotmap/geo.json',          // extracted geometry for Original-Map highlights (also enables Easy Map)
+    markings:   '/public/plotmap-assets/markings.jpg', // cropped "Aerocity Blocks" marking image (optional per city)
     sector:     '/public/plotmap-assets/sector-map.jpg'
   },
 
