@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PlotMap Admin — Maps & Pins</title>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Hanken Grotesk',system-ui,sans-serif;background:#F4EFE6;color:#23211C;}
+  .top{background:#0B1A36;color:#fff;padding:0 24px;height:62px;display:flex;align-items:center;gap:8px;}
+  .top .brand{font-weight:800;font-size:17px;margin-right:18px;}
+  .top a{color:rgba(255,255,255,.7);text-decoration:none;font-weight:650;font-size:14px;padding:9px 14px;border-radius:10px;cursor:pointer;}
+  .top a.on,.top a:hover{background:rgba(255,255,255,.14);color:#fff;}
+  .top .sp{flex:1;}
+  .wrap{max-width:1240px;margin:0 auto;padding:26px 24px 60px;}
+  h1{font-size:26px;font-weight:800;letter-spacing:-.5px;margin:0 0 4px;}
+  .sub{color:#6B6456;font-weight:600;font-size:14px;margin-bottom:22px;}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-bottom:14px;}
+  .stat{background:#fff;border:1px solid #EBE1CC;border-radius:14px;padding:16px 18px;}
+  .stat .n{font-size:30px;font-weight:800;letter-spacing:-1px;color:#0B1A36;}
+  .stat .l{font-size:12.5px;color:#8A836E;font-weight:650;margin-top:4px;}
+  .panel{background:#fff;border:1px solid #EBE1CC;border-radius:16px;padding:18px;margin-bottom:18px;}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+  input,select,textarea{font-family:inherit;font-size:14px;border:1px solid #E2D7C0;border-radius:10px;padding:9px 12px;background:#fff;outline:none;}
+  input:focus,select:focus,textarea:focus{border-color:#0B1A36;}
+  input.search{flex:1;min-width:220px;}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:10px;font-weight:700;}
+  .btn{background:#0B1A36;color:#fff;padding:9px 16px;font-size:13.5px;}
+  .btn.ghost{background:#fff;color:#23211C;border:1px solid #E2D7C0;}
+  .btn.warn{background:#fff;color:#A12B2B;border:1px solid #E7C7C7;}
+  .btn:hover{filter:brightness(1.08);}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;color:#8A836E;font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;border-bottom:2px solid #EEE4CF;}
+  td{padding:8px 10px;border-bottom:1px solid #F2EAD8;vertical-align:middle;}
+  .th-thumb{width:64px;height:44px;border-radius:7px;background:#E7DDC8 center/cover no-repeat;border:1px solid #E2D7C0;}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px;}
+  .pill.ok{background:#E1F0E7;color:#15633E;}
+  .pill.mut{background:#EFEADD;color:#8A7A52;}
+  .pill.warn{background:#F6E3DA;color:#9A4A22;}
+  .hide{display:none;}
+  .mapwrap{position:relative;border:1px solid #E2D7C0;border-radius:12px;overflow:hidden;background:#E7DDC8;max-height:62vh;}
+  .mapwrap img{display:block;width:100%;height:auto;cursor:crosshair;}
+  .pin{position:absolute;transform:translate(-50%,-50%);width:16px;height:16px;border-radius:50% 50% 50% 0;rotate:-45deg;border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.4);cursor:pointer;}
+  .pin.sel{outline:3px solid rgba(22,53,106,.35);}
+  .pin.available-property{background:#1C8A57;} .pin.highlighted-property{background:#B07A2B;}
+  .pin.landmark{background:#16356A;} .pin.future-update{background:#8A6E84;}
+  .grid2{display:grid;grid-template-columns:1.5fr 1fr;gap:18px;align-items:start;}
+  .fld{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;}
+  .fld label{font-size:11.5px;font-weight:700;color:#8A836E;text-transform:uppercase;letter-spacing:.4px;}
+  textarea{resize:vertical;min-height:54px;}
+  .pinrow{display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid #EEE4CF;border-radius:9px;margin-bottom:6px;cursor:pointer;font-size:13px;}
+  .pinrow.sel{border-color:#0B1A36;background:#F4F7FC;}
+  .pinrow .dot{width:11px;height:11px;border-radius:50%;flex:none;}
+  pre{background:#0B1A36;color:#CFE3FF;padding:14px;border-radius:12px;overflow:auto;font-size:12px;max-height:280px;}
+  .note{font-size:12.5px;color:#6B6456;line-height:1.5;background:#F0F4FA;border:1px solid #DDE7F3;border-radius:10px;padding:11px 13px;}
+</style>
+</head>
+<body>
+<div class="top">
+  <span class="brand">PlotMap Admin</span>
+  <a id="navDash" class="on">Dashboard</a>
+  <a id="navMaps">Sector Maps</a>
+  <a id="navPins">Pin Manager</a>
+  <a id="navFuture">Future Updates</a>
+  <span class="sp"></span>
+  <a href="/app/plotmap/">← Client app</a>
+  <a href="/admin/editor.html">Marking Editor</a>
+</div>
+<div class="wrap">
+  <!-- DASHBOARD -->
+  <section id="viewDash">
+    <h1>Dashboard</h1>
+    <div class="sub">Internal overview of the map library. Client UI never shows quality/status labels.</div>
+    <div class="cards" id="statCards"></div>
+    <div class="note">Pitch mode shows every usable map (any review tier). Maps are hidden only when they have no browser-safe image, are a hidden duplicate, or are a failed/deferred PDF without a converted image.</div>
+  </section>
+
+  <!-- MAPS MANAGER -->
+  <section id="viewMaps" class="hide">
+    <h1>Sector Maps Manager</h1>
+    <div class="sub">All maps from the manifest. Admin shows internal status; the client app does not.</div>
+    <div class="row">
+      <input class="search" id="mapSearch" placeholder="Search title, city, id…">
+      <select id="mapCityFilter"><option value="">All cities</option></select>
+      <select id="mapVisFilter"><option value="">All</option><option value="pitch">Visible in pitch</option><option value="hidden">Hidden</option></select>
+    </div>
+    <div class="panel" style="padding:6px 6px 10px;">
+      <table><thead><tr><th></th><th>Title</th><th>City</th><th>Image path</th><th>Pitch</th><th>Internal</th><th></th></tr></thead>
+      <tbody id="mapRows"></tbody></table>
+    </div>
+  </section>
+
+  <!-- PIN MANAGER -->
+  <section id="viewPins" class="hide">
+    <h1>Pin Manager</h1>
+    <div class="sub">Pick a map, click the image to drop a pin, edit its fields. Coordinates are saved as normalized percentages. No price fields.</div>
+    <div class="row">
+      <select id="pinMapSelect" style="min-width:320px;"></select>
+      <select id="pinTypeNew">
+        <option value="available-property">Available Property</option>
+        <option value="highlighted-property">Highlighted Property</option>
+        <option value="landmark">Landmark</option>
+        <option value="future-update">Future Update</option>
+      </select>
+      <span style="font-size:12.5px;color:#8A836E;font-weight:600;">↑ new-pin type, then click the map</span>
+    </div>
+    <div class="grid2">
+      <div>
+        <div class="mapwrap" id="pinMapWrap"><div style="padding:40px;text-align:center;color:#8A836E;">Select a map above.</div></div>
+      </div>
+      <div>
+        <div class="panel" id="pinEditPanel"><div style="color:#8A836E;font-size:13px;">Click the map to add a pin, or select one below.</div></div>
+        <div class="panel">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><b style="font-size:14px;">Pins on this map</b><span id="pinCount" style="color:#8A836E;font-size:12.5px;"></span></div>
+          <div id="pinList"></div>
+        </div>
+        <div class="row"><button class="btn" id="btnCopy">Copy JSON</button><button class="btn ghost" id="btnDownload">Download sector-pins.js</button></div>
+        <div class="note">Browsers can't write project files directly. After editing, <b>Copy JSON</b> or <b>Download</b>, then paste the object into <code>app/plotmap/datasets/sector-pins.js</code> and commit. (If a backend is wired later, this becomes a direct save.)</div>
+        <pre id="pinJson"></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- FUTURE -->
+  <section id="viewFuture" class="hide">
+    <h1>Future Mapping Updates</h1>
+    <div class="sub">Planned workflows — schemas reserved, editors come later.</div>
+    <div class="panel"><b>Sector Easy Maps</b><div class="note" style="margin-top:8px;">Trace sector-level roads/blocks/zones into per-sector geo paths, mirroring the masterplan Easy Map pipeline (see app/plotmap/EASY-MAP-PIPELINE.md).</div></div>
+    <div class="panel"><b>Road / Block / Commercial / Landmark markings</b><div class="note" style="margin-top:8px;">Per-map overlay markings using normalized geometry. Reserved data shape:<br><code>{ id, mapId, kind:'road|block|commercial|landmark', points:[[x%,y%]...], label }</code>. The existing Marking Editor (admin/editor.html) handles masterplan A/B/C/D highlight sets today.</div></div>
+  </section>
+</div>
+
+<script src="/app/plotmap/datasets/sector-pins.js"></script>
+<script>
+(async function(){
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  // path + display helpers (mirror app.js)
+  const toPublic = p => { if(!p||typeof p!=='string')return null; p=p.replace(/\\/g,'/'); const i=p.indexOf('/public/'); if(i>=0)return p.slice(i); if(p.startsWith('/public/'))return p; if(p.startsWith('public/'))return '/'+p; if(p.startsWith('/plotmap-assets/'))return '/public'+p; return null; };
+  const mapImage = e => e && (toPublic(e.bestProcessedPath)||toPublic((e.processedPaths||[])[0])||toPublic(e.thumbnailPath));
+  const mapThumb = e => e && (toPublic(e.thumbnailPath)||toPublic((e.processedPaths||[])[0])||mapImage(e));
+  const mapCity = e => { const c=String((e&&e.city)||'').trim(); return c&&c.toLowerCase()!=='unknown'?c:'Other'; };
+  const mapTitle = e => { if(!e)return 'Sector Map'; if(e.sectorOrBlockName)return e.sectorOrBlockName; if(e.displayName)return e.displayName; const r=String(e.id||'').replace(/\.[a-z0-9]+$/i,'').replace(/\b(processed|enhanced|cleaned|thumb|thumbnail|web|final|copy)\b/gi,'').replace(/[-_]+/g,' ').replace(/\s+/g,' ').trim(); return r?r.replace(/\b\w/g,c=>c.toUpperCase()):'Sector Map'; };
+  const rank = e => (e.recommendedKeep?8:0)+(e.bestProcessedPath?4:0)+((e.processedPaths||[]).length?2:0)+(e.thumbnailPath?1:0);
+  const PIN_LABELS={'available-property':'Available Property','highlighted-property':'Highlighted Property','landmark':'Landmark','future-update':'Future Update'};
+
+  let ENTRIES=[];
+  try { const r=await fetch('/app/plotmap/map-assets.manifest.json'); const m=await r.json(); ENTRIES=m.entries||[]; }
+  catch(e){ document.querySelector('.wrap').insertAdjacentHTML('afterbegin','<div class="note" style="border-color:#E7C7C7;background:#F9EEE9;">Could not load manifest. Run via the dev server: <code>node tools/server.js</code></div>'); }
+
+  const hasImg = e => !!mapImage(e);
+  const isPitch = e => e.duplicateDisplayStatus!=='hidden-duplicate' && hasImg(e);
+  const pitchList = () => { const used=ENTRIES.filter(isPitch); const byKey=new Map(); for(const e of used){const k=e.matchKey||e.id; const p=byKey.get(k); if(!p||rank(e)>rank(p))byKey.set(k,e);} return [...byKey.values()]; };
+
+  // working pin store (clone of loaded data)
+  let PINS = JSON.parse(JSON.stringify(window.PM_SECTOR_PINS||{}));
+
+  /* nav */
+  const views={Dash:'#viewDash',Maps:'#viewMaps',Pins:'#viewPins',Future:'#viewFuture'};
+  function show(v){ Object.keys(views).forEach(k=>{$(views[k]).classList.toggle('hide',k!==v); $('#nav'+k).classList.toggle('on',k===v);}); if(v==='Maps')renderMaps(); if(v==='Pins')renderPinManager(); }
+  ['Dash','Maps','Pins','Future'].forEach(k=>$('#nav'+k).onclick=()=>show(k));
+
+  /* dashboard */
+  function renderDash(){
+    const total=ENTRIES.length, pitch=pitchList().length;
+    const withThumb=ENTRIES.filter(e=>toPublic(e.thumbnailPath)).length;
+    const withBest=ENTRIES.filter(e=>toPublic(e.bestProcessedPath)).length;
+    const hiddenDup=ENTRIES.filter(e=>e.duplicateDisplayStatus==='hidden-duplicate').length;
+    const noImg=ENTRIES.filter(e=>!hasImg(e)).length;
+    const pinTotal=Object.values(PINS).reduce((n,a)=>n+(a?a.length:0),0);
+    const cards=[[total,'Manifest entries'],[pitch,'Visible in pitch'],[total-pitch,'Hidden (dup/no-image)'],[withThumb,'With thumbnail'],[total-withThumb,'No thumbnail'],[withBest,'With processed image'],[hiddenDup,'Hidden duplicates'],[noImg,'No usable image'],[pinTotal,'Pins placed']];
+    $('#statCards').innerHTML=cards.map(([n,l])=>`<div class="stat"><div class="n">${n}</div><div class="l">${esc(l)}</div></div>`).join('');
+  }
+
+  /* maps manager */
+  function cityOptions(){ const set=[...new Set(ENTRIES.map(mapCity))].sort(); $('#mapCityFilter').innerHTML='<option value="">All cities</option>'+set.map(c=>`<option>${esc(c)}</option>`).join(''); }
+  function renderMaps(){
+    const q=($('#mapSearch').value||'').toLowerCase(), city=$('#mapCityFilter').value, vis=$('#mapVisFilter').value;
+    let list=ENTRIES.slice();
+    if(city)list=list.filter(e=>mapCity(e)===city);
+    if(vis==='pitch')list=list.filter(isPitch); if(vis==='hidden')list=list.filter(e=>!isPitch(e));
+    if(q)list=list.filter(e=>(mapTitle(e)+' '+mapCity(e)+' '+e.id).toLowerCase().includes(q));
+    $('#mapRows').innerHTML=list.slice(0,400).map(e=>{
+      const th=mapThumb(e), img=mapImage(e);
+      const internal=[e.launchTier,e.reviewNeeded?'review-needed':'',e.duplicateDisplayStatus!=='unique'?e.duplicateDisplayStatus:''].filter(Boolean).join(' · ');
+      return `<tr><td><div class="th-thumb" style="background-image:url('${th?esc(th):''}')"></div></td>
+        <td><b>${esc(mapTitle(e))}</b><div style="color:#9C957F;font-size:11.5px;">${esc(e.id)}</div></td>
+        <td>${esc(mapCity(e))}</td>
+        <td>${img?'<span class="pill ok">image</span>':'<span class="pill warn">no image</span>'}</td>
+        <td>${isPitch(e)?'<span class="pill ok">shown</span>':'<span class="pill mut">hidden</span>'}</td>
+        <td style="font-size:11.5px;color:#8A7A52;">${esc(internal)}</td>
+        <td>${img?`<a class="btn ghost" href="${esc(img)}" target="_blank" style="text-decoration:none;">Open</a>`:''}</td></tr>`;
+    }).join('')||'<tr><td colspan="7" style="padding:30px;text-align:center;color:#8A836E;">No maps match.</td></tr>';
+  }
+  $('#mapSearch').oninput=renderMaps; $('#mapCityFilter').onchange=renderMaps; $('#mapVisFilter').onchange=renderMaps;
+
+  /* pin manager */
+  let selMapId=null, selPinId=null;
+  function pinMaps(){ return pitchList(); }
+  function renderPinManager(){
+    const maps=pinMaps();
+    if(!$('#pinMapSelect').dataset.filled){ $('#pinMapSelect').innerHTML='<option value="">— select a map —</option>'+maps.map(e=>`<option value="${esc(e.id)}">${esc(mapTitle(e))} — ${esc(mapCity(e))}</option>`).join(''); $('#pinMapSelect').dataset.filled='1'; }
+    drawPinMap(); renderPinList(); renderJson();
+  }
+  $('#pinMapSelect').onchange=function(){ selMapId=this.value||null; selPinId=null; drawPinMap(); renderPinList(); };
+  function curMap(){ return ENTRIES.find(e=>e.id===selMapId); }
+  function curPins(){ return (PINS[selMapId]||(PINS[selMapId]=[])); }
+  function drawPinMap(){
+    const wrap=$('#pinMapWrap'); const e=curMap();
+    if(!e){ wrap.innerHTML='<div style="padding:40px;text-align:center;color:#8A836E;">Select a map above.</div>'; return; }
+    const img=mapImage(e);
+    wrap.innerHTML=`<img id="pinImg" src="${esc(img)}" alt="">`+curPins().map(p=>`<div class="pin ${esc(p.type)} ${p.id===selPinId?'sel':''}" data-pid="${esc(p.id)}" style="left:${p.x}%;top:${p.y}%"></div>`).join('');
+    $('#pinImg').addEventListener('click',ev=>{
+      const r=ev.currentTarget.getBoundingClientRect();
+      const x=+(((ev.clientX-r.left)/r.width)*100).toFixed(2), y=+(((ev.clientY-r.top)/r.height)*100).toFixed(2);
+      const id='pin-'+Math.random().toString(36).slice(2,8);
+      curPins().push({id,title:'New Pin',type:$('#pinTypeNew').value,x,y,size:'',block:'',roadFacing:'',status:'Available',notes:''});
+      selPinId=id; drawPinMap(); renderPinList(); renderEdit(); renderJson();
+    });
+    wrap.querySelectorAll('.pin').forEach(d=>d.addEventListener('click',()=>{ selPinId=d.getAttribute('data-pid'); drawPinMap(); renderPinList(); renderEdit(); }));
+    renderEdit();
+  }
+  function renderEdit(){
+    const p=curPins().find(x=>x.id===selPinId);
+    const panel=$('#pinEditPanel');
+    if(!p){ panel.innerHTML='<div style="color:#8A836E;font-size:13px;">Click the map to add a pin, or select one below.</div>'; return; }
+    const f=(k,l,t)=>`<div class="fld"><label>${l}</label>${t==='area'?`<textarea data-k="${k}">${esc(p[k]||'')}</textarea>`:`<input data-k="${k}" value="${esc(p[k]||'')}">`}</div>`;
+    panel.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><b>Edit pin</b><button class="btn warn" id="btnDel">Delete</button></div>
+      ${f('title','Title')}
+      <div class="fld"><label>Type</label><select data-k="type">${Object.keys(PIN_LABELS).map(t=>`<option value="${t}" ${p.type===t?'selected':''}>${PIN_LABELS[t]}</option>`).join('')}</select></div>
+      ${f('size','Size')}${f('block','Block')}${f('roadFacing','Road facing')}${f('status','Status')}${f('notes','Notes','area')}
+      <div style="font-size:11.5px;color:#8A836E;">x ${p.x}%, y ${p.y}%</div>`;
+    panel.querySelectorAll('[data-k]').forEach(inp=>inp.addEventListener('input',()=>{ p[inp.getAttribute('data-k')]=inp.value; if(inp.getAttribute('data-k')==='type')drawPinMap(); renderPinList(); renderJson(); }));
+    $('#btnDel').onclick=()=>{ PINS[selMapId]=curPins().filter(x=>x.id!==selPinId); selPinId=null; drawPinMap(); renderPinList(); renderJson(); };
+  }
+  function renderPinList(){
+    const pins=curPins();
+    $('#pinCount').textContent=pins.length+' pin'+(pins.length===1?'':'s');
+    $('#pinList').innerHTML=pins.map(p=>`<div class="pinrow ${p.id===selPinId?'sel':''}" data-pid="${esc(p.id)}"><span class="dot ${esc(p.type)}" style="background:${({['available-property']:'#1C8A57','highlighted-property':'#B07A2B',landmark:'#16356A','future-update':'#8A6E84'})[p.type]||'#16356A'}"></span><b>${esc(p.title||'Untitled')}</b><span style="color:#9C957F;margin-left:auto;font-size:11.5px;">${esc(PIN_LABELS[p.type]||p.type)}</span></div>`).join('')||'<div style="color:#8A836E;font-size:13px;">No pins yet.</div>';
+    $('#pinList').querySelectorAll('.pinrow').forEach(r=>r.onclick=()=>{ selPinId=r.getAttribute('data-pid'); drawPinMap(); renderPinList(); renderEdit(); });
+  }
+  function exportObj(){ const out={}; Object.keys(PINS).forEach(k=>{ if(PINS[k]&&PINS[k].length)out[k]=PINS[k]; }); return out; }
+  function jsText(){ return 'window.PM_SECTOR_PINS = '+JSON.stringify(exportObj(),null,2)+';\n'; }
+  function renderJson(){ $('#pinJson').textContent=jsText(); }
+  $('#btnCopy').onclick=async()=>{ try{ await navigator.clipboard.writeText(jsText()); $('#btnCopy').textContent='Copied!'; setTimeout(()=>$('#btnCopy').textContent='Copy JSON',1200);}catch(e){} };
+  $('#btnDownload').onclick=()=>{ const b=new Blob([jsText()],{type:'text/javascript'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='sector-pins.js'; a.click(); };
+
+  cityOptions(); renderDash(); show('Dash');
+})();
+</script>
+</body>
+</html>

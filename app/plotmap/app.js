@@ -664,6 +664,7 @@
         <div style="display:flex;gap:3px"><button class="tab ${state.section === 'master' ? 'on' : ''}" id="tabMaster">Masterplan</button><button class="tab ${state.section === 'props' && state.propView !== 'sector' ? 'on' : ''}" id="tabProps">Properties</button><button class="tab ${state.section === 'sectors' ? 'on' : ''}" id="tabSectors">Sector Maps</button></div>
         ${state.section === 'master' ? `<div class="divider"></div><div class="mode-switch topbar-mode"><button class="${state.mapMode === 'original' ? 'on' : ''}" data-mode="original">Original Map</button><button class="${state.mapMode === 'easy' ? 'on' : ''}" data-mode="easy">Easy Map</button><button class="${state.mapMode === 'markings' ? 'on' : ''}" data-mode="markings">Aerocity Blocks</button><div class="divider" style="margin:3px 6px;width:1px;background:#1B3F7C"></div>${['A','B','C','D'].map(L => `<button class="transparent-btn ${state.activeLetter === L ? 'on' : ''}" data-prebuilt-label="${L}" title="Highlight set ${L}">${L}</button>`).join('')}</div>` : ''}
         <div class="spacer"></div>
+        <a href="/admin/maps.html" style="color:#A19B8D; font-size:12px; font-weight:600; text-decoration:none; margin-right:12px;">Admin</a>
         <a href="/admin/editor.html" style="color:#A19B8D; font-size:12px; font-weight:600; text-decoration:none; margin-right:16px;">Editor</a>
         ${showBack ? '<button class="back-btn" id="backMaster"><span>‹</span> Back to Masterplan</button>' : ''}
 
