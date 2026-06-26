@@ -167,3 +167,51 @@ Checks run & passing: `node --check app/plotmap/app.js`, `data.js`,
   scope for this pass.
 - Some traced education/IT markers sit close together in the real layout, so their
   Easy-Map labels can overlap at full-zoom-out; they separate on zoom-in.
+
+---
+
+## Launch: full sector library + viewer pins + admin (this pass)
+
+**Done & pushed to `origin/main` (verified in-browser, no console errors):**
+
+- **Show all usable sector maps (35 → ~140).** `pitchModeMaps()` shows every usable
+  map regardless of review tier; no `showInClientDefault` required. Hides only
+  hidden-duplicates and entries with no browser-safe image; dedups by `matchKey`.
+- **Browser-safe paths.** `toPublicAssetPath()` normalizes manifest paths to the
+  served `/public/plotmap-assets/…` form; `mapImage`/`mapThumb`/`mapTitle`/`mapCity`
+  helpers. Clean client cards (real thumbnails, clean titles, city filters) with **no**
+  verified/internal-review/quality labels.
+- **Sector viewer + pins.** Viewer sizes to the image (manifest `dimensions`) so
+  normalized-% pins are accurate; pins render over the image and open an info card
+  (no price). Static store `datasets/sector-pins.js`; editable via Admin.
+- **Admin** `admin/maps.html` — dashboard, sector-maps manager (internal status
+  shown here only), pin manager (click-to-place + Copy/Download JSON), future-update
+  placeholders. Linked from the client topbar.
+- **Docs** `app/plotmap/LAUNCH-MAP-WORKFLOW.md` (full launch workflow + Supabase
+  schema + deployment checklist).
+
+Commits: `fix: show all usable sector maps…`, `feat: sector map viewer pins…`,
+`feat: admin maps + pin manager…`, `docs: launch map workflow…`.
+
+## ⚠️ Production deploy blocker (decision needed)
+
+`public/plotmap-assets/processed/` is **gitignored** — the ~342 processed images are
+local only. So **all ~140 maps work locally** (`node tools/server.js`, fine for
+pitching), but on **Vercel they'd show broken thumbnails** (even the original 35 were
+never deployed — `vercel.json` lists only 4 specific images). Before a hosted launch,
+either commit the processed folder + add `public/plotmap-assets/**` to `vercel.json`,
+or host the folder externally and repoint manifest paths. See LAUNCH-MAP-WORKFLOW §16.
+
+## Backend status
+
+Supabase is configured frontend-only (anon key, masterplan `prebuilt_maps`). Pins are
+local/static for launch (no fake saving). SQL for `sector_maps`/`sector_pins` is in
+LAUNCH-MAP-WORKFLOW §13 for when a backed save is wanted (anon read, writes behind auth).
+
+## What to physically map next
+
+1. Place real pins on the top pitch sectors via Admin (start with the most-shown
+   Mohali/Panchkula/New-Chandigarh sectors), export, commit `sector-pins.js`.
+2. Decide the production image-hosting approach (deploy blocker above).
+3. Later: sector-level Easy Maps + per-map road/block/commercial/landmark markings
+   (schemas reserved in Admin → Future Updates).
