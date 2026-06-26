@@ -85,11 +85,7 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
   <!-- CENTER: Map Canvas -->
   <div class="ms-canvas" id="map-canvas">
     <div class="ms-canvas-inner" id="canvas-inner">
-      <div class="ms-canvas-placeholder" id="canvas-placeholder">
-        <div class="ph-icon">🗺️</div>
-        <div class="ph-title">Map Canvas</div>
-        <div class="ph-sub">Click "Add Pin" then click on the map to place a pin.<br>Pins are saved to CRM data and shown on the client map.</div>
-      </div>
+      <img src="/public/plotmap-assets/aerotropolis-original-web.jpg" class="ms-canvas-img" id="canvas-img" alt="Aerocity Map">
       <!-- Pins are rendered as absolute-positioned markers on top of the map image -->
     </div>
 
@@ -233,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- Canvas click (place pin) ---
-  document.getElementById('map-canvas').addEventListener('click', (e) => {
+  document.getElementById('canvas-inner').addEventListener('click', (e) => {
     if (activeTool !== 'pin') return;
     const rect = e.currentTarget.getBoundingClientRect();
     const xPct = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
@@ -265,7 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // --- Canvas mouse move for coords ---
-  document.getElementById('map-canvas').addEventListener('mousemove', (e) => {
+  document.getElementById('canvas-inner').addEventListener('mousemove', (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const xPct = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
     const yPct = ((e.clientY - rect.top) / rect.height * 100).toFixed(1);
