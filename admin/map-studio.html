@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Map Studio - PlotMap Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/admin/crm-ui.css">
+</head>
+<body class="pm-shell">
+
+<header class="pm-topbar">
+  <div class="brand">PlotMap Admin</div>
+  <div class="role-badge">Team Mode</div>
+  <nav>
+    <a href="/admin/team.html">Workspace</a>
+    <a href="/admin/clients.html">Clients</a>
+    <a href="/admin/properties.html">Properties</a>
+    <a href="/admin/followups.html">Follow-ups</a>
+    <a href="/admin/site-visits.html">Site Visits</a>
+    <a href="/admin/deals.html">Deals</a>
+    <a href="/admin/map-studio.html" class="on">Map Studio</a>
+  </nav>
+  <div class="sp"></div>
+  <a href="/admin/index.html">Switch Role</a>
+</header>
+
+<main class="pm-main" style="display:flex; flex-direction:column; max-width:100%; padding:0; height:calc(100vh - 60px);">
+  <!-- Minimal placeholder map studio UI -->
+  <div style="display:flex; height:100%;">
+    
+    <div style="flex:1; background:#EBE1CC; display:flex; align-items:center; justify-content:center; position:relative;">
+      <div style="text-align:center; color:var(--pm-text-mut);">
+        <h2 style="margin:0 0 10px;">Map Canvas Preview</h2>
+        <p>Interactive Map UI will be integrated here.</p>
+        <div style="width:600px; height:400px; background:rgba(0,0,0,0.05); border:2px dashed rgba(0,0,0,0.1); border-radius:20px; display:flex; align-items:center; justify-content:center; margin-top:20px;">
+          Map Image Area
+        </div>
+      </div>
+    </div>
+    
+    <div style="width:360px; background:#fff; border-left:1px solid var(--pm-border); padding:24px; overflow-y:auto;">
+      <h2 style="margin:0 0 20px; font-size:20px;">Map Editor</h2>
+      
+      <div class="pm-card" style="margin-bottom:20px; padding:16px;">
+        <div class="pm-card-h" style="font-size:14px; margin-bottom:10px;">Add New Pin</div>
+        <form class="pm-form">
+          <div class="fld"><label>Pin Title</label><input type="text"></div>
+          <div class="fld"><label>Type</label><select><option>Available Property</option><option>Landmark</option></select></div>
+          <button type="button" class="pm-button primary" style="width:100%;">Drop Pin</button>
+        </form>
+      </div>
+
+      <div class="pm-card" style="padding:16px;">
+        <div class="pm-card-h" style="font-size:14px; margin-bottom:10px;">Add Highlight Region</div>
+        <form class="pm-form">
+          <div class="fld"><label>Region Name</label><input type="text"></div>
+          <div class="fld"><label>Type</label><select><option>Commercial Zone</option><option>IT Hub</option><option>Road</option></select></div>
+          <button type="button" class="pm-button primary" style="width:100%;">Draw Area</button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</main>
+</body>
+</html>

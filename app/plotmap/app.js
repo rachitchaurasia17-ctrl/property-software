@@ -98,6 +98,28 @@
     lightbox: null, present: false
   };
 
+  /* --- Lightweight CRM Tracking --- */
+  window.logEvent = function(type, meta = {}) {
+    try {
+      const dataStr = localStorage.getItem('plotmap_crm_v1');
+      if (dataStr) {
+        const data = JSON.parse(dataStr);
+        if (data && data.events) {
+          data.events.push({
+            id: 'evt-' + Math.random().toString(36).substr(2, 9),
+            type,
+            timestamp: Date.now(),
+            staffId: 'client-app',
+            metadata: meta,
+            area: state.areaId || null,
+            demo: false
+          });
+          localStorage.setItem('plotmap_crm_v1', JSON.stringify(data));
+        }
+      }
+    } catch(e) {}
+  };
+
   /* ---------- lookups ---------- */
   const area = () => PM.areas.find(a => a.id === state.areaId) || PM.areas[0];
   const num = (n) => typeof n === 'number' && Number.isFinite(n);

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Finance Center - PlotMap Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/admin/crm-ui.css">
+<script src="/admin/crm-data.js"></script>
+<script src="/admin/crm-store.js"></script>
+</head>
+<body class="pm-shell">
+
+<header class="pm-topbar" style="background:#091225;">
+  <div class="brand">PlotMap Admin</div>
+  <div class="role-badge" style="background:rgba(212,175,55,0.2); color:#F0DC82;">Dealer Mode</div>
+  <nav>
+    <a href="/admin/owner.html">Dealer Command</a>
+    <a href="/admin/area-intelligence.html">Area Intelligence</a>
+    <a href="/admin/finance.html" class="on">Finance Center</a>
+    <a href="/app/plotmap/" target="_blank">Presentation Map</a>
+  </nav>
+  <div class="sp"></div>
+  <a href="/admin/index.html">Switch Role</a>
+</header>
+
+<main class="pm-main">
+  <div class="pm-header">
+    <h1>Finance Center</h1>
+    <div class="sub">Owner-only revenue and commission tracking.</div>
+  </div>
+  
+  <div class="pm-grid cols-4" style="margin-bottom:24px;">
+    <div class="pm-metric-card">
+      <div class="val" id="f-val">-</div>
+      <div class="lbl">Total Deal Value</div>
+    </div>
+    <div class="pm-metric-card">
+      <div class="val" id="f-earned">-</div>
+      <div class="lbl">Commission Earned</div>
+    </div>
+    <div class="pm-metric-card">
+      <div class="val" id="f-rec" style="color:var(--pm-success)">-</div>
+      <div class="lbl">Commission Received</div>
+    </div>
+    <div class="pm-metric-card">
+      <div class="val" id="f-pen" style="color:var(--pm-warn)">-</div>
+      <div class="lbl">Commission Pending</div>
+    </div>
+  </div>
+  
+  <div class="pm-card">
+    <div class="pm-card-h">Recent Deals</div>
+    <div class="pm-table-wrap">
+      <table class="pm-table" id="fin-table">
+        <thead>
+          <tr>
+            <th>Date / Client</th>
+            <th>Property / Area</th>
+            <th>Total Value</th>
+            <th>Commission Earned</th>
+            <th>Pending</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const crm = window.CRM;
+  const data = crm.getCRM();
+  const fin = crm.computeFinanceTotals();
+  
+  const fmt = (v) => Number(v).toLocaleString('en-IN', {style:'currency',currency:'INR',maximumFractionDigits:0});
+  
+  document.getElementById('f-val').innerText = fmt(fin.totalDealValue);
+  document.getElementById('f-earned').innerText = fmt(fin.commissionEarned);
+  document.getElementById('f-rec').innerText = fmt(fin.commissionReceived);
+  document.getElementById('f-pen').innerText = fmt(fin.commissionPending);
+  
+  const tbody = document.querySelector('#fin-table tbody');
+  
+  if(data.deals.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6">No deals recorded yet.</td></tr>';
+  } else {
+    tbody.innerHTML = data.deals.map(d => {
+      const c = data.clients.find(cl => cl.id === d.clientId) || {};
+      const dt = new Date(d.dealDate).toLocaleDateString();
+      return `
+      <tr>
+        <td><div style="font-weight:700">${c.name || '-'}</div><div style="font-size:12px;color:var(--pm-text-mut)">${dt}</div></td>
+        <td>${d.area||'-'}<br><span style="text-transform:capitalize;font-size:12px;color:var(--pm-text-mut)">${d.dealType}</span></td>
+        <td style="font-weight:700">${fmt(d.dealValue)}</td>
+        <td style="color:var(--pm-success); font-weight:600;">${fmt(d.commissionAmount)}</td>
+        <td style="color:var(--pm-warn); font-weight:600;">${fmt(d.commissionPending)}</td>
+        <td><span class="pm-status ${d.commissionPending > 0 ? 'warn' : 'ok'}">${d.commissionPending > 0 ? 'Pending' : 'Settled'}</span></td>
+      </tr>
+      `;
+    }).join('');
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Team Workspace - PlotMap</title>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/admin/crm-ui.css">
+<script src="/admin/crm-data.js"></script>
+<script src="/admin/crm-store.js"></script>
+</head>
+<body class="pm-shell">
+
+<header class="pm-topbar">
+  <div class="brand">PlotMap Admin</div>
+  <div class="role-badge">Team Mode</div>
+  <nav>
+    <a href="/admin/team.html" class="on">Workspace</a>
+    <a href="/admin/clients.html">Clients</a>
+    <a href="/admin/properties.html">Properties</a>
+    <a href="/admin/followups.html">Follow-ups</a>
+    <a href="/admin/site-visits.html">Site Visits</a>
+    <a href="/admin/deals.html">Deals</a>
+    <a href="/admin/map-studio.html">Map Studio</a>
+  </nav>
+  <div class="sp"></div>
+  <a href="/admin/index.html">Switch Role</a>
+</header>
+
+<main class="pm-main">
+  <div class="pm-header">
+    <h1>Team Workspace</h1>
+    <div class="sub">Daily operations for clients, properties, and maps.</div>
+  </div>
+  
+  <div class="pm-grid cols-3" style="margin-bottom: 24px;">
+    <a href="/admin/clients.html" class="pm-action-card">
+      <div class="ic">👤</div>
+      <div class="txt">Add / View Clients</div>
+    </a>
+    <a href="/admin/properties.html" class="pm-action-card">
+      <div class="ic">🏠</div>
+      <div class="txt">Manage Inventory</div>
+    </a>
+    <a href="/admin/site-visits.html" class="pm-action-card">
+      <div class="ic">📅</div>
+      <div class="txt">Schedule Site Visit</div>
+    </a>
+    <a href="/admin/followups.html" class="pm-action-card">
+      <div class="ic">📞</div>
+      <div class="txt">Today's Follow-ups</div>
+    </a>
+    <a href="/admin/deals.html" class="pm-action-card">
+      <div class="ic">🤝</div>
+      <div class="txt">Mark Deal Closed</div>
+    </a>
+    <a href="/admin/map-studio.html" class="pm-action-card">
+      <div class="ic">🗺️</div>
+      <div class="txt">Map Studio</div>
+    </a>
+  </div>
+  
+  <div class="pm-grid sidebar-right">
+    <div class="pm-card">
+      <div class="pm-card-h">Recent Clients</div>
+      <div class="pm-table-wrap">
+        <table class="pm-table" id="recent-clients">
+          <thead>
+            <tr>
+              <th>Client</th>
+              <th>Status</th>
+              <th>Interest</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- rendered by js -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <div class="pm-card">
+      <div class="pm-card-h">Quick Add Client</div>
+      <form class="pm-form" id="quick-client-form">
+        <div class="fld">
+          <label>Name</label>
+          <input type="text" id="qc-name" required>
+        </div>
+        <div class="fld">
+          <label>Phone</label>
+          <input type="tel" id="qc-phone" required>
+        </div>
+        <div class="fld">
+          <label>Interested Area</label>
+          <input type="text" id="qc-area">
+        </div>
+        <button type="submit" class="pm-button primary">Add Client</button>
+      </form>
+    </div>
+  </div>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const crm = window.CRM;
+  const data = crm.getCRM();
+  
+  // Render recent clients
+  const rcTbody = document.querySelector('#recent-clients tbody');
+  const recent = [...data.clients].sort((a,b) => b.lastActivityAt - a.lastActivityAt).slice(0, 5);
+  
+  if (recent.length === 0) {
+    rcTbody.innerHTML = '<tr><td colspan="4">No clients yet.</td></tr>';
+  } else {
+    rcTbody.innerHTML = recent.map(c => `
+      <tr>
+        <td style="font-weight:600">${c.name}</td>
+        <td><span class="pm-status ${c.status==='Closed'?'ok':c.status==='Warm'?'info':'neutral'}">${c.status}</span></td>
+        <td>${c.interestedArea || '-'}</td>
+        <td><a href="/admin/clients.html" class="pm-button ghost" style="padding: 4px 8px; font-size:12px;">View</a></td>
+      </tr>
+    `).join('');
+  }
+  
+  // Quick form
+  document.getElementById('quick-client-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    crm.addClient({
+      name: document.getElementById('qc-name').value,
+      phone: document.getElementById('qc-phone').value,
+      interestedArea: document.getElementById('qc-area').value,
+      status: 'New',
+      assignedStaff: 's1'
+    });
+    window.location.reload();
+  });
+});
+</script>
+</body>
+</html>

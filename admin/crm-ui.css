@@ -1,0 +1,104 @@
+/* PlotMap Admin Shared CSS */
+:root {
+  --pm-bg: #F4EFE6;
+  --pm-text: #23211C;
+  --pm-text-mut: #6B6456;
+  --pm-text-light: #A89F89;
+  --pm-brand: #0B1A36;
+  --pm-brand-hover: #1B3F7C;
+  --pm-card-bg: #FFFFFF;
+  --pm-border: #EBE1CC;
+  --pm-border-dark: #E2D7C0;
+  
+  --pm-success: #1C8A57;
+  --pm-success-bg: #E1F0E7;
+  --pm-warn: #9A4A22;
+  --pm-warn-bg: #F6E3DA;
+  --pm-err: #B5604F;
+  --pm-err-bg: #F9EEE9;
+  --pm-info: #2E6F8E;
+  --pm-info-bg: #E6F3FA;
+  
+  --pm-radius: 14px;
+  --pm-radius-sm: 8px;
+  --pm-radius-lg: 18px;
+  --pm-shadow: 0 4px 12px rgba(11,26,54,0.06);
+  --pm-shadow-hover: 0 8px 24px rgba(11,26,54,0.12);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; font-family: 'Hanken Grotesk', system-ui, sans-serif; background: var(--pm-bg); color: var(--pm-text); }
+
+.pm-shell { display: flex; flex-direction: column; min-height: 100vh; }
+
+/* Topbar */
+.pm-topbar { flex: none; height: 60px; background: var(--pm-brand); color: #fff; display: flex; align-items: center; padding: 0 24px; gap: 14px; }
+.pm-topbar .brand { font-weight: 800; font-size: 18px; letter-spacing: -0.2px; margin-right: 24px; }
+.pm-topbar nav { display: flex; gap: 4px; }
+.pm-topbar a { color: rgba(255,255,255,0.7); text-decoration: none; font-weight: 650; font-size: 14px; padding: 8px 14px; border-radius: 10px; transition: 0.15s; cursor: pointer; }
+.pm-topbar a:hover { background: rgba(255,255,255,0.12); color: #fff; }
+.pm-topbar a.on { background: rgba(255,255,255,0.18); color: #fff; }
+.pm-topbar .sp { flex: 1; }
+.pm-topbar .role-badge { background: rgba(255,255,255,0.15); font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* Layout */
+.pm-main { flex: 1; padding: 30px 24px 60px; max-width: 1240px; margin: 0 auto; width: 100%; }
+.pm-header { margin-bottom: 24px; }
+.pm-header h1 { font-size: 32px; font-weight: 800; letter-spacing: -1px; margin: 0 0 6px 0; color: var(--pm-brand); }
+.pm-header .sub { font-size: 15px; color: var(--pm-text-mut); font-weight: 500; margin: 0; }
+
+/* Grid */
+.pm-grid { display: grid; gap: 20px; }
+.pm-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+.pm-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.pm-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+.pm-grid.sidebar-right { grid-template-columns: 2fr 1fr; }
+@media(max-width: 900px) { .pm-grid.cols-2, .pm-grid.cols-3, .pm-grid.cols-4, .pm-grid.sidebar-right { grid-template-columns: 1fr; } }
+
+/* Cards */
+.pm-card { background: var(--pm-card-bg); border: 1px solid var(--pm-border); border-radius: var(--pm-radius); padding: 20px; box-shadow: var(--pm-shadow); }
+.pm-card-h { font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+.pm-card-sub { font-size: 12px; color: var(--pm-text-light); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* Metric Card */
+.pm-metric-card { background: var(--pm-card-bg); border: 1px solid var(--pm-border); border-radius: var(--pm-radius); padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+.pm-metric-card .val { font-size: 32px; font-weight: 800; letter-spacing: -1px; color: var(--pm-brand); line-height: 1; }
+.pm-metric-card .lbl { font-size: 13px; font-weight: 600; color: var(--pm-text-mut); }
+
+/* Action Card */
+.pm-action-card { background: var(--pm-card-bg); border: 1px solid var(--pm-border-dark); border-radius: var(--pm-radius); padding: 18px; cursor: pointer; transition: 0.15s; display: flex; align-items: center; gap: 14px; text-decoration: none; color: inherit; }
+.pm-action-card:hover { border-color: var(--pm-brand); transform: translateY(-2px); box-shadow: var(--pm-shadow-hover); }
+.pm-action-card .ic { width: 40px; height: 40px; border-radius: 10px; background: var(--pm-bg); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.pm-action-card .txt { font-size: 15px; font-weight: 700; }
+
+/* Buttons */
+.pm-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer; border: 1px solid transparent; transition: 0.15s; text-decoration: none; }
+.pm-button.primary { background: var(--pm-brand); color: #fff; }
+.pm-button.primary:hover { background: var(--pm-brand-hover); }
+.pm-button.ghost { background: transparent; border-color: var(--pm-border-dark); color: var(--pm-text); }
+.pm-button.ghost:hover { border-color: var(--pm-brand); background: #fff; }
+.pm-button.danger { background: var(--pm-err-bg); color: var(--pm-err); border-color: #E7C7C7; }
+
+/* Status / Chips */
+.pm-status { display: inline-block; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; }
+.pm-status.ok { background: var(--pm-success-bg); color: var(--pm-success); }
+.pm-status.warn { background: var(--pm-warn-bg); color: var(--pm-warn); }
+.pm-status.err { background: var(--pm-err-bg); color: var(--pm-err); }
+.pm-status.info { background: var(--pm-info-bg); color: var(--pm-info); }
+.pm-status.neutral { background: #EFEADD; color: #8A7A52; }
+
+/* Forms */
+.pm-form { display: flex; flex-direction: column; gap: 16px; }
+.pm-form .fld { display: flex; flex-direction: column; gap: 6px; }
+.pm-form label { font-size: 12px; font-weight: 700; color: var(--pm-text-mut); text-transform: uppercase; letter-spacing: 0.5px; }
+.pm-form input, .pm-form select, .pm-form textarea { font-family: inherit; font-size: 14px; padding: 10px 14px; border: 1px solid var(--pm-border-dark); border-radius: 10px; outline: none; background: #fff; transition: 0.15s; }
+.pm-form input:focus, .pm-form select:focus, .pm-form textarea:focus { border-color: var(--pm-brand); box-shadow: 0 0 0 3px rgba(11,26,54,0.1); }
+.pm-form textarea { resize: vertical; min-height: 80px; }
+
+/* Tables */
+.pm-table-wrap { background: #fff; border: 1px solid var(--pm-border); border-radius: var(--pm-radius); overflow-x: auto; }
+.pm-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+.pm-table th { padding: 12px 16px; border-bottom: 2px solid var(--pm-border); color: var(--pm-text-light); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+.pm-table td { padding: 14px 16px; border-bottom: 1px solid #F2EAD8; color: var(--pm-text); }
+.pm-table tr:last-child td { border-bottom: none; }
+.pm-table tr:hover td { background: #F8FAFC; }

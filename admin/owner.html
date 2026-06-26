@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dealer Command Center - PlotMap</title>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/admin/crm-ui.css">
+<script src="/admin/crm-data.js"></script>
+<script src="/admin/crm-store.js"></script>
+</head>
+<body class="pm-shell">
+
+<header class="pm-topbar" style="background:#091225;">
+  <div class="brand">PlotMap Admin</div>
+  <div class="role-badge" style="background:rgba(212,175,55,0.2); color:#F0DC82;">Dealer Mode</div>
+  <nav>
+    <a href="/admin/owner.html" class="on">Dealer Command</a>
+    <a href="/admin/area-intelligence.html">Area Intelligence</a>
+    <a href="/admin/finance.html">Finance Center</a>
+    <a href="/app/plotmap/" target="_blank">Presentation Map</a>
+  </nav>
+  <div class="sp"></div>
+  <a href="/admin/index.html">Switch Role</a>
+</header>
+
+<main class="pm-main">
+  <div class="pm-header">
+    <h1>Dealer Command Center</h1>
+    <div class="sub">Business pulse, client movement, and team activity.</div>
+  </div>
+  
+  <div class="pm-card" style="margin-bottom:24px; border-left:4px solid var(--pm-brand);">
+    <div class="pm-card-h" style="margin-bottom:8px; color:var(--pm-brand);">Today's Business Pulse</div>
+    <div id="ai-pulse" style="font-size:16px; font-weight:500; line-height:1.5;">Loading pulse...</div>
+  </div>
+  
+  <div class="pm-grid cols-4" style="margin-bottom:24px;">
+    <div class="pm-metric-card">
+      <div class="val" id="m-active">-</div>
+      <div class="lbl">Active Clients</div>
+    </div>
+    <div class="pm-metric-card">
+      <div class="val" id="m-warm">-</div>
+      <div class="lbl">Warm / Shared</div>
+    </div>
+    <div class="pm-metric-card">
+      <div class="val" id="m-silent" style="color:var(--pm-warn)">-</div>
+      <div class="lbl">Silent Clients</div>
+    </div>
+    <div class="pm-metric-card">
+      <div class="val" id="m-action">-</div>
+      <div class="lbl">Scheduled Actions</div>
+    </div>
+  </div>
+  
+  <div class="pm-grid cols-2">
+    <div class="pm-card">
+      <div class="pm-card-h">Priority Clients</div>
+      <div class="pm-table-wrap">
+        <table class="pm-table" id="priority-clients">
+          <thead><tr><th>Client</th><th>Area / Req</th><th>Status</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    
+    <div class="pm-card">
+      <div class="pm-card-h">Missed Opportunity Feed</div>
+      <ul style="margin:0; padding-left:20px; font-size:14px; line-height:1.6;" id="missed-feed">
+        <!-- Rendered by JS -->
+      </ul>
+    </div>
+  </div>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const crm = window.CRM;
+  const data = crm.getCRM();
+  const insights = crm.computeOwnerInsights();
+  
+  document.getElementById('ai-pulse').innerText = insights.pulseText;
+  document.getElementById('m-active').innerText = insights.activeClients;
+  document.getElementById('m-warm').innerText = insights.warmClients;
+  document.getElementById('m-silent').innerText = insights.silentClients;
+  document.getElementById('m-action').innerText = insights.todayFollowups + insights.todayVisits;
+  
+  const pTbody = document.querySelector('#priority-clients tbody');
+  const warm = data.clients.filter(c => ['Warm', 'Property Shared', 'Site Visit Planned', 'Negotiation'].includes(c.status));
+  if(warm.length === 0) {
+    pTbody.innerHTML = '<tr><td colspan="3">No priority clients right now.</td></tr>';
+  } else {
+    pTbody.innerHTML = warm.slice(0,5).map(c => `
+      <tr>
+        <td style="font-weight:700">${c.name}</td>
+        <td>${c.interestedArea||'-'}<br><span style="font-size:12px;color:var(--pm-text-mut)">${c.propertyType||''}</span></td>
+        <td><span class="pm-status info">${c.status}</span></td>
+      </tr>
+    `).join('');
+  }
+  
+  const feed = document.getElementById('missed-feed');
+  let mhtml = '';
+  if (insights.silentClients > 0) mhtml += `<li><strong style="color:var(--pm-warn)">${insights.silentClients} clients</strong> went silent after initial contact.</li>`;
+  
+  let missedFw = data.followups.filter(f => f.status === 'missed').length;
+  if(missedFw > 0) mhtml += `<li><strong style="color:var(--pm-warn)">${missedFw} follow-ups</strong> were missed by the team.</li>`;
+  
+  if(!mhtml) mhtml = '<li style="color:var(--pm-text-mut)">No major leaks detected. Pipeline is healthy.</li>';
+  feed.innerHTML = mhtml;
+});
+</script>
+</body>
+</html>

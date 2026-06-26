@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Follow-ups - PlotMap Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/admin/crm-ui.css">
+<script src="/admin/crm-data.js"></script>
+<script src="/admin/crm-store.js"></script>
+</head>
+<body class="pm-shell">
+
+<header class="pm-topbar">
+  <div class="brand">PlotMap Admin</div>
+  <div class="role-badge">Team Mode</div>
+  <nav>
+    <a href="/admin/team.html">Workspace</a>
+    <a href="/admin/clients.html">Clients</a>
+    <a href="/admin/properties.html">Properties</a>
+    <a href="/admin/followups.html" class="on">Follow-ups</a>
+    <a href="/admin/site-visits.html">Site Visits</a>
+    <a href="/admin/deals.html">Deals</a>
+    <a href="/admin/map-studio.html">Map Studio</a>
+  </nav>
+  <div class="sp"></div>
+  <a href="/admin/index.html">Switch Role</a>
+</header>
+
+<main class="pm-main">
+  <div class="pm-header">
+    <h1>Follow-ups</h1>
+    <div class="sub">Track client communication and next steps.</div>
+  </div>
+  
+  <div class="pm-card">
+    <div class="pm-table-wrap">
+      <table class="pm-table" id="fw-table">
+        <thead>
+          <tr>
+            <th>Date / Time</th>
+            <th>Client</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Notes</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const crm = window.CRM;
+  const data = crm.getCRM();
+  
+  const tbody = document.querySelector('#fw-table tbody');
+  
+  window.markStatus = function(id, status) {
+    crm.updateFollowupStatus(id, status);
+    window.location.reload();
+  };
+  
+  if(data.followups.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6">No follow-ups.</td></tr>';
+  } else {
+    tbody.innerHTML = data.followups.map(f => {
+      const c = data.clients.find(c => c.id === f.clientId) || {};
+      const d = new Date(f.dateTime);
+      return `
+      <tr>
+        <td style="font-weight:600">${d.toLocaleDateString()} <span style="color:var(--pm-text-light)">${d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></td>
+        <td style="font-weight:700">${c.name || '-'}</td>
+        <td>${f.type}</td>
+        <td><span class="pm-status ${f.status==='done'?'ok':f.status==='missed'?'err':'neutral'}">${f.status}</span></td>
+        <td style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${f.notes}">${f.notes}</td>
+        <td>
+          ${f.status === 'pending' ? `<button class="pm-button ghost" style="padding:4px 8px;font-size:12px;" onclick="markStatus('${f.id}', 'done')">Mark Done</button>` : ''}
+        </td>
+      </tr>
+      `;
+    }).join('');
+  }
+});
+</script>
+</body>
+</html>

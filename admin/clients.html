@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clients - PlotMap Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/admin/crm-ui.css">
+<script src="/admin/crm-data.js"></script>
+<script src="/admin/crm-store.js"></script>
+</head>
+<body class="pm-shell">
+
+<header class="pm-topbar">
+  <div class="brand">PlotMap Admin</div>
+  <div class="role-badge">Team Mode</div>
+  <nav>
+    <a href="/admin/team.html">Workspace</a>
+    <a href="/admin/clients.html" class="on">Clients</a>
+    <a href="/admin/properties.html">Properties</a>
+    <a href="/admin/followups.html">Follow-ups</a>
+    <a href="/admin/site-visits.html">Site Visits</a>
+    <a href="/admin/deals.html">Deals</a>
+    <a href="/admin/map-studio.html">Map Studio</a>
+  </nav>
+  <div class="sp"></div>
+  <a href="/admin/index.html">Switch Role</a>
+</header>
+
+<main class="pm-main">
+  <div class="pm-header">
+    <h1>Clients</h1>
+    <div class="sub">Manage buyers, sellers, and investors.</div>
+  </div>
+  
+  <div class="pm-card" style="margin-bottom:20px;">
+    <div class="pm-card-h">All Clients</div>
+    <div class="pm-table-wrap">
+      <table class="pm-table" id="clients-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Type</th>
+            <th>Area / Req</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const crm = window.CRM;
+  const data = crm.getCRM();
+  
+  const tbody = document.querySelector('#clients-table tbody');
+  
+  window.markStatus = function(id, status) {
+    crm.updateClientStatus(id, status);
+    window.location.reload();
+  };
+  
+  if(data.clients.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6">No clients.</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = data.clients.map(c => `
+    <tr>
+      <td style="font-weight:700">${c.name}</td>
+      <td>${c.phone}</td>
+      <td style="text-transform:capitalize">${c.type || '-'}</td>
+      <td>${c.interestedArea || '-'}<br><span style="font-size:12px;color:var(--pm-text-mut)">${c.propertyType||''} ${c.sizeRequirement||''}</span></td>
+      <td><span class="pm-status ${c.status==='Closed'?'ok':c.status==='Warm'?'info':'neutral'}">${c.status}</span></td>
+      <td>
+        <button class="pm-button ghost" style="padding:4px 8px;font-size:12px;" onclick="markStatus('${c.id}', 'Warm')">Mark Warm</button>
+        <button class="pm-button ghost" style="padding:4px 8px;font-size:12px;" onclick="markStatus('${c.id}', 'Closed')">Close</button>
+      </td>
+    </tr>
+  `).join('');
+});
+</script>
+</body>
+</html>

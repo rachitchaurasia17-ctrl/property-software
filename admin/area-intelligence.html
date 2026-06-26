@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Area Intelligence - PlotMap Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/admin/crm-ui.css">
+<script src="/admin/crm-data.js"></script>
+<script src="/admin/crm-store.js"></script>
+</head>
+<body class="pm-shell">
+
+<header class="pm-topbar" style="background:#091225;">
+  <div class="brand">PlotMap Admin</div>
+  <div class="role-badge" style="background:rgba(212,175,55,0.2); color:#F0DC82;">Dealer Mode</div>
+  <nav>
+    <a href="/admin/owner.html">Dealer Command</a>
+    <a href="/admin/area-intelligence.html" class="on">Area Intelligence</a>
+    <a href="/admin/finance.html">Finance Center</a>
+    <a href="/app/plotmap/" target="_blank">Presentation Map</a>
+  </nav>
+  <div class="sp"></div>
+  <a href="/admin/index.html">Switch Role</a>
+</header>
+
+<main class="pm-main">
+  <div class="pm-header">
+    <h1>Area Intelligence</h1>
+    <div class="sub">Map-first business insights based on client activity.</div>
+  </div>
+  
+  <div class="pm-card">
+    <div class="pm-table-wrap">
+      <table class="pm-table" id="area-table">
+        <thead>
+          <tr>
+            <th>Area</th>
+            <th>Client Interest</th>
+            <th>Map/Property Views</th>
+            <th>Deals Closed</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const crm = window.CRM;
+  const areaData = crm.computeAreaInsights();
+  
+  const tbody = document.querySelector('#area-table tbody');
+  const areas = Object.keys(areaData).sort((a,b) => areaData[b].interest - areaData[a].interest);
+  
+  if(areas.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5">No data available.</td></tr>';
+  } else {
+    tbody.innerHTML = areas.map(a => {
+      const d = areaData[a];
+      let status = 'Low Activity';
+      let cls = 'neutral';
+      if (d.interest > 3) { status = 'High Interest'; cls = 'err'; }
+      else if (d.interest > 1) { status = 'Rising'; cls = 'info'; }
+      else if (d.deals > 0) { status = 'Stable'; cls = 'ok'; }
+      
+      return `
+      <tr>
+        <td style="font-weight:700">${a}</td>
+        <td style="font-weight:700; color:var(--pm-brand)">${d.interest}</td>
+        <td>${d.views}</td>
+        <td>${d.deals}</td>
+        <td><span class="pm-status ${cls}">${status}</span></td>
+      </tr>
+      `;
+    }).join('');
+  }
+});
+</script>
+</body>
+</html>
