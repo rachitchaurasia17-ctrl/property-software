@@ -16,9 +16,9 @@ if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
 </head>
 <body class="pm-shell">
 
-<header class="pm-topbar" style="background:#091225;">
+<header class="pm-topbar dealer-bar">
   <div class="brand">PlotMap Admin</div>
-  <div class="role-badge" style="background:rgba(212,175,55,0.2); color:#F0DC82;">Dealer Mode</div>
+  <div class="role-badge">Dealer Mode</div>
   <nav>
     <a href="/admin/owner.html" class="on">Dealer Command</a>
     <a href="/admin/area-intelligence.html">Area Intelligence</a>
@@ -34,12 +34,12 @@ if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
     <h1>Dealer Command Center</h1>
     <div class="sub">Business pulse, client movement, and team activity.</div>
   </div>
-  
-  <div class="pm-card" style="margin-bottom:24px; border-left:4px solid var(--pm-brand);">
-    <div class="pm-card-h" style="margin-bottom:8px; color:var(--pm-brand);">Today's Business Pulse</div>
-    <div id="ai-pulse" style="font-size:16px; font-weight:500; line-height:1.5;">Loading pulse...</div>
+
+  <div class="pm-pulse-card">
+    <div class="pulse-label">Today's Business Pulse</div>
+    <div class="pulse-text" id="ai-pulse">Loading pulse...</div>
   </div>
-  
+
   <div class="pm-grid cols-4" style="margin-bottom:24px;">
     <div class="pm-metric-card">
       <div class="val" id="m-active">-</div>
@@ -50,7 +50,7 @@ if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
       <div class="lbl">Warm / Shared</div>
     </div>
     <div class="pm-metric-card">
-      <div class="val" id="m-silent" style="color:var(--pm-warn)">-</div>
+      <div class="val" id="m-silent" style="color:var(--pm-err)">-</div>
       <div class="lbl">Silent Clients</div>
     </div>
     <div class="pm-metric-card">
@@ -58,7 +58,7 @@ if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
       <div class="lbl">Scheduled Actions</div>
     </div>
   </div>
-  
+
   <div class="pm-grid cols-2">
     <div class="pm-card">
       <div class="pm-card-h">Priority Clients</div>
@@ -69,10 +69,10 @@ if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
         </table>
       </div>
     </div>
-    
+
     <div class="pm-card">
       <div class="pm-card-h">Missed Opportunity Feed</div>
-      <ul style="margin:0; padding-left:20px; font-size:14px; line-height:1.6;" id="missed-feed">
+      <ul style="margin:0; padding-left:20px; font-size:14px; line-height:1.7;" id="missed-feed">
         <!-- Rendered by JS -->
       </ul>
     </div>
@@ -84,17 +84,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const crm = window.CRM;
   const data = crm.getCRM();
   const insights = crm.computeOwnerInsights();
-  
+
   document.getElementById('ai-pulse').innerText = insights.pulseText;
   document.getElementById('m-active').innerText = insights.activeClients;
   document.getElementById('m-warm').innerText = insights.warmClients;
   document.getElementById('m-silent').innerText = insights.silentClients;
   document.getElementById('m-action').innerText = insights.todayFollowups + insights.todayVisits;
-  
+
   const pTbody = document.querySelector('#priority-clients tbody');
   const warm = data.clients.filter(c => ['Warm', 'Property Shared', 'Site Visit Planned', 'Negotiation'].includes(c.status));
   if(warm.length === 0) {
-    pTbody.innerHTML = '<tr><td colspan="3">No priority clients right now.</td></tr>';
+    pTbody.innerHTML = '<tr><td colspan="3" style="padding:24px; text-align:center; color:var(--pm-text-mut);">No priority clients right now.</td></tr>';
   } else {
     pTbody.innerHTML = warm.slice(0,5).map(c => `
       <tr>
@@ -104,14 +104,14 @@ document.addEventListener('DOMContentLoaded', () => {
       </tr>
     `).join('');
   }
-  
+
   const feed = document.getElementById('missed-feed');
   let mhtml = '';
-  if (insights.silentClients > 0) mhtml += `<li><strong style="color:var(--pm-warn)">${insights.silentClients} clients</strong> went silent after initial contact.</li>`;
-  
+  if (insights.silentClients > 0) mhtml += `<li><strong style="color:var(--pm-err)">${insights.silentClients} clients</strong> went silent after initial contact.</li>`;
+
   let missedFw = data.followups.filter(f => f.status === 'missed').length;
   if(missedFw > 0) mhtml += `<li><strong style="color:var(--pm-warn)">${missedFw} follow-ups</strong> were missed by the team.</li>`;
-  
+
   if(!mhtml) mhtml = '<li style="color:var(--pm-text-mut)">No major leaks detected. Pipeline is healthy.</li>';
   feed.innerHTML = mhtml;
 });

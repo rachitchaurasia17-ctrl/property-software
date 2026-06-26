@@ -6,53 +6,39 @@
 <title>PlotMap Admin Gateway</title>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/admin/crm-ui.css">
-<style>
-  body { background: #0B1A36; color: #fff; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
-  .gateway-card { background: #FFFFFF; color: #23211C; border-radius: 20px; padding: 40px; max-width: 800px; width: 100%; box-shadow: 0 20px 40px rgba(0,0,0,0.3); text-align: center; }
-  .logo { width: 48px; height: 48px; border-radius: 12px; background: #0B1A36; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px; }
-  .logo i { width: 18px; height: 18px; border-radius: 50%; border: 4px solid #fff; }
-  h1 { font-size: 32px; font-weight: 800; letter-spacing: -1px; margin: 0 0 10px; color: #0B1A36; }
-  .sub { font-size: 16px; color: #6B6456; font-weight: 500; margin: 0 0 40px; }
-  
-  .roles { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; text-align: left; }
-  @media(max-width: 600px) { .roles { grid-template-columns: 1fr; } }
-  
-  .role-card { background: #F8FAFC; border: 2px solid #EBE1CC; border-radius: 16px; padding: 24px; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; }
-  .role-card:hover { border-color: #0B1A36; transform: translateY(-4px); box-shadow: 0 12px 24px rgba(11,26,54,0.1); }
-  .role-card.dealer { background: linear-gradient(145deg, #FDFCF9, #F5F1E6); }
-  .role-card.team { background: #fff; }
-  
-  .role-title { font-size: 20px; font-weight: 800; margin-bottom: 8px; color: #0B1A36; }
-  .role-desc { font-size: 14px; color: #6B6456; line-height: 1.5; margin-bottom: 24px; flex: 1; }
-  
-  .role-btn { background: #0B1A36; color: #fff; padding: 14px 20px; border-radius: 12px; font-weight: 700; text-align: center; font-size: 15px; border: none; cursor: pointer; transition: 0.15s; }
-  .role-card:hover .role-btn { background: #1B3F7C; }
-  
-  .disclaimer { font-size: 12px; color: #A89F89; margin-top: 30px; font-weight: 600; }
-</style>
 </head>
-<body>
+<body class="gw-body" style="margin:0;">
 
-<div class="gateway-card">
-  <div class="logo"><i></i></div>
-  <h1>PlotMap Admin</h1>
-  <div class="sub">Choose how you want to continue.</div>
-  
-  <div class="roles">
-    <div class="role-card dealer" onclick="loginAs('dealer')">
-      <div class="role-title">1. Dealer Login</div>
-      <div class="role-desc">For owner / property dealer / business head.<br><br>View business pulse, finance, client movement, area demand, and team activity.</div>
-      <button class="role-btn">Enter Dealer Command</button>
+<div class="gw-card">
+  <div class="gw-logo"><i></i></div>
+  <h1 class="gw-title">PlotMap Admin</h1>
+  <div class="gw-sub">Choose how you want to continue.</div>
+
+  <div class="gw-roles">
+    <div class="gw-role dealer" onclick="loginAs('dealer')">
+      <div class="gw-role-num">Role 1</div>
+      <div class="gw-role-title">Dealer Login</div>
+      <div class="gw-role-desc">
+        Business pulse, finance, client movement, area demand, and team activity.
+        <br><br>
+        For the owner, property dealer, or business head.
+      </div>
+      <button class="gw-role-btn">Enter Dealer Command →</button>
     </div>
-    
-    <div class="role-card team" onclick="loginAs('team')">
-      <div class="role-title">2. Team Login</div>
-      <div class="role-desc">For staff / workers / office team.<br><br>Add clients, properties, follow-ups, site visits, deals, pins, and map updates.</div>
-      <button class="role-btn">Enter Team Workspace</button>
+
+    <div class="gw-role" onclick="loginAs('team')">
+      <div class="gw-role-num">Role 2</div>
+      <div class="gw-role-title">Team Login</div>
+      <div class="gw-role-desc">
+        Add clients, properties, follow-ups, site visits, deals, and map updates.
+        <br><br>
+        For staff, workers, and office team.
+      </div>
+      <button class="gw-role-btn">Enter Team Workspace →</button>
     </div>
   </div>
-  
-  <div class="disclaimer">This is a role gateway. Keep both roles visually and functionally separate.</div>
+
+  <div class="gw-footer">PlotMap CRM · Roles are kept visually and functionally separate.</div>
 </div>
 
 <script>

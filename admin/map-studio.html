@@ -14,7 +14,7 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
 }
 </script>
 </head>
-<body class="pm-shell">
+<body class="pm-shell" style="overflow:hidden;">
 
 <header class="pm-topbar">
   <div class="brand">PlotMap Admin</div>
@@ -32,43 +32,326 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
   <a href="/admin/index.html">Switch Role</a>
 </header>
 
-<main class="pm-main" style="display:flex; flex-direction:column; max-width:100%; padding:0; height:calc(100vh - 60px);">
-  <!-- Minimal placeholder map studio UI -->
-  <div style="display:flex; height:100%;">
-    
-    <div style="flex:1; background:#EBE1CC; display:flex; align-items:center; justify-content:center; position:relative;">
-      <div style="text-align:center; color:var(--pm-text-mut);">
-        <h2 style="margin:0 0 10px;">Map Canvas Preview</h2>
-        <p>Interactive Map UI will be integrated here.</p>
-        <div style="width:600px; height:400px; background:rgba(0,0,0,0.05); border:2px dashed rgba(0,0,0,0.1); border-radius:20px; display:flex; align-items:center; justify-content:center; margin-top:20px;">
-          Map Image Area
-        </div>
-      </div>
+<!-- 3-Column Map Studio Layout -->
+<div class="ms-layout">
+
+  <!-- LEFT: Tools Panel -->
+  <div class="ms-tools">
+    <div class="ms-tools-header">🗺️ Map Tools</div>
+
+    <div class="ms-tool-section">
+      <div class="sec-title">Editing Tools</div>
+      <button class="ms-tool-btn active" data-tool="pin" onclick="setTool('pin')">
+        <span class="tool-icon">📍</span> Add Pin
+      </button>
+      <button class="ms-tool-btn" data-tool="move" onclick="setTool('move')">
+        <span class="tool-icon">↕️</span> Move Pin
+      </button>
+      <button class="ms-tool-btn" data-tool="landmark" onclick="setTool('landmark')">
+        <span class="tool-icon">🏛️</span> Add Landmark
+      </button>
+      <button class="ms-tool-btn" data-tool="road" onclick="setTool('road')">
+        <span class="tool-icon">🛣️</span> Road Highlight
+      </button>
+      <button class="ms-tool-btn" data-tool="zone" onclick="setTool('zone')">
+        <span class="tool-icon">🔲</span> Add Zone
+      </button>
+      <button class="ms-tool-btn" data-tool="label" onclick="setTool('label')">
+        <span class="tool-icon">🏷️</span> Custom Label
+      </button>
     </div>
-    
-    <div style="width:360px; background:#fff; border-left:1px solid var(--pm-border); padding:24px; overflow-y:auto;">
-      <h2 style="margin:0 0 20px; font-size:20px;">Map Editor</h2>
-      
-      <div class="pm-card" style="margin-bottom:20px; padding:16px;">
-        <div class="pm-card-h" style="font-size:14px; margin-bottom:10px;">Add New Pin</div>
-        <form class="pm-form">
-          <div class="fld"><label>Pin Title</label><input type="text"></div>
-          <div class="fld"><label>Type</label><select><option>Available Property</option><option>Landmark</option></select></div>
-          <button type="button" class="pm-button primary" style="width:100%;">Drop Pin</button>
-        </form>
-      </div>
 
-      <div class="pm-card" style="padding:16px;">
-        <div class="pm-card-h" style="font-size:14px; margin-bottom:10px;">Add Highlight Region</div>
-        <form class="pm-form">
-          <div class="fld"><label>Region Name</label><input type="text"></div>
-          <div class="fld"><label>Type</label><select><option>Commercial Zone</option><option>IT Hub</option><option>Road</option></select></div>
-          <button type="button" class="pm-button primary" style="width:100%;">Draw Area</button>
-        </form>
-      </div>
+    <div class="ms-tool-section">
+      <div class="sec-title">Visibility Filter</div>
+      <button class="ms-tool-btn" data-tool="vis-all" onclick="setVisFilter('all')" style="font-weight:700; color:var(--pm-text);">
+        <span class="tool-icon">👁️</span> All Items
+      </button>
+      <button class="ms-tool-btn" data-tool="vis-public" onclick="setVisFilter('public')">
+        <span class="tool-icon">🌐</span> Client-visible
+      </button>
+      <button class="ms-tool-btn" data-tool="vis-internal" onclick="setVisFilter('internal')">
+        <span class="tool-icon">🔒</span> Internal Only
+      </button>
+    </div>
 
+    <div class="ms-tool-section" style="flex:1;">
+      <div class="sec-title">Pins & Highlights</div>
+      <ul class="ms-pin-list" id="pin-list">
+        <!-- Rendered by JS -->
+      </ul>
     </div>
   </div>
-</main>
+
+  <!-- CENTER: Map Canvas -->
+  <div class="ms-canvas" id="map-canvas">
+    <div class="ms-canvas-inner" id="canvas-inner">
+      <div class="ms-canvas-placeholder" id="canvas-placeholder">
+        <div class="ph-icon">🗺️</div>
+        <div class="ph-title">Map Canvas</div>
+        <div class="ph-sub">Click "Add Pin" then click on the map to place a pin.<br>Pins are saved to CRM data and shown on the client map.</div>
+      </div>
+      <!-- Pins are rendered as absolute-positioned markers on top of the map image -->
+    </div>
+
+    <div class="ms-coords" id="coords">X: —  Y: —</div>
+
+    <div class="ms-canvas-bar">
+      <button title="Zoom In" onclick="zoomCanvas(1.2)">＋</button>
+      <button title="Zoom Out" onclick="zoomCanvas(0.8)">−</button>
+      <button title="Reset View" onclick="zoomCanvas('reset')">⤢</button>
+      <button title="Fit to View" onclick="zoomCanvas('fit')">□</button>
+    </div>
+  </div>
+
+  <!-- RIGHT: Inspector -->
+  <div class="ms-inspector">
+    <div class="ms-inspector-header" id="inspector-title">Inspector</div>
+    <div class="ms-inspector-body" id="inspector-body">
+      <div class="ms-inspector-empty" id="inspector-empty">
+        <div class="ie-icon">📌</div>
+        <div class="ie-text">Select a pin or highlight<br>to edit its properties.</div>
+      </div>
+      <!-- Inspector form rendered by JS when a pin is selected -->
+      <div id="inspector-form" style="display:none;">
+        <form class="pm-form" id="pin-edit-form">
+          <div class="fld"><label>Title</label><input type="text" id="pe-title"></div>
+          <div class="fld">
+            <label>Type</label>
+            <select id="pe-type">
+              <option value="available-property">Available Property</option>
+              <option value="landmark">Landmark</option>
+              <option value="road">Road</option>
+              <option value="zone">Zone</option>
+              <option value="label">Label</option>
+            </select>
+          </div>
+          <div class="fld"><label>Area / Map</label><input type="text" id="pe-area"></div>
+          <div class="pm-grid cols-2">
+            <div class="fld"><label>X %</label><input type="number" id="pe-x" step="0.1" min="0" max="100"></div>
+            <div class="fld"><label>Y %</label><input type="number" id="pe-y" step="0.1" min="0" max="100"></div>
+          </div>
+          <div class="fld">
+            <label>Linked Property</label>
+            <select id="pe-property"><option value="">None</option></select>
+          </div>
+          <div class="fld"><label>Description</label><textarea id="pe-desc" rows="2"></textarea></div>
+          <div class="fld">
+            <label>Visibility</label>
+            <select id="pe-vis">
+              <option value="public">Client-visible</option>
+              <option value="internal">Internal Only</option>
+            </select>
+          </div>
+          <div class="fld"><label>Notes</label><input type="text" id="pe-notes"></div>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <button type="submit" class="pm-button primary" style="flex:1;">Save Pin</button>
+            <button type="button" class="pm-button danger" id="btn-delete-pin" style="flex:none; padding:9px 14px;">Delete</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const crm = window.CRM;
+  const data = crm.getCRM();
+  let activeTool = 'pin';
+  let visFilter = 'all';
+  let selectedPinId = null;
+  let canvasScale = 1;
+
+  // Populate property select
+  const propSel = document.getElementById('pe-property');
+  data.properties.forEach(p => {
+    propSel.innerHTML += `<option value="${p.id}">${p.title}</option>`;
+  });
+
+  // --- Tool switching ---
+  window.setTool = function(tool) {
+    activeTool = tool;
+    document.querySelectorAll('.ms-tool-btn[data-tool]').forEach(b => {
+      b.classList.toggle('active', b.getAttribute('data-tool') === tool);
+    });
+  };
+
+  window.setVisFilter = function(f) {
+    visFilter = f;
+    renderPinList();
+    renderCanvasPins();
+  };
+
+  // --- Pin List ---
+  function renderPinList() {
+    const list = document.getElementById('pin-list');
+    const pins = getFilteredPins();
+    if (pins.length === 0) {
+      list.innerHTML = '<li style="padding:12px 0; color:var(--pm-text-light); font-size:13px;">No pins yet.</li>';
+      return;
+    }
+    list.innerHTML = pins.map(p => {
+      const dotColor = p.type === 'available-property' ? '#15803D' :
+                       p.type === 'landmark' ? '#0369A1' :
+                       p.type === 'road' ? '#B45309' : '#7C3AED';
+      return `<li class="ms-pin-item ${selectedPinId === p.id ? 'selected' : ''}" onclick="selectPin('${p.id}')">
+        <span class="ms-pin-dot" style="background:${dotColor}"></span>
+        <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${p.title || 'Untitled'}</span>
+        <span style="font-size:10px; color:var(--pm-text-light);">${p.visibility === 'internal' ? '🔒' : '🌐'}</span>
+      </li>`;
+    }).join('');
+  }
+
+  function getFilteredPins() {
+    const d = crm.getCRM();
+    let pins = d.pins || [];
+    if (visFilter === 'public') pins = pins.filter(p => p.visibility !== 'internal');
+    if (visFilter === 'internal') pins = pins.filter(p => p.visibility === 'internal');
+    return pins;
+  }
+
+  // --- Canvas Pins ---
+  function renderCanvasPins() {
+    // Remove old markers
+    document.querySelectorAll('.ms-pin-marker').forEach(el => el.remove());
+    const canvasEl = document.getElementById('canvas-inner');
+    const pins = getFilteredPins();
+    pins.forEach(p => {
+      const marker = document.createElement('div');
+      marker.className = `ms-pin-marker ${selectedPinId === p.id ? 'selected' : ''}`;
+      marker.style.left = (p.x || 50) + '%';
+      marker.style.top = (p.y || 50) + '%';
+      marker.title = p.title || 'Pin';
+      const color = p.type === 'available-property' ? '#15803D' :
+                    p.type === 'landmark' ? '#0369A1' :
+                    p.type === 'road' ? '#B45309' : '#7C3AED';
+      marker.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="${color}"/><circle cx="12" cy="9" r="3" fill="#fff"/></svg>`;
+      marker.onclick = (e) => { e.stopPropagation(); selectPin(p.id); };
+      canvasEl.appendChild(marker);
+    });
+  }
+
+  // --- Canvas click (place pin) ---
+  document.getElementById('map-canvas').addEventListener('click', (e) => {
+    if (activeTool !== 'pin') return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const xPct = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
+    const yPct = ((e.clientY - rect.top) / rect.height * 100).toFixed(1);
+
+    // Create a new pin
+    const d = crm.getCRM();
+    const newPin = {
+      id: 'pin-' + Math.random().toString(36).substr(2, 9),
+      title: 'New Pin',
+      type: 'available-property',
+      area: '',
+      x: parseFloat(xPct),
+      y: parseFloat(yPct),
+      description: '',
+      linkedProperty: '',
+      visibility: 'public',
+      notes: '',
+      demo: false
+    };
+    if (!d.pins) d.pins = [];
+    d.pins.push(newPin);
+    crm.saveCRM(d);
+    selectedPinId = newPin.id;
+    renderPinList();
+    renderCanvasPins();
+    showInspector(newPin);
+  });
+
+  // --- Canvas mouse move for coords ---
+  document.getElementById('map-canvas').addEventListener('mousemove', (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const xPct = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
+    const yPct = ((e.clientY - rect.top) / rect.height * 100).toFixed(1);
+    document.getElementById('coords').textContent = `X: ${xPct}%  Y: ${yPct}%`;
+  });
+
+  // --- Select Pin ---
+  window.selectPin = function(id) {
+    selectedPinId = id;
+    const d = crm.getCRM();
+    const pin = (d.pins || []).find(p => p.id === id);
+    renderPinList();
+    renderCanvasPins();
+    if (pin) showInspector(pin);
+  };
+
+  // --- Inspector ---
+  function showInspector(pin) {
+    document.getElementById('inspector-empty').style.display = 'none';
+    document.getElementById('inspector-form').style.display = 'block';
+    document.getElementById('inspector-title').textContent = pin.title || 'Edit Pin';
+
+    document.getElementById('pe-title').value = pin.title || '';
+    document.getElementById('pe-type').value = pin.type || 'available-property';
+    document.getElementById('pe-area').value = pin.area || '';
+    document.getElementById('pe-x').value = pin.x || 0;
+    document.getElementById('pe-y').value = pin.y || 0;
+    document.getElementById('pe-property').value = pin.linkedProperty || '';
+    document.getElementById('pe-desc').value = pin.description || '';
+    document.getElementById('pe-vis').value = pin.visibility || 'public';
+    document.getElementById('pe-notes').value = pin.notes || '';
+  }
+
+  function hideInspector() {
+    document.getElementById('inspector-empty').style.display = '';
+    document.getElementById('inspector-form').style.display = 'none';
+    document.getElementById('inspector-title').textContent = 'Inspector';
+    selectedPinId = null;
+    renderPinList();
+    renderCanvasPins();
+  }
+
+  // --- Save Pin ---
+  document.getElementById('pin-edit-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!selectedPinId) return;
+    const d = crm.getCRM();
+    const pin = (d.pins || []).find(p => p.id === selectedPinId);
+    if (!pin) return;
+    pin.title = document.getElementById('pe-title').value;
+    pin.type = document.getElementById('pe-type').value;
+    pin.area = document.getElementById('pe-area').value;
+    pin.x = parseFloat(document.getElementById('pe-x').value) || 0;
+    pin.y = parseFloat(document.getElementById('pe-y').value) || 0;
+    pin.linkedProperty = document.getElementById('pe-property').value;
+    pin.description = document.getElementById('pe-desc').value;
+    pin.visibility = document.getElementById('pe-vis').value;
+    pin.notes = document.getElementById('pe-notes').value;
+    crm.saveCRM(d);
+    document.getElementById('inspector-title').textContent = pin.title;
+    renderPinList();
+    renderCanvasPins();
+  });
+
+  // --- Delete Pin ---
+  document.getElementById('btn-delete-pin').addEventListener('click', () => {
+    if (!selectedPinId) return;
+    const d = crm.getCRM();
+    d.pins = (d.pins || []).filter(p => p.id !== selectedPinId);
+    crm.saveCRM(d);
+    hideInspector();
+  });
+
+  // --- Zoom (visual demo) ---
+  window.zoomCanvas = function(factor) {
+    if (factor === 'reset' || factor === 'fit') {
+      canvasScale = 1;
+    } else {
+      canvasScale = Math.max(0.5, Math.min(3, canvasScale * factor));
+    }
+    document.getElementById('canvas-inner').style.transform = `scale(${canvasScale})`;
+  };
+
+  // --- Initial Render ---
+  renderPinList();
+  renderCanvasPins();
+});
+</script>
 </body>
 </html>
