@@ -804,3 +804,26 @@ input{font-family:inherit;-webkit-appearance:none;}
 .eg-rlabel-g.tier-secondary .eg-rlabel{font-size:28px;fill:#76808E;}
 .eg-rlabel-g.act .eg-rlabel{fill:#0B2552;}
 .eg-rlabel-g.dim{opacity:.28;}
+
+/* ============================================================
+   SECTOR MAP PINS — normalized % markers over the sector image,
+   plus a fixed (screen-space) info card. No price anywhere.
+   ============================================================ */
+#sectorPinG{position:absolute;inset:0;pointer-events:none;}
+.spin{position:absolute;transform:translate(-50%,-50%);width:30px;height:30px;border:none;background:none;cursor:pointer;padding:0;pointer-events:auto;z-index:12;}
+.spin .spin-dot{display:block;width:18px;height:18px;margin:6px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#16356A;border:2.5px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.35);transition:.15s;}
+.spin:hover .spin-dot{transform:rotate(-45deg) scale(1.18);}
+.spin.sel .spin-dot{transform:rotate(-45deg) scale(1.28);box-shadow:0 0 0 5px rgba(22,53,106,.25),0 4px 10px rgba(0,0,0,.4);}
+.spin.spin-available-property .spin-dot{background:#1C8A57;}
+.spin.spin-highlighted-property .spin-dot{background:#B07A2B;}
+.spin.spin-landmark .spin-dot{background:#16356A;}
+.spin.spin-future-update .spin-dot{background:#8A6E84;}
+.spin-card{position:absolute;right:20px;bottom:84px;width:300px;background:#fff;border:1px solid #EBE1CC;border-radius:16px;box-shadow:0 20px 48px rgba(40,28,8,.26);z-index:32;padding:18px 18px 16px;animation:popIn .18s ease;}
+.spin-card-x{position:absolute;right:10px;top:8px;border:none;background:none;font-size:22px;line-height:1;color:#9C957F;cursor:pointer;padding:4px;}
+.spin-card-x:hover{color:#0B1A36;}
+.spin-card-title{font-size:19px;font-weight:780;letter-spacing:-.3px;color:#0B1A36;padding-right:22px;margin-bottom:10px;}
+.spin-card-row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #F2EAD8;font-size:13.5px;}
+.spin-card-row:last-of-type{border-bottom:none;}
+.spin-card-row span{color:#9C957F;font-weight:600;}
+.spin-card-row b{color:#23211C;font-weight:700;text-align:right;}
+.spin-card-notes{margin-top:10px;font-size:13px;color:#6B6456;line-height:1.5;background:#F8F6F0;border-radius:10px;padding:10px 12px;}

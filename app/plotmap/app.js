@@ -92,7 +92,7 @@
     prebuiltMaps: [], activeLetter: null,
     section: 'master', mapMode: 'original', showProps: false,
     activeCats: new Set(), displayCatId: null, selectedIds: new Set(), itemOpen: false,
-    propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null,
+    propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, activePinId: null,
     filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set(), blockId: new Set() },
     secQ: '', secArea: 'all',
     lightbox: null, present: false
@@ -264,18 +264,23 @@
   function buildMap() {
     const kind = mapKind(); const sig = state.areaId + '|' + kind; const fresh = sig !== builtSig;
     const l = layer(); if (!l) return;
-    let html = '';
+    let html = '', sectorSm = null;
     if (kind === 'easy') {
       // easySVG() computes the geometry frame (EGW/EGH) before we size the layer
       html = easySVG(); LW = EGW; LH = EGH;
     } else if (kind === 'markings') {
       LW = 862; LH = 1028;
+    } else if (kind === 'sector') {
+      // size the layer to the map image so percentage pin coords are accurate
+      sectorSm = activeSectorMap();
+      const dim = sectorSm && sectorSm.dimensions;
+      LW = (dim && dim.width) || 3880; LH = (dim && dim.height) || 3069;
     } else { LW = 3880; LH = 3069; }
     l.style.width = LW + 'px'; l.style.height = LH + 'px';
     l.className = 'maplayer ' + kind;
     if (kind === 'original') l.innerHTML = `<img class="orig" src="${DS.assets.original}" alt="Official masterplan">` + origSVG();
     else if (kind === 'markings') l.innerHTML = `<img class="orig-crop" src="/public/plotmap-assets/markings.jpg" alt="Masterplan Marking">` + origSVG();
-    else if (kind === 'sector') { const sm = activeSectorMap(); const sectorAsset = mapImage(sm) || DS.assets.sector; l.innerHTML = `<div class="sector-wrap" style="width:${LW}px;height:${LH}px;background-image:url('${sectorAsset}')"></div><div id="sectorPinG"></div><div id="proofG"></div>`; }
+    else if (kind === 'sector') { const sectorAsset = mapImage(sectorSm) || DS.assets.sector; l.innerHTML = `<div class="sector-wrap" style="width:${LW}px;height:${LH}px;background-image:url('${sectorAsset}');background-size:100% 100%"></div><div id="sectorPinG"></div><div id="proofG"></div>`; }
     else l.innerHTML = html;
     builtSig = sig; updateMapOverlays();
     if (fresh) requestAnimationFrame(fit); else applyT(false);
@@ -464,7 +469,7 @@
   /* ---------- overlays: highlight / declutter / spotlight ---------- */
   function updateMapOverlays() {
     const kind = mapKind(); const l = layer(); if (!l) return;
-    if (kind === 'sector') { renderProof(); return; }
+    if (kind === 'sector') { renderProof(); renderSectorPins(); return; }
     const selIds = state.selectedIds;
     const hasSel = selIds.size > 0;
     const dimAll = hasSel || state.activeCats.size > 0;
@@ -592,6 +597,35 @@
     requestAnimationFrame(() => focusBox(x, y, 360, 360, 1.9));
   }
 
+  /* ---------- SECTOR MAP PINS (normalized % coords; no price) ---------- */
+  const PIN_LABELS = { 'available-property': 'Available Property', 'highlighted-property': 'Highlighted Property', 'landmark': 'Landmark', 'future-update': 'Future Update' };
+  function sectorPins() {
+    const sm = activeSectorMap(); if (!sm) return [];
+    const all = (window.PM_SECTOR_PINS && window.PM_SECTOR_PINS[sm.id]) || [];
+    return all.filter(p => p && typeof p.x === 'number' && typeof p.y === 'number');
+  }
+  function renderSectorPins() {
+    const lay = layer(), wrap = el('mapwrap'); if (!lay || !wrap) return;
+    const g = lay.querySelector('#sectorPinG');
+    const pins = sectorPins();
+    if (g) g.innerHTML = pins.map(p => `<button class="spin spin-${esc(p.type || 'available-property')} ${p.id === state.activePinId ? 'sel' : ''}" data-spin="${esc(p.id)}" title="${esc(p.title || '')}"><span class="spin-dot"></span></button>`).join('');
+    if (g) pins.forEach(p => { const b = g.querySelector(`[data-spin="${CSS.escape(p.id)}"]`); if (b) { b.style.left = p.x + '%'; b.style.top = p.y + '%'; } });
+    const old = el('spinCard'); if (old) old.remove();
+    const active = pins.find(p => p.id === state.activePinId);
+    if (active) {
+      wrap.insertAdjacentHTML('beforeend', sectorPinCardHTML(active));
+      const card = el('spinCard'); if (card) { card.addEventListener('click', e => e.stopPropagation()); const x = card.querySelector('[data-spinclose]'); if (x) x.addEventListener('click', () => { state.activePinId = null; renderSectorPins(); }); }
+    }
+  }
+  function sectorPinCardHTML(p) {
+    const rows = [['Type', PIN_LABELS[p.type] || p.type], ['Size', p.size], ['Block', p.block], ['Road facing', p.roadFacing], ['Status', p.status]].filter(r => r[1]);
+    return `<div class="spin-card" id="spinCard">
+      <button class="spin-card-x" data-spinclose aria-label="Close">×</button>
+      <div class="spin-card-title">${esc(p.title || 'Property')}</div>
+      ${rows.map(([k, v]) => `<div class="spin-card-row"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('')}
+      ${p.notes ? `<div class="spin-card-notes">${esc(p.notes)}</div>` : ''}</div>`;
+  }
+
   /* ====================== RENDER ROOT ====================== */
   function render() {
     const root = el('app');
@@ -599,7 +633,7 @@
     root.className = state.present ? 'present' : '';
     root.innerHTML = planHTML(); bindPlan(); bindMap(); buildMap();
   }
-  function resetPlan(extra) { return Object.assign({ section: 'master', mapMode: 'original', showProps: false, activeCats: new Set(), displayCatId: null, selectedIds: new Set(), previewIdx: 0, itemOpen: false, propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, areaMenuOpen: false, filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set(), blockId: new Set() }, secQ: '', secArea: 'all' }, extra || {}); }
+  function resetPlan(extra) { return Object.assign({ section: 'master', mapMode: 'original', showProps: false, activeCats: new Set(), displayCatId: null, selectedIds: new Set(), previewIdx: 0, itemOpen: false, propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, activePinId: null, areaMenuOpen: false, filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set(), blockId: new Set() }, secQ: '', secArea: 'all' }, extra || {}); }
 
   /* ---------- AREA SELECT ---------- */
   function areaSelectHTML() {
@@ -992,6 +1026,7 @@
     const lay = el('maplayer');
     if (lay) lay.addEventListener('click', e => {
       if (moved) return;
+      const spin = e.target.closest('[data-spin]'); if (spin) { const id = spin.getAttribute('data-spin'); state.activePinId = state.activePinId === id ? null : id; renderSectorPins(); return; }
       const tag = e.target.closest('[data-tag]'); if (tag) { state.previewId = tag.getAttribute('data-tag'); refreshControls(); renderTags(); return; }
       const hit = e.target.closest('[data-hit]');
       if (hit) { const [k, id] = hit.getAttribute('data-hit').split(':'); selectItem(id, k); }
@@ -1067,11 +1102,11 @@
   function openSector(id) {
     const p = propById(id), sm = sectorMapForProperty(p);
     if (!p || !sm) return;
-    Object.assign(state, { section: 'props', propView: 'sector', selectedId: id, sectorBlock: sm.id, previewId: null, sectorFrom: state.section });
+    Object.assign(state, { section: 'props', propView: 'sector', selectedId: id, sectorBlock: sm.id, previewId: null, activePinId: null, sectorFrom: state.section });
     builtSig = '';
     render();
   }
-  function openSectorHub(smId) { if (!sectorMapById(smId)) return; Object.assign(state, { section: 'props', propView: 'sector', selectedId: null, sectorBlock: smId, previewId: null }); builtSig = ''; render(); }
+  function openSectorHub(smId) { if (!sectorMapById(smId)) return; Object.assign(state, { section: 'props', propView: 'sector', selectedId: null, sectorBlock: smId, previewId: null, activePinId: null }); builtSig = ''; render(); }
   function showAreaContext(id) { const p = propById(id); Object.assign(state, { section: 'master', mapMode: 'easy', showProps: true, selectedId: id, selectedIds: new Set([id]), itemOpen: false, previewId: id }); builtSig = ''; render(); if (p) { const b = blockById(p.blockId); if (b && hasGeo(b)) { const bd = pathBounds(GEO.paths[b.svgId]); const [cx, cy] = geoToLayer((bd.minX + bd.maxX) / 2, (bd.minY + bd.maxY) / 2); setTimeout(() => focusBox(cx, cy, Math.max(bd.maxX - bd.minX, 300), Math.max(bd.maxY - bd.minY, 300), 1.8), 80); } else if (b) { setTimeout(() => focusBox(b.x + b.w / 2, b.y + b.h / 2, b.w, b.h, 1.7), 80); } } }
   function openLightbox(idx) {
     let photos, name;
