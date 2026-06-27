@@ -352,3 +352,36 @@ Load the actual Aerocity map image into Map Studio canvas. Then do the final lux
 
 ### Exact Next Step
 Ready for Phase 4B: Owner + Finance insight polish.
+
+
+## Phase 4A.5 Complete — Admin Code Organization
+
+### Current Admin File Structure
+Since moving files risks breaking the current hardcoded imports across 14 pages, the files remain safely in the root /admin/ directory. The ideal mapped structure is:
+- **Gateway**: index.html
+- **Team Workspace**: team.html, clients.html, properties.html, followups.html, site-visits.html, deals.html, map-studio.html
+- **Dealer Pages**: owner.html, area-intelligence.html, finance.html
+- **Shared Assets**: crm-data.js, crm-store.js, crm-ui.css
+
+### Shared JS Responsibilities
+- **crm-data.js**: Contains purely demo state and structural initializations. No heavy rendering.
+- **crm-store.js**: Single source of truth for localStorage state. Handles CRUD, logging (logEvent), and insight aggregation (computeOwnerInsights, computeFinanceTotals).
+- Note: Small presentation helpers (like fmtINR, statusClass) currently live inline in their respective pages to prevent global namespace pollution without a bundler, but can be extracted to a crm-utils.js if a build step is added.
+
+### Shared CSS Structure
+- **crm-ui.css**: Extensively commented into clear sections: Tokens, Reset, Topbar, Layout, Grid, Cards (Metric/Action/Pulse), Buttons, Status Badges, Forms, Tables, Empty States, Map Studio Layout, Gateway.
+
+### Legacy Admin Files
+- **maps.html & editor.html**: Legacy PlotMap v1 admin files. They are NOT the primary entry points but have been preserved as they may contain useful logic for future map generation capabilities. Do not rely on them for CRM workflows.
+
+### Checks Run & verified Routes
+- node --check admin/crm-data.js (Passed)
+- node --check admin/crm-store.js (Passed)
+- node tools/audit-plotmap.js (Passed)
+- All primary CRM routes verified unbroken.
+
+### Known Risks
+- Extracting scripts or styles into subdirectories (/admin/js/ or /admin/assets/) risks breaking existing <script> tags across a dozen pages. For stability, they remain in /admin/.
+
+### Exact Next Step
+Ready for Phase 4B: Owner + Finance insight polish.
