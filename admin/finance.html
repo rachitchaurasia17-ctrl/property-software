@@ -13,6 +13,13 @@ if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
   window.location.href = '/admin/index.html';
 }
 </script>
+<style>
+.fin-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--pm-border); }
+.fin-row:last-child { border-bottom: none; }
+.fin-sub { font-size: 13px; color: var(--pm-text-mut); }
+.fin-val { font-weight: 700; font-size: 16px; }
+.tracker-box { flex: 1; padding: 16px; border: 1px solid var(--pm-border); border-radius: 8px; text-align: center; }
+</style>
 </head>
 <body class="pm-shell">
 
@@ -32,12 +39,12 @@ if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
 <main class="pm-main">
   <div class="pm-header">
     <h1>Finance Center</h1>
-    <div class="sub">Owner-only revenue and commission tracking.</div>
+    <div class="sub">Owner-only revenue, commission tracking, and analytics.</div>
   </div>
   
-  <div class="pm-grid cols-3" style="margin-bottom:24px;">
-    <div class="pm-metric-card">
-      <div class="val" id="f-val">-</div>
+  <div class="pm-grid cols-6" style="margin-bottom:24px;">
+    <div class="pm-metric-card" style="grid-column: span 2;">
+      <div class="val" id="f-val" style="font-size:32px;">-</div>
       <div class="lbl">Total Deal Value</div>
     </div>
     <div class="pm-metric-card">
@@ -56,12 +63,49 @@ if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
       <div class="val" id="f-deals">-</div>
       <div class="lbl">Deals Closed</div>
     </div>
-    <div class="pm-metric-card">
-      <div class="val" id="f-avg">-</div>
-      <div class="lbl">Avg Commission / Deal</div>
-    </div>
   </div>
   
+  <div class="pm-grid cols-2" style="margin-bottom:24px;">
+    <!-- Commission Tracker -->
+    <div class="pm-card">
+      <div class="pm-card-h">Commission Tracker</div>
+      <div style="display:flex; gap:12px; margin-bottom:16px;">
+        <div class="tracker-box" style="background:var(--pm-bg);">
+          <div class="lbl" style="font-size:12px; color:var(--pm-text-mut); font-weight:600; text-transform:uppercase;">Due This Week</div>
+          <div class="val" id="f-due-week" style="font-size:20px; font-weight:700; color:var(--pm-warn); margin-top:8px;">-</div>
+        </div>
+        <div class="tracker-box" style="background:#ffebee; border-color:#ffcdd2;">
+          <div class="lbl" style="font-size:12px; color:var(--pm-err); font-weight:600; text-transform:uppercase;">Overdue</div>
+          <div class="val" id="f-due-over" style="font-size:20px; font-weight:700; color:var(--pm-err); margin-top:8px;">-</div>
+        </div>
+      </div>
+      <div style="font-size:14px; font-weight:600; margin-bottom:8px;">Pending by Deal</div>
+      <div id="pending-deals"></div>
+    </div>
+
+    <!-- Client Revenue & Value -->
+    <div class="pm-card">
+      <div class="pm-card-h">Client Revenue & Value</div>
+      <div id="client-rev"></div>
+    </div>
+  </div>
+
+  <div class="pm-grid cols-3" style="margin-bottom:24px;">
+    <!-- Revenue Analytics -->
+    <div class="pm-card">
+      <div class="pm-card-h">Revenue by Area</div>
+      <div id="area-rev"></div>
+    </div>
+    <div class="pm-card">
+      <div class="pm-card-h">Revenue by Staff</div>
+      <div id="staff-rev"></div>
+    </div>
+    <div class="pm-card">
+      <div class="pm-card-h">Revenue by Type</div>
+      <div id="type-rev"></div>
+    </div>
+  </div>
+
   <div class="pm-card">
     <div class="pm-card-h">Recent Deals</div>
     <div class="pm-table-wrap">
@@ -102,10 +146,92 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('f-rec').innerText = fmtINR(fin.commissionReceived);
   document.getElementById('f-pen').innerText = fmtINR(fin.commissionPending);
   document.getElementById('f-deals').innerText = fin.dealsClosed;
-  document.getElementById('f-avg').innerText = fin.dealsClosed > 0 ? fmtINR(Math.round(fin.commissionEarned / fin.dealsClosed)) : '—';
   
+  // Fake "due this week" and "overdue" based on deal date for demo purposes
+  const now = Date.now();
+  let dueWeek = 0, overdue = 0;
+  data.deals.forEach(d => {
+    if(d.commissionPending > 0) {
+      const dt = new Date(d.dealDate).getTime();
+      if(now - dt > 86400000 * 30) overdue += Number(d.commissionPending); // Older than 30 days
+      else dueWeek += Number(d.commissionPending);
+    }
+  });
+  document.getElementById('f-due-week').innerText = fmtINR(dueWeek);
+  document.getElementById('f-due-over').innerText = fmtINR(overdue);
+
+  const pendingDiv = document.getElementById('pending-deals');
+  const pd = data.deals.filter(d => d.commissionPending > 0);
+  if(pd.length === 0) pendingDiv.innerHTML = '<div style="color:var(--pm-text-mut); padding:12px 0;">No pending commissions.</div>';
+  else {
+    pendingDiv.innerHTML = pd.map(d => {
+      const c = data.clients.find(cl => cl.id === d.clientId);
+      return `
+      <div class="fin-row">
+        <div>
+          <div style="font-weight:600">${c ? c.name : 'Unknown Client'}</div>
+          <div class="fin-sub">${d.area || '-'}</div>
+        </div>
+        <div class="fin-val" style="color:var(--pm-warn)">${fmtINR(d.commissionPending)}</div>
+      </div>
+      `;
+    }).join('');
+  }
+
+  const clientRev = document.getElementById('client-rev');
+  if(!fin.clientRevenue || fin.clientRevenue.length === 0) clientRev.innerHTML = '<div style="color:var(--pm-text-mut)">No client revenue.</div>';
+  else {
+    clientRev.innerHTML = fin.clientRevenue.slice(0,5).map(c => `
+      <div class="fin-row">
+        <div>
+          <div style="font-weight:600">${c.name} ${c.deals > 1 ? '<span class="pm-badge" style="background:#e0f7fa; color:#006064; font-size:10px;">Repeat</span>' : ''}</div>
+          <div class="fin-sub">${c.deals} Deals &bull; ${fmtINR(c.dealValue)} Value</div>
+        </div>
+        <div style="text-align:right">
+          <div class="fin-val" style="color:var(--pm-success)">${fmtINR(c.earned)}</div>
+          <div class="fin-sub">Pending: ${fmtINR(c.pending)}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('area-rev').innerHTML = (fin.areaRevenue || []).map(a => `
+    <div class="fin-row">
+      <div style="font-weight:600">${a.name}</div>
+      <div class="fin-val">${fmtINR(a.earned)}</div>
+    </div>
+  `).join('') || '<div style="color:var(--pm-text-mut)">No area data.</div>';
+
+  document.getElementById('staff-rev').innerHTML = (fin.staffRevenue || []).map(s => `
+    <div class="fin-row">
+      <div>
+        <div style="font-weight:600">${s.name}</div>
+        <div class="fin-sub">${s.deals} Deals</div>
+      </div>
+      <div class="fin-val">${fmtINR(s.earned)}</div>
+    </div>
+  `).join('') || '<div style="color:var(--pm-text-mut)">No staff data.</div>';
+
+  // Type Rev
+  const typeRev = {};
+  data.deals.forEach(d => {
+    let type = d.dealType || 'Unknown';
+    if(d.propertyId) {
+      const p = data.properties.find(pr => pr.id === d.propertyId);
+      if(p && p.type) type = p.type;
+    }
+    if(!typeRev[type]) typeRev[type] = 0;
+    typeRev[type] += Number(d.commissionAmount)||0;
+  });
+  const tArr = Object.keys(typeRev).map(t => ({name: t, earned: typeRev[t]})).sort((a,b)=>b.earned-a.earned);
+  document.getElementById('type-rev').innerHTML = tArr.map(t => `
+    <div class="fin-row">
+      <div style="font-weight:600">${t.name}</div>
+      <div class="fin-val">${fmtINR(t.earned)}</div>
+    </div>
+  `).join('') || '<div style="color:var(--pm-text-mut)">No type data.</div>';
+
   const tbody = document.querySelector('#fin-table tbody');
-  
   if(data.deals.length === 0) {
     tbody.innerHTML = '<tr><td colspan="6">No deals recorded yet.</td></tr>';
   } else {

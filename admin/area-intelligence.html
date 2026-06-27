@@ -13,6 +13,20 @@ if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
   window.location.href = '/admin/index.html';
 }
 </script>
+<style>
+.area-pulse-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-bottom: 24px; }
+.ap-card { background: #fff; border: 1px solid var(--pm-border); border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+.ap-card-h { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.ap-name { font-weight: 700; font-size: 18px; }
+.ap-summary { font-size: 14px; color: var(--pm-text-mut); line-height: 1.5; margin-bottom: 16px; min-height: 42px; }
+.ap-stats { display: flex; flex-wrap: wrap; gap: 12px; }
+.ap-stat { flex: 1; min-width: 45%; background: #f9f9fb; padding: 10px; border-radius: 8px; text-align: center; }
+.ap-stat-val { font-size: 18px; font-weight: 800; color: var(--pm-text); }
+.ap-stat-lbl { font-size: 12px; color: var(--pm-text-mut); font-weight: 600; text-transform: uppercase; }
+
+.gap-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--pm-border); }
+.gap-row:last-child { border-bottom: none; }
+</style>
 </head>
 <body class="pm-shell">
 
@@ -32,57 +46,121 @@ if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
 <main class="pm-main">
   <div class="pm-header">
     <h1>Area Intelligence</h1>
-    <div class="sub">Map-first business insights based on client activity.</div>
+    <div class="sub">Map-first business insights based strictly on your PlotMap internal activity.</div>
   </div>
-  
-  <div class="pm-card">
-    <div class="pm-table-wrap">
-      <table class="pm-table" id="area-table">
-        <thead>
-          <tr>
-            <th>Area</th>
-            <th>Client Interest</th>
-            <th>Map/Property Views</th>
-            <th>Deals Closed</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+
+  <h2 style="font-size:18px; margin-bottom:16px;">Area Pulse</h2>
+  <div class="area-pulse-grid" id="area-pulse">
+    <!-- Rendered via JS -->
+  </div>
+
+  <div class="pm-grid cols-2" style="margin-bottom:24px;">
+    <div class="pm-card">
+      <div class="pm-card-h">Demand vs Inventory Gap</div>
+      <div style="font-size:13px; color:var(--pm-text-mut); margin-bottom:16px;">Comparing client requirements against your available internal inventory.</div>
+      <div id="gap-analysis"></div>
+    </div>
+
+    <div class="pm-card">
+      <div class="pm-card-h">Map Activity Insights</div>
+      <div style="font-size:13px; color:var(--pm-text-mut); margin-bottom:16px;">Client interaction with your PlotMap presentations.</div>
+      <div class="pm-grid cols-2" id="map-activity">
+        <!-- Rendered via JS -->
+      </div>
     </div>
   </div>
+
 </main>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const crm = window.CRM;
-  const areaData = crm.computeAreaInsights();
+  const areaData = crm.computeAreaInsights(); // Array sorted by interest
   
-  const tbody = document.querySelector('#area-table tbody');
-  const areas = Object.keys(areaData).sort((a,b) => areaData[b].interest - areaData[a].interest);
-  
-  if(areas.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5">No data available.</td></tr>';
+  // Area Pulse Cards
+  const pgrid = document.getElementById('area-pulse');
+  if(areaData.length === 0) {
+    pgrid.innerHTML = '<div style="padding:24px; color:var(--pm-text-mut)">No area data available.</div>';
   } else {
-    tbody.innerHTML = areas.map(a => {
-      const d = areaData[a];
-      let status = 'Low Activity';
+    pgrid.innerHTML = areaData.map(a => {
       let cls = 'neutral';
-      if (d.interest > 3) { status = 'High Interest'; cls = 'err'; }
-      else if (d.interest > 1) { status = 'Rising'; cls = 'info'; }
-      else if (d.deals > 0) { status = 'Stable'; cls = 'ok'; }
-      
+      if (a.status === 'High Interest') cls = 'err';
+      else if (a.status === 'Rising') cls = 'info';
+      else if (a.status === 'Low Activity') cls = 'neutral';
+
       return `
-      <tr>
-        <td style="font-weight:700">${a}</td>
-        <td style="font-weight:700; color:var(--pm-brand)">${d.interest}</td>
-        <td>${d.views}</td>
-        <td>${d.deals}</td>
-        <td><span class="pm-status ${cls}">${status}</span></td>
-      </tr>
+      <div class="ap-card">
+        <div class="ap-card-h">
+          <div class="ap-name">${a.name}</div>
+          <span class="pm-status ${cls}">${a.status}</span>
+        </div>
+        <div class="ap-summary">${a.summary}</div>
+        <div class="ap-stats">
+          <div class="ap-stat">
+            <div class="ap-stat-val">${a.interest}</div>
+            <div class="ap-stat-lbl">Active Clients</div>
+          </div>
+          <div class="ap-stat">
+            <div class="ap-stat-val">${a.inventory}</div>
+            <div class="ap-stat-lbl">Inventory</div>
+          </div>
+          <div class="ap-stat">
+            <div class="ap-stat-val">${a.views}</div>
+            <div class="ap-stat-lbl">Prop Views</div>
+          </div>
+          <div class="ap-stat">
+            <div class="ap-stat-val">${a.siteVisits}</div>
+            <div class="ap-stat-lbl">Site Visits</div>
+          </div>
+        </div>
+      </div>
       `;
     }).join('');
   }
+
+  // Demand vs Inventory Gap
+  const gapDiv = document.getElementById('gap-analysis');
+  const gapData = areaData.filter(a => a.interest > 0 || a.inventory > 0);
+  if(gapData.length === 0) {
+    gapDiv.innerHTML = '<div style="color:var(--pm-text-mut)">Not enough data to compute gaps.</div>';
+  } else {
+    gapDiv.innerHTML = gapData.map(a => {
+      let gapColor = 'var(--pm-text)';
+      if (a.gap.includes('high demand, low inventory')) gapColor = 'var(--pm-err)';
+      if (a.gap.includes('stable demand, high inventory')) gapColor = 'var(--pm-warn)';
+      
+      return `
+      <div class="gap-row">
+        <div style="font-weight:600">${a.name}</div>
+        <div style="color:${gapColor}; font-weight:600; text-transform:capitalize; font-size:14px;">${a.gap}</div>
+      </div>
+      `;
+    }).join('');
+  }
+
+  // Map Activity Insights
+  const mapAct = document.getElementById('map-activity');
+  let topOpened = [...areaData].sort((a,b)=>b.mapOpens - a.mapOpens)[0];
+  let topShared = [...areaData].sort((a,b)=>b.shares - a.shares)[0];
+  let topViewed = [...areaData].sort((a,b)=>b.views - a.views)[0];
+
+  mapAct.innerHTML = `
+    <div class="pm-metric-card" style="border:1px solid var(--pm-border); box-shadow:none;">
+      <div class="lbl" style="margin-bottom:8px;">Most Opened Map</div>
+      <div class="val" style="font-size:20px;">${topOpened && topOpened.mapOpens > 0 ? topOpened.name : '-'}</div>
+      <div style="font-size:12px; color:var(--pm-text-mut); margin-top:4px;">${topOpened ? topOpened.mapOpens : 0} opens via PlotMap</div>
+    </div>
+    <div class="pm-metric-card" style="border:1px solid var(--pm-border); box-shadow:none;">
+      <div class="lbl" style="margin-bottom:8px;">Most Shared Area</div>
+      <div class="val" style="font-size:20px;">${topShared && topShared.shares > 0 ? topShared.name : '-'}</div>
+      <div style="font-size:12px; color:var(--pm-text-mut); margin-top:4px;">${topShared ? topShared.shares : 0} properties shared</div>
+    </div>
+    <div class="pm-metric-card" style="border:1px solid var(--pm-border); box-shadow:none;">
+      <div class="lbl" style="margin-bottom:8px;">Most Viewed Properties</div>
+      <div class="val" style="font-size:20px;">${topViewed && topViewed.views > 0 ? topViewed.name : '-'}</div>
+      <div style="font-size:12px; color:var(--pm-text-mut); margin-top:4px;">${topViewed ? topViewed.views : 0} detailed views</div>
+    </div>
+  `;
 });
 </script>
 </body>

@@ -13,6 +13,32 @@ if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
   window.location.href = '/admin/index.html';
 }
 </script>
+<style>
+.feed-item {
+  padding: 12px;
+  border-bottom: 1px solid var(--pm-border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.feed-item:last-child {
+  border-bottom: none;
+}
+.feed-title { font-weight: 600; }
+.feed-desc { font-size: 13px; color: var(--pm-text-mut); }
+.pri-high { color: var(--pm-err); }
+.pri-med { color: var(--pm-warn); }
+.pri-low { color: var(--pm-success); }
+.staff-row {
+  display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--pm-border);
+}
+.staff-row:last-child { border-bottom: none; }
+.staff-name { font-weight: 600; }
+.staff-stats { font-size: 13px; color: var(--pm-text-mut); display: flex; gap: 12px; }
+.pipe-box { text-align: center; padding: 12px; background: #fafafa; border: 1px solid var(--pm-border); border-radius: 8px; }
+.pipe-num { font-size: 24px; font-weight: 800; color: var(--pm-text); }
+.pipe-lbl { font-size: 12px; color: var(--pm-text-mut); font-weight: 600; text-transform: uppercase; }
+</style>
 </head>
 <body class="pm-shell">
 
@@ -35,36 +61,51 @@ if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
     <div class="sub">Business pulse, client movement, and team activity.</div>
   </div>
 
-  <div class="pm-pulse-card">
+  <div class="pm-pulse-card" style="margin-bottom:24px;">
     <div class="pulse-label">Today's Business Pulse</div>
     <div class="pulse-text" id="ai-pulse">Loading pulse...</div>
-  </div>
-
-  <div class="pm-grid cols-4" style="margin-bottom:24px;">
-    <div class="pm-metric-card">
-      <div class="val" id="m-active">-</div>
-      <div class="lbl">Active Clients</div>
-    </div>
-    <div class="pm-metric-card">
-      <div class="val" id="m-warm">-</div>
-      <div class="lbl">Warm / Shared</div>
-    </div>
-    <div class="pm-metric-card">
-      <div class="val" id="m-silent" style="color:var(--pm-err)">-</div>
-      <div class="lbl">Silent Clients</div>
-    </div>
-    <div class="pm-metric-card">
-      <div class="val" id="m-action">-</div>
-      <div class="lbl">Scheduled Actions</div>
+    <div style="margin-top:16px; display:flex; gap:12px; flex-wrap:wrap;">
+      <div class="pm-badge" style="background:#f0f7ff; color:var(--pm-primary)">Highest Interest: <span id="chip-area" style="font-weight:700"></span></div>
+      <div class="pm-badge" style="background:#fff7e6; color:var(--pm-warn)">Warm Clients: <span id="chip-warm" style="font-weight:700"></span></div>
+      <div class="pm-badge" style="background:#ffebee; color:var(--pm-err)">Silent Clients: <span id="chip-silent" style="font-weight:700"></span></div>
+      <div class="pm-badge" style="background:#f1f8e9; color:var(--pm-success)">Site Visits Today: <span id="chip-sv" style="font-weight:700"></span></div>
     </div>
   </div>
 
-  <div class="pm-grid cols-2">
+  <div class="pm-grid cols-5" style="margin-bottom:24px;">
+    <div class="pm-metric-card" style="border-top: 3px solid var(--pm-warn)">
+      <div class="lbl" style="color:var(--pm-warn); font-weight:700; margin-bottom:8px;">Call First</div>
+      <div style="font-size:14px; color:var(--pm-text);">Top priority clients needing immediate contact.</div>
+      <div class="val" id="c-call" style="font-size:24px; margin-top:12px;">-</div>
+    </div>
+    <div class="pm-metric-card" style="border-top: 3px solid var(--pm-err)">
+      <div class="lbl" style="color:var(--pm-err); font-weight:700; margin-bottom:8px;">Business Leak</div>
+      <div style="font-size:14px; color:var(--pm-text);">Missed actions and silent clients.</div>
+      <div class="val" id="c-leak" style="font-size:24px; margin-top:12px;">-</div>
+    </div>
+    <div class="pm-metric-card" style="border-top: 3px solid var(--pm-primary)">
+      <div class="lbl" style="color:var(--pm-primary); font-weight:700; margin-bottom:8px;">Area Moving</div>
+      <div style="font-size:14px; color:var(--pm-text);">Highest interest area today.</div>
+      <div class="val" id="c-area" style="font-size:20px; margin-top:12px;">-</div>
+    </div>
+    <div class="pm-metric-card" style="border-top: 3px solid #8e24aa">
+      <div class="lbl" style="color:#8e24aa; font-weight:700; margin-bottom:8px;">Inventory Signal</div>
+      <div style="font-size:14px; color:var(--pm-text);">Demand vs Available Inventory.</div>
+      <div class="val" id="c-inv" style="font-size:16px; margin-top:12px; line-height:1.2;">-</div>
+    </div>
+    <div class="pm-metric-card" style="border-top: 3px solid var(--pm-success)">
+      <div class="lbl" style="color:var(--pm-success); font-weight:700; margin-bottom:8px;">Team Movement</div>
+      <div style="font-size:14px; color:var(--pm-text);">Active staff members today.</div>
+      <div class="val" id="c-team" style="font-size:24px; margin-top:12px;">-</div>
+    </div>
+  </div>
+
+  <div class="pm-grid cols-2" style="margin-bottom:24px;">
     <div class="pm-card">
       <div class="pm-card-h">Priority Clients</div>
       <div class="pm-table-wrap">
         <table class="pm-table" id="priority-clients">
-          <thead><tr><th>Client</th><th>Area / Req</th><th>Status</th></tr></thead>
+          <thead><tr><th>Client</th><th>Area / Req</th><th>Reason to Call</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -72,10 +113,20 @@ if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
 
     <div class="pm-card">
       <div class="pm-card-h">Missed Opportunity Feed</div>
-      <ul style="margin:0; padding-left:20px; font-size:14px; line-height:1.7;" id="missed-feed">
-        <!-- Rendered by JS -->
-      </ul>
+      <div id="missed-feed"></div>
     </div>
+  </div>
+
+  <div class="pm-card" style="margin-bottom:24px;">
+    <div class="pm-card-h">Client Pipeline</div>
+    <div class="pm-grid cols-8" id="pipeline-boxes">
+      <!-- Generated via JS -->
+    </div>
+  </div>
+
+  <div class="pm-card" style="margin-bottom:24px;">
+    <div class="pm-card-h">Staff Activity Summary</div>
+    <div id="staff-summary"></div>
   </div>
 </main>
 
@@ -86,34 +137,87 @@ document.addEventListener('DOMContentLoaded', () => {
   const insights = crm.computeOwnerInsights();
 
   document.getElementById('ai-pulse').innerText = insights.pulseText;
-  document.getElementById('m-active').innerText = insights.activeClients;
-  document.getElementById('m-warm').innerText = insights.warmClients;
-  document.getElementById('m-silent').innerText = insights.silentClients;
-  document.getElementById('m-action').innerText = insights.todayFollowups + insights.todayVisits;
+  document.getElementById('chip-area').innerText = insights.topArea || 'None';
+  document.getElementById('chip-warm').innerText = insights.warmClients;
+  document.getElementById('chip-silent').innerText = insights.silentClients;
+  document.getElementById('chip-sv').innerText = insights.todayVisits;
 
+  // Attention Cards
+  document.getElementById('c-call').innerText = insights.priorityClients.length;
+  document.getElementById('c-leak').innerText = insights.missedOpportunities.filter(m => m.priority !== 'low').length;
+  document.getElementById('c-area').innerText = insights.topArea || '-';
+  
+  // Inventory Signal (basic calc)
+  const availableInventory = data.properties.filter(p => p.internalStatus === 'Available').length;
+  document.getElementById('c-inv').innerText = `${insights.activeClients} Active Clients / ${availableInventory} Available Props`;
+  
+  const activeStaff = insights.staffActivity.filter(s => s.clients > 0 || s.visits > 0 || s.deals > 0).length;
+  document.getElementById('c-team').innerText = `${activeStaff} Active`;
+
+  // Priority Clients
   const pTbody = document.querySelector('#priority-clients tbody');
-  const warm = data.clients.filter(c => ['Warm', 'Property Shared', 'Site Visit Planned', 'Negotiation'].includes(c.status));
-  if(warm.length === 0) {
+  if(insights.priorityClients.length === 0) {
     pTbody.innerHTML = '<tr><td colspan="3" style="padding:24px; text-align:center; color:var(--pm-text-mut);">No priority clients right now.</td></tr>';
   } else {
-    pTbody.innerHTML = warm.slice(0,5).map(c => `
+    pTbody.innerHTML = insights.priorityClients.map(c => {
+      const staff = data.staff.find(s => s.id === c.assignedStaff);
+      return `
       <tr>
-        <td style="font-weight:700">${c.name}</td>
+        <td>
+          <div style="font-weight:700">${c.name}</div>
+          <div style="font-size:12px;color:var(--pm-text-mut)">Assigned: ${staff?staff.name:'Unassigned'}</div>
+        </td>
         <td>${c.interestedArea||'-'}<br><span style="font-size:12px;color:var(--pm-text-mut)">${c.propertyType||''}</span></td>
-        <td><span class="pm-status info">${c.status}</span></td>
+        <td style="color:var(--pm-primary); font-weight:600; font-size:13px;">${c.reason}</td>
       </tr>
-    `).join('');
+    `}).join('');
   }
 
+  // Missed Opportunity Feed
   const feed = document.getElementById('missed-feed');
-  let mhtml = '';
-  if (insights.silentClients > 0) mhtml += `<li><strong style="color:var(--pm-err)">${insights.silentClients} clients</strong> went silent after initial contact.</li>`;
+  feed.innerHTML = insights.missedOpportunities.map(m => {
+    let staffName = '';
+    if(m.staffId) {
+      const s = data.staff.find(st => st.id === m.staffId);
+      if(s) staffName = `(Assigned: ${s.name})`;
+    }
+    return `
+    <div class="feed-item">
+      <div class="feed-title pri-${m.priority}">${m.title}</div>
+      <div class="feed-desc">${m.desc} ${staffName}</div>
+    </div>
+    `;
+  }).join('');
 
-  let missedFw = data.followups.filter(f => f.status === 'missed').length;
-  if(missedFw > 0) mhtml += `<li><strong style="color:var(--pm-warn)">${missedFw} follow-ups</strong> were missed by the team.</li>`;
+  // Pipeline
+  const pboxes = document.getElementById('pipeline-boxes');
+  const plOrder = ['New', 'Warm', 'Property Shared', 'Site Visit Planned', 'Site Visit Done', 'Negotiation', 'Closed', 'Not Answering'];
+  pboxes.innerHTML = plOrder.map(k => `
+    <div class="pipe-box">
+      <div class="pipe-num">${insights.pipeline[k] || 0}</div>
+      <div class="pipe-lbl">${k}</div>
+    </div>
+  `).join('');
 
-  if(!mhtml) mhtml = '<li style="color:var(--pm-text-mut)">No major leaks detected. Pipeline is healthy.</li>';
-  feed.innerHTML = mhtml;
+  // Staff Activity
+  const ssum = document.getElementById('staff-summary');
+  const validStaff = insights.staffActivity.filter(s => s.clients > 0 || s.visits > 0 || s.deals > 0);
+  if(validStaff.length === 0) {
+    ssum.innerHTML = '<div style="padding:24px; text-align:center; color:var(--pm-text-mut)">No team activity recorded.</div>';
+  } else {
+    ssum.innerHTML = validStaff.map(s => `
+      <div class="staff-row">
+        <div class="staff-name">${s.name}</div>
+        <div class="staff-stats">
+          <span>${s.clients} Clients Handled</span>
+          <span>&bull;</span>
+          <span>${s.visits} Site Visits</span>
+          <span>&bull;</span>
+          <span>${s.deals} Deals Closed</span>
+        </div>
+      </div>
+    `).join('');
+  }
 });
 </script>
 </body>

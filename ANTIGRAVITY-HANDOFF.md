@@ -385,3 +385,48 @@ Since moving files risks breaking the current hardcoded imports across 14 pages,
 
 ### Exact Next Step
 Ready for Phase 4B: Owner + Finance insight polish.
+
+
+## Phase 4B Complete — Owner + Finance Insight Polish
+
+### What Was Improved
+- **Dealer Command Center (owner.html)**: Completely redesigned. Replaced generic CRM forms with an actionable dashboard containing:
+  - **Today's Business Pulse**: Dynamic text highlighting the top interest area and active client counts.
+  - **Owner Attention Cards**: Call First, Business Leak, Area Moving, Inventory Signal, and Team Movement.
+  - **Priority Clients Table**: Filters the top 5 warm/negotiating clients with explicit reasons to call them.
+  - **Missed Opportunity Feed**: Flags missed follow-ups and silent clients with priority coloring.
+  - **Client Pipeline**: Visual funnel displaying total counts for every status stage.
+  - **Staff Activity Summary**: Highlights positive metrics (clients, visits, deals) for each active staff member.
+- **Area Intelligence (area-intelligence.html)**: Redesigned for map-first business metrics.
+  - **Area Pulse Cards**: Individual cards for each area showing activity status (High Interest, Rising) and client/property counts.
+  - **Demand vs Inventory Gap**: Analyzes available inventory against internal client requirements.
+  - **Map Activity Insights**: Identifies the most opened maps, shared areas, and viewed properties based on CRM events.
+- **Finance Center (finance.html)**: Refined for detailed revenue tracking.
+  - **Commission Tracker**: Segments pending commission into 'Due This Week' and 'Overdue'.
+  - **Client Revenue & Value**: Highlights top clients by revenue, including 'Repeat' badges.
+  - **Revenue Analytics**: Breaks down earned commission by Area, Staff, and Property Type.
+- **Data Layer Enhancements**:
+  - Expanded crm-data.js to include Zirakpur, Mullanpur, Derabassi, and Airport Road records.
+  - Rewrote aggregation logic in crm-store.js (computeOwnerInsights, computeAreaInsights, computeFinanceTotals) to supply rich data structures for the new UI components.
+
+### Files Changed
+- dmin/owner.html (Complete rewrite)
+- dmin/area-intelligence.html (Complete rewrite)
+- dmin/finance.html (Complete rewrite)
+- dmin/crm-store.js (Updated insight methods)
+- dmin/crm-data.js (Expanded demo data)
+
+### Checks Run
+- 
+ode --check admin/crm-data.js (Passed)
+- 
+ode --check admin/crm-store.js (Passed)
+- 
+ode tools/audit-plotmap.js (Passed)
+- Verified that the Owner dashboard no longer contains data-entry forms and functions purely as a read-only insight platform.
+
+### Remaining Issues
+- The 'Due This Week' logic in Finance uses a simple 30-day threshold from dealDate since there is no explicit dueDate property on deals yet.
+
+### Exact Next Step
+Proceed to the next major phase as instructed by the user.
