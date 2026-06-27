@@ -430,3 +430,21 @@ ode tools/audit-plotmap.js (Passed)
 
 ### Exact Next Step
 Proceed to the next major phase as instructed by the user.
+
+
+## Phase 4A.6 Complete — Road/Sector/Block Map Studio
+
+### Status
+- **Real Map Display**: Map Studio now displays the exact erotropolis-original-web.jpg image.
+- **Road Drawing**: Active. Staff can draw polylines with 'Draw Road', which stores normalized point percentages.
+- **Sector Mapping**: Active. Staff can draw polygons with 'Draw Sector', which auto-fills with a light yellow overlay.
+- **Block Mapping**: Active. Staff can draw polygons with 'Draw Block', which auto-fills with a light blue overlay.
+- **Storage Structure**: Saved locally in window.CRM.mapDrawings alongside other CRM structures. Data uses normalized percentages to remain responsive to window scaling.
+- **Export**: Users can export the JSON of drawn layers (Copy or Download) formatted correctly for future SVG generation.
+
+### Limitations
+- Users cannot move or drag individual points yet, they must undo the last point during drawing, or delete the entire shape and redraw it.
+- Client-facing PlotMap does not yet consume this data; it remains safely in the admin backend.
+
+### Exact Next Step
+Proceed to the next major phase as instructed by the user.

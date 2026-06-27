@@ -13,8 +13,91 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
   window.location.href = '/admin/index.html';
 }
 </script>
+<style>
+/* Adjustments for Drawing Map Studio */
+.ms-layout {
+  display: flex; height: calc(100vh - 60px); background: #f0f0f4; overflow: hidden;
+}
+.ms-tools {
+  width: 280px; background: #fff; border-right: 1px solid var(--pm-border); display: flex; flex-direction: column; overflow-y: auto;
+}
+.ms-tools-header {
+  padding: 16px; font-weight: 700; font-size: 16px; border-bottom: 1px solid var(--pm-border); background: #f9f9fb;
+}
+.ms-tool-section { padding: 16px; border-bottom: 1px solid var(--pm-border); }
+.sec-title { font-size: 12px; font-weight: 700; color: var(--pm-text-mut); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px; }
+.ms-tool-btn {
+  display: flex; align-items: center; width: 100%; padding: 10px 12px; margin-bottom: 6px; border: 1px solid var(--pm-border);
+  border-radius: 8px; background: #fff; cursor: pointer; text-align: left; font-size: 14px; color: var(--pm-text); font-weight: 600;
+}
+.ms-tool-btn:hover { background: #f9f9fb; }
+.ms-tool-btn.active { border-color: var(--pm-primary); background: #f0f7ff; color: var(--pm-primary); }
+.ms-tool-btn .tool-icon { margin-right: 10px; font-size: 16px; }
+
+/* Canvas */
+.ms-canvas {
+  flex: 1; position: relative; overflow: auto; background: #e0e0e0; display: flex; align-items: center; justify-content: center;
+}
+.ms-canvas-inner {
+  position: relative; line-height: 0; box-shadow: 0 4px 20px rgba(0,0,0,0.1); transform-origin: top left;
+}
+.ms-canvas-img {
+  max-width: none; display: block;
+}
+.ms-svg-overlay {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;
+}
+.ms-svg-overlay.drawing {
+  pointer-events: auto; cursor: crosshair;
+}
+.ms-coords {
+  position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.8); color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-variant-numeric: tabular-nums; z-index: 10;
+}
+.ms-instructions {
+  position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--pm-primary); color: #fff; padding: 10px 20px; border-radius: 8px; font-weight: 600; z-index: 10; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.ms-canvas-bar {
+  position: absolute; bottom: 20px; right: 20px; display: flex; gap: 8px; background: #fff; padding: 6px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 10;
+}
+.ms-canvas-bar button {
+  width: 32px; height: 32px; border: none; background: #f0f0f4; border-radius: 4px; cursor: pointer; font-weight: bold; color: var(--pm-text);
+}
+.ms-canvas-bar button:hover { background: #e0e0e0; }
+
+/* Inspector */
+.ms-inspector {
+  width: 320px; background: #fff; border-left: 1px solid var(--pm-border); display: flex; flex-direction: column; overflow-y: auto;
+}
+.ms-inspector-header {
+  padding: 16px; font-weight: 700; font-size: 16px; border-bottom: 1px solid var(--pm-border); background: #f9f9fb;
+}
+.ms-inspector-body { padding: 16px; flex: 1; }
+.ms-inspector-empty {
+  text-align: center; color: var(--pm-text-mut); padding-top: 40px; font-size: 14px; line-height: 1.5;
+}
+
+/* Layer List */
+.layer-group { margin-bottom: 16px; }
+.layer-group-title { font-size: 11px; font-weight: 700; color: var(--pm-text-mut); text-transform: uppercase; margin-bottom: 8px; }
+.layer-item {
+  display: flex; align-items: center; padding: 8px; border: 1px solid var(--pm-border); border-radius: 6px; margin-bottom: 4px; font-size: 13px; cursor: pointer; background: #fff;
+}
+.layer-item:hover { background: #f9f9fb; }
+.layer-item.selected { border-color: var(--pm-primary); background: #f0f7ff; }
+.layer-item-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+.layer-vis { font-size: 11px; padding: 2px 6px; border-radius: 4px; background: #eee; color: #666; margin-left: 8px; }
+.layer-vis.public { background: #e8f5e9; color: #2e7d32; }
+
+/* Secondary Actions */
+.action-btn {
+  display: block; width: 100%; padding: 8px; margin-bottom: 8px; background: #f9f9fb; border: 1px solid var(--pm-border); border-radius: 6px; font-weight: 600; cursor: pointer; color: var(--pm-text); font-size: 13px; text-align: center;
+}
+.action-btn:hover { background: #eee; }
+.action-btn.finish { background: var(--pm-primary); color: #fff; border-color: var(--pm-primary); }
+.action-btn.finish:hover { background: #1565c0; }
+</style>
 </head>
-<body class="pm-shell" style="overflow:hidden;">
+<body class="pm-shell">
 
 <header class="pm-topbar">
   <div class="brand">PlotMap Admin</div>
@@ -32,325 +115,545 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
   <a href="/admin/index.html">Switch Role</a>
 </header>
 
-<!-- 3-Column Map Studio Layout -->
 <div class="ms-layout">
-
-  <!-- LEFT: Tools Panel -->
+  <!-- LEFT: Tools -->
   <div class="ms-tools">
-    <div class="ms-tools-header">🗺️ Map Tools</div>
+    <div class="ms-tools-header">🗺️ Map Studio</div>
 
     <div class="ms-tool-section">
-      <div class="sec-title">Editing Tools</div>
-      <button class="ms-tool-btn active" data-tool="pin" onclick="setTool('pin')">
-        <span class="tool-icon">📍</span> Add Pin
+      <div class="sec-title">Drawing Tools</div>
+      <button class="ms-tool-btn" data-tool="road" onclick="startDrawing('road')">
+        <span class="tool-icon">🛣️</span> Draw Road
       </button>
-      <button class="ms-tool-btn" data-tool="move" onclick="setTool('move')">
-        <span class="tool-icon">↕️</span> Move Pin
+      <button class="ms-tool-btn" data-tool="sector" onclick="startDrawing('sector')">
+        <span class="tool-icon">🔲</span> Draw Sector
       </button>
-      <button class="ms-tool-btn" data-tool="landmark" onclick="setTool('landmark')">
-        <span class="tool-icon">🏛️</span> Add Landmark
+      <button class="ms-tool-btn" data-tool="block" onclick="startDrawing('block')">
+        <span class="tool-icon">🟦</span> Draw Block
       </button>
-      <button class="ms-tool-btn" data-tool="road" onclick="setTool('road')">
-        <span class="tool-icon">🛣️</span> Road Highlight
-      </button>
-      <button class="ms-tool-btn" data-tool="zone" onclick="setTool('zone')">
-        <span class="tool-icon">🔲</span> Add Zone
-      </button>
-      <button class="ms-tool-btn" data-tool="label" onclick="setTool('label')">
-        <span class="tool-icon">🏷️</span> Custom Label
-      </button>
-    </div>
 
-    <div class="ms-tool-section">
-      <div class="sec-title">Visibility Filter</div>
-      <button class="ms-tool-btn" data-tool="vis-all" onclick="setVisFilter('all')" style="font-weight:700; color:var(--pm-text);">
-        <span class="tool-icon">👁️</span> All Items
-      </button>
-      <button class="ms-tool-btn" data-tool="vis-public" onclick="setVisFilter('public')">
-        <span class="tool-icon">🌐</span> Client-visible
-      </button>
-      <button class="ms-tool-btn" data-tool="vis-internal" onclick="setVisFilter('internal')">
-        <span class="tool-icon">🔒</span> Internal Only
-      </button>
+      <div id="drawing-actions" style="display:none; margin-top:12px; padding-top:12px; border-top:1px dashed var(--pm-border);">
+        <button class="action-btn" onclick="undoPoint()">↩️ Undo Last Point</button>
+        <button class="action-btn finish" onclick="finishDrawing()">✅ Finish Drawing</button>
+        <button class="action-btn" onclick="cancelDrawing()" style="color:var(--pm-err);">❌ Cancel</button>
+      </div>
     </div>
 
     <div class="ms-tool-section" style="flex:1;">
-      <div class="sec-title">Pins & Highlights</div>
-      <ul class="ms-pin-list" id="pin-list">
+      <div class="sec-title" style="display:flex; justify-content:space-between; align-items:center;">
+        Layer List
+      </div>
+      <div id="layer-list-container">
         <!-- Rendered by JS -->
-      </ul>
+      </div>
+    </div>
+
+    <div class="ms-tool-section">
+      <div class="sec-title">Export</div>
+      <button class="action-btn" onclick="exportJSON('copy')">📋 Copy JSON</button>
+      <button class="action-btn" onclick="exportJSON('download')">📥 Download JSON</button>
     </div>
   </div>
 
-  <!-- CENTER: Map Canvas -->
+  <!-- CENTER: Canvas -->
   <div class="ms-canvas" id="map-canvas">
     <div class="ms-canvas-inner" id="canvas-inner">
+      <!-- We load the exact asset used in frontend -->
       <img src="/public/plotmap-assets/aerotropolis-original-web.jpg" class="ms-canvas-img" id="canvas-img" alt="Aerocity Map">
-      <!-- Pins are rendered as absolute-positioned markers on top of the map image -->
+      
+      <!-- SVG Overlay for drawing and rendering items -->
+      <svg class="ms-svg-overlay" id="svg-overlay" preserveAspectRatio="none">
+        <g id="rendered-layers"></g>
+        <g id="active-drawing"></g>
+      </svg>
     </div>
 
+    <div class="ms-instructions" id="instructions"></div>
     <div class="ms-coords" id="coords">X: —  Y: —</div>
 
     <div class="ms-canvas-bar">
       <button title="Zoom In" onclick="zoomCanvas(1.2)">＋</button>
       <button title="Zoom Out" onclick="zoomCanvas(0.8)">−</button>
       <button title="Reset View" onclick="zoomCanvas('reset')">⤢</button>
-      <button title="Fit to View" onclick="zoomCanvas('fit')">□</button>
     </div>
   </div>
 
   <!-- RIGHT: Inspector -->
   <div class="ms-inspector">
     <div class="ms-inspector-header" id="inspector-title">Inspector</div>
-    <div class="ms-inspector-body" id="inspector-body">
+    <div class="ms-inspector-body">
+      
       <div class="ms-inspector-empty" id="inspector-empty">
-        <div class="ie-icon">📌</div>
-        <div class="ie-text">Select a pin or highlight<br>to edit its properties.</div>
+        <div style="font-size:32px; margin-bottom:12px;">📌</div>
+        <div>Select a layer to edit or finish a drawing to save.</div>
       </div>
-      <!-- Inspector form rendered by JS when a pin is selected -->
+
       <div id="inspector-form" style="display:none;">
-        <form class="pm-form" id="pin-edit-form">
-          <div class="fld"><label>Title</label><input type="text" id="pe-title"></div>
+        <form class="pm-form" id="drawing-form">
+          <input type="hidden" id="f-id">
+          <input type="hidden" id="f-kind">
+          
           <div class="fld">
-            <label>Type</label>
-            <select id="pe-type">
-              <option value="available-property">Available Property</option>
-              <option value="landmark">Landmark</option>
-              <option value="road">Road</option>
-              <option value="zone">Zone</option>
-              <option value="label">Label</option>
+            <label>Name</label>
+            <input type="text" id="f-title" required placeholder="e.g. Main Road, Sector 82">
+          </div>
+
+          <div class="fld" id="grp-roadType" style="display:none;">
+            <label>Road Type</label>
+            <select id="f-roadType">
+              <option value="Main Road">Main Road</option>
+              <option value="Important Road">Important Road</option>
+              <option value="Expressway">Expressway</option>
+              <option value="Internal Road">Internal Road</option>
+              <option value="Entry / Exit Road">Entry / Exit Road</option>
             </select>
           </div>
-          <div class="fld"><label>Area / Map</label><input type="text" id="pe-area"></div>
-          <div class="pm-grid cols-2">
-            <div class="fld"><label>X %</label><input type="number" id="pe-x" step="0.1" min="0" max="100"></div>
-            <div class="fld"><label>Y %</label><input type="number" id="pe-y" step="0.1" min="0" max="100"></div>
+
+          <div class="fld" id="grp-sectorType" style="display:none;">
+            <label>Sector Type</label>
+            <select id="f-sectorType">
+              <option value="Residential Sector">Residential Sector</option>
+              <option value="Commercial Sector">Commercial Sector</option>
+              <option value="Mixed Sector">Mixed Sector</option>
+              <option value="Institutional Sector">Institutional Sector</option>
+              <option value="Green/Open Area">Green/Open Area</option>
+              <option value="Future Development">Future Development</option>
+              <option value="Other">Other</option>
+            </select>
           </div>
-          <div class="fld">
-            <label>Linked Property</label>
-            <select id="pe-property"><option value="">None</option></select>
+
+          <div class="fld" id="grp-blockType" style="display:none;">
+            <label>Block Type</label>
+            <select id="f-blockType">
+              <option value="Residential Block">Residential Block</option>
+              <option value="Commercial Block">Commercial Block</option>
+              <option value="Park Facing Block">Park Facing Block</option>
+              <option value="Main Road Block">Main Road Block</option>
+              <option value="Corner Block">Corner Block</option>
+              <option value="Custom">Custom</option>
+            </select>
           </div>
-          <div class="fld"><label>Description</label><textarea id="pe-desc" rows="2"></textarea></div>
+
+          <div class="fld" id="grp-parentSector" style="display:none;">
+            <label>Parent Sector</label>
+            <select id="f-parentSector">
+              <option value="">None / Independent</option>
+              <!-- Filled via JS -->
+            </select>
+          </div>
+
           <div class="fld">
             <label>Visibility</label>
-            <select id="pe-vis">
+            <select id="f-visibility">
               <option value="public">Client-visible</option>
               <option value="internal">Internal Only</option>
             </select>
+            <div style="font-size:11px; color:var(--pm-text-mut); margin-top:4px;">Internal items will not be exported to the client app.</div>
           </div>
-          <div class="fld"><label>Notes</label><input type="text" id="pe-notes"></div>
-          <div style="display:flex; gap:8px; margin-top:8px;">
-            <button type="submit" class="pm-button primary" style="flex:1;">Save Pin</button>
-            <button type="button" class="pm-button danger" id="btn-delete-pin" style="flex:none; padding:9px 14px;">Delete</button>
+
+          <div class="fld">
+            <label>Notes</label>
+            <textarea id="f-notes" rows="3" placeholder="Optional internal notes"></textarea>
+          </div>
+
+          <div style="display:flex; gap:8px; margin-top:16px;">
+            <button type="submit" class="pm-button primary" style="flex:1;" id="btn-save">Save</button>
+            <button type="button" class="pm-button danger" id="btn-delete" style="flex:none; padding:9px 14px; display:none;">Delete</button>
           </div>
         </form>
       </div>
+
     </div>
   </div>
-
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const crm = window.CRM;
-  const data = crm.getCRM();
-  let activeTool = 'pin';
-  let visFilter = 'all';
-  let selectedPinId = null;
+  let activeKind = null; // 'road', 'sector', 'block', or null
+  let activePoints = [];
+  let selectedId = null;
   let canvasScale = 1;
 
-  // Populate property select
-  const propSel = document.getElementById('pe-property');
-  data.properties.forEach(p => {
-    propSel.innerHTML += `<option value="${p.id}">${p.title}</option>`;
-  });
+  const overlay = document.getElementById('svg-overlay');
+  const activeDrawingGroup = document.getElementById('active-drawing');
+  const renderedLayersGroup = document.getElementById('rendered-layers');
+  const instr = document.getElementById('instructions');
+  const canvasInner = document.getElementById('canvas-inner');
 
-  // --- Tool switching ---
-  window.setTool = function(tool) {
-    activeTool = tool;
-    document.querySelectorAll('.ms-tool-btn[data-tool]').forEach(b => {
-      b.classList.toggle('active', b.getAttribute('data-tool') === tool);
+  // --- Rendering Layers ---
+  function renderAll() {
+    const data = crm.getCRM();
+    const drawings = data.mapDrawings || [];
+
+    // Render Layer List
+    const listHtml = { road: '', sector: '', block: '' };
+    let counts = { road: 0, sector: 0, block: 0 };
+
+    renderedLayersGroup.innerHTML = '';
+
+    drawings.forEach(d => {
+      // Layer List
+      if (listHtml[d.kind] !== undefined) {
+        counts[d.kind]++;
+        const visClass = d.visibility === 'public' ? 'public' : '';
+        const visLabel = d.visibility === 'public' ? 'Visible' : 'Hidden';
+        listHtml[d.kind] += `
+          <div class="layer-item ${selectedId === d.id ? 'selected' : ''}" onclick="selectItem('${d.id}')">
+            <div class="layer-item-name">${d.title}</div>
+            <div class="layer-vis ${visClass}">${visLabel}</div>
+          </div>
+        `;
+      }
+
+      // Map SVG
+      if (d.points && d.points.length > 0) {
+        const pStr = d.points.map(p => `${p.x},${p.y}`).join(' ');
+        const el = document.createElementNS("http://www.w3.org/2000/svg", d.kind === 'road' ? "polyline" : "polygon");
+        el.setAttribute("points", pStr);
+        el.setAttribute("fill", d.kind === 'road' ? "none" : (d.kind === 'sector' ? "rgba(234, 179, 8, 0.2)" : "rgba(59, 130, 246, 0.2)"));
+        el.setAttribute("stroke", d.kind === 'road' ? "#B45309" : (d.kind === 'sector' ? "#CA8A04" : "#2563EB"));
+        el.setAttribute("stroke-width", d.kind === 'road' ? "0.4" : "0.2");
+        if (selectedId === d.id) {
+          el.setAttribute("stroke-width", d.kind === 'road' ? "0.6" : "0.4");
+          el.setAttribute("stroke", "#EF4444");
+        }
+        el.style.cursor = 'pointer';
+        el.onclick = (e) => {
+          if(!activeKind) { e.stopPropagation(); selectItem(d.id); }
+        };
+        // using vector-effect to maintain thin lines on zoom
+        el.setAttribute("vector-effect", "non-scaling-stroke"); 
+        
+        // We have to use percentage-based coordinates for SVG overlay since points are percentages
+        // Actually, SVG coordinates need to be mapped to viewbox or percentage. 
+        // A simple way is to set width/height 100% and map points as percentages if using a % wrapper.
+        // But SVG `points` attribute doesn't support `%`. 
+        // Solution: SVG viewBox="0 0 100 100" and preserveAspectRatio="none". Then points are just 0-100 values!
+        renderedLayersGroup.appendChild(el);
+      }
     });
+
+    overlay.setAttribute("viewBox", "0 0 100 100");
+
+    document.getElementById('layer-list-container').innerHTML = `
+      ${counts.road > 0 ? `<div class="layer-group"><div class="layer-group-title">Roads</div>${listHtml.road}</div>` : ''}
+      ${counts.sector > 0 ? `<div class="layer-group"><div class="layer-group-title">Sectors</div>${listHtml.sector}</div>` : ''}
+      ${counts.block > 0 ? `<div class="layer-group"><div class="layer-group-title">Blocks</div>${listHtml.block}</div>` : ''}
+      ${counts.road===0 && counts.sector===0 && counts.block===0 ? '<div style="color:var(--pm-text-mut); font-size:13px;">No items drawn yet.</div>' : ''}
+    `;
+
+    // Populate Parent Sector dropdown
+    const pSec = document.getElementById('f-parentSector');
+    pSec.innerHTML = '<option value="">None / Independent</option>';
+    drawings.filter(d => d.kind === 'sector').forEach(s => {
+      pSec.innerHTML += `<option value="${s.id}">${s.title}</option>`;
+    });
+  }
+
+  // --- Drawing Logic ---
+  window.startDrawing = function(kind) {
+    if (activePoints.length > 0) {
+      if(!confirm("Unsaved drawing exists. Discard it?")) return;
+    }
+    
+    activeKind = kind;
+    activePoints = [];
+    selectedId = null;
+    
+    document.querySelectorAll('.ms-tool-btn[data-tool]').forEach(b => {
+      b.classList.toggle('active', b.getAttribute('data-tool') === kind);
+    });
+
+    document.getElementById('drawing-actions').style.display = 'block';
+    overlay.classList.add('drawing');
+    
+    if (kind === 'road') instr.innerText = "Click along the road. Click Finish Road when done.";
+    if (kind === 'sector') instr.innerText = "Click around the sector boundary. Click Finish Sector when done.";
+    if (kind === 'block') instr.innerText = "Click around the block boundary. Click Finish Block when done.";
+    instr.style.display = 'block';
+
+    hideInspector();
+    renderAll();
+    drawActivePoints();
   };
 
-  window.setVisFilter = function(f) {
-    visFilter = f;
-    renderPinList();
-    renderCanvasPins();
+  window.cancelDrawing = function() {
+    if (activePoints.length > 0) {
+      if(!confirm("Cancel drawing?")) return;
+    }
+    resetDrawingState();
   };
 
-  // --- Pin List ---
-  function renderPinList() {
-    const list = document.getElementById('pin-list');
-    const pins = getFilteredPins();
-    if (pins.length === 0) {
-      list.innerHTML = '<li style="padding:12px 0; color:var(--pm-text-light); font-size:13px;">No pins yet.</li>';
+  window.undoPoint = function() {
+    if (activePoints.length > 0) {
+      activePoints.pop();
+      drawActivePoints();
+    }
+  };
+
+  window.finishDrawing = function() {
+    const minPoints = activeKind === 'road' ? 2 : 3;
+    if (activePoints.length < minPoints) {
+      alert(`Need at least ${minPoints} points to finish a ${activeKind}.`);
       return;
     }
-    list.innerHTML = pins.map(p => {
-      const dotColor = p.type === 'available-property' ? '#15803D' :
-                       p.type === 'landmark' ? '#0369A1' :
-                       p.type === 'road' ? '#B45309' : '#7C3AED';
-      return `<li class="ms-pin-item ${selectedPinId === p.id ? 'selected' : ''}" onclick="selectPin('${p.id}')">
-        <span class="ms-pin-dot" style="background:${dotColor}"></span>
-        <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${p.title || 'Untitled'}</span>
-        <span style="font-size:10px; color:var(--pm-text-light);">${p.visibility === 'internal' ? '🔒' : '🌐'}</span>
-      </li>`;
-    }).join('');
+    
+    // Open Inspector as new
+    openInspectorAsNew(activeKind, activePoints);
+    
+    // Soft reset drawing state, but wait for save
+    activeKind = null;
+    overlay.classList.remove('drawing');
+    document.getElementById('drawing-actions').style.display = 'none';
+    instr.style.display = 'none';
+    document.querySelectorAll('.ms-tool-btn[data-tool]').forEach(b => b.classList.remove('active'));
+    activePoints = []; // clears from canvas, it is now in memory for the form
+    drawActivePoints();
+  };
+
+  function resetDrawingState() {
+    activeKind = null;
+    activePoints = [];
+    overlay.classList.remove('drawing');
+    document.getElementById('drawing-actions').style.display = 'none';
+    instr.style.display = 'none';
+    document.querySelectorAll('.ms-tool-btn[data-tool]').forEach(b => b.classList.remove('active'));
+    drawActivePoints();
   }
 
-  function getFilteredPins() {
-    const d = crm.getCRM();
-    let pins = d.pins || [];
-    if (visFilter === 'public') pins = pins.filter(p => p.visibility !== 'internal');
-    if (visFilter === 'internal') pins = pins.filter(p => p.visibility === 'internal');
-    return pins;
-  }
-
-  // --- Canvas Pins ---
-  function renderCanvasPins() {
-    // Remove old markers
-    document.querySelectorAll('.ms-pin-marker').forEach(el => el.remove());
-    const canvasEl = document.getElementById('canvas-inner');
-    const pins = getFilteredPins();
-    pins.forEach(p => {
-      const marker = document.createElement('div');
-      marker.className = `ms-pin-marker ${selectedPinId === p.id ? 'selected' : ''}`;
-      marker.style.left = (p.x || 50) + '%';
-      marker.style.top = (p.y || 50) + '%';
-      marker.title = p.title || 'Pin';
-      const color = p.type === 'available-property' ? '#15803D' :
-                    p.type === 'landmark' ? '#0369A1' :
-                    p.type === 'road' ? '#B45309' : '#7C3AED';
-      marker.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="${color}"/><circle cx="12" cy="9" r="3" fill="#fff"/></svg>`;
-      marker.onclick = (e) => { e.stopPropagation(); selectPin(p.id); };
-      canvasEl.appendChild(marker);
-    });
-  }
-
-  // --- Canvas click (place pin) ---
-  document.getElementById('canvas-inner').addEventListener('click', (e) => {
-    if (activeTool !== 'pin') return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const xPct = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
-    const yPct = ((e.clientY - rect.top) / rect.height * 100).toFixed(1);
-
-    // Create a new pin
-    const d = crm.getCRM();
-    const newPin = {
-      id: 'pin-' + Math.random().toString(36).substr(2, 9),
-      title: 'New Pin',
-      type: 'available-property',
-      area: '',
-      x: parseFloat(xPct),
-      y: parseFloat(yPct),
-      description: '',
-      linkedProperty: '',
-      visibility: 'public',
-      notes: '',
-      demo: false
-    };
-    if (!d.pins) d.pins = [];
-    d.pins.push(newPin);
-    crm.saveCRM(d);
-    crm.logEvent('pin_added', { pinId: newPin.id, x: newPin.x, y: newPin.y });
-    selectedPinId = newPin.id;
-    renderPinList();
-    renderCanvasPins();
-    showInspector(newPin);
+  // --- Canvas Interaction ---
+  overlay.addEventListener('click', (e) => {
+    if (!activeKind) return; // Not drawing
+    
+    // Calculate percentage coords directly from SVG bounding box
+    const rect = overlay.getBoundingClientRect();
+    const xPct = Number(((e.clientX - rect.left) / rect.width * 100).toFixed(2));
+    const yPct = Number(((e.clientY - rect.top) / rect.height * 100).toFixed(2));
+    
+    activePoints.push({ x: xPct, y: yPct });
+    drawActivePoints();
   });
 
-  // --- Canvas mouse move for coords ---
-  document.getElementById('canvas-inner').addEventListener('mousemove', (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const xPct = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
-    const yPct = ((e.clientY - rect.top) / rect.height * 100).toFixed(1);
+  overlay.addEventListener('mousemove', (e) => {
+    const rect = overlay.getBoundingClientRect();
+    const xPct = ((e.clientX - rect.left) / rect.width * 100).toFixed(2);
+    const yPct = ((e.clientY - rect.top) / rect.height * 100).toFixed(2);
     document.getElementById('coords').textContent = `X: ${xPct}%  Y: ${yPct}%`;
   });
 
-  // --- Select Pin ---
-  window.selectPin = function(id) {
-    selectedPinId = id;
-    const d = crm.getCRM();
-    const pin = (d.pins || []).find(p => p.id === id);
-    renderPinList();
-    renderCanvasPins();
-    if (pin) showInspector(pin);
-  };
+  function drawActivePoints() {
+    activeDrawingGroup.innerHTML = '';
+    if (activePoints.length === 0) return;
+
+    const pStr = activePoints.map(p => `${p.x},${p.y}`).join(' ');
+    
+    const line = document.createElementNS("http://www.w3.org/2000/svg", activeKind === 'road' ? "polyline" : "polygon");
+    line.setAttribute("points", pStr);
+    line.setAttribute("fill", activeKind === 'road' ? "none" : "rgba(239, 68, 68, 0.2)");
+    line.setAttribute("stroke", "#EF4444");
+    line.setAttribute("stroke-width", "0.4");
+    line.setAttribute("vector-effect", "non-scaling-stroke");
+    activeDrawingGroup.appendChild(line);
+
+    // Draw dots
+    activePoints.forEach(p => {
+      const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      dot.setAttribute("cx", p.x);
+      dot.setAttribute("cy", p.y);
+      dot.setAttribute("r", "0.4");
+      dot.setAttribute("fill", "#fff");
+      dot.setAttribute("stroke", "#EF4444");
+      dot.setAttribute("stroke-width", "0.1");
+      dot.setAttribute("vector-effect", "non-scaling-stroke");
+      activeDrawingGroup.appendChild(dot);
+    });
+  }
 
   // --- Inspector ---
-  function showInspector(pin) {
-    document.getElementById('inspector-empty').style.display = 'none';
-    document.getElementById('inspector-form').style.display = 'block';
-    document.getElementById('inspector-title').textContent = pin.title || 'Edit Pin';
-
-    document.getElementById('pe-title').value = pin.title || '';
-    document.getElementById('pe-type').value = pin.type || 'available-property';
-    document.getElementById('pe-area').value = pin.area || '';
-    document.getElementById('pe-x').value = pin.x || 0;
-    document.getElementById('pe-y').value = pin.y || 0;
-    document.getElementById('pe-property').value = pin.linkedProperty || '';
-    document.getElementById('pe-desc').value = pin.description || '';
-    document.getElementById('pe-vis').value = pin.visibility || 'public';
-    document.getElementById('pe-notes').value = pin.notes || '';
-  }
+  let tempPointsForSave = [];
 
   function hideInspector() {
-    document.getElementById('inspector-empty').style.display = '';
+    document.getElementById('inspector-empty').style.display = 'block';
     document.getElementById('inspector-form').style.display = 'none';
-    document.getElementById('inspector-title').textContent = 'Inspector';
-    selectedPinId = null;
-    renderPinList();
-    renderCanvasPins();
+    document.getElementById('inspector-title').innerText = 'Inspector';
+    document.getElementById('btn-delete').style.display = 'none';
+    selectedId = null;
+    tempPointsForSave = [];
   }
 
-  // --- Save Pin ---
-  document.getElementById('pin-edit-form').addEventListener('submit', (e) => {
+  function openInspectorAsNew(kind, points) {
+    document.getElementById('inspector-empty').style.display = 'none';
+    document.getElementById('inspector-form').style.display = 'block';
+    document.getElementById('inspector-title').innerText = `Save New ${kind.charAt(0).toUpperCase() + kind.slice(1)}`;
+    
+    document.getElementById('btn-delete').style.display = 'none';
+    
+    document.getElementById('f-id').value = '';
+    document.getElementById('f-kind').value = kind;
+    document.getElementById('f-title').value = '';
+    document.getElementById('f-visibility').value = 'public';
+    document.getElementById('f-notes').value = '';
+
+    document.getElementById('grp-roadType').style.display = kind === 'road' ? 'block' : 'none';
+    document.getElementById('grp-sectorType').style.display = kind === 'sector' ? 'block' : 'none';
+    document.getElementById('grp-blockType').style.display = kind === 'block' ? 'block' : 'none';
+    document.getElementById('grp-parentSector').style.display = kind === 'block' ? 'block' : 'none';
+    
+    // Set defaults
+    if(kind === 'road') document.getElementById('f-roadType').selectedIndex = 0;
+    if(kind === 'sector') document.getElementById('f-sectorType').selectedIndex = 0;
+    if(kind === 'block') document.getElementById('f-blockType').selectedIndex = 0;
+
+    tempPointsForSave = [...points];
+  }
+
+  window.selectItem = function(id) {
+    if (activeKind) {
+      alert('Please finish or cancel your current drawing first.');
+      return;
+    }
+    
+    selectedId = id;
+    renderAll(); // highlights it
+
+    const data = crm.getCRM();
+    const item = (data.mapDrawings || []).find(d => d.id === id);
+    if(!item) return;
+
+    document.getElementById('inspector-empty').style.display = 'none';
+    document.getElementById('inspector-form').style.display = 'block';
+    document.getElementById('inspector-title').innerText = `Edit ${item.title}`;
+    
+    document.getElementById('btn-delete').style.display = 'block';
+    
+    document.getElementById('f-id').value = item.id;
+    document.getElementById('f-kind').value = item.kind;
+    document.getElementById('f-title').value = item.title || '';
+    document.getElementById('f-visibility').value = item.visibility || 'public';
+    document.getElementById('f-notes').value = item.notes || '';
+
+    document.getElementById('grp-roadType').style.display = item.kind === 'road' ? 'block' : 'none';
+    document.getElementById('grp-sectorType').style.display = item.kind === 'sector' ? 'block' : 'none';
+    document.getElementById('grp-blockType').style.display = item.kind === 'block' ? 'block' : 'none';
+    document.getElementById('grp-parentSector').style.display = item.kind === 'block' ? 'block' : 'none';
+
+    if(item.kind === 'road') document.getElementById('f-roadType').value = item.type || 'Internal Road';
+    if(item.kind === 'sector') document.getElementById('f-sectorType').value = item.type || 'Residential Sector';
+    if(item.kind === 'block') {
+      document.getElementById('f-blockType').value = item.type || 'Residential Block';
+      document.getElementById('f-parentSector').value = item.parentSectorId || '';
+    }
+
+    tempPointsForSave = item.points || [];
+  };
+
+  // --- Form Submit ---
+  document.getElementById('drawing-form').addEventListener('submit', (e) => {
     e.preventDefault();
-    if (!selectedPinId) return;
-    const d = crm.getCRM();
-    const pin = (d.pins || []).find(p => p.id === selectedPinId);
-    if (!pin) return;
-    pin.title = document.getElementById('pe-title').value;
-    pin.type = document.getElementById('pe-type').value;
-    pin.area = document.getElementById('pe-area').value;
-    pin.x = parseFloat(document.getElementById('pe-x').value) || 0;
-    pin.y = parseFloat(document.getElementById('pe-y').value) || 0;
-    pin.linkedProperty = document.getElementById('pe-property').value;
-    pin.description = document.getElementById('pe-desc').value;
-    pin.visibility = document.getElementById('pe-vis').value;
-    pin.notes = document.getElementById('pe-notes').value;
-    crm.saveCRM(d);
-    crm.logEvent('pin_updated', { pinId: pin.id, title: pin.title });
-    document.getElementById('inspector-title').textContent = pin.title;
-    renderPinList();
-    renderCanvasPins();
-  });
+    const data = crm.getCRM();
+    if (!data.mapDrawings) data.mapDrawings = [];
 
-  // --- Delete Pin ---
-  document.getElementById('btn-delete-pin').addEventListener('click', () => {
-    if (!selectedPinId) return;
-    const deletedId = selectedPinId;
-    const d = crm.getCRM();
-    d.pins = (d.pins || []).filter(p => p.id !== deletedId);
-    crm.saveCRM(d);
-    crm.logEvent('pin_deleted', { pinId: deletedId });
+    const id = document.getElementById('f-id').value;
+    const kind = document.getElementById('f-kind').value;
+    
+    let type = '';
+    let parentId = '';
+    if(kind === 'road') type = document.getElementById('f-roadType').value;
+    if(kind === 'sector') type = document.getElementById('f-sectorType').value;
+    if(kind === 'block') {
+      type = document.getElementById('f-blockType').value;
+      parentId = document.getElementById('f-parentSector').value;
+    }
+
+    const payload = {
+      kind,
+      title: document.getElementById('f-title').value,
+      type,
+      parentSectorId: parentId,
+      visibility: document.getElementById('f-visibility').value,
+      notes: document.getElementById('f-notes').value,
+      points: tempPointsForSave,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (id) {
+      // Edit
+      const idx = data.mapDrawings.findIndex(d => d.id === id);
+      if (idx !== -1) {
+        data.mapDrawings[idx] = { ...data.mapDrawings[idx], ...payload };
+      }
+    } else {
+      // New
+      payload.id = 'draw-' + Math.random().toString(36).substr(2, 9);
+      payload.createdAt = new Date().toISOString();
+      payload.status = 'Draft'; // internal status
+      data.mapDrawings.push(payload);
+    }
+
+    crm.saveCRM(data);
     hideInspector();
+    renderAll();
   });
 
-  // --- Zoom (visual demo) ---
+  // --- Delete ---
+  document.getElementById('btn-delete').addEventListener('click', () => {
+    const id = document.getElementById('f-id').value;
+    if(!id) return;
+    if(!confirm("Are you sure you want to delete this drawing?")) return;
+    
+    const data = crm.getCRM();
+    data.mapDrawings = (data.mapDrawings || []).filter(d => d.id !== id);
+    crm.saveCRM(data);
+    hideInspector();
+    renderAll();
+  });
+
+  // --- Zoom ---
   window.zoomCanvas = function(factor) {
-    if (factor === 'reset' || factor === 'fit') {
+    if (factor === 'reset') {
       canvasScale = 1;
     } else {
       canvasScale = Math.max(0.5, Math.min(3, canvasScale * factor));
     }
-    document.getElementById('canvas-inner').style.transform = `scale(${canvasScale})`;
+    canvasInner.style.transform = `scale(${canvasScale})`;
   };
 
-  // --- Initial Render ---
-  renderPinList();
-  renderCanvasPins();
+  // --- Export JSON ---
+  window.exportJSON = function(mode) {
+    const data = crm.getCRM();
+    const drawings = data.mapDrawings || [];
+    
+    const exportData = {
+      mapId: "aerocity",
+      exportedAt: new Date().toISOString(),
+      roads: drawings.filter(d => d.kind === 'road'),
+      sectors: drawings.filter(d => d.kind === 'sector'),
+      blocks: drawings.filter(d => d.kind === 'block')
+    };
+
+    const jsonStr = JSON.stringify(exportData, null, 2);
+
+    if (mode === 'copy') {
+      navigator.clipboard.writeText(jsonStr).then(() => {
+        alert("JSON copied to clipboard!");
+      }).catch(err => {
+        alert("Failed to copy. See console.");
+        console.error(err);
+      });
+    } else {
+      const blob = new Blob([jsonStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `plotmap_map_export_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  // Initial Load
+  renderAll();
 });
 </script>
 </body>

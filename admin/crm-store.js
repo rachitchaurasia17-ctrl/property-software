@@ -31,7 +31,7 @@
       saveCRM(data);
     }
     // Ensure collections exist
-    ['staff', 'areas', 'clients', 'properties', 'followups', 'siteVisits', 'deals', 'events', 'pins'].forEach(k => {
+    ['staff', 'areas', 'clients', 'properties', 'followups', 'siteVisits', 'deals', 'events', 'pins', 'mapDrawings'].forEach(k => {
       if (!data[k]) data[k] = [];
     });
     return data;
