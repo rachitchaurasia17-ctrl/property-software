@@ -344,13 +344,56 @@
   }
 
   function getPublishedClientMapDrawings(mapId) {
-    const data = getCRM();
-    if (!data.mapDrawings) return [];
-    return data.mapDrawings.filter(d => 
-      d.mapId === mapId && 
-      d.status === 'Published' && 
-      d.visibility === 'public'
-    );
+    try {
+      const data = loadCRM();
+      const drawings = data && Array.isArray(data.mapDrawings) ? data.mapDrawings : [];
+      const safeVisibility = new Set(['client-visible', 'public']);
+      const safeKinds = new Set(['road', 'block', 'sectorTag']);
+      const unsafeText = /(price|₹|â‚¹|\bRs\b|\bCr\b|crore|lakh|budget|sold|seller|contact|commission|finance|internal|draft|notes|checklist|staff|debug|[A-Z]:\\|\/public\/|\\)/i;
+      const cleanText = (value) => {
+        const text = String(value || '').trim();
+        return text && !unsafeText.test(text) ? text : '';
+      };
+      const cleanPoint = (point) => {
+        const x = Number(point && point.x);
+        const y = Number(point && point.y);
+        if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 100 || y < 0 || y > 100) return null;
+        return { x, y };
+      };
+
+      return drawings.reduce((safe, drawing) => {
+        if (!drawing || drawing.mapId !== mapId) return safe;
+        if (drawing.status !== 'Published') return safe;
+        if (!safeVisibility.has(String(drawing.visibility || '').trim().toLowerCase())) return safe;
+        if (!safeKinds.has(drawing.kind)) return safe;
+
+        const rawPoints = Array.isArray(drawing.points) ? drawing.points : [];
+        const points = rawPoints.map(cleanPoint).filter(Boolean);
+        if (points.length !== rawPoints.length) return safe;
+        if (points.length < (drawing.kind === 'road' ? 2 : 3)) return safe;
+
+        const id = cleanText(drawing.id);
+        const title = cleanText(drawing.title);
+        if (!id || !title) return safe;
+
+        safe.push({
+          id,
+          kind: drawing.kind,
+          title,
+          type: cleanText(drawing.type),
+          city: cleanText(drawing.city),
+          area: cleanText(drawing.area),
+          mapType: cleanText(drawing.mapType),
+          mapId: cleanText(drawing.mapId),
+          group: cleanText(drawing.group).toUpperCase(),
+          linkedSectorMapId: cleanText(drawing.linkedSectorMapId),
+          points
+        });
+        return safe;
+      }, []);
+    } catch (e) {
+      return [];
+    }
   }
 
   window.CRM = {

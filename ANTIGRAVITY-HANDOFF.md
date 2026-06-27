@@ -497,3 +497,46 @@ Proceed to the next major phase as instructed by the user.
 
 ### Exact Next Step
 Proceed to the next major phase as instructed by the user.
+
+## Phase 4B Complete - Published Map Drawings Client Preview
+
+### Files Changed
+- `admin/crm-store.js`
+- `admin/crm-data.js`
+- `app/plotmap/index.html`
+- `app/plotmap/app.js`
+
+### What Changed
+- Completed the partial Antigravity drawing integration and removed the unsafe stale fetch path that loaded drawings after the SVG had already rendered.
+- Hardened `window.CRM.getPublishedClientMapDrawings(mapId)` so it reads existing localStorage safely, requires exact mapId match, requires `Published`, accepts only `public` / `Client-visible`, whitelists `road`, `block`, and `sectorTag`, validates normalized points, and returns only client-safe fields.
+- Added safe demo published drawings for Aerocity using the actual Map Studio masterplan id: `tricity-aerotropolis`.
+- Loaded only `/admin/crm-store.js` in the client page so the helper is available without loading full CRM demo/client/property data into `/app/plotmap/`.
+- Added `currentClientMapId()` to limit this client integration to the Aerocity masterplan only.
+- Rendered CRM drawing points into the original masterplan SVG coordinate space from normalized x/y percentages.
+- A/B/C/D buttons now prefer published CRM `sectorTag` drawings by matching `group`; if none exist, they fall back to the existing prebuilt map behavior.
+- Published roads render as subtle base overlays and highlight through the existing road spotlight path.
+- Published blocks render as subtle base overlays and become active on click.
+- Added a compact safe drawing popover showing only title plus group/type, with optional linked sector map button.
+
+### Verification
+- `node --check admin/crm-data.js` passed.
+- `node --check admin/crm-store.js` passed.
+- `node --check app/plotmap/app.js` passed.
+- `node tools/audit-plotmap.js` passed.
+- Headless Chrome QA with seeded safe drawings:
+  - helper returned 4 safe published drawings and excluded a draft drawing.
+  - app loaded Aerocity without page errors.
+  - one road, one block, and two sector tags rendered in `#crmDrawings`.
+  - A selected only group A and showed `Block A Master / Group A`.
+  - B selected only group B and showed `Block B Master / Group B`.
+  - C did not crash and cleared the overlay because no C drawing existed.
+  - 3D Map reset cleared selected CRM group overlay.
+  - draft drawing text did not appear.
+
+### Known Limitations
+- Drawings are client-side localStorage overlays until a backend sync exists.
+- This integration intentionally does not render CRM drawings on the Easy Map because Map Studio drawing coordinates are normalized to the original masterplan image.
+- Existing localStorage created before this fix may still contain demo drawings under the old wrong mapId; reset CRM demo data or republish drawings from Map Studio to use `tricity-aerotropolis`.
+
+### Exact Next Step
+Move to the next requested phase; do not mix this completed Phase 4B work with Owner or Finance polish.

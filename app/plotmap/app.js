@@ -138,6 +138,48 @@
   const propById = (id) => mapProperties().find(p => p.id === id);
   const propsInBlock = (blockId) => mapProperties().filter(p => p.blockId === blockId);
 
+  /* --- CRM Map Drawings --- */
+  let CRM_DRAWINGS = [];
+  const CRM_SAFE_KINDS = new Set(['road', 'block', 'sectorTag']);
+  function currentClientMapId() {
+    if (state.section !== 'master') return null;
+    if (mapKind() !== 'original' && mapKind() !== 'markings') return null;
+    if (state.areaId !== 'aerotropolis') return null;
+    const activeArea = area();
+    return activeArea && activeArea.dataset === 'tricity-aerotropolis' ? activeArea.dataset : null;
+  }
+  function isSafeCRMPoint(point) {
+    return point && typeof point.x === 'number' && Number.isFinite(point.x) && point.x >= 0 && point.x <= 100 &&
+      typeof point.y === 'number' && Number.isFinite(point.y) && point.y >= 0 && point.y <= 100;
+  }
+  function isSafeCRMDrawing(drawing, mapId) {
+    if (!drawing || drawing.mapId !== mapId || !CRM_SAFE_KINDS.has(drawing.kind)) return false;
+    if (!/^[A-Za-z0-9_-]+$/.test(String(drawing.id || ''))) return false;
+    const points = Array.isArray(drawing.points) ? drawing.points : [];
+    return points.length >= (drawing.kind === 'road' ? 2 : 3) && points.every(isSafeCRMPoint);
+  }
+  function getSafePublishedDrawings(mapId) {
+    try {
+      if (!mapId || !window.CRM || typeof window.CRM.getPublishedClientMapDrawings !== "function") {
+        return [];
+      }
+      const drawings = window.CRM.getPublishedClientMapDrawings(mapId) || [];
+      return Array.isArray(drawings) ? drawings.filter(d => isSafeCRMDrawing(d, mapId)) : [];
+    } catch (err) {
+      console.warn("PlotMap published drawing overlay unavailable", err);
+      return [];
+    }
+  }
+  function fetchCRMDrawings(mapId) {
+    CRM_DRAWINGS = getSafePublishedDrawings(mapId);
+  }
+  const crmId = (id) => `crm:${id}`;
+  const crmDrawingById = (id) => {
+    const cleanId = typeof id === 'string' && id.startsWith('crm:') ? id.slice(4) : id;
+    return CRM_DRAWINGS.find(d => d.id === cleanId);
+  };
+  const isCrmDrawing = (id) => !!crmDrawingById(id);
+
   const scopedRoads = () => state.activeCats.size > 0 ? keyRoads().filter(r => state.activeCats.has('roads')) : keyRoads();
   const scopedBlocks = () => state.activeCats.size > 0 ? mapBlocks().filter(b => state.activeCats.has(b.cat)) : mapBlocks();
   const scopedZones = () => state.activeCats.size > 0 ? mapZones().filter(z => state.activeCats.has(z.cat)) : mapZones();
@@ -157,6 +199,7 @@
   const sectorMapForItem = (id) => {
     const it = itemObj(id);
     if (!it) return null;
+    if (isCrmDrawing(id) && it.linkedSectorMapId) return sectorMapById(it.linkedSectorMapId);
     const n = (it.name || '').toLowerCase();
     const cleanN = n.replace(/ /g,'-');
     return readySectorMaps().find(s => 
@@ -166,26 +209,52 @@
   };
   const activeSectorMap = () => sectorMapById(state.sectorBlock) || sectorMapForProperty(propById(state.selectedId)) || readySectorMaps()[0] || null;
   const hasSectorMap = (p) => !!sectorMapForProperty(p);
-  const itemObj = (id) => roadById(id) || zoneById(id) || pinById(id) || blockById(id);
-  const driverName = (id) => (itemObj(id) || {}).name || id;
+  const itemObj = (id) => roadById(id) || zoneById(id) || pinById(id) || blockById(id) || crmDrawingById(id);
+  const driverName = (id) => {
+    const o = itemObj(id);
+    if (!o) return id;
+    if (o.kind === 'sectorTag' || o.kind === 'block' || o.kind === 'road') return o.title || o.name;
+    return o.name || id;
+  };
   const catColor = (id) => (catById(id) || {}).color || '#16356A';
   const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; };
   const hash = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
 
   function itemCategory(id) {
+    if (isCrmDrawing(id)) {
+      const d = crmDrawingById(id);
+      if (d.kind === 'road') return 'roads';
+      if (d.kind === 'block' || d.kind === 'sectorTag') return 'sectors';
+      return 'pins';
+    }
     if (roadById(id)) return 'roads';
     const z = zoneById(id); if (z) return z.cat;
     const p = pinById(id); if (p) return p.cat;
     const b = blockById(id); if (b) return b.cat;
     return state.catId;
   }
-  function itemKindOf(id) { if (roadById(id)) return 'line'; if (zoneById(id)) return 'zone'; if (pinById(id)) return 'pin'; if (blockById(id)) return 'block'; return 'pin'; }
+  function itemKindOf(id) {
+    if (isCrmDrawing(id)) {
+      const d = crmDrawingById(id);
+      if (d.kind === 'road') return 'line';
+      if (d.kind === 'block' || d.kind === 'sectorTag') return 'block';
+      return 'pin';
+    }
+    if (roadById(id)) return 'line'; if (zoneById(id)) return 'zone'; if (pinById(id)) return 'pin'; if (blockById(id)) return 'block'; return 'pin';
+  }
   function catItems(catId) {
     const c = catById(catId) || {};
-    if (catId === 'roads' || c.kind === 'line') return scopedRoads().map(r => ({ id: r.id, name: r.name, sub: 'Key road', kind: 'line', color: c.color || '#16356A', photos: r.photos }));
+    if (catId === 'roads' || c.kind === 'line') {
+      return scopedRoads().map(r => ({ id: r.id, name: r.name, sub: 'Key road', kind: 'line', color: c.color || '#16356A', photos: r.photos }))
+        .concat(CRM_DRAWINGS.filter(d => d.kind === 'road').map(d => ({ id: crmId(d.id), name: d.title, sub: 'Map Overlay', kind: 'line', color: c.color || '#16356A', photos: false })));
+    }
+    const crmSectorItems = catId === 'sectors'
+      ? CRM_DRAWINGS.filter(d => d.kind === 'block' || d.kind === 'sectorTag').map(d => ({ id: crmId(d.id), name: d.title, sub: d.group ? `Group ${d.group}` : 'Map Overlay', kind: 'block', color: c.color || catColor(catId), photos: false }))
+      : [];
     return scopedBlocks().filter(b => b.cat === catId).map(b => ({ id: b.id, name: b.name, sub: `${b.area} · ${propsInBlock(b.id).length} available`, kind: 'block', color: c.color || catColor(catId) }))
       .concat(scopedZones().filter(z => z.cat === catId).map(z => ({ id: z.id, name: z.name, sub: c.label, kind: 'zone', color: c.color, photos: z.photos })))
-      .concat(scopedPins().filter(p => p.cat === catId).map(p => ({ id: p.id, name: p.name, sub: c.label, kind: 'pin', color: c.color, photos: p.photos })));
+      .concat(scopedPins().filter(p => p.cat === catId).map(p => ({ id: p.id, name: p.name, sub: c.label, kind: 'pin', color: c.color, photos: p.photos })))
+      .concat(crmSectorItems);
   }
   const catCount = (id) => catItems(id).length;
   const inCatItem = (id) => { const cid = getCatId(); return cid && catItems(cid).some(i => i.id === id); };
@@ -247,6 +316,13 @@
       const b = pathBounds(GEO.paths[o.svgId]);
       const [cx, cy] = geoToLayer((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2);
       focusBox(cx, cy, Math.max(b.maxX - b.minX, 300), Math.max(b.maxY - b.minY, 300), kind === 'pin' ? 2 : 1.7);
+      return;
+    }
+    if (isCrmDrawing(id) && Array.isArray(o.points) && o.points.length) {
+      const xs = o.points.map(p => (p.x / 100) * IW);
+      const ys = o.points.map(p => (p.y / 100) * IH);
+      const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+      focusBox((minX + maxX) / 2, (minY + maxY) / 2, Math.max(maxX - minX, 260), Math.max(maxY - minY, 260), 1.8);
       return;
     }
     // Fallback for items without traced geometry (schematic coords).
@@ -313,6 +389,7 @@
     } else { LW = 3880; LH = 3069; }
     l.style.width = LW + 'px'; l.style.height = LH + 'px';
     l.className = 'maplayer ' + kind;
+    fetchCRMDrawings(currentClientMapId());
     if (kind === 'original') l.innerHTML = `<img class="orig" src="${DS.assets.original}" alt="Official masterplan">` + origSVG();
     else if (kind === 'markings') l.innerHTML = `<img class="orig-crop" src="${DS.assets.markings}" alt="Masterplan Marking">` + origSVG();
     else if (kind === 'sector') { const sectorAsset = mapImage(sectorSm) || DS.assets.sector; l.innerHTML = `<div class="sector-wrap" style="width:${LW}px;height:${LH}px;background-image:url('${sectorAsset}');background-size:100% 100%"></div><div id="sectorPinG"></div><div id="proofG"></div>`; }
@@ -396,6 +473,43 @@
   }
 
   /* ---------- ORIGINAL MAP overlay (real geometry highlights) ---------- */
+  function drawingPointsAttr(drawing) {
+    return drawing.points.map(p => `${(p.x / 100) * IW},${(p.y / 100) * IH}`).join(' ');
+  }
+  function drawingPath(drawing) {
+    return drawing.points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${(p.x / 100) * IW} ${(p.y / 100) * IH}`).join(' ');
+  }
+  function drawingCenter(drawing) {
+    const total = drawing.points.reduce((acc, point) => ({ x: acc.x + point.x, y: acc.y + point.y }), { x: 0, y: 0 });
+    return {
+      x: (total.x / drawing.points.length / 100) * IW,
+      y: (total.y / drawing.points.length / 100) * IH
+    };
+  }
+  function sectorTagColor(group) {
+    return ({ A: '#D63031', B: '#0984E3', C: '#00B894', D: '#B7791F' })[String(group || '').toUpperCase()] || '#5E7E9C';
+  }
+  function renderCRMDrawingsSVG() {
+    return CRM_DRAWINGS.map(d => {
+      const pts = drawingPointsAttr(d);
+      const id = crmId(d.id);
+      if (d.kind === 'road') {
+        const isPrimary = ['expressway', 'main-road', 'important-road'].includes(String(d.type || '').toLowerCase());
+        const stroke = isPrimary ? '#123B73' : '#64748B';
+        const width = isPrimary ? 18 : 10;
+        return `<polyline points="${pts}" class="o-road crm-road" data-itempath="${id}" fill="none" stroke="${stroke}" stroke-width="${width}" stroke-opacity="${isPrimary ? '0.7' : '0.35'}" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="${pts}" class="o-hit" data-hit="line:${id}"/>`;
+      }
+      const center = drawingCenter(d);
+      const isSectorTag = d.kind === 'sectorTag';
+      const fill = isSectorTag ? sectorTagColor(d.group) : '#5E7E9C';
+      const label = isSectorTag ? `${String(d.group || '').toUpperCase() || esc(d.title)}` : esc(d.title);
+      return `<polygon points="${pts}" class="o-block ${isSectorTag ? 'crm-sector-tag' : 'crm-block'}" data-itempath="${id}" data-hit="block:${id}" style="--bfill:${fill};"/>
+        <text x="${center.x}" y="${center.y}" class="o-block-lbl ${isSectorTag ? 'crm-sector-tag' : 'crm-block'}" data-itempath="${id}">${label}</text>
+        <polygon points="${pts}" class="o-fillhit" data-hit="block:${id}"/>`;
+    }).join('');
+  }
+
   function origSVG() {
     const roadPaths = keyRoads().filter(r => r.svgId && GEO.paths && GEO.paths[r.svgId]);
     const casing = roadPaths.map(r => `<path d="${GEO.paths[r.svgId]}" class="o-road-case" style="--rfill:${catColor('roads')}" data-roadpath="${r.id}"/>`).join('');
@@ -504,6 +618,8 @@
       <g id="oZones">${zonesHTML}</g>
       <g id="oRoads">${lines}</g>
       <g id="oPins">${pinsHTML.join('')}</g>
+      <g id="crmDrawings">${renderCRMDrawingsSVG()}</g>
+
       <g id="oSpot"></g>
       <g id="oHit">${hits}</g>
     </svg>`;
@@ -541,6 +657,18 @@
       renderTags();
     } else if (kind === 'original' || kind === 'markings') {
       l.querySelectorAll('.o-road, .o-road-case').forEach(p => { 
+        const id = p.getAttribute('data-itempath');
+        const drawing = crmDrawingById(id);
+        if (drawing && drawing.kind === 'road') {
+          const isSel = selIds.has(id);
+          const inCat = state.activeCats.has('roads');
+          const baseVisible = !hasSel && state.activeCats.size === 0;
+          p.classList.toggle('act', isSel || inCat);
+          p.classList.toggle('show', isSel || inCat);
+          p.classList.toggle('soft', baseVisible);
+          p.classList.toggle('hide', !(isSel || inCat || baseVisible));
+          return;
+        }
         p.classList.remove('act', 'show', 'soft');
         p.classList.add('hide');
       });
@@ -549,13 +677,15 @@
         const on = relate(id, itemKindOf(id)); 
         const inCat = state.activeCats.size > 0 && state.activeCats.has(itemCategory(id));
         const isSel = selIds.has(id);
+        const drawing = crmDrawingById(id);
+        const baseCrmBlock = drawing && drawing.kind === 'block' && !hasSel && state.activeCats.size === 0;
         
         const isActive = isSel || (inCat && on);
         
         p.classList.toggle('act', isActive);
-        p.classList.toggle('soft', false);
-        p.classList.toggle('show', false);
-        p.classList.toggle('hide', !isActive);
+        p.classList.toggle('soft', baseCrmBlock && !p.classList.contains('o-block-lbl'));
+        p.classList.toggle('show', baseCrmBlock);
+        p.classList.toggle('hide', !(isActive || baseCrmBlock));
       });
       // Landmark / education / IT / entry POIs are shown by DEFAULT (premium, like
       // Apple Maps). When the dealer focuses a block or A/B/C/D set, POIs dim away
@@ -578,7 +708,14 @@
         if (hasSel) {
            const lines = Array.from(selIds).filter(sel => itemKindOf(sel) === 'line');
            if (lines.length > 0) {
-             const paths = lines.map(sel => GEO.paths[roadById(sel).svgId]).filter(Boolean);
+             const paths = lines.map(sel => {
+               if (isCrmDrawing(sel)) {
+                 const crmD = crmDrawingById(sel);
+                 return crmD ? drawingPath(crmD) : null;
+               }
+               const r = roadById(sel);
+               return r && GEO.paths ? GEO.paths[r.svgId] : null;
+             }).filter(Boolean);
              let html = '';
              html += `<g filter="url(#eglow)" style="fill:none;stroke:#2BD0E6;stroke-width:44;opacity:.4;stroke-linecap:round;stroke-linejoin:round">`;
              paths.forEach(d => { html += `<path d="${d}"/>`; });
@@ -605,7 +742,14 @@
            });
            if (pinHtml) sp.insertAdjacentHTML('beforeend', pinHtml);
         } else if (state.activeCats.has('roads')) {
-           const paths = catItems('roads').map(item => GEO.paths[roadById(item.id).svgId]).filter(Boolean);
+           const paths = catItems('roads').map(item => {
+               if (isCrmDrawing(item.id)) {
+                 const crmD = crmDrawingById(item.id);
+                 return crmD ? drawingPath(crmD) : null;
+               }
+               const r = roadById(item.id);
+               return r && GEO.paths ? GEO.paths[r.svgId] : null;
+           }).filter(Boolean);
            let html = '';
            html += `<g filter="url(#eglow)" style="fill:none;stroke:#2BD0E6;stroke-width:44;opacity:.4;stroke-linecap:round;stroke-linejoin:round">`;
            paths.forEach(d => { html += `<path d="${d}"/>`; });
@@ -737,7 +881,8 @@
     const showModes = state.section === 'master';
     return `${showModes && state.mapMode === 'easy' ? `<div class="prop-switch ${state.showProps ? 'on' : ''}" id="propSwitch"><span class="lbl">Show Properties</span><span class="knob"><i></i></span></div>` : ''}
       <div class="zoom"><button id="zin" title="Zoom in">+</button><div class="zsep"></div><button id="zout" title="Zoom out">−</button><div class="zsep"></div><button id="zfit" title="Reset view">⤢</button></div>
-      ${state.previewId ? previewHTML() : ''}`;
+      ${state.previewId ? previewHTML() : ''}
+      ${crmDrawingPreviewHTML()}`;
   }
 
   /* ---------- RIGHT PANEL ---------- */
@@ -790,16 +935,24 @@
       id = ids[idx];
       kind = itemKindOf(id);
       it = itemObj(id);
-      cat = catById(itemCategory(id)) || { label: 'Value driver', color: '#16356A' };
-      hasPhotos = it.photos !== false;
+      cat = catById(itemCategory(id)) || { label: 'Map Overlay', color: '#16356A' };
+      hasPhotos = it.photos !== false && !isCrmDrawing(id);
 
       if (kind === 'block') {
-        const props = propsInBlock(id);
-        metaLine = `${props.length} available propert${props.length === 1 ? 'y' : 'ies'}`;
+        if (isCrmDrawing(id)) {
+          metaLine = it.group ? `Masterplan Group ${it.group}` : `Map Overlay`;
+        } else {
+          const props = propsInBlock(id);
+          metaLine = `${props.length} available propert${props.length === 1 ? 'y' : 'ies'}`;
+        }
       } else {
-        metaLine = it.sub || `Official ${cat.label.toLowerCase()}`;
+        if (isCrmDrawing(id)) {
+          metaLine = 'Map Overlay';
+        } else {
+          metaLine = it.sub || `Official ${cat.label.toLowerCase()}`;
+        }
       }
-      name = it.name;
+      name = it.name || it.title;
     }
 
     return `<div class="preview-card" style="margin-top:0; border:none; padding:0; box-shadow:none; background:transparent;">
@@ -813,7 +966,7 @@
         <div style="flex:none; max-width:180px; text-align:right;">
           <div style="font-size:10px; font-weight:750; color:#8A5E22; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Active Selection <button id="clearAllItems" style="background:none;border:none;color:#16356A;font-weight:680;font-size:11px;cursor:pointer;padding:0;margin-left:4px;">Clear</button></div>
           <div style="display:flex; flex-wrap:wrap; gap:4px; justify-content:flex-end;">
-            ${ids.map(selId => `<span class="tray-chip" style="background:#F9F7F1;border:1px solid #EBE1CC;border-radius:6px;padding:3px 5px 3px 7px;font-size:11px;font-weight:650;display:flex;align-items:center;gap:3px;white-space:nowrap;color:#5A554A;">${esc(itemObj(selId).name)} <button data-unsel="${selId}" style="border:none;background:none;cursor:pointer;color:#8A5E22;font-size:14px;line-height:1;padding:0;transition:color .15s;">&times;</button></span>`).join('')}
+            ${ids.map(selId => { const selectedItem = itemObj(selId) || {}; return `<span class="tray-chip" style="background:#F9F7F1;border:1px solid #EBE1CC;border-radius:6px;padding:3px 5px 3px 7px;font-size:11px;font-weight:650;display:flex;align-items:center;gap:3px;white-space:nowrap;color:#5A554A;">${esc(selectedItem.name || selectedItem.title || selId)} <button data-unsel="${selId}" style="border:none;background:none;cursor:pointer;color:#8A5E22;font-size:14px;line-height:1;padding:0;transition:color .15s;">&times;</button></span>`; }).join('')}
           </div>
         </div>
         ` : ''}
@@ -830,7 +983,7 @@
       <div class="pc-actions" style="display:flex; gap:8px; height:40px;">
         ${hasPhotos ? `<button class="btn-primary" data-photos="${id}" style="flex:1; max-width:200px;">View Gallery</button>` : ''}
         ${sectorMapForItem(id) ? `<button class="btn-primary" data-opensec="${sectorMapForItem(id).id}" style="flex:1; max-width:200px;">View Map</button>` : ''}
-        <button class="pc-ghost" id="btnPreviewProps" style="flex:1; max-width:200px;">Properties</button>
+        ${!isCrmDrawing(id) ? `<button class="pc-ghost" id="btnPreviewProps" style="flex:1; max-width:200px;">Properties</button>` : ''}
         ${ids.length > 1 ? `
           <div style="display:flex; align-items:center; background:#F8FAFC; border-radius:8px; border:1px solid #EBE1CC; flex:1; justify-content:space-between; padding:0 12px; height:100%;">
             <button id="prevItemBtn" style="border:none; background:none; cursor:pointer; font-size:22px; line-height:1; color:#16356A; font-weight:700; padding:0;">&lsaquo;</button>
@@ -872,6 +1025,25 @@
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">${p.near.map(n => `<span class="near-mini">◆ ${esc(driverName(n))}</span>`).join('')}</div>
         <div style="display:flex;gap:8px;margin-top:14px"><button class="btn-primary" style="flex:1;height:44px;font-size:13.5px" data-details-prop="${p.id}">View Details</button>${sectorAction}</div>
         <button class="linklike" id="closePreview">Close</button></div></div>`;
+  }
+  function crmDrawingPreviewHTML() {
+    const ids = Array.from(state.selectedIds).filter(isCrmDrawing);
+    if (!ids.length) return '';
+    const id = ids[Math.min(state.previewIdx || 0, ids.length - 1)] || ids[0];
+    const drawing = crmDrawingById(id);
+    if (!drawing) return '';
+    const groupLine = drawing.kind === 'sectorTag' && drawing.group ? `Group ${esc(drawing.group)}` : '';
+    const typeLine = drawing.type ? esc(drawing.type.replace(/-/g, ' ')) : '';
+    const detail = [groupLine, typeLine].filter(Boolean).join(' · ') || 'Map Overlay';
+    const sectorAction = drawing.linkedSectorMapId && sectorMapById(drawing.linkedSectorMapId)
+      ? `<button class="btn-ghost" style="padding:0 14px;height:44px;font-size:13px" data-opensec="${esc(drawing.linkedSectorMapId)}">View Map</button>`
+      : '';
+    return `<div class="preview">
+      <div class="pbody">
+        <div style="font-size:22px;font-weight:800;letter-spacing:-.5px">${esc(drawing.title)}</div>
+        <div style="font-size:13px;color:#7C7565;font-weight:600;margin-top:6px">${detail}</div>
+        <div style="display:flex;gap:8px;margin-top:14px">${sectorAction}</div>
+        <button class="linklike" id="closeCrmPreview">Close</button></div></div>`;
   }
 
   /* ---------- FULL SCREENS ---------- */
@@ -993,17 +1165,35 @@
     on('mode3d', () => { state.activeLetter = null; state.selectedIds.clear(); state.activeCats.clear(); state.displayCatId = null; state.mapMode = premiumMasterMode(); state.showProps = false; builtSig = ''; render(); });
     each('[data-prebuilt-label]', b => b.addEventListener('click', () => {
       const L = b.getAttribute('data-prebuilt-label');
-      const row = state.prebuiltMaps.find(m => String(m.label || '').trim().toUpperCase() === L);
-      const targetIds = (row && Array.isArray(row.blocks)) ? row.blocks : [];
+
+      const crmSectorTags = CRM_DRAWINGS.filter(d => d.kind === 'sectorTag' && d.group === L);
+      const hasAnyCrmSectorTags = CRM_DRAWINGS.some(d => d.kind === 'sectorTag');
+
       const currentlyActive = state.activeLetter === L;
 
       state.selectedIds.clear();
       state.activeCats.clear();
       state.displayCatId = null;
 
-      if (!currentlyActive && targetIds.length) {
-        targetIds.forEach(id => state.selectedIds.add(id));
-        state.activeLetter = L;
+      if (!currentlyActive) {
+        if (hasAnyCrmSectorTags) {
+          if (crmSectorTags.length) {
+             crmSectorTags.forEach(t => state.selectedIds.add(crmId(t.id)));
+             state.activeLetter = L;
+          } else {
+             state.activeLetter = null;
+          }
+        } else {
+          // fallback to hardcoded
+          const row = state.prebuiltMaps.find(m => String(m.label || '').trim().toUpperCase() === L);
+          const targetIds = (row && Array.isArray(row.blocks)) ? row.blocks : [];
+          if (targetIds.length) {
+            targetIds.forEach(id => state.selectedIds.add(id));
+            state.activeLetter = L;
+          } else {
+            state.activeLetter = null;
+          }
+        }
       } else {
         state.activeLetter = null;
       }
@@ -1078,11 +1268,16 @@
       const spin = e.target.closest('[data-spin]'); if (spin) { const id = spin.getAttribute('data-spin'); state.activePinId = state.activePinId === id ? null : id; renderSectorPins(); return; }
       const tag = e.target.closest('[data-tag]'); if (tag) { state.previewId = tag.getAttribute('data-tag'); refreshControls(); renderTags(); return; }
       const hit = e.target.closest('[data-hit]');
-      if (hit) { const [k, id] = hit.getAttribute('data-hit').split(':'); selectItem(id, k); }
+      if (hit) {
+        const value = hit.getAttribute('data-hit') || '';
+        const splitAt = value.indexOf(':');
+        if (splitAt > 0) selectItem(value.slice(splitAt + 1), value.slice(0, splitAt));
+      }
     });
 
     each('[data-lb]', b => b.addEventListener('click', () => openLightbox(+b.getAttribute('data-lb'))));
     on('closePreview', () => { state.previewId = null; refreshControls(); renderTags(); });
+    on('closeCrmPreview', () => { state.selectedIds.clear(); state.activeLetter = null; state.activeCats.clear(); state.displayCatId = null; refreshControls(); updateMapOverlays(); });
     each('[data-details-prop]', b => b.addEventListener('click', () => openDetail(b.getAttribute('data-details-prop'))));
     each('[data-sector]', b => b.addEventListener('click', () => openSector(b.getAttribute('data-sector'))));
     each('[data-areacontext]', b => b.addEventListener('click', () => showAreaContext(b.getAttribute('data-areacontext'))));
@@ -1144,6 +1339,7 @@
     each('[data-mode]', b => b.addEventListener('click', () => { state.mapMode = b.getAttribute('data-mode'); if (state.mapMode === 'original') state.showProps = false; builtSig = ''; render(); }));
     on('propSwitch', toggleProps); on('zin', () => zoomBtn(1.2)); on('zout', () => zoomBtn(1 / 1.2)); on('zfit', fit);
     on('closePreview', () => { state.previewId = null; refreshControls(); renderTags(); });
+    on('closeCrmPreview', () => { state.selectedIds.clear(); state.activeLetter = null; state.activeCats.clear(); state.displayCatId = null; refreshControls(); updateMapOverlays(); });
     each('.preview [data-details-prop]', b => b.addEventListener('click', () => openDetail(b.getAttribute('data-details-prop'))));
     each('.preview [data-sector]', b => b.addEventListener('click', () => openSector(b.getAttribute('data-sector'))));
   }

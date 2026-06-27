@@ -53,5 +53,11 @@ window.CRM_DEMO = {
   ],
   pins: [
     { id: 'pin1', title: 'Demo Pin 1', type: 'available-property', area: 'Aerocity', x: 50, y: 50, description: '500 sq yd plot', linkedProperty: 'p1', visibility: 'public', notes: '', demo: true }
+  ],
+  mapDrawings: [
+    { id: 'md1', kind: 'sectorTag', title: 'Block A Master', city: 'Aerocity', mapType: 'original', mapId: 'tricity-aerotropolis', points: [{x:30,y:30},{x:40,y:30},{x:40,y:40},{x:30,y:40}], visibility: 'public', status: 'Published', group: 'A', linkedSectorMapId: '', demo: true },
+    { id: 'md2', kind: 'sectorTag', title: 'Block B Master', city: 'Aerocity', mapType: 'original', mapId: 'tricity-aerotropolis', points: [{x:45,y:30},{x:55,y:30},{x:55,y:40},{x:45,y:40}], visibility: 'public', status: 'Published', group: 'B', linkedSectorMapId: '', demo: true },
+    { id: 'md3', kind: 'road', title: 'Airport Link Road', city: 'Aerocity', mapType: 'original', mapId: 'tricity-aerotropolis', points: [{x:20,y:80},{x:80,y:80}], visibility: 'public', status: 'Published', type: 'expressway', demo: true },
+    { id: 'md4', kind: 'block', title: 'Premium Pocket', city: 'Aerocity', mapType: 'original', mapId: 'tricity-aerotropolis', points: [{x:60,y:60},{x:70,y:60},{x:70,y:70},{x:60,y:70}], visibility: 'public', status: 'Published', demo: true }
   ]
 };
