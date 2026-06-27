@@ -479,3 +479,21 @@ Road/Sector/Block Map Studio is verified.
 
 ### Exact Next Step
 Proceed to the next major phase as instructed by the user.
+
+
+## Phase 4A.8 Complete — Map Review + Publish Workflow
+
+### Status
+- **Status Workflow**: Active. Drawings now support Draft, Review Needed, Verified, Published, and Hidden statuses.
+- **Review Queue**: Active. Map Studio features a 'Draw/Review' toggle that exposes a comprehensive table of all drawings grouped by status.
+- **Quality Checklist**: Active. Available in the Inspector, tracking key quality metrics (name, map, geometry, visibility, linked map).
+- **Publish Rules**: Active. A drawing cannot be Published unless it is marked Client-visible, has a title, and either the checklist is mostly complete or it was previously Verified.
+- **Export Formats**: Active. Added options to export Current Drafts, Current Published, or All Published Client-Safe Overlays.
+- **Helper Function**: Active. Added window.CRM.getPublishedClientMapDrawings(mapId) to retrieve fully safe overlays for client apps.
+
+### Limitations
+- Currently, only the Admin app stores these locally; an actual backend sync is needed before a production release.
+- Drawings rejected in review need to be communicated outside the app (no integrated chat).
+
+### Exact Next Step
+Proceed to the next major phase as instructed by the user.

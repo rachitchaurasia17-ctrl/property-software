@@ -343,6 +343,16 @@
     };
   }
 
+  function getPublishedClientMapDrawings(mapId) {
+    const data = getCRM();
+    if (!data.mapDrawings) return [];
+    return data.mapDrawings.filter(d => 
+      d.mapId === mapId && 
+      d.status === 'Published' && 
+      d.visibility === 'public'
+    );
+  }
+
   window.CRM = {
     loadCRM, saveCRM, getCRM, resetCRMToDemo,
     addClient, updateClientStatus,
@@ -351,6 +361,7 @@
     addSiteVisit, updateSiteVisitStatus,
     addDeal,
     logEvent,
-    computeOwnerInsights, computeAreaInsights, computeFinanceTotals
+    computeOwnerInsights, computeAreaInsights, computeFinanceTotals,
+    getPublishedClientMapDrawings
   };
 })();

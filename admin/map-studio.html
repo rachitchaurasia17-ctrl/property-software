@@ -102,6 +102,33 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
 .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .action-btn.finish { background: var(--pm-primary); color: #fff; border-color: var(--pm-primary); }
 .action-btn.finish:hover { background: #1565c0; }
+
+/* Tab Toggle */
+.ms-tab-toggle { display: flex; align-items: center; }
+.ms-tab-toggle button {
+  padding: 4px 12px; border: 1px solid var(--pm-border); background: #fff; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--pm-text);
+}
+.ms-tab-toggle button.active {
+  background: var(--pm-primary); color: #fff; border-color: var(--pm-primary);
+}
+.ms-tab-toggle button:first-child { border-radius: 6px 0 0 6px; border-right: none; }
+.ms-tab-toggle button:last-child { border-radius: 0 6px 6px 0; }
+
+/* Review Queue */
+.rq-group { margin-bottom: 24px; }
+.rq-group h3 { font-size: 14px; font-weight: 700; color: var(--pm-text-mut); text-transform: uppercase; margin-bottom: 12px; border-bottom: 1px solid var(--pm-border); padding-bottom: 8px; }
+.rq-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.rq-table th, .rq-table td { text-align: left; padding: 10px; border-bottom: 1px solid var(--pm-border); }
+.rq-table th { font-weight: 600; color: var(--pm-text-mut); background: #f9f9fb; }
+.rq-table tr:hover { background: #f9f9fb; }
+.rq-status { padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+.rq-status.Draft { background: #eee; color: #666; }
+.rq-status.Review { background: #fff3e0; color: #e65100; }
+.rq-status.Verified { background: #e3f2fd; color: #1565c0; }
+.rq-status.Published { background: #e8f5e9; color: #2e7d32; }
+.rq-status.Hidden { background: #ffebee; color: #c62828; }
+.rq-btn { padding: 4px 8px; font-size: 11px; font-weight: 600; border: 1px solid var(--pm-border); border-radius: 4px; background: #fff; cursor: pointer; color: var(--pm-text); }
+.rq-btn:hover { background: #eee; }
 </style>
 </head>
 <body class="pm-shell">
@@ -124,8 +151,14 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
 
 <div class="ms-layout">
   <!-- LEFT: Tools -->
-  <div class="ms-tools">
-    <div class="ms-tools-header">🗺️ Map Studio</div>
+  <div class="ms-tools" id="ms-tools-col">
+    <div class="ms-tools-header" style="display:flex; justify-content:space-between; align-items:center;">
+      <span>🗺️ Map Studio</span>
+      <div class="ms-tab-toggle">
+        <button id="tab-draw" class="active" onclick="switchMode('draw')">Draw</button>
+        <button id="tab-review" onclick="switchMode('review')">Review</button>
+      </div>
+    </div>
 
     <!-- Map Selection -->
     <div class="ms-tool-section" style="background:#fefefe; padding-bottom:4px;">
@@ -175,10 +208,11 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
       </div>
     </div>
 
-    <div class="ms-tool-section">
       <div class="sec-title">Export JSON</div>
-      <button class="action-btn" id="btn-export-current" onclick="exportJSON('current')" disabled>📋 Export Current Map</button>
-      <button class="action-btn" onclick="exportJSON('all')">📥 Export All Drawings</button>
+      <button class="action-btn" id="btn-export-current-drafts" onclick="exportJSON('current-drafts')" disabled>📋 Export Current Drafts</button>
+      <button class="action-btn" id="btn-export-current-published" onclick="exportJSON('current-published')" disabled>📋 Export Current Published</button>
+      <button class="action-btn" onclick="exportJSON('all-published')">📥 Export All Published (Client-Safe)</button>
+      <button class="action-btn" onclick="exportJSON('all')" style="margin-top:12px; border-color:var(--pm-err); color:var(--pm-err);">📥 Export EVERYTHING (Backup)</button>
     </div>
   </div>
 
@@ -208,6 +242,12 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
       <button title="Zoom Out" onclick="zoomCanvas(0.8)">−</button>
       <button title="Reset View" onclick="zoomCanvas('reset')">⤢</button>
     </div>
+  </div>
+
+  <!-- CENTER: Review Queue (Replaces Canvas in Review Mode) -->
+  <div class="ms-review-queue" id="review-queue-container" style="display:none; flex:1; background:#fff; overflow:auto; padding:24px;">
+    <h2 style="margin-bottom:24px;">Review Queue</h2>
+    <div id="review-queue-content"></div>
   </div>
 
   <!-- RIGHT: Inspector -->
@@ -295,6 +335,41 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
             <div style="font-size:11px; color:var(--pm-text-mut); margin-top:4px;">Internal items will not be exported to the client app.</div>
           </div>
 
+          <!-- Quality Checklist -->
+          <div class="fld" id="grp-checklist" style="display:none; margin-top:16px; padding-top:16px; border-top:1px solid var(--pm-border);">
+            <label style="font-weight:700;">Quality Checklist</label>
+            <div style="font-size:13px; color:var(--pm-text-mut); margin-bottom:8px;">Check these before verifying/publishing.</div>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:6px; font-weight:normal; cursor:pointer;">
+              <input type="checkbox" id="chk-nameClear"> Name is clear
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:6px; font-weight:normal; cursor:pointer;">
+              <input type="checkbox" id="chk-correctMap"> Correct city/map selected
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:6px; font-weight:normal; cursor:pointer;">
+              <input type="checkbox" id="chk-geometryChecked"> Boundary/line visually matches map
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:6px; font-weight:normal; cursor:pointer;">
+              <input type="checkbox" id="chk-visibilityChecked"> Visibility is correct
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:6px; font-weight:normal; cursor:pointer;">
+              <input type="checkbox" id="chk-linkedMapChecked"> Linked map/group correct (if applicable)
+            </label>
+          </div>
+
+          <div class="fld" style="margin-top:16px;" id="grp-status">
+            <label>Status</label>
+            <select id="f-status">
+              <option value="Draft">Draft</option>
+              <option value="Review Needed">Review Needed</option>
+              <option value="Verified">Verified</option>
+              <option value="Published">Published</option>
+              <option value="Hidden">Hidden</option>
+            </select>
+            <div id="publish-warning" style="display:none; color:var(--pm-err); font-size:12px; margin-top:6px; font-weight:600;">
+              Cannot publish yet. Please verify name, map, visibility, and boundary.
+            </div>
+          </div>
+
           <div class="fld">
             <label>Notes</label>
             <textarea id="f-notes" rows="3" placeholder="Optional internal notes"></textarea>
@@ -319,6 +394,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   let selectedId = null;
   let canvasScale = 1;
   let manifestData = null;
+
+  // View Mode
+  let currentMode = 'draw'; // 'draw' or 'review'
 
   // Map Selection State
   let currentCity = '';
@@ -347,6 +425,33 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (e) {
     console.error("Failed to load map manifest", e);
   }
+
+  // --- Mode Switching ---
+  window.switchMode = function(mode) {
+    if (activePoints.length > 0) {
+      if(!confirm("You have an unsaved drawing. Discard it?")) return;
+      resetDrawingState();
+    }
+    
+    currentMode = mode;
+    
+    document.getElementById('tab-draw').classList.toggle('active', mode === 'draw');
+    document.getElementById('tab-review').classList.toggle('active', mode === 'review');
+    
+    if (mode === 'draw') {
+      document.getElementById('ms-tools-col').style.display = 'flex';
+      document.getElementById('map-canvas').style.display = 'flex';
+      document.getElementById('review-queue-container').style.display = 'none';
+      hideInspector();
+      if (currentMapId) renderAll();
+    } else {
+      document.getElementById('ms-tools-col').style.display = 'none';
+      document.getElementById('map-canvas').style.display = 'none';
+      document.getElementById('review-queue-container').style.display = 'block';
+      hideInspector();
+      renderReviewQueue();
+    }
+  };
 
   // --- Map Selection Logic ---
 
@@ -730,11 +835,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     document.getElementById('btn-delete').style.display = 'none';
     
+    document.getElementById('grp-checklist').style.display = 'none';
     document.getElementById('f-id').value = '';
     document.getElementById('f-kind').value = kind;
     document.getElementById('f-title').value = '';
     document.getElementById('f-visibility').value = 'public';
+    document.getElementById('f-status').value = 'Draft';
     document.getElementById('f-notes').value = '';
+
+    document.getElementById('chk-nameClear').checked = false;
+    document.getElementById('chk-correctMap').checked = false;
+    document.getElementById('chk-geometryChecked').checked = false;
+    document.getElementById('chk-visibilityChecked').checked = false;
+    document.getElementById('chk-linkedMapChecked').checked = false;
 
     document.getElementById('grp-roadType').style.display = kind === 'road' ? 'block' : 'none';
     
@@ -776,11 +889,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     document.getElementById('btn-delete').style.display = 'block';
     
+    document.getElementById('grp-checklist').style.display = 'block';
+
     document.getElementById('f-id').value = item.id;
     document.getElementById('f-kind').value = item.kind;
     document.getElementById('f-title').value = item.title || '';
     document.getElementById('f-visibility').value = item.visibility || 'public';
+    document.getElementById('f-status').value = item.status || 'Draft';
     document.getElementById('f-notes').value = item.notes || '';
+
+    const chk = item.qualityChecklist || {};
+    document.getElementById('chk-nameClear').checked = !!chk.nameClear;
+    document.getElementById('chk-correctMap').checked = !!chk.correctMap;
+    document.getElementById('chk-geometryChecked').checked = !!chk.geometryChecked;
+    document.getElementById('chk-visibilityChecked').checked = !!chk.visibilityChecked;
+    document.getElementById('chk-linkedMapChecked').checked = !!chk.linkedMapChecked;
 
     document.getElementById('grp-roadType').style.display = item.kind === 'road' ? 'block' : 'none';
     document.getElementById('grp-blockType').style.display = item.kind === 'block' ? 'block' : 'none';
@@ -803,13 +926,54 @@ document.addEventListener('DOMContentLoaded', async () => {
     tempPointsForSave = item.points || [];
   };
 
-  // --- Form Submit ---
+  // --- Form Submit & Publish Rules ---
+  const selStatus = document.getElementById('f-status');
+  selStatus.addEventListener('change', () => {
+    checkPublishSafety();
+  });
+  
+  function checkPublishSafety() {
+    const status = selStatus.value;
+    const btn = document.getElementById('btn-save');
+    const warning = document.getElementById('publish-warning');
+    
+    if (status === 'Published') {
+      const vis = document.getElementById('f-visibility').value;
+      const title = document.getElementById('f-title').value.trim();
+      const nameOk = document.getElementById('chk-nameClear').checked;
+      const mapOk = document.getElementById('chk-correctMap').checked;
+      const geoOk = document.getElementById('chk-geometryChecked').checked;
+      const visOk = document.getElementById('chk-visibilityChecked').checked;
+      
+      const mostlyComplete = nameOk && mapOk && geoOk && visOk;
+      // We will also check city and mapId in the submit handler
+      if (vis !== 'public' || !title || !mostlyComplete) {
+        btn.disabled = true;
+        warning.style.display = 'block';
+        return false;
+      }
+    }
+    btn.disabled = false;
+    warning.style.display = 'none';
+    return true;
+  }
+
+  // Bind change events to re-check
+  document.getElementById('f-visibility').addEventListener('change', checkPublishSafety);
+  document.getElementById('f-title').addEventListener('input', checkPublishSafety);
+  document.getElementById('chk-nameClear').addEventListener('change', checkPublishSafety);
+  document.getElementById('chk-correctMap').addEventListener('change', checkPublishSafety);
+  document.getElementById('chk-geometryChecked').addEventListener('change', checkPublishSafety);
+  document.getElementById('chk-visibilityChecked').addEventListener('change', checkPublishSafety);
+
   document.getElementById('drawing-form').addEventListener('submit', (e) => {
     e.preventDefault();
-    if (!currentCity || !currentMapType || !currentMapId) {
+    if (currentMode === 'draw' && (!currentCity || !currentMapType || !currentMapId)) {
       alert("No map selected to save against.");
       return;
     }
+    
+    if (!checkPublishSafety()) return;
 
     const data = crm.getCRM();
     if (!data.mapDrawings) data.mapDrawings = [];
@@ -837,17 +1001,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     const payload = {
       kind,
       title: document.getElementById('f-title').value,
-      city: currentCity,
-      mapType: currentMapType,
-      mapId: currentMapId,
       type,
       parentSectorId: parentId,
       group,
       linkedSectorMapId,
       sectorCode,
       visibility: document.getElementById('f-visibility').value,
+      status: document.getElementById('f-status').value,
       notes: document.getElementById('f-notes').value,
-      points: tempPointsForSave,
+      qualityChecklist: {
+        nameClear: document.getElementById('chk-nameClear').checked,
+        correctMap: document.getElementById('chk-correctMap').checked,
+        geometryChecked: document.getElementById('chk-geometryChecked').checked,
+        visibilityChecked: document.getElementById('chk-visibilityChecked').checked,
+        linkedMapChecked: document.getElementById('chk-linkedMapChecked').checked
+      },
       updatedAt: new Date().toISOString()
     };
 
@@ -855,17 +1023,29 @@ document.addEventListener('DOMContentLoaded', async () => {
       const idx = data.mapDrawings.findIndex(d => d.id === id);
       if (idx !== -1) {
         data.mapDrawings[idx] = { ...data.mapDrawings[idx], ...payload };
+        // Don't overwrite map context if editing from review queue without map loaded
+        if (tempPointsForSave && tempPointsForSave.length > 0) {
+           data.mapDrawings[idx].points = tempPointsForSave;
+        }
       }
     } else {
       payload.id = 'draw-' + Math.random().toString(36).substr(2, 9);
+      payload.city = currentCity;
+      payload.mapType = currentMapType;
+      payload.mapId = currentMapId;
+      payload.points = tempPointsForSave;
       payload.createdAt = new Date().toISOString();
-      payload.status = 'Draft';
       data.mapDrawings.push(payload);
     }
 
     crm.saveCRM(data);
     hideInspector();
-    renderAll();
+    
+    if (currentMode === 'review') {
+      renderReviewQueue();
+    } else {
+      renderAll();
+    }
   });
 
   // --- Delete ---
@@ -878,7 +1058,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     data.mapDrawings = (data.mapDrawings || []).filter(d => d.id !== id);
     crm.saveCRM(data);
     hideInspector();
-    renderAll();
+    if (currentMode === 'review') renderReviewQueue();
+    else renderAll();
   });
 
   // --- Zoom ---
@@ -891,28 +1072,174 @@ document.addEventListener('DOMContentLoaded', async () => {
     canvasInner.style.transform = `scale(${canvasScale})`;
   };
 
+  // --- Review Queue Rendering ---
+  function renderReviewQueue() {
+    const data = crm.getCRM();
+    const drawings = data.mapDrawings || [];
+    const container = document.getElementById('review-queue-content');
+    
+    const groups = {
+      'Review Needed': [],
+      'Draft': [],
+      'Verified': [],
+      'Published': [],
+      'Hidden': []
+    };
+    
+    // Fallback if missing
+    drawings.forEach(d => {
+      const st = d.status || 'Draft';
+      if(groups[st]) groups[st].push(d);
+      else groups['Draft'].push(d);
+    });
+
+    let html = '';
+    ['Review Needed', 'Draft', 'Verified', 'Published', 'Hidden'].forEach(st => {
+      const list = groups[st];
+      if (list.length === 0) return;
+      
+      const statClass = st.split(' ')[0];
+      
+      html += `<div class="rq-group">
+        <h3>${st} (${list.length})</h3>
+        <table class="rq-table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Kind</th>
+              <th>City / Map</th>
+              <th>Vis</th>
+              <th>Status</th>
+              <th>Points</th>
+              <th style="width:200px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      
+      list.forEach(d => {
+        let kindStr = d.kind;
+        if(d.kind === 'sectorTag') kindStr = 'Sector Tag';
+        
+        let visStr = d.visibility === 'public' ? 'Client' : 'Internal';
+        
+        html += `
+          <tr>
+            <td><strong>${d.title || '(Untitled)'}</strong></td>
+            <td>${kindStr}</td>
+            <td>${d.city} <span style="color:#aaa;">/</span> ${d.mapId}</td>
+            <td>${visStr}</td>
+            <td><span class="rq-status ${statClass}">${st}</span></td>
+            <td>${(d.points||[]).length}</td>
+            <td>
+              <button class="rq-btn" onclick="reviewEdit('${d.id}')">Edit</button>
+              ${st !== 'Review Needed' ? `<button class="rq-btn" onclick="updateStatus('${d.id}', 'Review Needed')">Request Rev</button>` : ''}
+              ${st !== 'Verified' && st !== 'Published' ? `<button class="rq-btn" onclick="updateStatus('${d.id}', 'Verified')">Verify</button>` : ''}
+              ${st !== 'Hidden' ? `<button class="rq-btn" onclick="updateStatus('${d.id}', 'Hidden')">Hide</button>` : ''}
+            </td>
+          </tr>
+        `;
+      });
+      html += `</tbody></table></div>`;
+    });
+    
+    // Specialized Masterplan Sector Tag View
+    const sectorTags = drawings.filter(d => d.kind === 'sectorTag' || d.kind === 'sector');
+    if (sectorTags.length > 0) {
+      html += `<div class="rq-group" style="margin-top:40px; border-top:2px solid var(--pm-border); padding-top:24px;">
+        <h3>Masterplan Sector Tags</h3>
+        <table class="rq-table">
+          <thead>
+            <tr>
+              <th>Sector Name</th>
+              <th>Group</th>
+              <th>Linked Map ID</th>
+              <th>Status</th>
+              <th>Vis</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      sectorTags.forEach(d => {
+        html += `
+          <tr>
+            <td><strong>${d.title || '(Untitled)'}</strong></td>
+            <td>${d.group || '-'}</td>
+            <td>${d.linkedSectorMapId || '-'}</td>
+            <td><span class="rq-status ${d.status ? d.status.split(' ')[0] : 'Draft'}">${d.status || 'Draft'}</span></td>
+            <td>${d.visibility === 'public' ? 'Client' : 'Internal'}</td>
+            <td><button class="rq-btn" onclick="reviewEdit('${d.id}')">Edit</button></td>
+          </tr>
+        `;
+      });
+      html += `</tbody></table></div>`;
+    }
+
+    if(html === '') {
+      html = '<div style="color:var(--pm-text-mut);">No drawings found. Switch to Draw mode to create one.</div>';
+    }
+    container.innerHTML = html;
+  }
+
+  window.reviewEdit = function(id) {
+    selectItem(id);
+  };
+
+  window.updateStatus = function(id, newStatus) {
+    const data = crm.getCRM();
+    const d = (data.mapDrawings || []).find(x => x.id === id);
+    if(d) {
+      d.status = newStatus;
+      d.updatedAt = new Date().toISOString();
+      crm.saveCRM(data);
+      renderReviewQueue();
+    }
+  };
+
   // --- Export JSON ---
   window.exportJSON = function(mode) {
     const data = crm.getCRM();
     const drawings = data.mapDrawings || [];
     
     let exportData = {};
+    let safeDrawings = [];
 
-    if (mode === 'current') {
+    if (mode === 'current-drafts' || mode === 'current-published') {
       if (!currentMapId) return;
-      const currentDrawings = drawings.filter(d => d.mapId === currentMapId);
+      let filtered = drawings.filter(d => d.mapId === currentMapId);
+      
+      if (mode === 'current-published') {
+        filtered = filtered.filter(d => d.status === 'Published' && d.visibility === 'public');
+      }
+
       exportData = {
         city: currentCity,
         mapType: currentMapType,
         mapId: currentMapId,
-        roads: currentDrawings.filter(d => d.kind === 'road'),
-        blocks: currentDrawings.filter(d => d.kind === 'block'),
-        sectorTags: currentDrawings.filter(d => d.kind === 'sectorTag'),
+        roads: filtered.filter(d => d.kind === 'road'),
+        blocks: filtered.filter(d => d.kind === 'block'),
+        sectorTags: filtered.filter(d => d.kind === 'sectorTag'),
         exportedAt: new Date().toISOString()
       };
-    } else {
+    } else if (mode === 'all-published') {
+      safeDrawings = drawings.filter(d => d.status === 'Published' && d.visibility === 'public');
+      // Strip internal stuff
+      const cleanDrawings = safeDrawings.map(d => ({
+        id: d.id, kind: d.kind, title: d.title, city: d.city, mapType: d.mapType, mapId: d.mapId,
+        group: d.group, linkedSectorMapId: d.linkedSectorMapId, type: d.type, points: d.points
+      }));
       exportData = {
         version: 1,
+        exportType: "published-client-safe",
+        exportedAt: new Date().toISOString(),
+        drawings: cleanDrawings
+      };
+    } else {
+      // mode === 'all'
+      exportData = {
+        version: 1,
+        exportType: "internal-backup-all",
         drawings: drawings,
         exportedAt: new Date().toISOString()
       };
@@ -924,7 +1251,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `plotmap_export_${mode === 'current' ? currentMapId : 'all'}_${Date.now()}.json`;
+    a.download = `plotmap_export_${mode}_${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
