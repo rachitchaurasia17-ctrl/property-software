@@ -8,6 +8,10 @@
 <link rel="stylesheet" href="/admin/crm-ui.css">
 <script src="/admin/crm-data.js"></script>
 <script src="/admin/crm-store.js"></script>
+<!-- PM.areas and dataset registry -->
+<script src="/app/plotmap/data.js"></script>
+<!-- Include datasets so they register in PM.datasets -->
+<script src="/app/plotmap/datasets/tricity.dataset.js"></script>
 <script>
 if (localStorage.getItem('plotmap_admin_role') !== 'team') {
   window.location.href = '/admin/index.html';
@@ -19,7 +23,7 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
   display: flex; height: calc(100vh - 60px); background: #f0f0f4; overflow: hidden;
 }
 .ms-tools {
-  width: 280px; background: #fff; border-right: 1px solid var(--pm-border); display: flex; flex-direction: column; overflow-y: auto;
+  width: 300px; background: #fff; border-right: 1px solid var(--pm-border); display: flex; flex-direction: column; overflow-y: auto;
 }
 .ms-tools-header {
   padding: 16px; font-weight: 700; font-size: 16px; border-bottom: 1px solid var(--pm-border); background: #f9f9fb;
@@ -28,11 +32,13 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
 .sec-title { font-size: 12px; font-weight: 700; color: var(--pm-text-mut); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px; }
 .ms-tool-btn {
   display: flex; align-items: center; width: 100%; padding: 10px 12px; margin-bottom: 6px; border: 1px solid var(--pm-border);
-  border-radius: 8px; background: #fff; cursor: pointer; text-align: left; font-size: 14px; color: var(--pm-text); font-weight: 600;
+  border-radius: 8px; background: #fff; cursor: pointer; text-align: left; font-size: 13px; color: var(--pm-text); font-weight: 600;
 }
-.ms-tool-btn:hover { background: #f9f9fb; }
+.ms-tool-btn:hover:not(:disabled) { background: #f9f9fb; }
 .ms-tool-btn.active { border-color: var(--pm-primary); background: #f0f7ff; color: var(--pm-primary); }
+.ms-tool-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .ms-tool-btn .tool-icon { margin-right: 10px; font-size: 16px; }
+.ms-select { width: 100%; padding: 8px; border: 1px solid var(--pm-border); border-radius: 6px; font-size: 13px; margin-bottom: 12px; }
 
 /* Canvas */
 .ms-canvas {
@@ -51,7 +57,7 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
   pointer-events: auto; cursor: crosshair;
 }
 .ms-coords {
-  position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.8); color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-variant-numeric: tabular-nums; z-index: 10;
+  position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.8); color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-variant-numeric: tabular-nums; z-index: 10; display: none;
 }
 .ms-instructions {
   position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--pm-primary); color: #fff; padding: 10px 20px; border-radius: 8px; font-weight: 600; z-index: 10; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
@@ -92,7 +98,8 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
 .action-btn {
   display: block; width: 100%; padding: 8px; margin-bottom: 8px; background: #f9f9fb; border: 1px solid var(--pm-border); border-radius: 6px; font-weight: 600; cursor: pointer; color: var(--pm-text); font-size: 13px; text-align: center;
 }
-.action-btn:hover { background: #eee; }
+.action-btn:hover:not(:disabled) { background: #eee; }
+.action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .action-btn.finish { background: var(--pm-primary); color: #fff; border-color: var(--pm-primary); }
 .action-btn.finish:hover { background: #1565c0; }
 </style>
@@ -120,16 +127,38 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
   <div class="ms-tools">
     <div class="ms-tools-header">🗺️ Map Studio</div>
 
+    <!-- Map Selection -->
+    <div class="ms-tool-section" style="background:#fefefe; padding-bottom:4px;">
+      <div class="sec-title">Step 1: Choose City</div>
+      <select id="sel-city" class="ms-select">
+        <option value="">Select City / Area...</option>
+      </select>
+      
+      <div class="sec-title">Step 2: Map Type</div>
+      <select id="sel-map-type" class="ms-select" disabled>
+        <option value="">Select Map Type...</option>
+        <option value="masterplan">Masterplan</option>
+        <option value="sector">Sector Map</option>
+        <option value="block">Block/Pocket Map</option>
+      </select>
+
+      <div class="sec-title">Step 3: Choose Map</div>
+      <select id="sel-map" class="ms-select" disabled>
+        <option value="">Select Map...</option>
+      </select>
+    </div>
+
+    <!-- Drawing Tools -->
     <div class="ms-tool-section">
-      <div class="sec-title">Drawing Tools</div>
-      <button class="ms-tool-btn" data-tool="road" onclick="startDrawing('road')">
+      <div class="sec-title">Step 4: Draw</div>
+      <button class="ms-tool-btn" id="btn-draw-road" data-tool="road" onclick="startDrawing('road')" disabled>
         <span class="tool-icon">🛣️</span> Draw Road
       </button>
-      <button class="ms-tool-btn" data-tool="sector" onclick="startDrawing('sector')">
-        <span class="tool-icon">🔲</span> Draw Sector
+      <button class="ms-tool-btn" id="btn-draw-block" data-tool="block" onclick="startDrawing('block')" disabled>
+        <span class="tool-icon">🟦</span> Mark Block / Pocket
       </button>
-      <button class="ms-tool-btn" data-tool="block" onclick="startDrawing('block')">
-        <span class="tool-icon">🟦</span> Draw Block
+      <button class="ms-tool-btn" id="btn-draw-sector" data-tool="sectorTag" onclick="startDrawing('sectorTag')" disabled>
+        <span class="tool-icon">🔲</span> Tag Sector on Masterplan
       </button>
 
       <div id="drawing-actions" style="display:none; margin-top:12px; padding-top:12px; border-top:1px dashed var(--pm-border);">
@@ -140,26 +169,29 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
     </div>
 
     <div class="ms-tool-section" style="flex:1;">
-      <div class="sec-title" style="display:flex; justify-content:space-between; align-items:center;">
-        Layer List
-      </div>
+      <div class="sec-title">Layer List</div>
       <div id="layer-list-container">
         <!-- Rendered by JS -->
       </div>
     </div>
 
     <div class="ms-tool-section">
-      <div class="sec-title">Export</div>
-      <button class="action-btn" onclick="exportJSON('copy')">📋 Copy JSON</button>
-      <button class="action-btn" onclick="exportJSON('download')">📥 Download JSON</button>
+      <div class="sec-title">Export JSON</div>
+      <button class="action-btn" id="btn-export-current" onclick="exportJSON('current')" disabled>📋 Export Current Map</button>
+      <button class="action-btn" onclick="exportJSON('all')">📥 Export All Drawings</button>
     </div>
   </div>
 
   <!-- CENTER: Canvas -->
   <div class="ms-canvas" id="map-canvas">
-    <div class="ms-canvas-inner" id="canvas-inner">
-      <!-- We load the exact asset used in frontend -->
-      <img src="/public/plotmap-assets/aerotropolis-original-web.jpg" class="ms-canvas-img" id="canvas-img" alt="Aerocity Map">
+    
+    <div id="no-map-msg" style="text-align:center; padding:40px; color:var(--pm-text-mut); font-weight:600; font-size:16px;">
+       Please select a map to begin.
+    </div>
+
+    <div class="ms-canvas-inner" id="canvas-inner" style="display:none;">
+      <!-- Image is injected via JS -->
+      <img src="" class="ms-canvas-img" id="canvas-img" alt="Map">
       
       <!-- SVG Overlay for drawing and rendering items -->
       <svg class="ms-svg-overlay" id="svg-overlay" preserveAspectRatio="none">
@@ -171,7 +203,7 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
     <div class="ms-instructions" id="instructions"></div>
     <div class="ms-coords" id="coords">X: —  Y: —</div>
 
-    <div class="ms-canvas-bar">
+    <div class="ms-canvas-bar" id="canvas-controls" style="display:none;">
       <button title="Zoom In" onclick="zoomCanvas(1.2)">＋</button>
       <button title="Zoom Out" onclick="zoomCanvas(0.8)">−</button>
       <button title="Reset View" onclick="zoomCanvas('reset')">⤢</button>
@@ -198,6 +230,7 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
             <input type="text" id="f-title" required placeholder="e.g. Main Road, Sector 82">
           </div>
 
+          <!-- Road Specific -->
           <div class="fld" id="grp-roadType" style="display:none;">
             <label>Road Type</label>
             <select id="f-roadType">
@@ -209,19 +242,7 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
             </select>
           </div>
 
-          <div class="fld" id="grp-sectorType" style="display:none;">
-            <label>Sector Type</label>
-            <select id="f-sectorType">
-              <option value="Residential Sector">Residential Sector</option>
-              <option value="Commercial Sector">Commercial Sector</option>
-              <option value="Mixed Sector">Mixed Sector</option>
-              <option value="Institutional Sector">Institutional Sector</option>
-              <option value="Green/Open Area">Green/Open Area</option>
-              <option value="Future Development">Future Development</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-
+          <!-- Block Specific -->
           <div class="fld" id="grp-blockType" style="display:none;">
             <label>Block Type</label>
             <select id="f-blockType">
@@ -233,15 +254,38 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
               <option value="Custom">Custom</option>
             </select>
           </div>
-
           <div class="fld" id="grp-parentSector" style="display:none;">
             <label>Parent Sector</label>
             <select id="f-parentSector">
               <option value="">None / Independent</option>
-              <!-- Filled via JS -->
+              <!-- Filled via JS from other block/sector drawings -->
             </select>
           </div>
 
+          <!-- Sector Tag Specific -->
+          <div class="fld" id="grp-sectorCode" style="display:none;">
+            <label>Sector Code (Optional)</label>
+            <input type="text" id="f-sectorCode" placeholder="e.g. 82A">
+          </div>
+          <div class="fld" id="grp-sectorTagGroup" style="display:none;">
+            <label>A/B/C/D Group</label>
+            <select id="f-sectorTagGroup">
+              <option value="General">General</option>
+              <option value="A">Category A</option>
+              <option value="B">Category B</option>
+              <option value="C">Category C</option>
+              <option value="D">Category D</option>
+            </select>
+          </div>
+          <div class="fld" id="grp-linkedMap" style="display:none;">
+            <label>Linked Sector Map</label>
+            <select id="f-linkedMap">
+              <option value="">None</option>
+              <!-- Filled via Manifest -->
+            </select>
+          </div>
+
+          <!-- Shared -->
           <div class="fld">
             <label>Visibility</label>
             <select id="f-visibility">
@@ -268,31 +312,216 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const crm = window.CRM;
-  let activeKind = null; // 'road', 'sector', 'block', or null
+  let activeKind = null; // 'road', 'block', 'sectorTag'
   let activePoints = [];
   let selectedId = null;
   let canvasScale = 1;
+  let manifestData = null;
+
+  // Map Selection State
+  let currentCity = '';
+  let currentMapType = '';
+  let currentMapId = '';
 
   const overlay = document.getElementById('svg-overlay');
   const activeDrawingGroup = document.getElementById('active-drawing');
   const renderedLayersGroup = document.getElementById('rendered-layers');
   const instr = document.getElementById('instructions');
   const canvasInner = document.getElementById('canvas-inner');
+  const canvasImg = document.getElementById('canvas-img');
+  const noMapMsg = document.getElementById('no-map-msg');
+  const canvasControls = document.getElementById('canvas-controls');
+  const coordsLabel = document.getElementById('coords');
 
-  // --- Rendering Layers ---
+  const selCity = document.getElementById('sel-city');
+  const selMapType = document.getElementById('sel-map-type');
+  const selMap = document.getElementById('sel-map');
+
+  // Load Manifest
+  try {
+    const res = await fetch('/app/plotmap/map-assets.manifest.json');
+    manifestData = await res.json();
+    populateLinkedMapDropdown();
+  } catch (e) {
+    console.error("Failed to load map manifest", e);
+  }
+
+  // --- Map Selection Logic ---
+
+  // Populate Step 1: Cities
+  if (window.PM && window.PM.areas) {
+    window.PM.areas.forEach(area => {
+      const opt = document.createElement('option');
+      opt.value = area.id;
+      opt.textContent = area.name + (area.live ? '' : ' (Coming Soon)');
+      selCity.appendChild(opt);
+    });
+  }
+
+  selCity.addEventListener('change', (e) => {
+    if (activePoints.length > 0) {
+      if(!confirm("You have an unsaved drawing. Discard it and switch cities?")) {
+        selCity.value = currentCity;
+        return;
+      }
+      resetDrawingState();
+    }
+    currentCity = e.target.value;
+    selMapType.disabled = !currentCity;
+    selMapType.value = '';
+    selMap.disabled = true;
+    selMap.innerHTML = '<option value="">Select Map...</option>';
+    clearMap();
+  });
+
+  selMapType.addEventListener('change', (e) => {
+    if (activePoints.length > 0) {
+      if(!confirm("You have an unsaved drawing. Discard it and switch map types?")) {
+        selMapType.value = currentMapType;
+        return;
+      }
+      resetDrawingState();
+    }
+    currentMapType = e.target.value;
+    selMap.disabled = !currentMapType;
+    selMap.innerHTML = '<option value="">Select Map...</option>';
+    
+    if (currentMapType) {
+      populateMapDropdown();
+    } else {
+      clearMap();
+    }
+  });
+
+  selMap.addEventListener('change', (e) => {
+    if (activePoints.length > 0) {
+      if(!confirm("You have an unsaved drawing. Discard it and switch maps?")) {
+        selMap.value = currentMapId;
+        return;
+      }
+      resetDrawingState();
+    }
+    currentMapId = e.target.value;
+    loadMap();
+  });
+
+  function populateMapDropdown() {
+    selMap.innerHTML = '<option value="">Select Map...</option>';
+    if (!currentCity || !currentMapType) return;
+
+    if (currentMapType === 'masterplan') {
+      // Find the masterplan dataset for this city
+      const area = window.PM.areas.find(a => a.id === currentCity);
+      if (area && area.dataset) {
+        const ds = window.PM.datasets[area.dataset];
+        if (ds) {
+          selMap.innerHTML += `<option value="${area.dataset}">${ds.name || 'Masterplan'}</option>`;
+        }
+      }
+    } else if (manifestData && manifestData.entries) {
+      // Find sector or block maps for this city
+      const entries = manifestData.entries.filter(e => 
+        e.mapType === currentMapType && 
+        (e.city.toLowerCase() === currentCity.toLowerCase() || e.area.toLowerCase() === currentCity.toLowerCase())
+      );
+      
+      entries.forEach(e => {
+        selMap.innerHTML += `<option value="${e.id}">${e.displayName || e.id}</option>`;
+      });
+    }
+  }
+
+  function loadMap() {
+    if (!currentMapId) {
+      clearMap();
+      return;
+    }
+
+    let imgUrl = null;
+
+    if (currentMapType === 'masterplan') {
+      const area = window.PM.areas.find(a => a.id === currentCity);
+      if (area && area.dataset) {
+        const ds = window.PM.datasets[area.dataset];
+        if (ds && ds.assets && ds.assets.original) {
+          imgUrl = ds.assets.original;
+        }
+      }
+    } else if (manifestData) {
+      const entry = manifestData.entries.find(e => e.id === currentMapId);
+      if (entry) {
+        // Prefer best processed, fallback to original
+        imgUrl = entry.bestProcessedPath || entry.originalPath;
+      }
+    }
+
+    if (imgUrl) {
+      canvasImg.src = imgUrl;
+      noMapMsg.style.display = 'none';
+      canvasInner.style.display = 'block';
+      canvasControls.style.display = 'flex';
+      coordsLabel.style.display = 'block';
+      enableDrawingTools();
+      renderAll();
+    } else {
+      noMapMsg.innerText = "No map image available yet for this area. Add the map asset before drawing.";
+      noMapMsg.style.display = 'block';
+      canvasInner.style.display = 'none';
+      canvasControls.style.display = 'none';
+      coordsLabel.style.display = 'none';
+      disableDrawingTools();
+      document.getElementById('layer-list-container').innerHTML = '';
+      document.getElementById('btn-export-current').disabled = true;
+    }
+  }
+
+  function clearMap() {
+    currentMapId = '';
+    noMapMsg.innerText = "Please select a map to begin.";
+    noMapMsg.style.display = 'block';
+    canvasInner.style.display = 'none';
+    canvasControls.style.display = 'none';
+    coordsLabel.style.display = 'none';
+    disableDrawingTools();
+    document.getElementById('layer-list-container').innerHTML = '';
+    document.getElementById('btn-export-current').disabled = true;
+    hideInspector();
+  }
+
+  function enableDrawingTools() {
+    document.getElementById('btn-draw-road').disabled = false;
+    document.getElementById('btn-draw-block').disabled = false;
+    document.getElementById('btn-draw-sector').disabled = false;
+    document.getElementById('btn-export-current').disabled = false;
+  }
+  function disableDrawingTools() {
+    document.getElementById('btn-draw-road').disabled = true;
+    document.getElementById('btn-draw-block').disabled = true;
+    document.getElementById('btn-draw-sector').disabled = true;
+  }
+
+  // --- Render Layer List & Map SVG ---
   function renderAll() {
+    if (!currentMapId) return;
+
     const data = crm.getCRM();
     const drawings = data.mapDrawings || [];
+    
+    // Filter by current map
+    const mapDrawings = drawings.filter(d => d.mapId === currentMapId);
 
     // Render Layer List
-    const listHtml = { road: '', sector: '', block: '' };
-    let counts = { road: 0, sector: 0, block: 0 };
+    const listHtml = { road: '', sectorTag: '', block: '' };
+    let counts = { road: 0, sectorTag: 0, block: 0 };
 
     renderedLayersGroup.innerHTML = '';
 
-    drawings.forEach(d => {
+    mapDrawings.forEach(d => {
+      // Legacy data migration support: if a drawing was kind 'sector' before we renamed it to 'sectorTag'
+      if (d.kind === 'sector') d.kind = 'sectorTag';
+      
       // Layer List
       if (listHtml[d.kind] !== undefined) {
         counts[d.kind]++;
@@ -311,8 +540,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const pStr = d.points.map(p => `${p.x},${p.y}`).join(' ');
         const el = document.createElementNS("http://www.w3.org/2000/svg", d.kind === 'road' ? "polyline" : "polygon");
         el.setAttribute("points", pStr);
-        el.setAttribute("fill", d.kind === 'road' ? "none" : (d.kind === 'sector' ? "rgba(234, 179, 8, 0.2)" : "rgba(59, 130, 246, 0.2)"));
-        el.setAttribute("stroke", d.kind === 'road' ? "#B45309" : (d.kind === 'sector' ? "#CA8A04" : "#2563EB"));
+        el.setAttribute("fill", d.kind === 'road' ? "none" : (d.kind === 'sectorTag' ? "rgba(234, 179, 8, 0.2)" : "rgba(59, 130, 246, 0.2)"));
+        el.setAttribute("stroke", d.kind === 'road' ? "#B45309" : (d.kind === 'sectorTag' ? "#CA8A04" : "#2563EB"));
         el.setAttribute("stroke-width", d.kind === 'road' ? "0.4" : "0.2");
         if (selectedId === d.id) {
           el.setAttribute("stroke-width", d.kind === 'road' ? "0.6" : "0.4");
@@ -322,14 +551,8 @@ document.addEventListener('DOMContentLoaded', () => {
         el.onclick = (e) => {
           if(!activeKind) { e.stopPropagation(); selectItem(d.id); }
         };
-        // using vector-effect to maintain thin lines on zoom
         el.setAttribute("vector-effect", "non-scaling-stroke"); 
         
-        // We have to use percentage-based coordinates for SVG overlay since points are percentages
-        // Actually, SVG coordinates need to be mapped to viewbox or percentage. 
-        // A simple way is to set width/height 100% and map points as percentages if using a % wrapper.
-        // But SVG `points` attribute doesn't support `%`. 
-        // Solution: SVG viewBox="0 0 100 100" and preserveAspectRatio="none". Then points are just 0-100 values!
         renderedLayersGroup.appendChild(el);
       }
     });
@@ -338,23 +561,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('layer-list-container').innerHTML = `
       ${counts.road > 0 ? `<div class="layer-group"><div class="layer-group-title">Roads</div>${listHtml.road}</div>` : ''}
-      ${counts.sector > 0 ? `<div class="layer-group"><div class="layer-group-title">Sectors</div>${listHtml.sector}</div>` : ''}
-      ${counts.block > 0 ? `<div class="layer-group"><div class="layer-group-title">Blocks</div>${listHtml.block}</div>` : ''}
-      ${counts.road===0 && counts.sector===0 && counts.block===0 ? '<div style="color:var(--pm-text-mut); font-size:13px;">No items drawn yet.</div>' : ''}
+      ${counts.sectorTag > 0 ? `<div class="layer-group"><div class="layer-group-title">Sector Tags (Masterplan)</div>${listHtml.sectorTag}</div>` : ''}
+      ${counts.block > 0 ? `<div class="layer-group"><div class="layer-group-title">Blocks / Pockets</div>${listHtml.block}</div>` : ''}
+      ${counts.road===0 && counts.sectorTag===0 && counts.block===0 ? '<div style="color:var(--pm-text-mut); font-size:13px;">No items drawn yet.</div>' : ''}
     `;
 
-    // Populate Parent Sector dropdown
+    // Populate Parent Sector dropdown for blocks
     const pSec = document.getElementById('f-parentSector');
     pSec.innerHTML = '<option value="">None / Independent</option>';
-    drawings.filter(d => d.kind === 'sector').forEach(s => {
+    mapDrawings.filter(d => d.kind === 'sectorTag' || d.kind === 'block').forEach(s => {
       pSec.innerHTML += `<option value="${s.id}">${s.title}</option>`;
     });
   }
 
+  function populateLinkedMapDropdown() {
+    const lMap = document.getElementById('f-linkedMap');
+    lMap.innerHTML = '<option value="">None</option>';
+    if (manifestData && manifestData.entries) {
+      manifestData.entries.filter(e => e.mapType === 'sector').forEach(e => {
+        lMap.innerHTML += `<option value="${e.id}">${e.displayName}</option>`;
+      });
+    }
+  }
+
   // --- Drawing Logic ---
   window.startDrawing = function(kind) {
+    if (!currentMapId) return;
+
     if (activePoints.length > 0) {
       if(!confirm("Unsaved drawing exists. Discard it?")) return;
+    }
+
+    if (kind === 'sectorTag' && currentMapType !== 'masterplan') {
+      if(!confirm("Sector tags are usually for masterplans. Continue?")) return;
     }
     
     activeKind = kind;
@@ -368,9 +607,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('drawing-actions').style.display = 'block';
     overlay.classList.add('drawing');
     
-    if (kind === 'road') instr.innerText = "Click along the road. Click Finish Road when done.";
-    if (kind === 'sector') instr.innerText = "Click around the sector boundary. Click Finish Sector when done.";
-    if (kind === 'block') instr.innerText = "Click around the block boundary. Click Finish Block when done.";
+    if (kind === 'road') instr.innerText = "Click along the road. Click Finish Drawing when done.";
+    if (kind === 'sectorTag') instr.innerText = "Use this only on masterplans. Click around a sector boundary, then link it.";
+    if (kind === 'block') instr.innerText = "Click around the block boundary. Click Finish Drawing when done.";
     instr.style.display = 'block';
 
     hideInspector();
@@ -408,7 +647,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('drawing-actions').style.display = 'none';
     instr.style.display = 'none';
     document.querySelectorAll('.ms-tool-btn[data-tool]').forEach(b => b.classList.remove('active'));
-    activePoints = []; // clears from canvas, it is now in memory for the form
+    activePoints = []; 
     drawActivePoints();
   };
 
@@ -424,9 +663,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Canvas Interaction ---
   overlay.addEventListener('click', (e) => {
-    if (!activeKind) return; // Not drawing
+    if (!activeKind) return;
     
-    // Calculate percentage coords directly from SVG bounding box
     const rect = overlay.getBoundingClientRect();
     const xPct = Number(((e.clientX - rect.left) / rect.width * 100).toFixed(2));
     const yPct = Number(((e.clientY - rect.top) / rect.height * 100).toFixed(2));
@@ -439,7 +677,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const rect = overlay.getBoundingClientRect();
     const xPct = ((e.clientX - rect.left) / rect.width * 100).toFixed(2);
     const yPct = ((e.clientY - rect.top) / rect.height * 100).toFixed(2);
-    document.getElementById('coords').textContent = `X: ${xPct}%  Y: ${yPct}%`;
+    coordsLabel.textContent = `X: ${xPct}%  Y: ${yPct}%`;
   });
 
   function drawActivePoints() {
@@ -485,7 +723,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function openInspectorAsNew(kind, points) {
     document.getElementById('inspector-empty').style.display = 'none';
     document.getElementById('inspector-form').style.display = 'block';
-    document.getElementById('inspector-title').innerText = `Save New ${kind.charAt(0).toUpperCase() + kind.slice(1)}`;
+    
+    let titleKind = kind;
+    if(kind === 'sectorTag') titleKind = 'Sector Tag';
+    document.getElementById('inspector-title').innerText = `Save New ${titleKind.charAt(0).toUpperCase() + titleKind.slice(1)}`;
     
     document.getElementById('btn-delete').style.display = 'none';
     
@@ -496,14 +737,22 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('f-notes').value = '';
 
     document.getElementById('grp-roadType').style.display = kind === 'road' ? 'block' : 'none';
-    document.getElementById('grp-sectorType').style.display = kind === 'sector' ? 'block' : 'none';
+    
     document.getElementById('grp-blockType').style.display = kind === 'block' ? 'block' : 'none';
     document.getElementById('grp-parentSector').style.display = kind === 'block' ? 'block' : 'none';
     
+    document.getElementById('grp-sectorCode').style.display = kind === 'sectorTag' ? 'block' : 'none';
+    document.getElementById('grp-sectorTagGroup').style.display = kind === 'sectorTag' ? 'block' : 'none';
+    document.getElementById('grp-linkedMap').style.display = kind === 'sectorTag' ? 'block' : 'none';
+    
     // Set defaults
     if(kind === 'road') document.getElementById('f-roadType').selectedIndex = 0;
-    if(kind === 'sector') document.getElementById('f-sectorType').selectedIndex = 0;
     if(kind === 'block') document.getElementById('f-blockType').selectedIndex = 0;
+    if(kind === 'sectorTag') {
+      document.getElementById('f-sectorTagGroup').value = 'General';
+      document.getElementById('f-linkedMap').value = '';
+      document.getElementById('f-sectorCode').value = '';
+    }
 
     tempPointsForSave = [...points];
   }
@@ -534,15 +783,21 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('f-notes').value = item.notes || '';
 
     document.getElementById('grp-roadType').style.display = item.kind === 'road' ? 'block' : 'none';
-    document.getElementById('grp-sectorType').style.display = item.kind === 'sector' ? 'block' : 'none';
     document.getElementById('grp-blockType').style.display = item.kind === 'block' ? 'block' : 'none';
     document.getElementById('grp-parentSector').style.display = item.kind === 'block' ? 'block' : 'none';
+    document.getElementById('grp-sectorCode').style.display = item.kind === 'sectorTag' ? 'block' : 'none';
+    document.getElementById('grp-sectorTagGroup').style.display = item.kind === 'sectorTag' ? 'block' : 'none';
+    document.getElementById('grp-linkedMap').style.display = item.kind === 'sectorTag' ? 'block' : 'none';
 
     if(item.kind === 'road') document.getElementById('f-roadType').value = item.type || 'Internal Road';
-    if(item.kind === 'sector') document.getElementById('f-sectorType').value = item.type || 'Residential Sector';
     if(item.kind === 'block') {
       document.getElementById('f-blockType').value = item.type || 'Residential Block';
       document.getElementById('f-parentSector').value = item.parentSectorId || '';
+    }
+    if(item.kind === 'sectorTag') {
+      document.getElementById('f-sectorTagGroup').value = item.group || 'General';
+      document.getElementById('f-linkedMap').value = item.linkedSectorMapId || '';
+      document.getElementById('f-sectorCode').value = item.sectorCode || '';
     }
 
     tempPointsForSave = item.points || [];
@@ -551,6 +806,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Form Submit ---
   document.getElementById('drawing-form').addEventListener('submit', (e) => {
     e.preventDefault();
+    if (!currentCity || !currentMapType || !currentMapId) {
+      alert("No map selected to save against.");
+      return;
+    }
+
     const data = crm.getCRM();
     if (!data.mapDrawings) data.mapDrawings = [];
 
@@ -559,18 +819,32 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let type = '';
     let parentId = '';
+    let group = '';
+    let linkedSectorMapId = '';
+    let sectorCode = '';
+
     if(kind === 'road') type = document.getElementById('f-roadType').value;
-    if(kind === 'sector') type = document.getElementById('f-sectorType').value;
     if(kind === 'block') {
       type = document.getElementById('f-blockType').value;
       parentId = document.getElementById('f-parentSector').value;
+    }
+    if(kind === 'sectorTag') {
+      group = document.getElementById('f-sectorTagGroup').value;
+      linkedSectorMapId = document.getElementById('f-linkedMap').value;
+      sectorCode = document.getElementById('f-sectorCode').value;
     }
 
     const payload = {
       kind,
       title: document.getElementById('f-title').value,
+      city: currentCity,
+      mapType: currentMapType,
+      mapId: currentMapId,
       type,
       parentSectorId: parentId,
+      group,
+      linkedSectorMapId,
+      sectorCode,
       visibility: document.getElementById('f-visibility').value,
       notes: document.getElementById('f-notes').value,
       points: tempPointsForSave,
@@ -578,16 +852,14 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     if (id) {
-      // Edit
       const idx = data.mapDrawings.findIndex(d => d.id === id);
       if (idx !== -1) {
         data.mapDrawings[idx] = { ...data.mapDrawings[idx], ...payload };
       }
     } else {
-      // New
       payload.id = 'draw-' + Math.random().toString(36).substr(2, 9);
       payload.createdAt = new Date().toISOString();
-      payload.status = 'Draft'; // internal status
+      payload.status = 'Draft';
       data.mapDrawings.push(payload);
     }
 
@@ -624,36 +896,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const data = crm.getCRM();
     const drawings = data.mapDrawings || [];
     
-    const exportData = {
-      mapId: "aerocity",
-      exportedAt: new Date().toISOString(),
-      roads: drawings.filter(d => d.kind === 'road'),
-      sectors: drawings.filter(d => d.kind === 'sector'),
-      blocks: drawings.filter(d => d.kind === 'block')
-    };
+    let exportData = {};
+
+    if (mode === 'current') {
+      if (!currentMapId) return;
+      const currentDrawings = drawings.filter(d => d.mapId === currentMapId);
+      exportData = {
+        city: currentCity,
+        mapType: currentMapType,
+        mapId: currentMapId,
+        roads: currentDrawings.filter(d => d.kind === 'road'),
+        blocks: currentDrawings.filter(d => d.kind === 'block'),
+        sectorTags: currentDrawings.filter(d => d.kind === 'sectorTag'),
+        exportedAt: new Date().toISOString()
+      };
+    } else {
+      exportData = {
+        version: 1,
+        drawings: drawings,
+        exportedAt: new Date().toISOString()
+      };
+    }
 
     const jsonStr = JSON.stringify(exportData, null, 2);
-
-    if (mode === 'copy') {
-      navigator.clipboard.writeText(jsonStr).then(() => {
-        alert("JSON copied to clipboard!");
-      }).catch(err => {
-        alert("Failed to copy. See console.");
-        console.error(err);
-      });
-    } else {
-      const blob = new Blob([jsonStr], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `plotmap_map_export_${Date.now()}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
+    
+    const blob = new Blob([jsonStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `plotmap_export_${mode === 'current' ? currentMapId : 'all'}_${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
-
-  // Initial Load
-  renderAll();
 });
 </script>
 </body>

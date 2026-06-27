@@ -448,3 +448,34 @@ Proceed to the next major phase as instructed by the user.
 
 ### Exact Next Step
 Proceed to the next major phase as instructed by the user.
+
+
+## Map Studio QA Report
+
+Road/Sector/Block Map Studio is verified.
+
+### Test Results
+| Tool | Draw | Save | Refresh Persist | Edit | Delete | Export | Issues |
+|---|---|---|---|---|---|---|---|
+| Road | Pass | Pass | Pass | Pass | Pass | Pass | None |
+| Sector | Pass | Pass | Pass | Pass | Pass | Pass | None |
+| Block | Pass | Pass | Pass | Pass | Pass | Pass | None |
+
+
+
+## Phase 4A.7 Complete — Map Selection + Sector Tag Workflow
+
+### Status
+- **City/Map Selector**: Active. Integrates with data.js for city list and map-assets.manifest.json for map assets. Draws only allowed on selected maps.
+- **Road Drawing**: Active. Retained minimum 2 points and saves against specific map ID.
+- **Block/Pocket Marking**: Active. Retained minimum 3 points and saves against specific map ID.
+- **Sector Tag / Masterplan A/B/C/D**: Active. Warning appears if drawn on non-masterplans. Allows assigning A/B/C/D Group and linking to a Sector Map.
+- **Manifest Integration**: Active. Asset list and Linked Sector dropdown automatically pull from map-assets.manifest.json.
+- **Export**: Active. Supports exporting current map specifically, or all maps in bulk.
+
+### Limitations
+- Still cannot edit points post-save without deleting the drawing.
+- Masterplan A/B/C/D highlights require frontend consumption to be useful to clients.
+
+### Exact Next Step
+Proceed to the next major phase as instructed by the user.
