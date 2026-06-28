@@ -5,6 +5,7 @@
     '/admin/owner.html',
     '/admin/area-intelligence.html',
     '/admin/finance.html',
+    '/admin/access.html',
     '/admin/reports.html'
   ];
   const TEAM_ROUTES = [
@@ -80,6 +81,10 @@
   }
 
   function renderBlockedScreen() {
+    if (!/\/admin\/access-expired\.html$/i.test(location.pathname)) {
+      window.location.replace('/admin/access-expired.html');
+      return;
+    }
     document.body.innerHTML = '<main style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;font-family:Arial,sans-serif;background:#f7f5ef;color:#1f2933;"><section style="max-width:520px;background:#fff;border:1px solid #e6dcc8;border-radius:12px;padding:28px;text-align:center;"><h1 style="font-size:24px;margin:0 0 10px;">Access expired or blocked</h1><p style="font-size:15px;line-height:1.5;margin:0;color:#5f6b7a;">Please contact your PlotMap provider.</p></section></main>';
   }
 
@@ -114,7 +119,7 @@
     const data = window.PMDataAdapter.getData();
     const dealer = window.PMDataAdapter.getCurrentDealer(data);
     const user = window.PMDataAdapter.getCurrentUser(data);
-    return window.PMDataAdapter.upsert('accessLinks', Object.assign({
+    const link = window.PMDataAdapter.upsert('accessLinks', Object.assign({
       dealerId: dealer && dealer.id,
       createdBy: user && user.id,
       token: window.PMDataAdapter.generateId('trial'),
@@ -125,6 +130,119 @@
       useCount: 0,
       status: 'active'
     }, input || {}));
+    if (window.PMSyncQueue) {
+      window.PMSyncQueue.enqueueSyncAction({
+        dealerId: link.dealerId,
+        entityType: 'accessLinks',
+        entityId: link.id,
+        actionType: 'create',
+        payload: link
+      });
+    }
+    return link;
+  }
+
+  function findAccessLink(data, token) {
+    return (data.accessLinks || []).find(item => item && item.token === token) || null;
+  }
+
+  function linkStatus(link, now) {
+    if (!link) return { ok: false, reason: 'missing_link' };
+    if (link.status !== 'active') return { ok: false, reason: link.status || 'inactive_link' };
+    if (parseTime(link.expiresAt) && parseTime(link.expiresAt) < now) return { ok: false, reason: 'link_expired' };
+    if (Number(link.maxUses || 0) > 0 && Number(link.useCount || 0) >= Number(link.maxUses || 0)) {
+      return { ok: false, reason: 'link_used_up' };
+    }
+    return { ok: true, reason: 'ok' };
+  }
+
+  function ensureLinkUser(data, link) {
+    const role = normalizeRole(link.roleAllowed);
+    const dealerId = link.dealerId || (data.dealers[0] && data.dealers[0].id) || null;
+    const existing = (data.users || []).find(user => user.dealerId === dealerId && normalizeRole(user.role) === role && user.status === 'active');
+    if (existing) return existing;
+    const ts = new Date().toISOString();
+    const user = {
+      id: window.PMDataAdapter.generateId('user'),
+      dealerId,
+      name: role === 'owner' ? 'Trial Owner' : role === 'team' ? 'Trial Team User' : 'Trial Viewer',
+      phone: '',
+      email: '',
+      role,
+      status: 'active',
+      lastAccessCheck: ts,
+      lastLogin: ts,
+      createdAt: ts,
+      updatedAt: ts
+    };
+    data.users.push(user);
+    return user;
+  }
+
+  function adminRoleFromUserRole(role) {
+    const normalized = normalizeRole(role);
+    if (normalized === 'owner') return 'dealer';
+    if (normalized === 'team') return 'team';
+    return 'viewer';
+  }
+
+  function redirectForRole(role) {
+    const normalized = normalizeRole(role);
+    if (normalized === 'owner') return '/admin/owner.html';
+    if (normalized === 'team') return '/admin/team.html';
+    return '/app/plotmap/';
+  }
+
+  function consumeAccessLinkFromUrl(options) {
+    if (!window.PMDataAdapter) return null;
+    const params = new URLSearchParams(location.search || '');
+    const token = params.get('access') || params.get('token');
+    if (!token) return null;
+    const data = window.PMDataAdapter.getData();
+    const link = findAccessLink(data, token);
+    const status = linkStatus(link, Date.now());
+    if (!status.ok) {
+      if (link && status.reason === 'link_expired') {
+        link.status = 'expired';
+        link.updatedAt = new Date().toISOString();
+        window.PMDataAdapter.saveData(data);
+        if (window.PMSyncQueue) {
+          window.PMSyncQueue.enqueueSyncAction({
+            dealerId: link.dealerId,
+            entityType: 'accessLinks',
+            entityId: link.id,
+            actionType: 'expire',
+            payload: { status: 'expired' }
+          });
+        }
+      }
+      return { ok: false, reason: status.reason, link };
+    }
+    const user = ensureLinkUser(data, link);
+    const dealer = (data.dealers || []).find(item => item.id === user.dealerId || item.id === link.dealerId) || data.dealers[0] || null;
+    const ts = new Date().toISOString();
+    link.useCount = Number(link.useCount || 0) + 1;
+    link.lastUsedAt = ts;
+    link.updatedAt = ts;
+    user.lastAccessCheck = ts;
+    user.lastLogin = ts;
+    user.updatedAt = ts;
+    window.PMDataAdapter.saveData(data);
+    if (window.PMSyncQueue) {
+      window.PMSyncQueue.enqueueSyncAction({
+        dealerId: link.dealerId,
+        entityType: 'accessLinks',
+        entityId: link.id,
+        actionType: 'use',
+        payload: { useCount: link.useCount, lastUsedAt: link.lastUsedAt }
+      });
+    }
+    if (dealer) localStorage.setItem('plotmap_dealer_id', dealer.id);
+    localStorage.setItem('plotmap_user_id', user.id);
+    localStorage.setItem('plotmap_admin_role', adminRoleFromUserRole(user.role));
+    const result = { ok: true, reason: 'ok', link, user, dealer, redirectTo: redirectForRole(user.role) };
+    if (options && options.redirect) window.location.replace(result.redirectTo);
+    return result;
   }
 
   window.PMAccess = {
@@ -134,6 +252,7 @@
     guardPage,
     recordAccessCheck,
     createAccessLink,
+    consumeAccessLinkFromUrl,
     hasRecentAccessCheck
   };
 })();

@@ -58,6 +58,8 @@ if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
     <a href="/admin/owner.html" class="on">Dealer Command</a>
     <a href="/admin/area-intelligence.html">Area Intelligence</a>
     <a href="/admin/finance.html">Finance Center</a>
+    <a href="/admin/reports.html">Reports</a>
+    <a href="/admin/access.html">Access</a>
     <a href="/app/plotmap/" target="_blank">Presentation Map</a>
   </nav>
   <div class="sp"></div>
@@ -143,7 +145,38 @@ if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
 document.addEventListener('DOMContentLoaded', () => {
   const crm = window.CRM;
   const data = crm.getCRM();
-  const insights = crm.computeOwnerInsights();
+  const legacy = crm.computeOwnerInsights();
+  const command = crm.computeDealerCommandInsights();
+  const clientById = Object.fromEntries(data.clients.map(client => [client.id, client]));
+  const insights = {
+    ...legacy,
+    pulseText: (command.businessPulse && command.businessPulse.summary) || legacy.pulseText,
+    topArea: (command.businessPulse && command.businessPulse.topArea) || legacy.topArea,
+    warmClients: command.businessPulse ? command.businessPulse.hotClients : legacy.warmClients,
+    silentClients: (command.silentClients || []).length,
+    activeClients: command.businessPulse ? command.businessPulse.activeClients : legacy.activeClients,
+    priorityClients: (command.callFirst || []).map(client => ({
+      ...client,
+      assignedStaff: (clientById[client.id] && clientById[client.id].assignedStaff) || client.assignedStaff,
+      propertyType: (clientById[client.id] && clientById[client.id].propertyType) || ''
+    })),
+    missedOpportunities: (command.businessLeaks || []).map(leak => {
+      const client = clientById[leak.clientId] || {};
+      return {
+        title: leak.type === 'missed_followup' ? 'Missed Follow-up' : 'Client went silent',
+        desc: client.name ? `${client.name} needs attention.` : 'Review client activity.',
+        priority: leak.priority === 'high' ? 'high' : 'med',
+        staffId: leak.assignedStaff
+      };
+    }),
+    pipeline: command.clientMovement || legacy.pipeline,
+    staffActivity: (command.teamMovement || []).map(item => ({
+      name: item.name,
+      clients: item.clients,
+      visits: item.visits,
+      deals: item.deals
+    }))
+  };
 
   document.getElementById('ai-pulse').innerText = insights.pulseText;
   document.getElementById('chip-area').innerText = insights.topArea || 'None';

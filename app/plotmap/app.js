@@ -851,7 +851,7 @@
           ${a.live ? `<div style="display:flex;align-items:center;gap:7px;margin-top:12px"><span style="width:7px;height:7px;border-radius:50%;background:#B07A2B"></span><span style="font-size:13px;font-weight:600;color:#8A5E22;line-height:1.35">${esc(a.hook)}</span></div>` : `<div style="margin-top:12px"><span class="soon-tag">Coming soon</span></div>`}</div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:22px;padding-top:15px;border-top:1px solid #ECE2CD"><span style="font-size:13.5px;color:#5A554A;font-weight:600">${a.live ? 'Interactive masterplan' : 'Map being prepared'}</span>${a.live ? '<span style="font-size:13px;color:#16356A;font-weight:730">Open →</span>' : ''}</div></button>`).join('')}</div></div>`;
   }
-  function bindAreaSelect() { document.querySelectorAll('.as-tile[data-area]').forEach(b => b.addEventListener('click', async () => { const a = PM.areas.find(x => x.id === b.getAttribute('data-area')); if (!a || !a.live) return; Object.assign(state, resetPlan({ space: 'plan', areaId: a.id })); await useDataset(a.id); builtSig = ''; render(); })); }
+  function bindAreaSelect() { document.querySelectorAll('.as-tile[data-area]').forEach(b => b.addEventListener('click', async () => { const a = PM.areas.find(x => x.id === b.getAttribute('data-area')); if (!a || !a.live) return; Object.assign(state, resetPlan({ space: 'plan', areaId: a.id })); await useDataset(a.id); window.logEvent('area_viewed', { area: a.id, metadata: { source: 'area_select' } }); builtSig = ''; render(); })); }
 
   /* ---------- PLAN SHELL ---------- */
   function planHTML() {
@@ -1160,9 +1160,9 @@
     on('areaToggle', () => { state.areaMenuOpen = !state.areaMenuOpen; render(); });
     on('areaScrim', () => { state.areaMenuOpen = false; render(); });
     on('viewAllSectors', () => { Object.assign(state, { section: 'sectors', areaMenuOpen: false }); render(); });
-    each('[data-sw]', b => b.addEventListener('click', async () => { const a = PM.areas.find(x => x.id === b.getAttribute('data-sw')); if (!a || !a.live) return; Object.assign(state, resetPlan({ areaId: a.id })); await useDataset(a.id); builtSig = ''; render(); }));
+    each('[data-sw]', b => b.addEventListener('click', async () => { const a = PM.areas.find(x => x.id === b.getAttribute('data-sw')); if (!a || !a.live) return; Object.assign(state, resetPlan({ areaId: a.id })); await useDataset(a.id); window.logEvent('area_viewed', { area: a.id, metadata: { source: 'area_switcher' } }); builtSig = ''; render(); }));
     on('tabMaster', () => { Object.assign(state, { section: 'master' }); builtSig = ''; render(); });
-    on('tabProps', () => { Object.assign(state, { section: 'props', propView: 'browse', selectedId: null, previewId: null }); render(); });
+    on('tabProps', () => { window.logEvent('client_panel_opened', { area: state.areaId || null, metadata: { source: 'properties_tab' } }); Object.assign(state, { section: 'props', propView: 'browse', selectedId: null, previewId: null }); render(); });
     on('tabSectors', () => { Object.assign(state, { section: 'sectors' }); render(); });
     on('qAllMaps', () => { state.areaMenuOpen = true; render(); });
     on('qAllSectors', () => { Object.assign(state, { section: 'sectors' }); render(); });
@@ -1304,7 +1304,7 @@
     on('backToProperty', () => { Object.assign(state, { section: 'props', propView: 'detail' }); builtSig = ''; render(); });
     on('backToSectors', () => { Object.assign(state, { section: 'sectors', propView: 'browse', selectedId: null, sectorBlock: null }); render(); });
     on('areaContext', () => showAreaContext(state.selectedId));
-    on('sendLater', () => toast('Saved — share the details whenever you like.'));
+    on('sendLater', () => { window.logEvent('brochure_shared', { area: state.areaId || null, propertyId: state.selectedId || null, metadata: { source: 'send_details_later' } }); toast('Saved — share the details whenever you like.'); });
 
     on('lbScrim', () => { state.lightbox = null; render(); });
     on('lbClose', () => { state.lightbox = null; render(); });
@@ -1353,16 +1353,17 @@
     each('.preview [data-details-prop]', b => b.addEventListener('click', () => openDetail(b.getAttribute('data-details-prop'))));
     each('.preview [data-sector]', b => b.addEventListener('click', () => openSector(b.getAttribute('data-sector'))));
   }
-  function openDetail(id) { Object.assign(state, { section: 'props', propView: 'detail', selectedId: id, previewId: null }); render(); }
+  function openDetail(id) { window.logEvent('client_panel_opened', { area: state.areaId || null, propertyId: id, metadata: { source: 'property_detail' } }); Object.assign(state, { section: 'props', propView: 'detail', selectedId: id, previewId: null }); render(); }
   function openSector(id) {
     const p = propById(id), sm = sectorMapForProperty(p);
     if (!p || !sm) return;
+    window.logEvent('sector_proof_clicked', { area: state.areaId || null, sector: sm.id, propertyId: id });
     Object.assign(state, { section: 'props', propView: 'sector', selectedId: id, sectorBlock: sm.id, previewId: null, activePinId: null, sectorFrom: state.section });
     builtSig = '';
     render();
   }
-  function openSectorHub(smId) { if (!sectorMapById(smId)) return; window.logEvent('sector_viewed', { area: state.areaId || null, sector: smId }); Object.assign(state, { section: 'props', propView: 'sector', selectedId: null, sectorBlock: smId, previewId: null, activePinId: null }); builtSig = ''; render(); }
-  function showAreaContext(id) { const p = propById(id); Object.assign(state, { section: 'master', mapMode: 'easy', showProps: true, selectedId: id, selectedIds: new Set([id]), itemOpen: false, previewId: id }); builtSig = ''; render(); if (p) { const b = blockById(p.blockId); if (b && hasGeo(b)) { const bd = pathBounds(GEO.paths[b.svgId]); const [cx, cy] = geoToLayer((bd.minX + bd.maxX) / 2, (bd.minY + bd.maxY) / 2); setTimeout(() => focusBox(cx, cy, Math.max(bd.maxX - bd.minX, 300), Math.max(bd.maxY - bd.minY, 300), 1.8), 80); } else if (b) { setTimeout(() => focusBox(b.x + b.w / 2, b.y + b.h / 2, b.w, b.h, 1.7), 80); } } }
+  function openSectorHub(smId) { if (!sectorMapById(smId)) return; window.logEvent('sector_viewed', { area: state.areaId || null, sector: smId }); window.logEvent('sector_proof_clicked', { area: state.areaId || null, sector: smId }); Object.assign(state, { section: 'props', propView: 'sector', selectedId: null, sectorBlock: smId, previewId: null, activePinId: null }); builtSig = ''; render(); }
+  function showAreaContext(id) { const p = propById(id); window.logEvent('original_proof_clicked', { area: state.areaId || null, propertyId: id }); Object.assign(state, { section: 'master', mapMode: 'easy', showProps: true, selectedId: id, selectedIds: new Set([id]), itemOpen: false, previewId: id }); builtSig = ''; render(); if (p) { const b = blockById(p.blockId); if (b && hasGeo(b)) { const bd = pathBounds(GEO.paths[b.svgId]); const [cx, cy] = geoToLayer((bd.minX + bd.maxX) / 2, (bd.minY + bd.maxY) / 2); setTimeout(() => focusBox(cx, cy, Math.max(bd.maxX - bd.minX, 300), Math.max(bd.maxY - bd.minY, 300), 1.8), 80); } else if (b) { setTimeout(() => focusBox(b.x + b.w / 2, b.y + b.h / 2, b.w, b.h, 1.7), 80); } } }
   function openLightbox(idx) {
     let photos, name;
     if (state.section === 'props' && state.propView === 'detail') { photos = photosFor('property', state.selectedId, 4); name = 'Plot ' + (propById(state.selectedId) || {}).plotNumber; }

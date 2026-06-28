@@ -39,6 +39,8 @@ if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
     <a href="/admin/owner.html">Dealer Command</a>
     <a href="/admin/area-intelligence.html">Area Intelligence</a>
     <a href="/admin/finance.html" class="on">Finance Center</a>
+    <a href="/admin/reports.html">Reports</a>
+    <a href="/admin/access.html">Access</a>
     <a href="/app/plotmap/" target="_blank">Presentation Map</a>
   </nav>
   <div class="sp"></div>
@@ -71,6 +73,10 @@ if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
     <div class="pm-metric-card">
       <div class="val" id="f-deals">-</div>
       <div class="lbl">Deals Closed</div>
+    </div>
+    <div class="pm-metric-card">
+      <div class="val" id="f-avg">-</div>
+      <div class="lbl">Avg Commission</div>
     </div>
   </div>
   
@@ -155,33 +161,26 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('f-rec').innerText = fmtINR(fin.commissionReceived);
   document.getElementById('f-pen').innerText = fmtINR(fin.commissionPending);
   document.getElementById('f-deals').innerText = fin.dealsClosed;
+  document.getElementById('f-avg').innerText = fmtINR(fin.averageCommissionPerDeal);
   
-  // Fake "due this week" and "overdue" based on deal date for demo purposes
-  const now = Date.now();
-  let dueWeek = 0, overdue = 0;
-  data.deals.forEach(d => {
-    if(d.commissionPending > 0) {
-      const dt = new Date(d.dealDate).getTime();
-      if(now - dt > 86400000 * 30) overdue += Number(d.commissionPending); // Older than 30 days
-      else dueWeek += Number(d.commissionPending);
-    }
-  });
+  const overdue = (fin.deadMoneyAlerts || []).reduce((sum, deal) => sum + (Number(deal.commissionPending) || 0), 0);
+  const dueWeek = Math.max(0, (fin.recoveryQueue || []).reduce((sum, item) => sum + Number(item.amount || 0), 0) - overdue);
   document.getElementById('f-due-week').innerText = fmtINR(dueWeek);
   document.getElementById('f-due-over').innerText = fmtINR(overdue);
 
   const pendingDiv = document.getElementById('pending-deals');
-  const pd = data.deals.filter(d => d.commissionPending > 0);
+  const pd = fin.recoveryQueue || [];
   if(pd.length === 0) pendingDiv.innerHTML = '<div style="color:var(--pm-text-mut); padding:12px 0;">No pending commissions.</div>';
   else {
-    pendingDiv.innerHTML = pd.map(d => {
-      const c = data.clients.find(cl => cl.id === d.clientId);
+    pendingDiv.innerHTML = pd.map(item => {
+      const c = data.clients.find(cl => cl.id === item.clientId);
       return `
       <div class="fin-row">
         <div>
           <div style="font-weight:600">${c ? c.name : 'Unknown Client'}</div>
-          <div class="fin-sub">${d.area || '-'}</div>
+          <div class="fin-sub">${item.area || '-'} ${item.priority === 'high' ? '&bull; High priority' : ''}</div>
         </div>
-        <div class="fin-val" style="color:var(--pm-warn)">${fmtINR(d.commissionPending)}</div>
+        <div class="fin-val" style="color:var(--pm-warn)">${fmtINR(item.amount)}</div>
       </div>
       `;
     }).join('');
@@ -221,18 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   `).join('') || '<div style="color:var(--pm-text-mut)">No staff data.</div>';
 
-  // Type Rev
-  const typeRev = {};
-  data.deals.forEach(d => {
-    let type = d.dealType || 'Unknown';
-    if(d.propertyId) {
-      const p = data.properties.find(pr => pr.id === d.propertyId);
-      if(p && p.type) type = p.type;
-    }
-    if(!typeRev[type]) typeRev[type] = 0;
-    typeRev[type] += Number(d.commissionAmount)||0;
-  });
-  const tArr = Object.keys(typeRev).map(t => ({name: t, earned: typeRev[t]})).sort((a,b)=>b.earned-a.earned);
+  const tArr = fin.propertyTypeRevenue || [];
   document.getElementById('type-rev').innerHTML = tArr.map(t => `
     <div class="fin-row">
       <div style="font-weight:600">${t.name}</div>

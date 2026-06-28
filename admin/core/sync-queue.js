@@ -102,11 +102,47 @@
     });
   }
 
+  function renderStatusText(status) {
+    if (status.failedCount > 0) return `Sync failed: ${status.failedCount}`;
+    if (status.pendingCount > 0) return `Pending sync: ${status.pendingCount}`;
+    return 'Synced';
+  }
+
+  function mountSyncStatus(target) {
+    const mount = () => {
+      if (!/^\/admin\//i.test(location.pathname) || /\/admin\/index\.html$/i.test(location.pathname) || /\/admin\/access-expired\.html$/i.test(location.pathname)) return;
+      const bar = target || document.querySelector('.pm-topbar');
+      if (!bar || document.getElementById('pm-sync-mini')) return;
+      const badge = document.createElement('span');
+      badge.id = 'pm-sync-mini';
+      badge.className = 'role-badge';
+      badge.style.background = '#f7f5ef';
+      badge.style.color = '#5f6b7a';
+      badge.style.borderColor = 'var(--pm-border)';
+      const refresh = () => {
+        const status = getSyncStatus();
+        badge.textContent = renderStatusText(status);
+        badge.title = status.lastSyncedAt ? `Last synced ${new Date(status.lastSyncedAt).toLocaleString()}` : 'Local-first sync queue';
+      };
+      refresh();
+      const spacer = bar.querySelector('.sp');
+      if (spacer) bar.insertBefore(badge, spacer);
+      else bar.appendChild(badge);
+      window.addEventListener('storage', refresh);
+      setInterval(refresh, 5000);
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
+    else mount();
+  }
+
   window.PMSyncQueue = {
     enqueueSyncAction,
     getPendingSyncActions,
     markSyncActionSynced,
     markSyncActionFailed,
-    getSyncStatus
+    getSyncStatus,
+    mountSyncStatus
   };
+
+  mountSyncStatus();
 })();

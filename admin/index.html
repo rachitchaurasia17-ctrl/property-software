@@ -6,6 +6,10 @@
 <title>PlotMap Admin Gateway</title>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/admin/crm-ui.css">
+<script src="/admin/crm-data.js"></script>
+<script src="/admin/core/data-adapter.js"></script>
+<script src="/admin/core/sync-queue.js"></script>
+<script src="/admin/core/access-control.js"></script>
 </head>
 <body class="gw-body" style="margin:0;">
 
@@ -23,7 +27,7 @@
         <br><br>
         For the owner, property dealer, or business head.
       </div>
-      <button class="gw-role-btn">Enter Dealer Command →</button>
+      <button class="gw-role-btn">Enter Dealer Command -></button>
     </div>
 
     <div class="gw-role" onclick="loginAs('team')">
@@ -34,22 +38,38 @@
         <br><br>
         For staff, workers, and office team.
       </div>
-      <button class="gw-role-btn">Enter Team Workspace →</button>
+      <button class="gw-role-btn">Enter Team Workspace -></button>
     </div>
   </div>
 
-  <div class="gw-footer">PlotMap CRM · Roles are kept visually and functionally separate.</div>
+  <div class="gw-footer">
+    PlotMap CRM - Roles are kept visually and functionally separate.
+    <br>
+    <a id="manageAccessLink" href="/admin/access.html" style="display:none;margin-top:8px;">Manage Access</a>
+  </div>
 </div>
 
 <script>
-  function loginAs(role) {
+  function loginAs(role, target) {
     localStorage.setItem('plotmap_admin_role', role);
-    if (role === 'dealer') {
+    if (role === 'dealer' && target === 'access') {
+      window.location.href = '/admin/access.html';
+    } else if (role === 'dealer') {
       window.location.href = '/admin/owner.html';
     } else {
       window.location.href = '/admin/team.html';
     }
   }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const result = window.PMAccess && window.PMAccess.consumeAccessLinkFromUrl({ redirect: true });
+    if (result && !result.ok) {
+      window.location.href = '/admin/access-expired.html';
+      return;
+    }
+    const access = document.getElementById('manageAccessLink');
+    if (access && localStorage.getItem('plotmap_admin_role') === 'dealer') access.style.display = 'inline-block';
+  });
 </script>
 
 </body>

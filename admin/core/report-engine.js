@@ -65,6 +65,15 @@
     data.reports = data.reports.filter(item => !(item.dealerId === report.dealerId && item.reportType === 'daily' && item.reportDate === report.reportDate));
     data.reports.push(report);
     saveData(data);
+    if (window.PMSyncQueue) {
+      window.PMSyncQueue.enqueueSyncAction({
+        dealerId: report.dealerId,
+        entityType: 'reports',
+        entityId: report.id,
+        actionType: 'generate',
+        payload: report
+      });
+    }
     return report;
   }
 

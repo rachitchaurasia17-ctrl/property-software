@@ -382,26 +382,53 @@
     return link;
   }
 
-  function blockUser(userId) {
+  function revokeAccessLink(id) {
+    return updateAccessLink(id, { status: 'revoked' });
+  }
+
+  function expireAccessLink(id) {
+    return updateAccessLink(id, { status: 'expired', expiresAt: nowIso() });
+  }
+
+  function extendAccessLink(id, days) {
+    const data = getCRM();
+    const link = data.accessLinks.find(item => item.id === id);
+    if (!link) return null;
+    const base = new Date(link.expiresAt || Date.now()).getTime();
+    const start = Number.isFinite(base) && base > Date.now() ? base : Date.now();
+    link.expiresAt = new Date(start + Number(days || 7) * 86400000).toISOString();
+    link.status = 'active';
+    link.updatedAt = nowIso();
+    enqueueChange(data, 'accessLinks', id, 'extend', { expiresAt: link.expiresAt, status: link.status });
+    saveCRM(data);
+    return link;
+  }
+
+  function updateUserStatus(userId, status) {
     const data = getCRM();
     const user = data.users.find(item => item.id === userId);
     if (!user) return null;
-    user.status = 'blocked';
+    user.status = status || 'active';
     user.updatedAt = nowIso();
-    enqueueChange(data, 'users', userId, 'block', { status: 'blocked' });
+    enqueueChange(data, 'users', userId, 'status_update', { status: user.status });
     saveCRM(data);
     return user;
   }
 
+  function blockUser(userId) {
+    return updateUserStatus(userId, 'blocked');
+  }
+
+  function unblockUser(userId) {
+    return updateUserStatus(userId, 'active');
+  }
+
+  function expireUser(userId) {
+    return updateUserStatus(userId, 'expired');
+  }
+
   function removeUser(userId) {
-    const data = getCRM();
-    const user = data.users.find(item => item.id === userId);
-    if (!user) return null;
-    user.status = 'removed';
-    user.updatedAt = nowIso();
-    enqueueChange(data, 'users', userId, 'remove', { status: 'removed' });
-    saveCRM(data);
-    return user;
+    return updateUserStatus(userId, 'removed');
   }
 
   function extendTrial(dealerId, days) {
@@ -582,6 +609,7 @@
         commissionEarned: summary.commissionEarned,
         commissionReceived: summary.commissionReceived,
         commissionPending: summary.commissionPending,
+        averageCommissionPerDeal: summary.averageCommissionPerDeal,
         clientRevenue: summary.clientRevenue,
         staffRevenue: summary.staffRevenue,
         areaRevenue: summary.areaRevenue,
@@ -645,6 +673,7 @@
       commissionEarned,
       commissionReceived,
       commissionPending,
+      averageCommissionPerDeal: data.deals.length ? commissionEarned / data.deals.length : 0,
       clientRevenue: clientsWithRev,
       staffRevenue: staffWithRev,
       areaRevenue: areasWithRev
@@ -715,7 +744,8 @@
     computeOwnerInsights, computeAreaInsights, computeFinanceTotals,
     computeDealerCommandInsights,
     getPropertyReadiness,
-    createAccessLink, updateAccessLink, blockUser, removeUser, extendTrial,
+    createAccessLink, updateAccessLink, revokeAccessLink, expireAccessLink, extendAccessLink,
+    updateUserStatus, blockUser, unblockUser, expireUser, removeUser, extendTrial,
     generateDailyOwnerReport,
     getPublishedClientMapDrawings
   };
