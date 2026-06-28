@@ -1,9 +1,160 @@
 // CRM Store using LocalStorage
 (function() {
   const STORE_KEY = 'plotmap_crm_v1';
+  const DEFAULT_DEALER_ID = 'dealer-demo';
+  const DEFAULT_OWNER_ID = 'user-owner-demo';
+  const FOUNDATION_COLLECTIONS = [
+    'dealers', 'users', 'accessLinks', 'staff', 'areas', 'clients', 'properties',
+    'followups', 'siteVisits', 'deals', 'events', 'presentationEvents', 'reports',
+    'pins', 'mapDrawings', 'syncQueue'
+  ];
 
   function generateId(prefix) {
     return prefix + '-' + Math.random().toString(36).substr(2, 9);
+  }
+
+  function nowIso() {
+    return new Date().toISOString();
+  }
+
+  function firstDealerId(data) {
+    return (data.dealers && data.dealers[0] && data.dealers[0].id) || DEFAULT_DEALER_ID;
+  }
+
+  function ensureCollections(data) {
+    FOUNDATION_COLLECTIONS.forEach(k => {
+      if (!Array.isArray(data[k])) data[k] = [];
+    });
+    if (!data.syncMeta || typeof data.syncMeta !== 'object') {
+      data.syncMeta = { lastSyncedAt: null, pendingCount: 0, failedCount: 0, offlineGraceHours: 24 };
+    }
+  }
+
+  function ensureFoundationData(data) {
+    data = data || {};
+    ensureCollections(data);
+    const createdAt = nowIso();
+    if (!data.dealers.length) {
+      data.dealers.push({
+        id: DEFAULT_DEALER_ID,
+        name: 'Demo Dealer',
+        slug: 'demo-dealer',
+        businessName: 'PlotMap Demo Realty',
+        phone: '',
+        email: '',
+        status: 'trial',
+        trialStart: createdAt,
+        trialEnd: new Date(Date.now() + 14 * 86400000).toISOString(),
+        createdAt,
+        updatedAt: createdAt
+      });
+    }
+    if (!data.users.length) {
+      data.users.push({
+        id: DEFAULT_OWNER_ID,
+        dealerId: firstDealerId(data),
+        name: 'Owner',
+        phone: '',
+        email: '',
+        role: 'owner',
+        status: 'active',
+        lastAccessCheck: createdAt,
+        lastLogin: createdAt,
+        createdAt,
+        updatedAt: createdAt
+      });
+    }
+    if (!data.accessLinks.length) {
+      data.accessLinks.push({
+        id: 'link-demo-owner',
+        dealerId: firstDealerId(data),
+        createdBy: data.users[0].id,
+        token: 'demo-owner',
+        label: 'Demo Owner Trial',
+        roleAllowed: 'owner',
+        expiresAt: data.dealers[0].trialEnd,
+        maxUses: 100,
+        useCount: 0,
+        status: 'active',
+        createdAt,
+        updatedAt: createdAt
+      });
+    }
+    normalizeEntities(data);
+    data.syncMeta.pendingCount = data.syncQueue.filter(item => item.status === 'pending').length;
+    data.syncMeta.failedCount = data.syncQueue.filter(item => item.status === 'failed').length;
+    return data;
+  }
+
+  function normalizeEntities(data) {
+    const dealerId = firstDealerId(data);
+    data.clients.forEach(client => {
+      client.dealerId = client.dealerId || dealerId;
+      client.requirement = client.requirement || client.sizeRequirement || client.propertyType || '';
+      client.interestedSector = client.interestedSector || client.sector || '';
+      client.assignedStaff = client.assignedStaff || client.assignedStaffId || '';
+      client.notesInternal = client.notesInternal || client.notes || '';
+      client.createdAt = client.createdAt || new Date(client.lastActivityAt || Date.now()).toISOString();
+      client.updatedAt = client.updatedAt || client.createdAt;
+      client.syncStatus = client.syncStatus || 'synced';
+    });
+    data.properties.forEach(property => {
+      property.dealerId = property.dealerId || dealerId;
+      property.propertyCode = property.propertyCode || property.id;
+      property.block = property.block || property.sector || '';
+      property.propertyType = property.propertyType || property.type || '';
+      property.photos = Array.isArray(property.photos) ? property.photos : [];
+      property.photoStatus = property.photoStatus || (property.photos.length ? 'available' : 'missing');
+      property.proofMapStatus = property.proofMapStatus || (property.sectorMapId || property.sectorMapLink ? 'linked' : '');
+      property.masterMapId = property.masterMapId || property.originalMapLink || '';
+      property.sectorMapId = property.sectorMapId || property.sectorMapLink || '';
+      property.masterMapPosition = property.masterMapPosition || null;
+      property.sectorMapPosition = property.sectorMapPosition || null;
+      property.internalNotes = property.internalNotes || property.notes || '';
+      property.createdAt = property.createdAt || nowIso();
+      property.updatedAt = property.updatedAt || property.createdAt;
+      property.syncStatus = property.syncStatus || 'synced';
+    });
+    data.followups.forEach(item => {
+      item.dealerId = item.dealerId || dealerId;
+      item.dueDate = item.dueDate || item.dateTime || '';
+      item.assignedStaff = item.assignedStaff || item.assignedStaffId || '';
+      item.createdAt = item.createdAt || nowIso();
+      item.updatedAt = item.updatedAt || item.createdAt;
+      item.syncStatus = item.syncStatus || 'synced';
+    });
+    data.siteVisits.forEach(item => {
+      item.dealerId = item.dealerId || dealerId;
+      item.date = item.date || item.dateTime || '';
+      item.assignedStaff = item.assignedStaff || item.assignedStaffId || '';
+      item.createdAt = item.createdAt || nowIso();
+      item.updatedAt = item.updatedAt || item.createdAt;
+      item.syncStatus = item.syncStatus || 'synced';
+    });
+    data.deals.forEach(item => {
+      item.dealerId = item.dealerId || dealerId;
+      item.commissionExpected = Number(item.commissionExpected || item.commissionAmount || 0);
+      item.commissionReceived = Number(item.commissionReceived || 0);
+      item.commissionPending = Number(item.commissionPending || Math.max(0, item.commissionExpected - item.commissionReceived));
+      item.closedAt = item.closedAt || item.dealDate || '';
+      item.createdAt = item.createdAt || item.dealDate || nowIso();
+      item.updatedAt = item.updatedAt || item.createdAt;
+      item.syncStatus = item.syncStatus || 'synced';
+    });
+  }
+
+  function enqueueChange(data, entityType, entityId, actionType, payload) {
+    data.syncQueue.push({
+      id: generateId('sync'),
+      dealerId: firstDealerId(data),
+      entityType,
+      entityId,
+      actionType,
+      payload,
+      createdAt: nowIso(),
+      status: 'pending',
+      retryCount: 0
+    });
   }
 
   function loadCRM() {
@@ -18,7 +169,7 @@
 
   function saveCRM(data) {
     try {
-      localStorage.setItem(STORE_KEY, JSON.stringify(data));
+      localStorage.setItem(STORE_KEY, JSON.stringify(ensureFoundationData(data)));
     } catch (e) {
       console.error('Failed to save CRM data', e);
     }
@@ -28,25 +179,24 @@
     let data = loadCRM();
     if (!data) {
       data = JSON.parse(JSON.stringify(window.CRM_DEMO || {}));
-      saveCRM(data);
     }
-    // Ensure collections exist
-    ['staff', 'areas', 'clients', 'properties', 'followups', 'siteVisits', 'deals', 'events', 'pins', 'mapDrawings'].forEach(k => {
-      if (!data[k]) data[k] = [];
-    });
+    data = ensureFoundationData(data);
+    saveCRM(data);
     return data;
   }
 
   function resetCRMToDemo() {
-    const data = JSON.parse(JSON.stringify(window.CRM_DEMO || {}));
+    const data = ensureFoundationData(JSON.parse(JSON.stringify(window.CRM_DEMO || {})));
     saveCRM(data);
     return data;
   }
 
   function addClient(client) {
     const data = getCRM();
-    const newClient = { ...client, id: generateId('c'), lastActivityAt: Date.now(), demo: false };
+    const ts = nowIso();
+    const newClient = { ...client, id: generateId('c'), dealerId: firstDealerId(data), lastActivityAt: Date.now(), createdAt: ts, updatedAt: ts, syncStatus: 'pending', demo: false };
     data.clients.push(newClient);
+    enqueueChange(data, 'clients', newClient.id, 'create', newClient);
     saveCRM(data);
     logEvent('client_added', { clientId: newClient.id }, newClient.assignedStaff);
     return newClient;
@@ -58,6 +208,9 @@
     if (client) {
       client.status = status;
       client.lastActivityAt = Date.now();
+      client.updatedAt = nowIso();
+      client.syncStatus = 'pending';
+      enqueueChange(data, 'clients', clientId, 'update', { status });
       saveCRM(data);
       logEvent('client_status_changed', { clientId, status }, client.assignedStaff);
     }
@@ -65,8 +218,10 @@
 
   function addProperty(property) {
     const data = getCRM();
-    const newProp = { ...property, id: generateId('p'), internalStatus: property.internalStatus || 'Available', demo: false };
+    const ts = nowIso();
+    const newProp = { ...property, id: generateId('p'), dealerId: firstDealerId(data), internalStatus: property.internalStatus || 'Available', createdAt: ts, updatedAt: ts, syncStatus: 'pending', demo: false };
     data.properties.push(newProp);
+    enqueueChange(data, 'properties', newProp.id, 'create', newProp);
     saveCRM(data);
     logEvent('property_added', { propertyId: newProp.id }, null);
     return newProp;
@@ -77,6 +232,9 @@
     const prop = data.properties.find(p => p.id === propertyId);
     if (prop) {
       prop.internalStatus = 'Archived';
+      prop.updatedAt = nowIso();
+      prop.syncStatus = 'pending';
+      enqueueChange(data, 'properties', propertyId, 'archive', { internalStatus: 'Archived' });
       saveCRM(data);
       logEvent('property_archived', { propertyId }, null);
     }
@@ -84,8 +242,10 @@
 
   function addFollowup(followup) {
     const data = getCRM();
-    const newFw = { ...followup, id: generateId('f'), status: 'pending', demo: false };
+    const ts = nowIso();
+    const newFw = { ...followup, id: generateId('f'), dealerId: firstDealerId(data), status: followup.status || 'pending', dueDate: followup.dueDate || followup.dateTime || '', createdAt: ts, updatedAt: ts, syncStatus: 'pending', demo: false };
     data.followups.push(newFw);
+    enqueueChange(data, 'followups', newFw.id, 'create', newFw);
     saveCRM(data);
     logEvent('followup_created', { followupId: newFw.id, clientId: newFw.clientId }, newFw.assignedStaffId);
     return newFw;
@@ -96,6 +256,9 @@
     const fw = data.followups.find(f => f.id === followupId);
     if (fw) {
       fw.status = status;
+      fw.updatedAt = nowIso();
+      fw.syncStatus = 'pending';
+      enqueueChange(data, 'followups', followupId, 'update', { status });
       saveCRM(data);
       if (status === 'done') logEvent('followup_completed', { followupId, clientId: fw.clientId }, fw.assignedStaffId);
       if (status === 'missed') logEvent('followup_missed', { followupId, clientId: fw.clientId }, fw.assignedStaffId);
@@ -104,8 +267,10 @@
 
   function addSiteVisit(siteVisit) {
     const data = getCRM();
-    const newSv = { ...siteVisit, id: generateId('sv'), status: 'scheduled', demo: false };
+    const ts = nowIso();
+    const newSv = { ...siteVisit, id: generateId('sv'), dealerId: firstDealerId(data), status: siteVisit.status || 'scheduled', date: siteVisit.date || siteVisit.dateTime || '', createdAt: ts, updatedAt: ts, syncStatus: 'pending', demo: false };
     data.siteVisits.push(newSv);
+    enqueueChange(data, 'siteVisits', newSv.id, 'create', newSv);
     saveCRM(data);
     logEvent('site_visit_scheduled', { siteVisitId: newSv.id, clientId: newSv.clientId }, newSv.assignedStaffId);
     return newSv;
@@ -116,6 +281,9 @@
     const sv = data.siteVisits.find(s => s.id === siteVisitId);
     if (sv) {
       sv.status = status;
+      sv.updatedAt = nowIso();
+      sv.syncStatus = 'pending';
+      enqueueChange(data, 'siteVisits', siteVisitId, 'update', { status });
       saveCRM(data);
       if (status === 'completed') logEvent('site_visit_completed', { siteVisitId, clientId: sv.clientId }, sv.assignedStaffId);
     }
@@ -123,8 +291,12 @@
 
   function addDeal(deal) {
     const data = getCRM();
-    const newDeal = { ...deal, id: generateId('d'), dealDate: new Date().toISOString(), status: 'Closed', demo: false };
+    const ts = nowIso();
+    const expected = Number(deal.commissionExpected || deal.commissionAmount || 0);
+    const received = Number(deal.commissionReceived || 0);
+    const newDeal = { ...deal, id: generateId('d'), dealerId: firstDealerId(data), dealDate: ts, closedAt: ts, commissionExpected: expected, commissionAmount: expected, commissionReceived: received, commissionPending: Number(deal.commissionPending || Math.max(0, expected - received)), status: deal.status || 'Closed', createdAt: ts, updatedAt: ts, syncStatus: 'pending', demo: false };
     data.deals.push(newDeal);
+    enqueueChange(data, 'deals', newDeal.id, 'create', newDeal);
     saveCRM(data);
     logEvent('deal_closed', { dealId: newDeal.id, clientId: newDeal.clientId }, newDeal.staffId);
     if (newDeal.commissionAmount > 0) {
@@ -137,6 +309,7 @@
     const data = getCRM();
     const event = {
       id: generateId('evt'),
+      dealerId: firstDealerId(data),
       type,
       timestamp: Date.now(),
       staffId: staffId || 'unknown',
@@ -145,10 +318,128 @@
       area: meta.area || null,
       mapId: meta.mapId || null,
       metadata: meta,
+      createdAt: nowIso(),
+      syncStatus: 'pending',
       demo: false
     };
     data.events.push(event);
+    enqueueChange(data, 'events', event.id, 'create', event);
     saveCRM(data);
+  }
+
+  function getPropertyReadiness(property) {
+    if (window.PMCommandEngine && typeof window.PMCommandEngine.getPropertyReadiness === 'function') {
+      return window.PMCommandEngine.getPropertyReadiness(property);
+    }
+    const photosMissing = !Array.isArray(property.photos) || property.photos.length === 0 || property.photoStatus === 'missing';
+    const mapPinMissing = !property.mapPinStatus || /unpin|missing/i.test(property.mapPinStatus);
+    const sectorProofMissing = !property.sectorMapId && !property.sectorMapLink && !property.proofMapStatus;
+    const readyToPresent = !photosMissing && !mapPinMissing && !sectorProofMissing && !/archived|hold/i.test(property.internalStatus || '');
+    return {
+      propertyId: property.id,
+      photosMissing,
+      mapPinMissing,
+      sectorProofMissing,
+      readyToPresent,
+      needsReview: !readyToPresent
+    };
+  }
+
+  function createAccessLink(input) {
+    if (window.PMAccess && typeof window.PMAccess.createAccessLink === 'function') {
+      return window.PMAccess.createAccessLink(input);
+    }
+    const data = getCRM();
+    const ts = nowIso();
+    const link = {
+      id: generateId('link'),
+      dealerId: firstDealerId(data),
+      createdBy: DEFAULT_OWNER_ID,
+      token: generateId('trial'),
+      label: 'Trial Link',
+      roleAllowed: 'viewer',
+      expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(),
+      maxUses: 1,
+      useCount: 0,
+      status: 'active',
+      createdAt: ts,
+      updatedAt: ts,
+      ...(input || {})
+    };
+    data.accessLinks.push(link);
+    enqueueChange(data, 'accessLinks', link.id, 'create', link);
+    saveCRM(data);
+    return link;
+  }
+
+  function updateAccessLink(id, changes) {
+    const data = getCRM();
+    const link = data.accessLinks.find(item => item.id === id);
+    if (!link) return null;
+    Object.assign(link, changes || {}, { updatedAt: nowIso() });
+    enqueueChange(data, 'accessLinks', id, 'update', changes || {});
+    saveCRM(data);
+    return link;
+  }
+
+  function blockUser(userId) {
+    const data = getCRM();
+    const user = data.users.find(item => item.id === userId);
+    if (!user) return null;
+    user.status = 'blocked';
+    user.updatedAt = nowIso();
+    enqueueChange(data, 'users', userId, 'block', { status: 'blocked' });
+    saveCRM(data);
+    return user;
+  }
+
+  function removeUser(userId) {
+    const data = getCRM();
+    const user = data.users.find(item => item.id === userId);
+    if (!user) return null;
+    user.status = 'removed';
+    user.updatedAt = nowIso();
+    enqueueChange(data, 'users', userId, 'remove', { status: 'removed' });
+    saveCRM(data);
+    return user;
+  }
+
+  function extendTrial(dealerId, days) {
+    const data = getCRM();
+    const dealer = data.dealers.find(item => item.id === dealerId) || data.dealers[0];
+    if (!dealer) return null;
+    dealer.status = 'trial';
+    dealer.trialEnd = new Date(Date.now() + Number(days || 7) * 86400000).toISOString();
+    dealer.updatedAt = nowIso();
+    enqueueChange(data, 'dealers', dealer.id, 'extend_trial', { trialEnd: dealer.trialEnd });
+    saveCRM(data);
+    return dealer;
+  }
+
+  function computeDealerCommandInsights() {
+    const data = getCRM();
+    return window.PMCommandEngine ? window.PMCommandEngine.computeDealerCommandInsights(data) : computeOwnerInsights();
+  }
+
+  function generateDailyOwnerReport(dealerId, date) {
+    if (window.PMReportEngine && typeof window.PMReportEngine.generateDailyOwnerReport === 'function') {
+      return window.PMReportEngine.generateDailyOwnerReport(dealerId || firstDealerId(getCRM()), date);
+    }
+    const data = getCRM();
+    const report = {
+      id: generateId('rep'),
+      dealerId: dealerId || firstDealerId(data),
+      reportType: 'daily',
+      reportDate: date || new Date().toISOString().slice(0, 10),
+      summary: computeOwnerInsights().pulseText,
+      metricsJson: computeOwnerInsights(),
+      aiText: computeOwnerInsights().pulseText,
+      createdAt: nowIso(),
+      updatedAt: nowIso()
+    };
+    data.reports.push(report);
+    saveCRM(data);
+    return report;
   }
 
   // --- Insight Computations ---
@@ -283,6 +574,23 @@
 
   function computeFinanceTotals() {
     const data = getCRM();
+    if (window.PMFinanceEngine && typeof window.PMFinanceEngine.computeFinanceSummary === 'function') {
+      const summary = window.PMFinanceEngine.computeFinanceSummary(data);
+      return {
+        dealsClosed: summary.dealsClosed,
+        totalDealValue: summary.totalDealValue,
+        commissionEarned: summary.commissionEarned,
+        commissionReceived: summary.commissionReceived,
+        commissionPending: summary.commissionPending,
+        clientRevenue: summary.clientRevenue,
+        staffRevenue: summary.staffRevenue,
+        areaRevenue: summary.areaRevenue,
+        propertyTypeRevenue: summary.propertyTypeRevenue,
+        recoveryQueue: summary.recoveryQueue,
+        deadMoneyAlerts: summary.deadMoneyAlerts,
+        pendingCommissionAging: summary.pendingCommissionAging
+      };
+    }
     let totalDealValue = 0, commissionEarned = 0, commissionReceived = 0, commissionPending = 0;
     
     const clientRev = {};
@@ -405,6 +713,10 @@
     addDeal,
     logEvent,
     computeOwnerInsights, computeAreaInsights, computeFinanceTotals,
+    computeDealerCommandInsights,
+    getPropertyReadiness,
+    createAccessLink, updateAccessLink, blockUser, removeUser, extendTrial,
+    generateDailyOwnerReport,
     getPublishedClientMapDrawings
   };
 })();

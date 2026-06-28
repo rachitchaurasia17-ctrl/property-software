@@ -540,3 +540,87 @@ Proceed to the next major phase as instructed by the user.
 
 ### Exact Next Step
 Move to the next requested phase; do not mix this completed Phase 4B work with Owner or Finance polish.
+
+## System Foundation - Access, Data, Reports, Finance, Offline-Ready
+
+### Files Added
+- `admin/core/data-adapter.js`
+- `admin/core/access-control.js`
+- `admin/core/event-tracker.js`
+- `admin/core/report-engine.js`
+- `admin/core/finance-engine.js`
+- `admin/core/command-engine.js`
+- `admin/core/sync-queue.js`
+
+### Files Changed
+- `admin/crm-data.js`
+- `admin/crm-store.js`
+- `admin/owner.html`
+- `admin/area-intelligence.html`
+- `admin/finance.html`
+- `admin/team.html`
+- `admin/clients.html`
+- `admin/properties.html`
+- `admin/followups.html`
+- `admin/site-visits.html`
+- `admin/deals.html`
+- `admin/map-studio.html`
+- `app/plotmap/index.html`
+- `app/plotmap/app.js`
+
+### What Remains Demo/Local
+- CRM data still persists in `localStorage` under `plotmap_crm_v1`.
+- Dealer, user, trial link, report, presentation event, and sync queue records are local/demo structures for now.
+- Existing admin pages keep their current layouts and continue using local/demo data.
+
+### Backend-Ready Structure
+- Added a central data adapter for local-first reads/writes and future backend replacement.
+- `crm-store.js` now normalizes current records into dealer-scoped models with `dealerId`, timestamps, and `syncStatus` fields.
+- Seed data now includes `dealers`, `users`, `accessLinks`, `presentationEvents`, `reports`, `syncQueue`, and `syncMeta`.
+- Store write helpers enqueue entity actions so a backend sync layer can later consume them.
+
+### Offline-Ready Status
+- Added lightweight sync queue helpers: enqueue, pending list, mark synced, mark failed, and sync status.
+- Added `syncMeta` with `lastSyncedAt`, pending/failed counts, and `offlineGraceHours`.
+- This is not full offline sync: no conflict resolution, multi-device merge, asset caching, or PWA behavior yet.
+
+### Access Control + Trial Status
+- Added role/trial/block helper layer in `admin/core/access-control.js`.
+- Dealer pages are guarded as owner routes; team pages are guarded as team routes.
+- Access can block suspended/expired dealers, blocked/expired/removed users, and stale offline access checks after grace.
+- Free trial link helpers exist for create/update/revoke-style workflows, but no new UI was added.
+
+### CRM + Inventory Foundation
+- Existing clients, properties, follow-ups, site visits, and deals are normalized without breaking old field names.
+- Property readiness helper now reports missing photos, map pin, sector proof, ready-to-present, and needs-review status.
+- Map integration remains data-only through placeholder fields; no geometry or UI map work was done.
+
+### Finance Engine Status
+- Added finance calculations for total deal value, commission earned/received/pending, recovery queue, high-value clients, revenue by client/area/staff/type, average commission, aging, quality scores, expected cash-in timeline, and money leak placeholders.
+- Existing `CRM.computeFinanceTotals()` delegates to the new engine when loaded and falls back to old behavior otherwise.
+
+### Command + Report Engine Status
+- Added Dealer Command calculations for business pulse, call-first clients, silent clients, business leaks, area movement, inventory signals, client movement, map activity placeholders, team movement, and money pending shortcut.
+- Added deterministic daily owner report generation and storage in `reports`.
+- No AI API dependency was introduced.
+
+### Presentation Tracking Status
+- Added safe `trackPresentationEvent()` foundation with local persistence and sync queue integration.
+- Presentation Mode now tracks `presentation_opened`, selected map items, and sector views without showing anything in UI.
+- Payload sanitization strips unsafe/internal fields before saving presentation events.
+
+### Map + Design Deferral
+- No UI redesign was done.
+- No new design system, colors, components, or layout rebuilds were added.
+- No map geometry, sector alignment, drawing UI, pin rendering, or A/B/C/D map integration work was done in this phase.
+
+### Verification
+- `node --check admin/crm-data.js` passed.
+- `node --check admin/crm-store.js` passed.
+- `node --check app/plotmap/app.js` passed.
+- `node --check admin/core/*.js` passed for all new core modules.
+- `node tools/audit-plotmap.js` passed.
+- Runtime smoke test loaded all core modules with fake browser storage and verified access, finance, command, report, readiness, access-link, event, and sync queue outputs.
+
+### Exact Next Step
+After Claude Design finishes the premium screens, apply the final visual design on top of this foundation without changing the data/access/report contracts unless a backend migration phase explicitly requires it.

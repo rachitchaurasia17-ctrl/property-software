@@ -7,10 +7,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/admin/crm-ui.css">
 <script src="/admin/crm-data.js"></script>
+<script src="/admin/core/data-adapter.js"></script>
+<script src="/admin/core/sync-queue.js"></script>
+<script src="/admin/core/finance-engine.js"></script>
+<script src="/admin/core/command-engine.js"></script>
+<script src="/admin/core/report-engine.js"></script>
+<script src="/admin/core/event-tracker.js"></script>
+<script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
 <script>
 if (localStorage.getItem('plotmap_admin_role') !== 'team') {
   window.location.href = '/admin/index.html';
+} else if (window.PMAccess) {
+  window.PMAccess.guardPage({ roleRequired: 'team' });
 }
 </script>
 </head>

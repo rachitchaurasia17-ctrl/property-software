@@ -1,5 +1,29 @@
 // Realistic Tricity demo data
 window.CRM_DEMO = {
+  dealers: [
+    {
+      id: 'dealer-demo',
+      name: 'Demo Dealer',
+      slug: 'demo-dealer',
+      businessName: 'PlotMap Demo Realty',
+      phone: '9876500000',
+      email: 'owner@plotmap.demo',
+      status: 'trial',
+      trialStart: new Date(Date.now() - 86400000).toISOString(),
+      trialEnd: new Date(Date.now() + 14 * 86400000).toISOString(),
+      createdAt: new Date(Date.now() - 86400000).toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+  ],
+  users: [
+    { id: 'user-owner-demo', dealerId: 'dealer-demo', name: 'Owner', phone: '9876500000', email: 'owner@plotmap.demo', role: 'owner', status: 'active', lastAccessCheck: new Date().toISOString(), lastLogin: new Date().toISOString(), createdAt: new Date(Date.now() - 86400000).toISOString(), updatedAt: new Date().toISOString() },
+    { id: 's1', dealerId: 'dealer-demo', name: 'Amit', phone: '', email: '', role: 'team', status: 'active', lastAccessCheck: new Date().toISOString(), lastLogin: new Date().toISOString(), createdAt: new Date(Date.now() - 86400000).toISOString(), updatedAt: new Date().toISOString() },
+    { id: 's2', dealerId: 'dealer-demo', name: 'Sonia', phone: '', email: '', role: 'team', status: 'active', lastAccessCheck: new Date().toISOString(), lastLogin: new Date().toISOString(), createdAt: new Date(Date.now() - 86400000).toISOString(), updatedAt: new Date().toISOString() },
+    { id: 's3', dealerId: 'dealer-demo', name: 'Raj', phone: '', email: '', role: 'team', status: 'active', lastAccessCheck: new Date().toISOString(), lastLogin: new Date().toISOString(), createdAt: new Date(Date.now() - 86400000).toISOString(), updatedAt: new Date().toISOString() }
+  ],
+  accessLinks: [
+    { id: 'link-demo-owner', dealerId: 'dealer-demo', createdBy: 'user-owner-demo', token: 'demo-owner', label: 'Demo Owner Trial', roleAllowed: 'owner', expiresAt: new Date(Date.now() + 14 * 86400000).toISOString(), maxUses: 100, useCount: 0, status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+  ],
   staff: [
     { id: 's1', name: 'Amit', role: 'team' },
     { id: 's2', name: 'Sonia', role: 'team' },
@@ -59,5 +83,14 @@ window.CRM_DEMO = {
     { id: 'md2', kind: 'sectorTag', title: 'Block B Master', city: 'Aerocity', mapType: 'original', mapId: 'tricity-aerotropolis', points: [{x:45,y:30},{x:55,y:30},{x:55,y:40},{x:45,y:40}], visibility: 'public', status: 'Published', group: 'B', linkedSectorMapId: '', demo: true },
     { id: 'md3', kind: 'road', title: 'Airport Link Road', city: 'Aerocity', mapType: 'original', mapId: 'tricity-aerotropolis', points: [{x:20,y:80},{x:80,y:80}], visibility: 'public', status: 'Published', type: 'expressway', demo: true },
     { id: 'md4', kind: 'block', title: 'Premium Pocket', city: 'Aerocity', mapType: 'original', mapId: 'tricity-aerotropolis', points: [{x:60,y:60},{x:70,y:60},{x:70,y:70},{x:60,y:70}], visibility: 'public', status: 'Published', demo: true }
-  ]
+  ],
+  presentationEvents: [],
+  reports: [],
+  syncQueue: [],
+  syncMeta: {
+    lastSyncedAt: null,
+    pendingCount: 0,
+    failedCount: 0,
+    offlineGraceHours: 24
+  }
 };
