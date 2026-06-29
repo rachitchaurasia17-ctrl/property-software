@@ -53,8 +53,8 @@
 
   --pm-radius: 13px;
   --pm-radius-sm: 10px;
-  --pm-radius-md: 16px;
-  --pm-radius-lg: 20px;
+  --pm-radius-md: 18px;
+  --pm-radius-lg: 22px;
   --pm-radius-xl: 24px;
   --pm-radius-pill: 999px;
 
@@ -287,14 +287,14 @@ img { max-width: 100%; display: block; }
   background: var(--pm-bg-card);
   border: 1px solid var(--pm-border);
   border-radius: var(--pm-radius-lg);
-  padding: 20px 22px;
+  padding: 24px 26px;
 }
 
 .pm-card-xl {
   background: var(--pm-bg-card);
   border: 1px solid var(--pm-border);
   border-radius: var(--pm-radius-xl);
-  padding: 22px 24px;
+  padding: 26px 28px;
 }
 
 .pm-card-h {
@@ -430,13 +430,27 @@ img { max-width: 100%; display: block; }
   line-height: 1.25;
 }
 
+/* ── Client Card ── */
+.pm-client-card {
+  background: var(--pm-bg-warm);
+  border: 1px solid var(--pm-border);
+  border-radius: var(--pm-radius-md);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  transition: border-color var(--pm-transition);
+  text-decoration: none;
+  color: inherit;
+  text-align: left;
+}
+
 /* ═══════════════════════════════════════
    GRIDS
    ═══════════════════════════════════════ */
 
 .pm-grid {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 .pm-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
@@ -446,8 +460,8 @@ img { max-width: 100%; display: block; }
 .pm-grid.cols-6 { grid-template-columns: repeat(6, 1fr); }
 .pm-grid.cols-8 { grid-template-columns: repeat(8, 1fr); }
 
-.pm-grid.sidebar-right { grid-template-columns: 1.55fr 1fr; gap: 18px; }
-.pm-grid.sidebar-left { grid-template-columns: 1fr 1.55fr; gap: 18px; }
+.pm-grid.sidebar-right { grid-template-columns: 1.55fr 1fr; gap: 16px; }
+.pm-grid.sidebar-left { grid-template-columns: 1fr 1.55fr; gap: 16px; }
 .pm-grid.wide-left { grid-template-columns: 1.4fr 1fr; gap: 16px; }
 .pm-grid.content-3 { grid-template-columns: 1fr 1fr 1.2fr; gap: 16px; }
 
@@ -826,6 +840,15 @@ img { max-width: 100%; display: block; }
 .pm-prop-card:hover {
   border-color: var(--pm-border-dark);
   transform: translateY(-2px);
+}
+
+.pm-prop-photo {
+  height: 84px;
+  border-radius: 13px;
+  background: linear-gradient(140deg, #E6DECF, #D2C8B4);
+  background-size: cover;
+  background-position: center;
+  position: relative;
 }
 
 .pm-prop-card .hero {
