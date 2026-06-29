@@ -10,83 +10,99 @@
 <style>
   * { box-sizing:border-box; }
   html, body { margin:0; padding:0; }
-  body { background:#0C100E; font-family:'Plus Jakarta Sans',system-ui,sans-serif; -webkit-font-smoothing:antialiased; color:#1C1E1B; }
+  body { background:#F5EFE2; font-family:'Plus Jakarta Sans',system-ui,sans-serif; -webkit-font-smoothing:antialiased; color:#1C1E1B; }
   ::selection { background:#CFE2D7; color:#13402F; }
   button { font-family:inherit; }
   .pm-serif { font-family:'Fraunces',serif; }
+  .door-card {
+    text-align:left; cursor:pointer; background:#FFFDF8; border:1px solid #E8DFC9; border-radius:20px;
+    padding:24px 22px 22px; display:flex; flex-direction:column; min-height:184px;
+    box-shadow:0 2px 4px rgba(120,90,30,.04), 0 16px 36px rgba(120,90,30,.07);
+    transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  .door-card:hover {
+    transform:translateY(-4px);
+    box-shadow:0 10px 22px rgba(120,90,30,.1), 0 28px 56px rgba(120,90,30,.15);
+  }
 </style>
 </head>
 <body>
 
-<div style="height:100vh; display:flex; flex-direction:column; background:#0C100E; overflow:hidden;">
-  <section data-screen-label="Landing" style="position:absolute; inset:0; overflow:auto; background:#0C100E;">
-    <div style="position:absolute; inset:0; background:radial-gradient(120% 80% at 50% -10%, #15201A 0%, #0E1311 46%, #090C0A 100%);"></div>
-    <div style="position:absolute; left:50%; top:-180px; transform:translateX(-50%); width:760px; height:520px; border-radius:50%; background:radial-gradient(circle, rgba(198,160,98,0.16), transparent 62%);"></div>
-    <div style="position:absolute; left:0; right:0; bottom:0; height:1px; background:linear-gradient(90deg,transparent,rgba(198,160,98,.3),transparent);"></div>
+<div style="height:100vh; display:flex; flex-direction:column; background:#F5EFE2; overflow:hidden;">
+  <section data-screen-label="Landing" style="position:absolute; inset:0; overflow:auto; background:#F5EFE2;">
+    <div style="position:absolute; inset:0; background:radial-gradient(120% 82% at 50% -8%, #FCF8EF 0%, #F4EDDE 46%, #ECE3CF 100%);"></div>
+    <div style="position:absolute; left:50%; top:-170px; transform:translateX(-50%); width:860px; height:560px; border-radius:50%; background:radial-gradient(circle, rgba(193,150,74,0.20), transparent 64%);"></div>
+    <div style="position:absolute; left:50%; top:30%; transform:translateX(-50%); width:560px; height:380px; border-radius:50%; background:radial-gradient(circle, rgba(31,94,71,0.08), transparent 66%);"></div>
+    <div style="position:absolute; left:0; right:0; top:0; height:3px; background:linear-gradient(90deg,transparent,rgba(168,124,61,.6),transparent);"></div>
 
     <div style="position:relative; min-height:100%; max-width:1080px; margin:0 auto; padding:32px 48px 40px; display:flex; flex-direction:column;">
-      
+
       <!-- top bar -->
       <div style="display:flex; align-items:center; justify-content:space-between; flex:none;">
-        <div style="display:flex; align-items:center; gap:9px; color:#8A9A90; font-size:12px; letter-spacing:0.2em; font-weight:600;"><span style="width:7px; height:7px; border-radius:50%; background:#5FB58C;"></span>TRICITY · LIVE</div>
+        <div style="display:flex; align-items:center; gap:9px; color:#5C7A6B; font-size:12px; letter-spacing:0.2em; font-weight:700;"><span style="width:7px; height:7px; border-radius:50%; background:#2E8B66; box-shadow:0 0 0 4px rgba(46,139,102,.16);"></span>TRICITY · LIVE</div>
         <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-size:11px; letter-spacing:0.16em; color:#6E7C73;">POWERED BY</span>
-          <span style="width:13px; height:13px; border-radius:50%; border:2.5px solid #4F9C77;"></span>
-          <span style="font-size:14px; font-weight:800; letter-spacing:-0.01em; color:#DCE6E0;">PlotMap</span>
+          <span style="font-size:11px; letter-spacing:0.16em; color:#9A8C6E;">POWERED BY</span>
+          <span style="width:13px; height:13px; border-radius:50%; border:2.5px solid #1F5E47;"></span>
+          <span style="font-size:14px; font-weight:800; letter-spacing:-0.01em; color:#1C2B22;">PlotMap</span>
         </div>
       </div>
 
       <!-- centered brand -->
       <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
-        <div style="width:72px; height:72px; border-radius:20px; border:1px solid rgba(198,160,98,.4); background:linear-gradient(155deg,#16201A,#0E1512); display:flex; align-items:center; justify-content:center; box-shadow:0 16px 44px rgba(0,0,0,.4); margin-bottom:30px;">
-          <div style="width:26px; height:26px; border-radius:50%; border:3px solid #D8B576;"></div>
+        <div style="width:78px; height:78px; border-radius:22px; border:1px solid rgba(168,124,61,.5); background:linear-gradient(155deg,#FFFCF4,#F1E7D0); display:flex; align-items:center; justify-content:center; box-shadow:0 20px 44px rgba(120,90,30,.18), inset 0 1px 0 rgba(255,255,255,.7); margin-bottom:30px;">
+          <div style="width:28px; height:28px; border-radius:50%; border:3px solid #1F5E47;"></div>
         </div>
-        <h1 class="pm-serif" style="font-weight:500; font-size:74px; line-height:1; letter-spacing:0.04em; margin:0; color:#F4EFE6;">GANAPATI</h1>
-        <div class="pm-serif" style="font-weight:400; font-size:26px; letter-spacing:0.52em; margin:14px 0 0; padding-left:0.52em; color:#C9A35F;">PROPERTY</div>
+        <h1 class="pm-serif" style="font-weight:500; font-size:78px; line-height:1; letter-spacing:0.04em; margin:0; color:#15281F;">GANAPATI</h1>
+        <div class="pm-serif" style="font-weight:400; font-size:26px; letter-spacing:0.52em; margin:14px 0 0; padding-left:0.52em; color:#A87C3D;">PROPERTY</div>
         <div style="display:flex; align-items:center; gap:14px; margin:30px 0 0;">
-          <span style="height:1px; width:44px; background:linear-gradient(90deg,transparent,rgba(198,160,98,.6));"></span>
-          <span style="font-size:11.5px; letter-spacing:0.34em; color:#8A9A90; font-weight:600;">ESTD · TRICITY · SINCE 2009</span>
-          <span style="height:1px; width:44px; background:linear-gradient(90deg,rgba(198,160,98,.6),transparent);"></span>
+          <span style="height:1px; width:44px; background:linear-gradient(90deg,transparent,rgba(168,124,61,.7));"></span>
+          <span style="font-size:11.5px; letter-spacing:0.34em; color:#8A7C60; font-weight:700;">ESTD · TRICITY · SINCE 2009</span>
+          <span style="height:1px; width:44px; background:linear-gradient(90deg,rgba(168,124,61,.7),transparent);"></span>
         </div>
-        <p style="font-size:17.5px; line-height:1.6; color:#9FB0A6; max-width:48ch; margin:26px 0 0;">The whole property business — presented on a living map, run from one calm, premium command system.</p>
+        <p style="font-size:17.5px; line-height:1.6; color:#5F6B61; max-width:48ch; margin:26px 0 0;">The whole property business — presented on a living map, run from one calm, premium command system.</p>
       </div>
 
       <!-- entry options -->
-      <div style="flex:none; display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:40px;">
+      <div style="flex:none; display:grid; grid-template-columns:repeat(3,1fr); gap:14px;">
+
         <!-- Option 1: Client Presentation -->
-        <button onclick="loginAs('presentation')" style="text-align:left; cursor:pointer; background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.1); border-radius:18px; padding:22px 22px 20px; display:flex; flex-direction:column; min-height:150px; transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,.05)'; this.style.borderColor='rgba(95,227,198,.6)';" onmouseout="this.style.background='rgba(255,255,255,.025)'; this.style.borderColor='rgba(255,255,255,.1)';">
+        <button onclick="loginAs('presentation')" class="door-card" style="--accent:#1F5E47;" onmouseover="this.style.borderColor='#1F5E47';" onmouseout="this.style.borderColor='#E8DFC9';">
           <div style="display:flex; align-items:center; justify-content:space-between;">
-            <div style="width:40px; height:40px; border-radius:12px; background:rgba(255,255,255,.06); border:1px solid rgba(95,227,198,.6); color:#7FE8CE; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800;">◑</div>
-            <span class="pm-serif" style="font-size:14px; color:rgba(255,255,255,.32);">01</span>
+            <div style="width:46px; height:46px; border-radius:14px; background:#E7F0EB; color:#1F5E47; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800;">◑</div>
+            <span class="pm-serif" style="font-size:15px; color:#C8BFA8;">01</span>
           </div>
-          <div style="font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase; color:#7FE8CE; font-weight:700; margin-top:18px;">For your client</div>
-          <div class="pm-serif" style="font-size:23px; font-weight:500; letter-spacing:-0.01em; color:#F4EFE6; margin-top:4px;">Client Presentation</div>
-          <div style="display:flex; align-items:center; gap:7px; margin-top:14px; font-size:13.5px; font-weight:700; color:#7FE8CE;">Start presenting <span style="font-size:15px;">→</span></div>
+          <div style="font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase; color:#1F5E47; font-weight:700; margin-top:20px;">For your client</div>
+          <div class="pm-serif" style="font-size:24px; font-weight:500; letter-spacing:-0.01em; color:#1C2B22; margin-top:5px;">Client Presentation</div>
+          <div style="font-size:13px; color:#6B7268; line-height:1.5; margin-top:8px;">Walk a buyer through any property, sector and location on a beautiful live map.</div>
+          <div style="display:flex; align-items:center; gap:7px; margin-top:auto; padding-top:16px; font-size:13.5px; font-weight:700; color:#1F5E47;">Start presenting <span style="font-size:15px;">→</span></div>
         </button>
 
         <!-- Option 2: Dealer Login -->
-        <button onclick="loginAs('dealer')" style="text-align:left; cursor:pointer; background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.1); border-radius:18px; padding:22px 22px 20px; display:flex; flex-direction:column; min-height:150px; transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,.05)'; this.style.borderColor='rgba(255,217,160,.6)';" onmouseout="this.style.background='rgba(255,255,255,.025)'; this.style.borderColor='rgba(255,255,255,.1)';">
+        <button onclick="loginAs('dealer')" class="door-card" style="--accent:#A87C3D;" onmouseover="this.style.borderColor='#A87C3D';" onmouseout="this.style.borderColor='#E8DFC9';">
           <div style="display:flex; align-items:center; justify-content:space-between;">
-            <div style="width:40px; height:40px; border-radius:12px; background:rgba(255,255,255,.06); border:1px solid rgba(255,217,160,.6); color:#FFD9A0; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800;">◆</div>
-            <span class="pm-serif" style="font-size:14px; color:rgba(255,255,255,.32);">02</span>
+            <div style="width:46px; height:46px; border-radius:14px; background:#F6ECD8; color:#A87C3D; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800;">◆</div>
+            <span class="pm-serif" style="font-size:15px; color:#C8BFA8;">02</span>
           </div>
-          <div style="font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase; color:#FFD9A0; font-weight:700; margin-top:18px;">For the owner</div>
-          <div class="pm-serif" style="font-size:23px; font-weight:500; letter-spacing:-0.01em; color:#F4EFE6; margin-top:4px;">Dealer Login</div>
-          <div style="display:flex; align-items:center; gap:7px; margin-top:14px; font-size:13.5px; font-weight:700; color:#FFD9A0;">Enter command <span style="font-size:15px;">→</span></div>
+          <div style="font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase; color:#A87C3D; font-weight:700; margin-top:20px;">For the owner</div>
+          <div class="pm-serif" style="font-size:24px; font-weight:500; letter-spacing:-0.01em; color:#1C2B22; margin-top:5px;">Dealer Login</div>
+          <div style="font-size:13px; color:#6B7268; line-height:1.5; margin-top:8px;">Your command room — business signals, client movement and all the money in one calm place.</div>
+          <div style="display:flex; align-items:center; gap:7px; margin-top:auto; padding-top:16px; font-size:13.5px; font-weight:700; color:#A87C3D;">Enter command <span style="font-size:15px;">→</span></div>
         </button>
 
         <!-- Option 3: Team Login -->
-        <button onclick="loginAs('team')" style="text-align:left; cursor:pointer; background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.1); border-radius:18px; padding:22px 22px 20px; display:flex; flex-direction:column; min-height:150px; transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,.05)'; this.style.borderColor='rgba(168,150,255,.6)';" onmouseout="this.style.background='rgba(255,255,255,.025)'; this.style.borderColor='rgba(255,255,255,.1)';">
+        <button onclick="loginAs('team')" class="door-card" style="--accent:#3E6E96;" onmouseover="this.style.borderColor='#3E6E96';" onmouseout="this.style.borderColor='#E8DFC9';">
           <div style="display:flex; align-items:center; justify-content:space-between;">
-            <div style="width:40px; height:40px; border-radius:12px; background:rgba(255,255,255,.06); border:1px solid rgba(168,150,255,.6); color:#C0B0FF; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800;">◐</div>
-            <span class="pm-serif" style="font-size:14px; color:rgba(255,255,255,.32);">03</span>
+            <div style="width:46px; height:46px; border-radius:14px; background:#E9EFF4; color:#3E6E96; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800;">◐</div>
+            <span class="pm-serif" style="font-size:15px; color:#C8BFA8;">03</span>
           </div>
-          <div style="font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase; color:#C0B0FF; font-weight:700; margin-top:18px;">For your team</div>
-          <div class="pm-serif" style="font-size:23px; font-weight:500; letter-spacing:-0.01em; color:#F4EFE6; margin-top:4px;">Team Login</div>
-          <div style="display:flex; align-items:center; gap:7px; margin-top:14px; font-size:13.5px; font-weight:700; color:#C0B0FF;">Open workspace <span style="font-size:15px;">→</span></div>
+          <div style="font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase; color:#3E6E96; font-weight:700; margin-top:20px;">For your team</div>
+          <div class="pm-serif" style="font-size:24px; font-weight:500; letter-spacing:-0.01em; color:#1C2B22; margin-top:5px;">Team Login</div>
+          <div style="font-size:13px; color:#6B7268; line-height:1.5; margin-top:8px;">The daily work table — add clients and properties, schedule visits and mark maps.</div>
+          <div style="display:flex; align-items:center; gap:7px; margin-top:auto; padding-top:16px; font-size:13.5px; font-weight:700; color:#3E6E96;">Open workspace <span style="font-size:15px;">→</span></div>
         </button>
+
       </div>
-      
+
     </div>
   </section>
 </div>

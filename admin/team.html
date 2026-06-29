@@ -50,13 +50,13 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
   </div>
 
   <!-- Stat cards -->
-  <div class="pm-grid cols-2" style="margin-bottom:18px;" id="stat-cards">
+  <div class="pm-grid cols-2" style="margin-bottom:20px;" id="stat-cards">
     <!-- JS -->
   </div>
 
   <!-- Quick Actions -->
   <div style="margin-bottom:18px;">
-    <div style="font-size:18px;font-weight:800;margin-bottom:12px;">Quick actions</div>
+    <div style="font-size:20px;font-weight:800;margin-bottom:14px;">Quick actions</div>
     <div class="pm-grid cols-3">
       <a href="/admin/clients.html" class="pm-action-card">
         <div class="ic" style="background:#E7F0EB;color:var(--pm-emerald);">👤</div>
@@ -155,18 +155,18 @@ document.addEventListener('DOMContentLoaded', () => {
     { k: 'Clients added', v: todayClients, c: 'var(--pm-emerald)' },
     { k: 'Properties added', v: todayProps, c: 'var(--pm-gold)' }
   ].map(s => `
-    <div class="pm-stat-card">
-      <div class="stat-label"><span>${s.k}</span></div>
-      <div class="stat-val" style="color:${s.c};">${s.v}</div>
+    <div style="background:#fff;border:1px solid var(--pm-border);border-radius:22px;padding:24px 26px;box-shadow:0 1px 2px rgba(20,18,12,.03), 0 12px 26px rgba(40,32,15,.04);">
+      <div style="font-size:14px;color:var(--pm-text-sec);font-weight:600;">${s.k}</div>
+      <div class="pm-serif" style="font-size:46px;font-weight:500;letter-spacing:-0.01em;margin-top:12px;line-height:1;color:${s.c};">${s.v}</div>
     </div>
   `).join('');
 
   // Recent clients
   const rcTbody = document.querySelector('#recent-clients tbody');
   const recent = [...data.clients].sort((a, b) => {
-    const ta = a.lastActivityAt || a.createdAt || '';
-    const tb = b.lastActivityAt || b.createdAt || '';
-    return tb.localeCompare(ta);
+    const ta = a.lastActivityAt || a.createdAt || 0;
+    const tb = b.lastActivityAt || b.createdAt || 0;
+    return (typeof tb === 'string' ? tb : String(tb)).localeCompare(typeof ta === 'string' ? ta : String(ta));
   }).slice(0, 5);
 
   function sc(s) {
