@@ -9,7 +9,6 @@
     { "src": "admin/**", "use": "@vercel/static" }
   ],
   "routes": [
-    { "src": "/", "status": 307, "headers": { "Location": "/app/plotmap/" } },
     { "handle": "filesystem" }
   ]
 }
