@@ -1,0 +1,1525 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+  * { box-sizing:border-box; }
+  html, body { margin:0; padding:0; }
+  body { background:#F3F1EB; font-family:'Plus Jakarta Sans',system-ui,sans-serif; -webkit-font-smoothing:antialiased; color:#1C1E1B; }
+  ::selection { background:#CFE2D7; color:#13402F; }
+  ::-webkit-scrollbar { width:11px; height:11px; }
+  ::-webkit-scrollbar-thumb { background:#D8D3C8; border-radius:9px; border:3px solid #F3F1EB; }
+  button { font-family:inherit; }
+  .pm-serif { font-family:'Fraunces',serif; }
+  .pm-tab { font-variant-numeric:tabular-nums; font-feature-settings:'tnum'; }
+  @keyframes pmPulse { 0%,100% { box-shadow:0 0 0 0 rgba(31,94,71,.30);} 50% { box-shadow:0 0 0 11px rgba(31,94,71,0);} }
+</style>
+</helmet>
+
+<div style="height:100vh; display:flex; flex-direction:column; background:#F3F1EB; overflow:hidden;">
+
+  <!-- ===================== TOP NAV ===================== -->
+  <div style="display:{{ navShow }}; flex:none; height:66px; align-items:center; gap:20px; padding:0 24px; background:#fff; border-bottom:1px solid #E7E3D9;">
+    <button onClick="{{ goHome }}" style="display:flex; align-items:center; gap:11px; flex:none; background:transparent; border:0; cursor:pointer; padding:0;">
+      <div style="width:32px; height:32px; border-radius:10px; background:#E7F0EB; display:flex; align-items:center; justify-content:center;">
+        <div style="width:14px; height:14px; border-radius:50%; border:3.5px solid #1F5E47;"></div>
+      </div>
+      <span style="font-weight:800; font-size:18px; letter-spacing:-0.02em; color:#1C1E1B;">PlotMap</span>
+    </button>
+
+    <div style="display:flex; gap:3px; flex:1;">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5">
+        <button onClick="{{ t.go }}" style="background:{{ t.bg }}; color:{{ t.col }}; border:0; border-radius:11px; padding:11px 16px; font-size:15px; font-weight:{{ t.fw }}; cursor:pointer;">{{ t.label }}</button>
+      </sc-for>
+    </div>
+
+    <div style="flex:none; display:flex; align-items:center; gap:11px; background:#FAF8F3; border:1px solid #E7E3D9; border-radius:13px; padding:6px 8px 6px 14px;">
+      <div style="text-align:right;">
+        <div style="font-size:13.5px; font-weight:700; color:#1C1E1B; line-height:1;">{{ roleName }}</div>
+        <div style="font-size:11.5px; color:#9A9D96; margin-top:3px;">{{ roleKind }}</div>
+      </div>
+      <div style="width:34px; height:34px; border-radius:10px; background:{{ roleColor }}; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:15px;">{{ roleInitial }}</div>
+    </div>
+  </div>
+
+  <!-- ===================== STAGE ===================== -->
+  <div style="flex:1; position:relative; overflow:hidden;">
+
+    <!-- ============ 0 · LANDING (elegant luxe) ============ -->
+    <div style="display:{{ landingShow }};">
+    <section data-screen-label="Landing" style="position:absolute; inset:0; overflow:auto; background:#0C100E;">
+      <div style="position:absolute; inset:0; background:radial-gradient(120% 80% at 50% -10%, #15201A 0%, #0E1311 46%, #090C0A 100%);"></div>
+      <div style="position:absolute; left:50%; top:-180px; transform:translateX(-50%); width:760px; height:520px; border-radius:50%; background:radial-gradient(circle, rgba(198,160,98,0.16), transparent 62%);"></div>
+      <div style="position:absolute; left:0; right:0; bottom:0; height:1px; background:linear-gradient(90deg,transparent,rgba(198,160,98,.3),transparent);"></div>
+
+      <div style="position:relative; min-height:100%; max-width:1080px; margin:0 auto; padding:32px 48px 40px; display:flex; flex-direction:column;">
+
+        <!-- top bar -->
+        <div style="display:flex; align-items:center; justify-content:space-between; flex:none;">
+          <div style="display:flex; align-items:center; gap:9px; color:#8A9A90; font-size:12px; letter-spacing:0.2em; font-weight:600;"><span style="width:7px; height:7px; border-radius:50%; background:#5FB58C;"></span>TRICITY · LIVE</div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:11px; letter-spacing:0.16em; color:#6E7C73;">POWERED BY</span>
+            <span style="width:13px; height:13px; border-radius:50%; border:2.5px solid #4F9C77;"></span>
+            <span style="font-size:14px; font-weight:800; letter-spacing:-0.01em; color:#DCE6E0;">PlotMap</span>
+          </div>
+        </div>
+
+        <!-- centered brand -->
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+          <div style="width:72px; height:72px; border-radius:20px; border:1px solid rgba(198,160,98,.4); background:linear-gradient(155deg,#16201A,#0E1512); display:flex; align-items:center; justify-content:center; box-shadow:0 16px 44px rgba(0,0,0,.4); margin-bottom:30px;">
+            <div style="width:26px; height:26px; border-radius:50%; border:3px solid #D8B576;"></div>
+          </div>
+          <h1 class="pm-serif" style="font-weight:500; font-size:74px; line-height:1; letter-spacing:0.04em; margin:0; color:#F4EFE6;">GANAPATI</h1>
+          <div class="pm-serif" style="font-weight:400; font-size:26px; letter-spacing:0.52em; margin:14px 0 0; padding-left:0.52em; color:#C9A35F;">PROPERTY</div>
+          <div style="display:flex; align-items:center; gap:14px; margin:30px 0 0;">
+            <span style="height:1px; width:44px; background:linear-gradient(90deg,transparent,rgba(198,160,98,.6));"></span>
+            <span style="font-size:11.5px; letter-spacing:0.34em; color:#8A9A90; font-weight:600;">ESTD · TRICITY · SINCE 2009</span>
+            <span style="height:1px; width:44px; background:linear-gradient(90deg,rgba(198,160,98,.6),transparent);"></span>
+          </div>
+          <p style="font-size:17.5px; line-height:1.6; color:#9FB0A6; max-width:48ch; margin:26px 0 0;">The whole property business — presented on a living map, run from one calm, premium command system.</p>
+        </div>
+
+        <!-- entry options -->
+        <div style="flex:none; display:grid; grid-template-columns:repeat(3,1fr); gap:14px;">
+          <sc-for list="{{ doors }}" as="d" hint-placeholder-count="3">
+            <button onClick="{{ d.go }}" style="text-align:left; cursor:pointer; background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.1); border-radius:18px; padding:22px 22px 20px; display:flex; flex-direction:column; min-height:150px;" style-hover="background:rgba(255,255,255,.05); border-color:{{ d.accent }};">
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <div style="width:40px; height:40px; border-radius:12px; background:rgba(255,255,255,.06); border:1px solid {{ d.accent }}; color:{{ d.iconCol }}; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800;">{{ d.icon }}</div>
+                <span class="pm-serif" style="font-size:14px; color:rgba(255,255,255,.32);">{{ d.num }}</span>
+              </div>
+              <div style="font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase; color:{{ d.iconCol }}; font-weight:700; margin-top:18px;">{{ d.tag }}</div>
+              <div class="pm-serif" style="font-size:23px; font-weight:500; letter-spacing:-0.01em; color:#F4EFE6; margin-top:4px;">{{ d.title }}</div>
+              <div style="display:flex; align-items:center; gap:7px; margin-top:14px; font-size:13.5px; font-weight:700; color:{{ d.iconCol }};">{{ d.cta }} <span style="font-size:15px;">→</span></div>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+    </div>
+
+    <!-- ============ 1 · MAP (client view) ============ -->
+    <div style="display:{{ mapShow }};">
+    <section data-screen-label="Map" style="position:absolute; inset:0; overflow:hidden; background:#EAE8E0;">
+      <div style="position:absolute; inset:0; background:radial-gradient(130% 100% at 70% 18%, #F2F0E8 0%, #EAE7DE 50%, #E1DED3 100%);"></div>
+      <div style="position:absolute; inset:0; background-image:linear-gradient(rgba(110,108,90,0.045) 1px,transparent 1px),linear-gradient(90deg,rgba(110,108,90,0.045) 1px,transparent 1px); background-size:52px 52px;"></div>
+      <div style="position:absolute; left:-3%; top:48%; width:300px; height:300px; border-radius:50%; background:radial-gradient(circle,#D6E0C7,transparent 68%); opacity:.7;"></div>
+      <div style="position:absolute; right:-5%; top:6%; width:240px; height:210px; border-radius:46% 54% 60% 40%; background:radial-gradient(circle,#CADEE3,transparent 70%); opacity:.7;"></div>
+
+      <svg viewBox="0 0 1000 680" preserveAspectRatio="none" style="position:absolute; inset:0; width:100%; height:100%;">
+        <path d="M70 650 C 260 560, 360 470, 520 380 S 800 220, 950 120" fill="none" stroke="#C8D4D6" stroke-width="28" stroke-linecap="round"></path>
+        <path d="M70 650 C 260 560, 360 470, 520 380 S 800 220, 950 120" fill="none" stroke="#9FBFC4" stroke-width="17" stroke-linecap="round"></path>
+        <path d="M40 250 C 240 300, 520 300, 1000 360" fill="none" stroke="#E6DFCD" stroke-width="18" stroke-linecap="round"></path>
+        <path d="M40 250 C 240 300, 520 300, 1000 360" fill="none" stroke="#F2ECDD" stroke-width="11" stroke-linecap="round"></path>
+        <path d="M300 120 L 360 600" fill="none" stroke="#EEE8D9" stroke-width="8" stroke-linecap="round"></path>
+        <path d="M640 90 L 700 560" fill="none" stroke="#EEE8D9" stroke-width="8" stroke-linecap="round"></path>
+      </svg>
+
+      <div style="position:absolute; left:59%; top:30%; transform:rotate(-26deg); font-size:12px; font-weight:700; color:#3C6E5A; background:rgba(255,255,255,.85); padding:4px 11px; border-radius:8px; box-shadow:0 2px 8px rgba(40,60,50,.1);">Airport Road</div>
+
+      <div style="position:absolute; left:9%; top:15%; width:150px; padding:12px; border-radius:16px; background:rgba(62,110,150,0.10); border:1.5px solid rgba(62,110,150,0.32);">
+        <div style="display:flex; gap:5px; flex-wrap:wrap;">
+          <div style="width:28px; height:23px; border-radius:5px; background:rgba(62,110,150,0.24);"></div><div style="width:28px; height:23px; border-radius:5px; background:rgba(62,110,150,0.16);"></div><div style="width:28px; height:23px; border-radius:5px; background:rgba(62,110,150,0.22);"></div><div style="width:28px; height:23px; border-radius:5px; background:rgba(62,110,150,0.15);"></div>
+          <div style="width:28px; height:23px; border-radius:5px; background:rgba(62,110,150,0.2);"></div><div style="width:28px; height:23px; border-radius:5px; background:rgba(62,110,150,0.24);"></div>
+        </div>
+        <div style="margin-top:9px; font-size:12px; font-weight:700; color:#3A6488;">Sector A</div>
+      </div>
+      <div style="position:absolute; right:8%; top:13%; width:140px; padding:12px; border-radius:16px; background:rgba(46,139,102,0.10); border:1.5px solid rgba(46,139,102,0.32);">
+        <div style="display:flex; gap:5px; flex-wrap:wrap;">
+          <div style="width:27px; height:23px; border-radius:5px; background:rgba(46,139,102,0.24);"></div><div style="width:27px; height:23px; border-radius:5px; background:rgba(46,139,102,0.16);"></div><div style="width:27px; height:23px; border-radius:5px; background:rgba(46,139,102,0.22);"></div>
+          <div style="width:27px; height:23px; border-radius:5px; background:rgba(46,139,102,0.18);"></div><div style="width:27px; height:23px; border-radius:5px; background:rgba(46,139,102,0.24);"></div><div style="width:27px; height:23px; border-radius:5px; background:rgba(46,139,102,0.16);"></div>
+        </div>
+        <div style="margin-top:9px; font-size:12px; font-weight:700; color:#2E8B66;">Sector B</div>
+      </div>
+
+      <button onClick="{{ goDetail }}" style="position:absolute; left:39%; top:46%; width:182px; padding:13px; border-radius:18px; background:rgba(31,94,71,0.12); border:2px solid #1F5E47; box-shadow:0 0 0 6px rgba(31,94,71,0.10), 0 16px 38px rgba(20,60,45,0.18); animation:pmPulse 2.8s ease-in-out infinite; cursor:pointer; text-align:left;">
+        <div style="display:flex; gap:5px; flex-wrap:wrap;">
+          <div style="width:29px; height:25px; border-radius:5px; background:rgba(31,94,71,0.30);"></div><div style="width:29px; height:25px; border-radius:5px; background:rgba(31,94,71,0.22);"></div><div style="width:29px; height:25px; border-radius:5px; background:#1F5E47; box-shadow:0 0 0 2px #fff;"></div><div style="width:29px; height:25px; border-radius:5px; background:rgba(31,94,71,0.22);"></div>
+          <div style="width:29px; height:25px; border-radius:5px; background:rgba(31,94,71,0.26);"></div><div style="width:29px; height:25px; border-radius:5px; background:rgba(31,94,71,0.2);"></div>
+        </div>
+        <div style="margin-top:10px; font-size:12.5px; font-weight:700; color:#1F5E47;">Block C · tap to open plot</div>
+      </button>
+
+      <div style="position:absolute; left:67%; top:53%; display:flex; align-items:center; gap:8px; background:rgba(255,255,255,.92); border:1px solid #E6E0CF; color:#3A4452; font-size:12.5px; font-weight:600; padding:6px 12px; border-radius:11px; box-shadow:0 8px 18px rgba(60,55,30,.1);"><span style="width:7px; height:7px; border-radius:50%; background:#3E6E96;"></span>Airport · 4 km</div>
+      <div style="position:absolute; left:15%; top:71%; display:flex; align-items:center; gap:8px; background:rgba(255,255,255,.92); border:1px solid #E6E0CF; color:#3A4452; font-size:12.5px; font-weight:600; padding:6px 12px; border-radius:11px; box-shadow:0 8px 18px rgba(60,55,30,.1);"><span style="width:7px; height:7px; border-radius:50%; background:#2E8B66;"></span>IT City · 6 km</div>
+
+      <div style="position:absolute; left:22px; top:22px; width:212px; background:#fff; border:1px solid #E7E3D9; border-radius:16px; box-shadow:0 10px 26px rgba(40,40,25,.1); overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:10px; padding:12px 14px 11px;">
+          <span style="width:9px; height:9px; border-radius:50%; background:#1F5E47;"></span>
+          <div style="flex:1;"><div style="font-weight:700; font-size:15.5px; line-height:1;">Aerocity</div><div style="font-size:11.5px; color:#9A9D96; margin-top:2px;">Tricity · Airport Road</div></div>
+          <span style="color:#B0ADA2; font-size:12px;">▾</span>
+        </div>
+        <div style="display:flex; gap:3px; padding:5px; background:#F4F2EC; border-top:1px solid #ECE8DF;">
+          <sc-for list="{{ mapTypes }}" as="m" hint-placeholder-count="3">
+            <button onClick="{{ m.go }}" title="{{ m.sub }}" style="flex:1; cursor:pointer; border:0; background:{{ m.bg }}; color:{{ m.col }}; border-radius:10px; padding:8px 4px; font-size:12px; font-weight:700; box-shadow:{{ m.sh }};">{{ m.short }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="position:absolute; right:24px; top:24px; bottom:24px; width:360px; background:#fff; border:1px solid #E7E3D9; border-radius:24px; box-shadow:0 24px 56px rgba(40,38,20,.16); overflow:hidden; display:flex; flex-direction:column;">
+        <div style="height:188px; position:relative; background-image:repeating-linear-gradient(135deg,#E8E2D2 0 12px,#F1ECDD 12px 24px); display:flex; align-items:center; justify-content:center;">
+          <span style="font-size:12px; color:#B0A78E; font-weight:600;">Property photo</span>
+          <span style="position:absolute; left:14px; bottom:14px; background:rgba(255,255,255,.94); color:#5A564A; font-size:12px; font-weight:700; padding:5px 11px; border-radius:9px;">East-facing · Corner</span>
+        </div>
+        <div style="padding:20px 22px 0; flex:1; overflow:auto;">
+          <div style="font-size:13px; color:#1F5E47; font-weight:700;">Aerocity · Block C</div>
+          <div class="pm-serif" style="font-size:31px; font-weight:500; letter-spacing:-0.01em; color:#1C1E1B; margin:4px 0 4px;">Plot C-114</div>
+          <div style="font-size:15px; color:#6A6E68; font-weight:500;">200 sq yd · 30×60 · Residential</div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 6px;">
+            <span style="background:#F4F2EA; border:1px solid #E7E3D9; color:#56544A; font-size:13px; font-weight:600; padding:7px 12px; border-radius:10px;">On Airport Road</span>
+            <span style="background:#F4F2EA; border:1px solid #E7E3D9; color:#56544A; font-size:13px; font-weight:600; padding:7px 12px; border-radius:10px;">Corner plot</span>
+            <span style="background:#F4F2EA; border:1px solid #E7E3D9; color:#56544A; font-size:13px; font-weight:600; padding:7px 12px; border-radius:10px;">Park-facing</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:11px; margin-top:16px; background:#EAF3EE; border:1px solid #CDE6DA; border-radius:13px; padding:12px 14px;">
+            <div style="width:26px; height:26px; border-radius:8px; background:#2E8B66; display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; flex:none; font-weight:800;">✓</div>
+            <div style="font-size:13.5px; font-weight:700; color:#216B4E;">Location verified on the official map</div>
+          </div>
+        </div>
+        <div style="padding:15px 18px; border-top:1px solid #EFEBE2; display:flex; gap:10px;">
+          <button onClick="{{ goDetail }}" style="cursor:pointer; flex:1; border:1px solid #E0DCD2; background:#fff; color:#2B2A25; font-weight:700; font-size:15px; padding:14px; border-radius:13px;" style-hover="background:#F4F2EA;">Full details</button>
+          <button style="cursor:pointer; flex:1.2; border:0; background:#1F5E47; color:#fff; font-weight:700; font-size:15px; padding:14px; border-radius:13px; box-shadow:0 8px 18px rgba(31,94,71,.24);" style-hover="background:#184E3B;">Share Brochure</button>
+        </div>
+      </div>
+    </section>
+    </div>
+
+    <!-- ============ 2 · PROPERTY DETAIL ============ -->
+    <div style="display:{{ detailShow }};">
+    <section data-screen-label="Property Detail" style="position:absolute; inset:0; overflow:auto; background:#F3F1EB;">
+      <div style="max-width:1180px; margin:0 auto; padding:22px 30px 40px;">
+        <button onClick="{{ backFromDetail }}" style="display:flex; align-items:center; gap:8px; background:transparent; border:0; cursor:pointer; color:#6A6E68; font-size:14.5px; font-weight:600; padding:0; margin-bottom:18px;" style-hover="color:#1C1E1B;">‹ Back</button>
+
+        <div style="display:grid; grid-template-columns:1.5fr 1fr; gap:14px; margin-bottom:14px;">
+          <div style="position:relative; height:360px; border-radius:24px; overflow:hidden; background-image:repeating-linear-gradient(135deg,#E8E2D2 0 14px,#F1ECDD 14px 28px); border:1px solid #E7E3D9;">
+            <span style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#B0A78E; font-size:13px; font-weight:600;">Hero photo · drone shot</span>
+            <span style="position:absolute; left:18px; top:18px; background:rgba(31,94,71,.92); color:#fff; font-size:12.5px; font-weight:700; padding:6px 13px; border-radius:999px;">Available</span>
+            <span style="position:absolute; left:18px; bottom:18px; background:rgba(255,255,255,.94); color:#56544A; font-size:12.5px; font-weight:700; padding:6px 12px; border-radius:9px;">East-facing · Corner · Park-facing</span>
+          </div>
+          <div style="display:grid; grid-template-rows:1fr 1fr; gap:14px;">
+            <div style="border-radius:24px; background-image:repeating-linear-gradient(135deg,#E8E2D2 0 12px,#F1ECDD 12px 24px); border:1px solid #E7E3D9; display:flex; align-items:center; justify-content:center; color:#B0A78E; font-size:12px; font-weight:600;">Street view</div>
+            <div style="border-radius:24px; background-image:repeating-linear-gradient(135deg,#E8E2D2 0 12px,#F1ECDD 12px 24px); border:1px solid #E7E3D9; display:flex; align-items:center; justify-content:center; color:#B0A78E; font-size:12px; font-weight:600;">Sector layout</div>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1.5fr 1fr; gap:24px; align-items:start; margin-top:10px;">
+          <div>
+            <div style="font-size:13px; color:#1F5E47; font-weight:700;">Aerocity · Sector 82 · Block C</div>
+            <div class="pm-serif" style="font-size:46px; font-weight:500; letter-spacing:-0.02em; margin:5px 0 6px;">Plot C-114</div>
+            <div style="font-size:17px; color:#6A6E68; font-weight:500;">200 sq yd · 30 × 60 ft · Residential · Freehold</div>
+
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:26px 0;">
+              <sc-for list="{{ detailFacts }}" as="f" hint-placeholder-count="4">
+                <div style="background:#fff; border:1px solid #E7E3D9; border-radius:16px; padding:16px;">
+                  <div style="font-size:12px; color:#9A9D96; font-weight:600;">{{ f.k }}</div>
+                  <div class="pm-serif" style="font-size:23px; font-weight:500; margin-top:5px;">{{ f.v }}</div>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="font-size:18px; font-weight:800; margin-bottom:12px;">Why this location</div>
+            <div style="background:#fff; border:1px solid #E7E3D9; border-radius:18px; padding:6px 20px; margin-bottom:24px;">
+              <sc-for list="{{ detailNearby }}" as="n" hint-placeholder-count="4">
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid #F0ECE3;">
+                  <span style="display:flex; align-items:center; gap:11px; font-size:15px; color:#3A3F39; font-weight:500;"><span style="width:9px; height:9px; border-radius:50%; background:{{ n.col }};"></span>{{ n.place }}</span>
+                  <span style="font-size:15px; font-weight:700;">{{ n.dist }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="position:sticky; top:14px; display:flex; flex-direction:column; gap:14px;">
+            <div style="background:#fff; border:1px solid #E7E3D9; border-radius:20px; padding:20px;">
+              <div style="display:flex; align-items:center; gap:11px; background:#EAF3EE; border:1px solid #CDE6DA; border-radius:13px; padding:12px 14px; margin-bottom:16px;">
+                <div style="width:26px; height:26px; border-radius:8px; background:#2E8B66; color:#fff; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; flex:none;">✓</div>
+                <div style="font-size:13.5px; font-weight:700; color:#216B4E;">Verified on official Aerocity masterplan</div>
+              </div>
+              <div style="position:relative; height:150px; border-radius:14px; overflow:hidden; background:radial-gradient(120% 100% at 60% 30%, #F2F0E8, #E1DED3); border:1px solid #E7E3D9; margin-bottom:16px;">
+                <div style="position:absolute; inset:0; background-image:linear-gradient(rgba(110,108,90,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(110,108,90,0.06) 1px,transparent 1px); background-size:26px 26px;"></div>
+                <div style="position:absolute; left:46%; top:42%; width:22px; height:22px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); background:#1F5E47; border:2.5px solid #fff; box-shadow:0 6px 14px rgba(20,60,45,.35);"></div>
+                <span style="position:absolute; left:11px; bottom:11px; font-size:11px; font-weight:600; color:#56544A; background:rgba(255,255,255,.9); padding:4px 9px; border-radius:7px;">Block C · plot 114</span>
+              </div>
+              <button style="cursor:pointer; width:100%; border:0; background:#1F5E47; color:#fff; font-weight:700; font-size:15px; padding:14px; border-radius:13px; box-shadow:0 8px 18px rgba(31,94,71,.24); margin-bottom:10px;" style-hover="background:#184E3B;">Share Brochure</button>
+              <button style="cursor:pointer; width:100%; border:1px solid #E0DCD2; background:#fff; color:#2B2A25; font-weight:700; font-size:15px; padding:13px; border-radius:13px;" style-hover="background:#F4F2EA;">View Sector Map</button>
+            </div>
+            <div style="background:#fff; border:1px solid #E7E3D9; border-radius:20px; padding:18px 20px;">
+              <div style="font-size:14px; font-weight:800; margin-bottom:10px;">Similar nearby</div>
+              <sc-for list="{{ detailSimilar }}" as="s" hint-placeholder-count="2">
+                <div style="display:flex; align-items:center; gap:12px; padding:9px 0; border-top:1px solid #F0ECE3;">
+                  <div style="width:42px; height:42px; border-radius:11px; background-image:repeating-linear-gradient(135deg,#E8E2D2 0 8px,#F1ECDD 8px 16px); flex:none;"></div>
+                  <div style="flex:1;"><div style="font-size:14px; font-weight:700;">{{ s.name }}</div><div style="font-size:12px; color:#9A9D96;">{{ s.meta }}</div></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    </div>
+
+    <!-- ============ 3 · SECTOR MAPS (client) ============ -->
+    <div style="display:{{ sectorShow }};">
+    <section data-screen-label="Sector Maps" style="position:absolute; inset:0; overflow:auto; background:#F3F1EB;">
+      <div style="max-width:1240px; margin:0 auto; padding:28px 30px 40px;">
+        <div style="display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:6px;">
+          <div>
+            <div class="pm-serif" style="font-size:32px; font-weight:500; letter-spacing:-0.01em;">Sector Maps</div>
+            <div style="display:{{ helpShow }}; font-size:15px; color:#6A6E68; margin-top:4px;">All <b>180 sector maps</b> across Tricity — verified and ready to show.</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:9px; background:#fff; border:1px solid #E7E3D9; border-radius:12px; padding:11px 15px;"><span style="color:#B0ADA2;">⌕</span><span style="color:#A6A399; font-size:14px;">Search sector…</span></div>
+        </div>
+        <div style="display:flex; gap:8px; margin:20px 0;">
+          <sc-for list="{{ sectorChips }}" as="c" hint-placeholder-count="5">
+            <button style="cursor:pointer; background:{{ c.bg }}; border:1px solid {{ c.bd }}; color:{{ c.fg }}; font-size:13.5px; font-weight:600; padding:9px 15px; border-radius:999px;">{{ c.label }}</button>
+          </sc-for>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px;">
+          <sc-for list="{{ sectors }}" as="s" hint-placeholder-count="12">
+            <div style="background:#fff; border:1px solid #E7E3D9; border-radius:18px; overflow:hidden; cursor:pointer;" style-hover="border-color:#D6D1C6; transform:translateY(-2px);">
+              <div style="position:relative; height:128px; background:radial-gradient(120% 100% at 60% 30%, #F2F0E8, #E1DED3);">
+                <div style="position:absolute; inset:0; background-image:linear-gradient(rgba(110,108,90,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(110,108,90,0.06) 1px,transparent 1px); background-size:22px 22px;"></div>
+                <svg viewBox="0 0 240 128" preserveAspectRatio="none" style="position:absolute; inset:0; width:100%; height:100%;"><polyline points="-8,86 70,64 150,74 250,40" fill="none" stroke="#9FBFC4" stroke-width="6" stroke-linecap="round"></polyline></svg>
+                <div style="position:absolute; left:30%; top:42%; width:32px; height:24px; border-radius:5px; background:{{ s.tint }}; border:1.5px solid {{ s.col }};"></div>
+                <span style="position:absolute; right:11px; top:11px; background:{{ s.badgeBg }}; color:{{ s.badgeFg }}; font-size:10.5px; font-weight:700; padding:4px 9px; border-radius:999px;">{{ s.status }}</span>
+              </div>
+              <div style="padding:13px 15px 14px;">
+                <div style="font-size:16px; font-weight:800;">{{ s.name }}</div>
+                <div style="font-size:12.5px; color:#9A9D96; margin-top:2px;">{{ s.area }} · {{ s.plots }} plots</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="text-align:center; margin-top:26px;">
+          <button style="cursor:pointer; border:1px solid #E0DCD2; background:#fff; color:#2B2A25; font-weight:700; font-size:14.5px; padding:13px 24px; border-radius:13px;" style-hover="background:#F4F2EA;">Load all 180 sectors</button>
+        </div>
+      </div>
+    </section>
+    </div>
+
+    <!-- ============ 4 · DASHBOARD (owner) ============ -->
+    <div style="display:{{ dashShow }};">
+    <section data-screen-label="Dashboard" style="position:absolute; inset:0; overflow:auto; background:#F3F1EB;">
+      <div style="max-width:1240px; margin:0 auto; padding:28px 30px 40px;">
+        <div style="display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:20px;">
+          <div>
+            <div class="pm-serif" style="font-size:33px; font-weight:500; letter-spacing:-0.02em;">Good morning, Karan.</div>
+            <div style="display:{{ helpShow }}; font-size:15px; color:#6A6E68; margin-top:4px;">Your business at a glance — Saturday, 28 June.</div>
+          </div>
+          <div style="display:flex; gap:3px; background:#fff; border:1px solid #E7E3D9; border-radius:12px; padding:4px;">
+            <span style="background:#1F5E47; color:#fff; font-size:13px; font-weight:700; padding:8px 14px; border-radius:9px;">Week</span>
+            <span style="color:#6A6E68; font-size:13px; font-weight:600; padding:8px 14px;">Month</span>
+            <span style="color:#6A6E68; font-size:13px; font-weight:600; padding:8px 14px;">Year</span>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:16px;">
+          <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+            <div style="background:#fff; border:1px solid #E7E3D9; border-radius:20px; padding:18px 20px;">
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:13.5px; color:#6A6E68; font-weight:600;">{{ s.k }}</span>
+                <span style="font-size:12px; font-weight:700; color:{{ s.delCol }}; background:{{ s.delBg }}; padding:3px 8px; border-radius:999px;">{{ s.delta }}</span>
+              </div>
+              <div class="pm-serif" style="font-size:38px; font-weight:500; letter-spacing:-0.01em; margin-top:8px; line-height:1;">{{ s.v }}</div>
+              <div style="display:flex; align-items:flex-end; gap:3px; height:26px; margin-top:12px;">
+                <sc-for list="{{ s.spark }}" as="b" hint-placeholder-count="7">
+                  <span style="flex:1; height:{{ b.h }}; background:{{ b.c }}; border-radius:2px;"></span>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- recommended today (soft) -->
+        
+
+        <div style="display:grid; grid-template-columns:1.4fr 1fr; gap:16px; margin-bottom:16px; align-items:start;">
+          <div style="background:#fff; border:1px solid #E7E3D9; border-radius:20px; padding:20px 22px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+              <div style="flex:none;"><div style="font-size:18px; font-weight:800; white-space:nowrap;">Business momentum</div><div style="font-size:13px; color:#9A9D96; margin-top:2px; white-space:nowrap;">Client activity, last 14 days</div></div>
+              <div style="display:flex; gap:14px;">
+                <span style="display:flex; align-items:center; gap:6px; font-size:12.5px; color:#6A6E68; font-weight:600;"><span style="width:9px; height:9px; border-radius:3px; background:#1F5E47;"></span>Visits</span>
+                <span style="display:flex; align-items:center; gap:6px; font-size:12.5px; color:#6A6E68; font-weight:600;"><span style="width:9px; height:9px; border-radius:3px; background:#C7B083;"></span>Enquiries</span>
+              </div>
+            </div>
+            <div style="display:flex; align-items:flex-end; gap:8px; height:160px;">
+              <sc-for list="{{ momentum }}" as="m" hint-placeholder-count="14">
+                <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:5px;">
+                  <div style="width:100%; display:flex; flex-direction:column; justify-content:flex-end; gap:3px; height:140px;">
+                    <div style="height:{{ m.a }}; background:#C7B083; border-radius:3px 3px 0 0;"></div>
+                    <div style="height:{{ m.b }}; background:#1F5E47; border-radius:3px 3px 0 0;"></div>
+                  </div>
+                  <span style="font-size:9.5px; color:#B0ADA2;">{{ m.d }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="background:#fff; border:1px solid #E7E3D9; border-radius:20px; padding:20px 22px;">
+            <div style="font-size:18px; font-weight:800; margin-bottom:4px;">Where buyers are looking</div>
+            <div style="font-size:13px; color:#9A9D96; margin-bottom:16px;">Share of attention, based on your activity</div>
+            <sc-for list="{{ areas }}" as="a" hint-placeholder-count="4">
+              <div style="margin-bottom:15px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; gap:10px;">
+                  <span style="font-size:14.5px; font-weight:700; white-space:nowrap;">{{ a.name }}</span>
+                  <span style="font-size:13px; font-weight:700; color:{{ a.col }}; white-space:nowrap;">{{ a.change }}</span>
+                </div>
+                <div style="height:10px; border-radius:6px; background:#F0ECE3; overflow:hidden;"><div style="height:100%; width:{{ a.pct }}; background:{{ a.col }}; border-radius:6px;"></div></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="background:#fff; border:1px solid #E7E3D9; border-radius:22px; padding:22px 24px;">
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <div><div style="font-size:19px; font-weight:800;">Top clients right now</div><div style="display:{{ helpShow }}; font-size:13.5px; color:#9A9D96; margin-top:2px;">Your most valuable relationships, by lifetime value.</div></div>
+            <button onClick="{{ goClients }}" style="cursor:pointer; border:0; background:transparent; font-size:13.5px; color:#1F5E47; font-weight:700;">View all clients →</button>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:16px;">
+            <sc-for list="{{ clients }}" as="c" hint-placeholder-count="4">
+              <button onClick="{{ c.go }}" style="text-align:left; cursor:pointer; background:#FAF8F3; border:1px solid #ECE8DF; border-radius:16px; padding:16px;" style-hover="border-color:#D9D3C6;">
+                <div style="display:flex; align-items:center; gap:11px;">
+                  <div style="width:40px; height:40px; border-radius:12px; background:{{ c.avBg }}; color:{{ c.avFg }}; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px;">{{ c.initials }}</div>
+                  <div style="flex:1; min-width:0;"><div style="font-size:14.5px; font-weight:700;">{{ c.name }}</div><div style="font-size:11.5px; color:#9A9D96;">{{ c.area }}</div></div>
+                </div>
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-top:14px;">
+                  <span style="font-size:10.5px; font-weight:700; color:{{ c.stageCol }}; background:{{ c.stageBg }}; padding:3px 9px; border-radius:999px;">{{ c.stage }}</span>
+                  <span class="pm-serif" style="font-size:19px; font-weight:600; color:#A87C3D;">{{ c.value }}</span>
+                </div>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </section>
+    </div>
+
+    <!-- ============ 5 · PROPERTY INSIGHTS (owner) ============ -->
+    <div style="display:{{ insightsShow }};">
+    <section data-screen-label="Property Insights" style="position:absolute; inset:0; overflow:auto; background:#F3F1EB;">
+      <div style="max-width:1240px; margin:0 auto; padding:28px 30px 40px;">
+        <div class="pm-serif" style="font-size:32px; font-weight:500; letter-spacing:-0.01em;">Property Insights</div>
+        <div style="display:{{ helpShow }}; font-size:15px; color:#6A6E68; margin:4px 0 22px;">How your listed inventory is performing — views, demand and what needs fixing.</div>
+
+        <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:13px; margin-bottom:16px;">
+          <sc-for list="{{ insightKpis }}" as="k" hint-placeholder-count="5">
+            <div style="background:#fff; border:1px solid #E7E3D9; border-radius:18px; padding:18px 18px;">
+              <div style="font-size:12.5px; color:#9A9D96; font-weight:600;">{{ k.k }}</div>
+              <div class="pm-serif" style="font-size:32px; font-weight:500; margin-top:6px; line-height:1; color:{{ k.col }};">{{ k.v }}</div>
+              <div style="font-size:11.5px; color:#B0ADA2; margin-top:7px;">{{ k.sub }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1.3fr 1fr; gap:16px; align-items:start; margin-bottom:16px;">
+          <!-- most viewed / attention score -->
+          <div style="background:#fff; border:1px solid #E7E3D9; border-radius:20px; padding:20px 22px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;"><span style="font-size:18px; font-weight:800;">Getting the most attention</span><span style="font-size:12px; color:#9A9D96; font-weight:600;">Views · shares</span></div>
+            <sc-for list="{{ attention }}" as="p" hint-placeholder-count="5">
+              <div style="display:flex; align-items:center; gap:14px; padding:13px 0; border-top:1px solid #F0ECE3;">
+                <div style="width:46px; height:46px; border-radius:12px; background-image:repeating-linear-gradient(135deg,#E8E2D2 0 8px,#F1ECDD 8px 16px); flex:none;"></div>
+                <div style="flex:1; min-width:0;"><div style="font-size:15px; font-weight:700;">{{ p.name }}</div><div style="font-size:12.5px; color:#9A9D96;">{{ p.area }}</div></div>
+                <div style="flex:none; width:140px;">
+                  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;"><span style="font-size:12px; color:#7C8076; font-weight:600;">{{ p.views }} views</span><span style="font-size:12px; font-weight:700; color:#A87C3D;">{{ p.score }}</span></div>
+                  <div style="height:7px; border-radius:5px; background:#F0ECE3; overflow:hidden;"><div style="height:100%; width:{{ p.pct }}; background:#A87C3D; border-radius:5px;"></div></div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- inventory health -->
+          <div style="background:#fff; border:1px solid #E7E3D9; border-radius:20px; padding:20px 22px;">
+            <div style="font-size:18px; font-weight:800; margin-bottom:4px;">Needs attention</div>
+            <div style="display:{{ helpShow }}; font-size:13px; color:#9A9D96; margin-bottom:8px;">Fix these so every plot is ready to show.</div>
+            <sc-for list="{{ invHealth }}" as="h" hint-placeholder-count="4">
+              <div style="display:flex; align-items:center; gap:12px; padding:13px 0; border-top:1px solid #F0ECE3;">
+                <span style="width:10px; height:10px; border-radius:50%; background:{{ h.col }}; flex:none;"></span>
+                <span style="flex:1; font-size:14.5px; color:#3A3F39; font-weight:500;">{{ h.t }}</span>
+                <span class="pm-serif" style="font-size:22px; font-weight:600; color:{{ h.col }};">{{ h.n }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr 1.2fr; gap:16px; align-items:start;">
+          <div style="background:#fff; border:1px solid #E7E3D9; border-radius:20px; padding:20px 22px;">
+            <div style="font-size:16px; font-weight:800; margin-bottom:16px;">Inventory by area</div>
+            <sc-for list="{{ invArea }}" as="a" hint-placeholder-count="4">
+              <div style="display:flex; align-items:center; gap:12px; margin-bottom:13px;"><span style="width:74px; font-size:13px; font-weight:600; color:#56544A;">{{ a.area }}</span><div style="flex:1; height:9px; border-radius:5px; background:#F0ECE3; overflow:hidden;"><div style="width:{{ a.pct }}; height:100%; background:#1F5E47; border-radius:5px;"></div></div><span style="font-size:13.5px; font-weight:700; width:28px; text-align:right;">{{ a.n }}</span></div>
+            </sc-for>
+          </div>
+          <div style="background:#fff; border:1px solid #E7E3D9; border-radius:20px; padding:20px 22px;">
+            <div style="font-size:16px; font-weight:800; margin-bottom:16px;">By type</div>
+            <sc-for list="{{ invType }}" as="a" hint-placeholder-count="4">
+              <div style="display:flex; align-items:center; gap:12px; margin-bottom:13px;"><span style="width:84px; font-size:13px; font-weight:600; color:#56544A;">{{ a.area }}</span><div style="flex:1; height:9px; border-radius:5px; background:#F0ECE3; overflow:hidden;"><div style="width:{{ a.pct }}; height:100%; background:#3E6E96; border-radius:5px;"></div></div><span style="font-size:13.5px; font-weight:700; width:28px; text-align:right;">{{ a.n }}</span></div>
+            </sc-for>
+          </div>
+          <!-- demand vs supply signal -->
+          <div style="background:linear-gradient(160deg,#1F5E47,#2A7458); border-radius:20px; padding:20px 22px; color:#fff;">
+            <div style="font-size:16px; font-weight:800; margin-bottom:4px;">Inventory signals</div>
+            <div style="font-size:13px; color:#BFD7CC; margin-bottom:14px;">Where buyers want more than you have.</div>
+            <sc-for list="{{ signals }}" as="s" hint-placeholder-count="3">
+              <div style="display:flex; align-items:flex-start; gap:11px; padding:11px 0; border-top:1px solid rgba(255,255,255,.12);">
+                <span style="margin-top:4px; width:8px; height:8px; border-radius:50%; flex:none; background:#D9BE8C;"></span>
+                <span style="font-size:13.5px; color:#EAF3EE; font-weight:500; line-height:1.45;">{{ s.t }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </section>
+    </div>
+
+    <!-- ============ 6 · CLIENTS (owner) ============ -->
+    <div style="display:{{ clientsShow }};">
+    <section data-screen-label="Clients" style="position:absolute; inset:0; overflow:auto; background:#F3F1EB;">
+      <div style="max-width:1180px; margin:0 auto; padding:28px 30px 40px;">
+        <div style="display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:6px;">
+          <div>
+            <div class="pm-serif" style="font-size:32px; font-weight:500; letter-spacing:-0.01em;">Clients</div>
+            <div style="display:{{ helpShow }}; font-size:15px; color:#6A6E68; margin-top:4px;"><b>128 active clients</b> — tap any name to open their full history.</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:9px; background:#fff; border:1px solid #E7E3D9; border-radius:12px; padding:11px 15px;"><span style="color:#B0ADA2;">⌕</span><span style="color:#A6A399; font-size:14px;">Search clients…</span></div>
+        </div>
+        <div style="display:flex; gap:8px; margin:20px 0;">
+          <sc-for list="{{ clientChips }}" as="c" hint-placeholder-count="5">
+            <button style="cursor:pointer; background:{{ c.bg }}; border:1px solid {{ c.bd }}; color:{{ c.fg }}; font-size:13.5px; font-weight:600; padding:9px 15px; border-radius:999px;">{{ c.label }}</button>
+          </sc-for>
+        </div>
+        <div style="background:#fff; border:1px solid #E7E3D9; border-radius:20px; overflow:hidden;">
+          <div style="display:grid; grid-template-columns:1.5fr 1fr 1fr 0.9fr 0.8fr; padding:13px 22px; font-size:11.5px; color:#9A9D96; font-weight:700; border-bottom:1px solid #F0ECE3;"><span>Client</span><span>Area / Budget</span><span>Stage</span><span>Lifetime</span><span style="text-align:right;">Activity</span></div>
+          <sc-for list="{{ clientRows }}" as="c" hint-placeholder-count="6">
+            <button onClick="{{ c.go }}" style="width:100%; text-align:left; cursor:pointer; border:0; background:transparent; display:grid; grid-template-columns:1.5fr 1fr 1fr 0.9fr 0.8fr; align-items:center; padding:15px 22px; border-bottom:1px solid #F4F0E8;" style-hover="background:#FAF8F3;">
+              <span style="display:flex; align-items:center; gap:13px;"><span style="width:40px; height:40px; border-radius:12px; background:{{ c.avBg }}; color:{{ c.avFg }}; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px;">{{ c.initials }}</span><span><span style="display:block; font-size:15px; font-weight:700;">{{ c.name }}</span><span style="display:block; font-size:12px; color:#9A9D96;">{{ c.phone }}</span></span></span>
+              <span style="font-size:13.5px; color:#3A3F39; font-weight:500;">{{ c.area }}<span style="display:block; font-size:12px; color:#9A9D96;">{{ c.budget }}</span></span>
+              <span><span style="font-size:11px; font-weight:700; color:{{ c.stageCol }}; background:{{ c.stageBg }}; padding:4px 10px; border-radius:999px;">{{ c.stage }}</span></span>
+              <span class="pm-serif" style="font-size:18px; font-weight:600; color:#A87C3D;">{{ c.value }}</span>
+              <span style="text-align:right; font-size:12.5px; color:#9A9D96; font-weight:600;">{{ c.last }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+    </div>
+
+    <!-- ============ 7 · CLIENT PROFILE / THREAD ============ -->
+    <div style="display:{{ clientShow }};">
+    <section data-screen-label="Client Profile" style="position:absolute; inset:0; overflow:auto; background:#F3F1EB;">
+      <div style="max-width:1180px; margin:0 auto; padding:22px 30px 40px;">
+        <button onClick="{{ goClients }}" style="display:flex; align-items:center; gap:8px; background:transparent; border:0; cursor:pointer; color:#6A6E68; font-size:14.5px; font-weight:600; padding:0; margin-bottom:18px;" style-hover="color:#1C1E1B;">‹ All clients</button>
+
+        <div style="background:#fff; border:1px solid #E7E3D9; border-radius:22px; padding:24px 26px; margin-bottom:16px;">
+          <div style="display:flex; align-items:center; gap:18px;">
+            <div style="width:66px; height:66px; border-radius:18px; background:{{ sel.avBg }}; color:{{ sel.avFg }}; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:23px;">{{ sel.initials }}</div>
+            <div style="flex:1;">
+              <div style="display:flex; align-items:center; gap:11px;"><span class="pm-serif" style="font-size:30px; font-weight:600; letter-spacing:-0.01em;">{{ sel.name }}</span><span style="font-size:11.5px; font-weight:700; color:{{ sel.stageCol }}; background:{{ sel.stageBg }}; padding:5px 11px; border-radius:999px;">{{ sel.stage }}</span></div>
+              <div style="font-size:14px; color:#6A6E68; margin-top:3px;">{{ sel.phone }} · {{ sel.email }} · client since {{ sel.since }}</div>
+            </div>
+            <div style="display:flex; gap:9px;">
+              <button style="cursor:pointer; border:1px solid #E0DCD2; background:#fff; color:#2B2A25; font-weight:700; font-size:14px; padding:11px 16px; border-radius:12px;" style-hover="background:#F4F2EA;">Call</button>
+              <button style="cursor:pointer; border:0; background:#1F5E47; color:#fff; font-weight:700; font-size:14px; padding:11px 18px; border-radius:12px;" style-hover="background:#184E3B;">Share a property</button>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:20px;">
+            <div style="background:#FAF8F3; border:1px solid #ECE8DF; border-radius:14px; padding:15px;"><div style="font-size:12px; color:#9A9D96; font-weight:600;">Lifetime value</div><div class="pm-serif" style="font-size:24px; font-weight:600; color:#A87C3D; margin-top:4px;">{{ sel.value }}</div></div>
+            <div style="background:#FAF8F3; border:1px solid #ECE8DF; border-radius:14px; padding:15px;"><div style="font-size:12px; color:#9A9D96; font-weight:600;">Deals closed</div><div class="pm-serif" style="font-size:24px; font-weight:600; margin-top:4px;">{{ sel.deals }}</div></div>
+            <div style="background:#FAF8F3; border:1px solid #ECE8DF; border-radius:14px; padding:15px;"><div style="font-size:12px; color:#9A9D96; font-weight:600;">Engagement</div><div class="pm-serif" style="font-size:24px; font-weight:600; color:#2E8B66; margin-top:4px;">{{ sel.score }}</div></div>
+            <div style="background:#FAF8F3; border:1px solid #ECE8DF; border-radius:14px; padding:15px;"><div style="font-size:12px; color:#9A9D96; font-weight:600;">Referrals</div><div class="pm-serif" style="font-size:24px; font-weight:600; margin-top:4px;">{{ sel.referrals }}</div></div>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1.4fr 1fr; gap:16px; align-items:start;">
+          <!-- thread -->
+          <div style="background:#fff; border:1px solid #E7E3D9; border-radius:20px; padding:22px 24px;">
+            <div style="font-size:18px; font-weight:800; margin-bottom:18px;">Full history</div>
+            <div style="position:relative; padding-left:24px;">
+              <div style="position:absolute; left:5px; top:4px; bottom:4px; width:2px; background:#ECE8DF;"></div>
+              <sc-for list="{{ sel.thread }}" as="e" hint-placeholder-count="6">
+                <div style="position:relative; padding-bottom:20px;">
+                  <span style="position:absolute; left:-23px; top:3px; width:12px; height:12px; border-radius:50%; background:{{ e.col }}; border:2.5px solid #fff; box-shadow:0 0 0 1.5px {{ e.col }};"></span>
+                  <div style="display:flex; align-items:baseline; gap:10px;"><span style="font-size:14.5px; font-weight:700;">{{ e.t }}</span><span style="font-size:12px; color:#B0ADA2;">{{ e.when }}</span></div>
+                  <div style="font-size:13px; color:#7C8076; margin-top:2px;">{{ e.sub }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            <!-- personal details -->
+            <div style="background:#fff; border:1px solid #E7E3D9; border-radius:20px; padding:20px 22px;">
+              <div style="font-size:16px; font-weight:800; margin-bottom:14px;">Personal details</div>
+              <sc-for list="{{ sel.details }}" as="d" hint-placeholder-count="5">
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-top:1px solid #F0ECE3;"><span style="font-size:13.5px; color:#9A9D96; font-weight:600;">{{ d.k }}</span><span style="font-size:13.5px; color:#2B2A25; font-weight:700;">{{ d.v }}</span></div>
+              </sc-for>
+            </div>
+            <!-- interested -->
+            <div style="background:#fff; border:1px solid #E7E3D9; border-radius:20px; padding:20px 22px;">
+              <div style="font-size:16px; font-weight:800; margin-bottom:12px;">Looking for</div>
+              <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px;">
+                <sc-for list="{{ sel.tags }}" as="tg" hint-placeholder-count="3">
+                  <span style="background:#FAF8F3; border:1px solid #E7E3D9; color:#56544A; font-size:13px; font-weight:600; padding:7px 12px; border-radius:9px;">{{ tg }}</span>
+                </sc-for>
+              </div>
+              <div style="font-size:13px; font-weight:700; color:#56544A; margin-bottom:10px;">Properties shown</div>
+              <sc-for list="{{ sel.shown }}" as="sh" hint-placeholder-count="2">
+                <div style="display:flex; align-items:center; gap:12px; padding:9px 0; border-top:1px solid #F0ECE3;">
+                  <div style="width:40px; height:40px; border-radius:11px; background-image:repeating-linear-gradient(135deg,#E8E2D2 0 8px,#F1ECDD 8px 16px); flex:none;"></div>
+                  <div style="flex:1;"><div style="font-size:14px; font-weight:700;">{{ sh.name }}</div><div style="font-size:12px; color:#9A9D96;">{{ sh.meta }}</div></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    </div>
+
+    <!-- ============ 8 · FINANCE CENTER (money control room) ============ -->
+    <div style="display:{{ moneyShow }};">
+    <section data-screen-label="Money" style="position:absolute; inset:0; overflow:auto; background:#0A100D;">
+      <div style="position:absolute; inset:0; background:radial-gradient(120% 80% at 85% -5%, rgba(190,148,82,.07), transparent 55%);"></div>
+      <div style="position:relative; max-width:1300px; margin:0 auto; padding:26px 30px 48px;">
+        <div style="display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:18px;">
+          <div>
+            <div style="display:flex; align-items:center; gap:10px;"><span style="height:1px; width:26px; background:#BE9452;"></span><span style="font-size:11.5px; letter-spacing:0.26em; color:#C7A35F; font-weight:700;">FINANCE COMMAND · OWNER ONLY</span></div>
+            <div class="pm-serif" style="font-size:36px; font-weight:500; letter-spacing:-0.02em; color:#F4F1E8; margin-top:8px;">Money Control Room</div>
+          </div>
+          <div style="display:flex; gap:3px; background:#141C17; border:1px solid #243029; border-radius:12px; padding:4px;">
+            <span style="background:#1F5E47; color:#fff; font-size:13px; font-weight:700; padding:8px 14px; border-radius:9px;">This quarter</span>
+            <span style="color:#9FB0A6; font-size:13px; font-weight:600; padding:8px 14px;">This year</span>
+          </div>
+        </div>
+
+        <!-- FINANCE COMMAND briefing -->
+        <div style="position:relative; overflow:hidden; background:linear-gradient(135deg,#1A2C22 0%,#15201A 55%,#171108 100%); border:1px solid #2C3D32; border-radius:22px; padding:26px 28px; margin-bottom:16px;">
+          <div style="position:absolute; right:-50px; top:-50px; width:240px; height:240px; border-radius:50%; background:radial-gradient(circle,rgba(214,176,116,.22),transparent 62%);"></div>
+          <div style="position:relative; display:flex; gap:20px; align-items:flex-start;">
+            <div style="flex:none; width:50px; height:50px; border-radius:15px; background:rgba(214,176,116,.18); border:1px solid rgba(214,176,116,.4); display:flex; align-items:center; justify-content:center; color:#E4C588; font-family:'Fraunces',serif; font-style:italic; font-size:24px;">₹</div>
+            <div style="flex:1;">
+              <div style="font-size:11px; letter-spacing:0.16em; color:#A98F5E; font-weight:700;">FINANCE COMMAND · TODAY'S BRIEFING</div>
+              <div class="pm-serif" style="font-size:25px; font-weight:500; line-height:1.42; color:#F4EFE4; margin-top:8px; max-width:62ch;"><span style="color:#E6C684;">₹15.0L</span> is still pending. <span style="color:#7FD3A8;">₹4.0L</span> is safe to recover this week, <span style="color:#E8A06E;">₹2.8L</span> is ageing beyond 30 days, and <span style="color:#fff;">3 high-value deals</span> need recovery action today.</div>
+              <div style="display:flex; gap:10px; margin-top:18px;">
+                <button style="cursor:pointer; border:0; background:#E4C588; color:#1A140A; font-weight:700; font-size:13.5px; padding:11px 18px; border-radius:11px;" style-hover="background:#D6B074;">Start today's recovery →</button>
+                <button style="cursor:pointer; border:1px solid #2C3D32; background:transparent; color:#CFE0D7; font-weight:700; font-size:13.5px; padding:11px 18px; border-radius:11px;" style-hover="background:rgba(255,255,255,.04);">See full report</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6 key cards -->
+        <div style="display:grid; grid-template-columns:repeat(6,1fr); gap:12px; margin-bottom:16px;">
+          <sc-for list="{{ moneyCards }}" as="c" hint-placeholder-count="6">
+            <div style="background:{{ c.bg }}; border:1px solid {{ c.bd }}; border-radius:18px; padding:17px 16px;">
+              <div style="font-size:11.5px; color:{{ c.kCol }}; font-weight:600; line-height:1.3; min-height:30px;">{{ c.k }}</div>
+              <div class="pm-serif pm-tab" style="font-size:29px; font-weight:600; margin-top:6px; line-height:1; color:{{ c.vCol }};">{{ c.v }}</div>
+              <div style="font-size:11px; color:{{ c.subCol }}; margin-top:8px; font-weight:600;">{{ c.sub }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- MONEY RECOVERY QUEUE (hero section) -->
+        <div style="background:#121A15; border:1px solid #243029; border-radius:22px; padding:22px 24px; margin-bottom:16px;">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:6px;">
+            <span class="pm-serif" style="font-size:23px; font-weight:500; color:#F4F1E8;">Money Recovery Queue</span>
+            <span style="font-size:11px; font-weight:700; color:#E8A06E; background:rgba(232,160,110,.13); border:1px solid rgba(232,160,110,.3); padding:4px 10px; border-radius:999px;">3 need action today</span>
+            <span style="margin-left:auto; font-size:12px; color:#7E9488; font-weight:600;">Ranked by urgency · amount · age · client value</span>
+          </div>
+          <sc-for list="{{ recovery }}" as="r" hint-placeholder-count="4">
+            <div style="display:flex; align-items:center; gap:16px; padding:17px 0; border-top:1px solid #1E2822;">
+              <div style="flex:none; width:46px; height:46px; border-radius:13px; background:{{ r.tone }}; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px;">{{ r.initials }}</div>
+              <div style="flex:none; width:172px; min-width:0;">
+                <div style="display:flex; align-items:center; gap:8px;"><span style="font-size:15.5px; font-weight:700; color:#F4F1E8;">{{ r.name }}</span></div>
+                <div style="font-size:12px; color:#7E9488; margin-top:3px;">{{ r.party }}</div>
+                <div style="font-size:11.5px; color:#6E7C73; margin-top:2px;">{{ r.area }}</div>
+              </div>
+              <div style="flex:none; width:104px;">
+                <div style="font-size:10.5px; color:#6E7C73; font-weight:600;">Deal value</div>
+                <div class="pm-serif pm-tab" style="font-size:17px; font-weight:600; color:#CFE0D7; margin-top:2px;">{{ r.dealValue }}</div>
+              </div>
+              <div style="flex:none; width:114px;">
+                <div style="font-size:10.5px; color:#6E7C73; font-weight:600;">Commission pending</div>
+                <div class="pm-serif pm-tab" style="font-size:19px; font-weight:600; color:#E6C684; margin-top:2px;">{{ r.amount }}</div>
+              </div>
+              <div style="flex:none; width:96px;">
+                <div style="font-size:10.5px; color:#6E7C73; font-weight:600;">Days pending</div>
+                <div class="pm-tab" style="font-size:15px; font-weight:700; color:{{ r.ageCol }}; margin-top:3px;">{{ r.age }}</div>
+              </div>
+              <div style="flex:1; min-width:120px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;"><span style="font-size:10.5px; color:#6E7C73; font-weight:600;">Recovery odds</span><span style="font-size:11.5px; font-weight:700; color:{{ r.probCol }};">{{ r.prob }}</span></div>
+                <div style="height:6px; border-radius:4px; background:#0A100D; overflow:hidden;"><div style="height:100%; width:{{ r.probPct }}; background:{{ r.probCol }}; border-radius:4px;"></div></div>
+                <div style="font-size:11px; color:#8A9990; margin-top:7px;">⏎ {{ r.action }}</div>
+                <div style="font-size:10.5px; color:#6E7C73; margin-top:2px;">Promised: {{ r.promised }}</div>
+              </div>
+              <button style="flex:none; cursor:pointer; border:0; background:#E4C588; color:#1A140A; font-weight:700; font-size:13px; padding:11px 18px; border-radius:11px;" style-hover="background:#D6B074;">Recover</button>
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- leak + dead money -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; align-items:start;">
+          <div style="background:#1A1410; border:1px solid #38291F; border-radius:20px; padding:20px 22px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;"><span style="width:26px; height:26px; border-radius:8px; background:rgba(232,160,110,.16); color:#E8A06E; display:flex; align-items:center; justify-content:center; font-size:14px;">⚠</span><span style="font-size:17px; font-weight:800; color:#F0E6DC;">Money Leak Detector</span><span class="pm-serif pm-tab" style="margin-left:auto; font-size:18px; font-weight:600; color:#E8A06E;">₹6.3L</span></div>
+            <div style="font-size:12.5px; color:#A98F7E; margin-bottom:6px;">Where revenue is quietly slipping away.</div>
+            <sc-for list="{{ leaks }}" as="l" hint-placeholder-count="4">
+              <div style="display:flex; align-items:center; gap:12px; padding:11px 0; border-top:1px solid #2A2018;">
+                <span style="margin-top:0; width:7px; height:7px; border-radius:50%; flex:none; background:#E8A06E;"></span>
+                <span style="flex:1; font-size:13.5px; color:#E4D6CC; font-weight:500;">{{ l.t }}</span>
+                <span class="pm-serif pm-tab" style="font-size:15px; font-weight:600; color:#E8A06E;">{{ l.v }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="background:#1C1210; border:1px solid #3E2622; border-radius:20px; padding:20px 22px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;"><span style="width:26px; height:26px; border-radius:8px; background:rgba(232,110,90,.16); color:#E8755A; display:flex; align-items:center; justify-content:center; font-size:14px;">●</span><span style="font-size:17px; font-weight:800; color:#F0E0DC;">Dead Money Alert</span><span class="pm-serif pm-tab" style="margin-left:auto; font-size:18px; font-weight:600; color:#E8755A;">₹2.8L</span></div>
+            <div style="font-size:12.5px; color:#B98E84; margin-bottom:6px;">Pending so long it may be hard to recover.</div>
+            <sc-for list="{{ deadMoney }}" as="d" hint-placeholder-count="3">
+              <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid #2E1C19;">
+                <div style="flex:1;"><div style="font-size:14px; font-weight:700; color:#F0E0DC;">{{ d.name }}</div><div style="font-size:11.5px; color:#A87E78; margin-top:1px;">{{ d.meta }}</div></div>
+                <div style="text-align:right;"><div class="pm-serif pm-tab" style="font-size:16px; font-weight:600; color:#E8755A;">{{ d.v }}</div><div style="font-size:11px; color:#A87E78;">{{ d.age }}</div></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- aging + cash-in timeline + owner money timeline -->
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:16px; align-items:start;">
+          <div style="background:#141C17; border:1px solid #243029; border-radius:20px; padding:20px 22px;">
+            <div style="font-size:16px; font-weight:800; color:#F4F1E8; margin-bottom:4px;">Pending Commission Aging</div>
+            <div style="font-size:12px; color:#7E9488; margin-bottom:14px;">How old your pending money is.</div>
+            <sc-for list="{{ aging }}" as="a" hint-placeholder-count="4">
+              <div style="margin-bottom:13px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;"><span style="font-size:13px; font-weight:600; color:#9FB0A6;">{{ a.bucket }}</span><span class="pm-tab" style="font-size:14px; font-weight:700; color:{{ a.col }};">{{ a.val }}</span></div>
+                <div style="height:8px; border-radius:5px; background:#0A100D; overflow:hidden;"><div style="height:100%; width:{{ a.pct }}; background:{{ a.col }}; border-radius:5px;"></div></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="background:#141C17; border:1px solid #243029; border-radius:20px; padding:20px 22px;">
+            <div style="font-size:16px; font-weight:800; color:#F4F1E8; margin-bottom:4px;">Expected Cash-In Timeline</div>
+            <div style="font-size:12px; color:#7E9488; margin-bottom:14px;">What's likely to come in, and when.</div>
+            <sc-for list="{{ cashin }}" as="c" hint-placeholder-count="3">
+              <div style="display:flex; align-items:center; gap:12px; padding:11px 0; border-top:1px solid #1E2822;">
+                <span style="flex:none; width:4px; height:34px; border-radius:4px; background:{{ c.col }};"></span>
+                <div style="flex:1;"><div style="font-size:14px; font-weight:700; color:#F4F1E8;">{{ c.when }}</div><div style="font-size:11.5px; color:#8A9990;">{{ c.note }}</div></div>
+                <span class="pm-serif pm-tab" style="font-size:20px; font-weight:600; color:#7FD3A8;">{{ c.val }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="background:#141C17; border:1px solid #243029; border-radius:20px; padding:20px 22px;">
+            <div style="font-size:16px; font-weight:800; color:#F4F1E8; margin-bottom:4px;">Owner Money Timeline</div>
+            <div style="font-size:12px; color:#7E9488; margin-bottom:16px;">One deal, from close to cash.</div>
+            <div style="position:relative; padding-left:22px;">
+              <div style="position:absolute; left:5px; top:4px; bottom:8px; width:2px; background:#243029;"></div>
+              <sc-for list="{{ ownerTimeline }}" as="t" hint-placeholder-count="4">
+                <div style="position:relative; padding-bottom:14px;">
+                  <span style="position:absolute; left:-21px; top:3px; width:11px; height:11px; border-radius:50%; background:{{ t.col }}; border:2.5px solid #141C17;"></span>
+                  <div style="display:flex; align-items:baseline; justify-content:space-between;"><span style="font-size:13.5px; font-weight:700; color:#F4F1E8;">{{ t.t }}</span><span class="pm-tab" style="font-size:12.5px; font-weight:700; color:{{ t.col }};">{{ t.v }}</span></div>
+                  <div style="font-size:11px; color:#7E9488; margin-top:1px;">{{ t.when }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <!-- area profitability + staff impact + client LTV -->
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:16px; align-items:start;">
+          <div style="background:#141C17; border:1px solid #243029; border-radius:20px; padding:20px 22px;">
+            <div style="font-size:16px; font-weight:800; color:#F4F1E8; margin-bottom:4px;">Area Profitability Score</div>
+            <div style="font-size:12px; color:#7E9488; margin-bottom:16px;">Real commission earned — not just interest.</div>
+            <sc-for list="{{ areaProfit }}" as="a" hint-placeholder-count="4">
+              <div style="display:flex; align-items:center; gap:12px; margin-bottom:13px;"><span style="width:74px; font-size:13px; font-weight:600; color:#9FB0A6;">{{ a.area }}</span><div style="flex:1; height:9px; border-radius:5px; background:#0A100D; overflow:hidden;"><div style="width:{{ a.pct }}; height:100%; background:linear-gradient(90deg,#D6B074,#E6C684); border-radius:5px;"></div></div><span class="pm-tab" style="font-size:13px; font-weight:700; color:#F4F1E8; width:44px; text-align:right;">{{ a.val }}</span></div>
+            </sc-for>
+          </div>
+          <div style="background:#141C17; border:1px solid #243029; border-radius:20px; padding:20px 22px;">
+            <div style="font-size:16px; font-weight:800; color:#F4F1E8; margin-bottom:4px;">Staff Revenue Impact</div>
+            <div style="font-size:12px; color:#7E9488; margin-bottom:16px;">Who actually converts clients into money.</div>
+            <sc-for list="{{ staffImpact }}" as="a" hint-placeholder-count="4">
+              <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+                <span style="width:62px; font-size:13px; font-weight:600; color:#9FB0A6;">{{ a.area }}</span>
+                <div style="flex:1; height:9px; border-radius:5px; background:#0A100D; overflow:hidden;"><div style="width:{{ a.pct }}; height:100%; background:#7FD3A8; border-radius:5px;"></div></div>
+                <span class="pm-tab" style="font-size:13px; font-weight:700; color:#F4F1E8; width:44px; text-align:right;">{{ a.val }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="background:#141C17; border:1px solid #243029; border-radius:20px; padding:20px 22px;">
+            <div style="font-size:16px; font-weight:800; color:#F4F1E8; margin-bottom:4px;">Client Lifetime Value</div>
+            <div style="font-size:12px; color:#7E9488; margin-bottom:14px;">Top earners across all deals.</div>
+            <sc-for list="{{ ltv }}" as="c" hint-placeholder-count="4">
+              <div style="display:flex; align-items:center; gap:12px; padding:10px 0; border-top:1px solid #1E2822;">
+                <div style="flex:none; width:34px; height:34px; border-radius:10px; background:{{ c.avBg }}; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px;">{{ c.initials }}</div>
+                <span style="flex:1; font-size:13.5px; font-weight:700; color:#F4F1E8;">{{ c.name }}</span>
+                <span class="pm-serif pm-tab" style="font-size:16px; font-weight:600; color:#E6C684;">{{ c.v }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- revenue map layer + revenue vs attention gap -->
+        <div style="display:grid; grid-template-columns:1.1fr 1fr; gap:16px; align-items:start;">
+          <div style="background:#141C17; border:1px solid #243029; border-radius:20px; padding:20px 22px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;"><div><div style="font-size:16px; font-weight:800; color:#F4F1E8;">Revenue Map Layer</div><div style="font-size:12px; color:#7E9488; margin-top:2px;">Commission earned, shown on the map.</div></div><span style="font-size:11.5px; color:#E6C684; font-weight:700; cursor:pointer;">Open on map →</span></div>
+            <div style="position:relative; height:200px; border-radius:16px; overflow:hidden; background:radial-gradient(120% 100% at 65% 25%, #18231C, #0E1612); border:1px solid #243029;">
+              <div style="position:absolute; inset:0; background-image:linear-gradient(rgba(127,211,168,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(127,211,168,0.05) 1px,transparent 1px); background-size:34px 34px;"></div>
+              <div style="position:absolute; left:24%; top:34%; width:88px; height:88px; border-radius:50%; background:radial-gradient(circle,rgba(230,198,132,.5),transparent 68%);"></div>
+              <div style="position:absolute; left:60%; top:50%; width:64px; height:64px; border-radius:50%; background:radial-gradient(circle,rgba(230,198,132,.36),transparent 68%);"></div>
+              <div style="position:absolute; left:44%; top:62%; width:44px; height:44px; border-radius:50%; background:radial-gradient(circle,rgba(127,211,168,.32),transparent 68%);"></div>
+              <div style="position:absolute; left:26%; top:38%; display:flex; align-items:center; gap:6px;"><span style="width:9px;height:9px;border-radius:50%;background:#E6C684;"></span><span style="font-size:11.5px; font-weight:700; color:#F0E6CE; background:rgba(10,16,13,.7); padding:3px 8px; border-radius:7px;">Aerocity · ₹24L</span></div>
+              <div style="position:absolute; left:62%; top:54%; display:flex; align-items:center; gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:#E6C684;"></span><span style="font-size:11px; font-weight:700; color:#F0E6CE; background:rgba(10,16,13,.7); padding:3px 8px; border-radius:7px;">Derabassi · ₹16L</span></div>
+            </div>
+          </div>
+          <div style="background:#141C17; border:1px solid #243029; border-radius:20px; padding:20px 22px;">
+            <div style="font-size:16px; font-weight:800; color:#F4F1E8; margin-bottom:4px;">Revenue vs Attention Gap</div>
+            <div style="font-size:12px; color:#7E9488; margin-bottom:16px;">High interest, low money — worth a closer look.</div>
+            <sc-for list="{{ gap }}" as="g" hint-placeholder-count="3">
+              <div style="padding:12px 0; border-top:1px solid #1E2822;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;"><span style="font-size:14px; font-weight:700; color:#F4F1E8;">{{ g.area }}</span><span style="font-size:11.5px; font-weight:700; color:{{ g.tagCol }};">{{ g.tag }}</span></div>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:5px;"><span style="width:54px; font-size:10.5px; color:#7E9488; font-weight:600;">Attention</span><div style="flex:1; height:6px; border-radius:4px; background:#0A100D; overflow:hidden;"><div style="width:{{ g.attn }}; height:100%; background:#6FA3C9; border-radius:4px;"></div></div></div>
+                <div style="display:flex; align-items:center; gap:8px;"><span style="width:54px; font-size:10.5px; color:#7E9488; font-weight:600;">Revenue</span><div style="flex:1; height:6px; border-radius:4px; background:#0A100D; overflow:hidden;"><div style="width:{{ g.rev }}; height:100%; background:#E6C684; border-radius:4px;"></div></div></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </section>
+    </div>
+
+    <!-- ============ 9 · PROPERTIES (client browse / team inventory) ============ -->
+    <div style="display:{{ propsShow }};">
+    <section data-screen-label="Properties" style="position:absolute; inset:0; overflow:auto; background:#F3F1EB;">
+      <div style="max-width:1240px; margin:0 auto; padding:28px 30px 40px;">
+        <div style="display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:6px;">
+          <div>
+            <div class="pm-serif" style="font-size:32px; font-weight:500; letter-spacing:-0.01em;">Properties</div>
+            <div style="display:{{ helpShow }}; font-size:15px; color:#6A6E68; margin-top:4px;">{{ propsSub }}</div>
+          </div>
+          <button onClick="{{ goAddProperty }}" style="display:{{ addPropBtn }}; cursor:pointer; border:0; background:#1F5E47; color:#fff; font-weight:700; font-size:15px; padding:13px 20px; border-radius:13px; box-shadow:0 8px 18px rgba(31,94,71,.22);" style-hover="background:#184E3B;">+ Add Property</button>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; margin:22px 0; flex-wrap:wrap;">
+          <div style="display:flex; align-items:center; gap:10px; background:#fff; border:1px solid #E7E3D9; border-radius:13px; padding:12px 15px; flex:1; min-width:230px; max-width:330px;"><span style="color:#B0ADA2; font-size:16px;">⌕</span><span style="color:#A6A399; font-size:14.5px;">Search area, sector or block…</span></div>
+          <sc-for list="{{ filters }}" as="f" hint-placeholder-count="3">
+            <button style="cursor:pointer; background:{{ f.bg }}; border:1px solid {{ f.bd }}; color:{{ f.fg }}; font-size:14px; font-weight:600; padding:12px 16px; border-radius:13px; display:flex; align-items:center; gap:8px;">{{ f.label }}<span style="color:#B0ADA2; font-size:11px;">▾</span></button>
+          </sc-for>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:18px;">
+          <sc-for list="{{ inv }}" as="p" hint-placeholder-count="6">
+            <div onClick="{{ p.goDetail }}" style="background:#fff; border:1px solid #E7E3D9; border-radius:20px; overflow:hidden; box-shadow:0 1px 2px rgba(20,18,12,.03), 0 10px 22px rgba(40,32,15,.035); cursor:pointer;" style-hover="border-color:#D6D1C6;">
+              <div style="height:142px; position:relative; background:{{ p.hero }}; box-shadow:inset 0 -40px 60px -30px rgba(20,30,20,.35), inset 0 0 0 1px rgba(255,255,255,.12);">
+                <span style="position:absolute; left:13px; top:13px; background:{{ p.sBg }}; color:{{ p.sFg }}; font-size:12px; font-weight:700; padding:5px 12px; border-radius:999px; box-shadow:0 2px 6px rgba(0,0,0,.12);">{{ p.status }}</span>
+                <span style="display:{{ p.flagShow }}; position:absolute; right:13px; top:13px; background:rgba(255,250,240,.94); color:#8A6224; font-size:11.5px; font-weight:700; padding:5px 11px; border-radius:999px;">{{ p.flag }}</span>
+              </div>
+              <div style="padding:16px 17px 17px;">
+                <div style="font-size:13px; color:#9A9D96; font-weight:600;">{{ p.area }}</div>
+                <div style="font-size:21px; font-weight:800; letter-spacing:-0.01em; margin:3px 0 3px;">{{ p.name }}</div>
+                <div style="font-size:13.5px; color:#6A6E68; font-weight:500;">{{ p.size }}</div>
+                <div style="display:{{ p.actionsShow }}; gap:8px; margin-top:14px;">
+                  <button onClick="{{ p.openRemove }}" style="flex:1; cursor:pointer; border:1px solid #E0DCD2; background:#fff; color:#9A4A2C; font-weight:700; font-size:12.5px; padding:9px; border-radius:10px;" style-hover="background:#FBF1EC; border-color:#EED7CB;">Close / Remove</button>
+                  <button onClick="{{ p.openRemove }}" style="flex:1; cursor:pointer; border:1px solid #E0DCD2; background:#fff; color:#2B2A25; font-weight:700; font-size:12.5px; padding:9px; border-radius:10px;" style-hover="background:#F4F2EA;">Mark sold</button>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+    </div>
+
+    <!-- ============ 10 · TEAM WORKSPACE (recommendations) ============ -->
+    <div style="display:{{ teamShow }};">
+    <section data-screen-label="Team" style="position:absolute; inset:0; overflow:auto; background:#F3F1EB;">
+      <div style="max-width:1180px; margin:0 auto; padding:28px 30px 40px;">
+        <div class="pm-serif" style="font-size:32px; font-weight:500; letter-spacing:-0.01em; margin-bottom:4px;">Welcome, Priya.</div>
+        <div style="display:{{ helpShow }}; font-size:15px; color:#6A6E68; margin-bottom:18px;">Your work table for today.</div>
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px;">
+          <sc-for list="{{ weekStats }}" as="w" hint-placeholder-count="4">
+            <div style="background:#fff; border:1px solid #E7E3D9; border-radius:16px; padding:15px 18px;">
+              <div style="font-size:12.5px; color:#9A9D96; font-weight:600;">{{ w.k }}</div>
+              <div class="pm-serif" style="font-size:28px; font-weight:600; margin-top:4px; line-height:1;">{{ w.v }}<span style="font-size:13px; color:#B0ADA2; font-weight:500; margin-left:5px;">{{ w.unit }}</span></div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px;">
+          <sc-for list="{{ actions }}" as="ac" hint-placeholder-count="4">
+            <button onClick="{{ ac.go }}" style="cursor:pointer; background:#fff; border:1px solid #E7E3D9; border-radius:18px; padding:22px 18px; display:flex; flex-direction:column; align-items:flex-start; gap:15px; text-align:left; box-shadow:0 1px 2px rgba(20,18,12,.03), 0 8px 18px rgba(40,32,15,.03);" style-hover="border-color:#D6D1C6; transform:translateY(-2px);">
+              <span style="width:48px; height:48px; border-radius:14px; background:{{ ac.tint }}; color:{{ ac.col }}; display:flex; align-items:center; justify-content:center; font-size:23px; font-weight:800;">{{ ac.mark }}</span>
+              <span style="font-size:16px; font-weight:700; color:#2B2A25; line-height:1.25;">{{ ac.label }}</span>
+            </button>
+          </sc-for>
+        </div>
+        <div style="display:grid; grid-template-columns:1.55fr 1fr; gap:18px; align-items:start;">
+          <!-- my clients -->
+          <div style="background:#fff; border:1px solid #E7E3D9; border-radius:20px; padding:20px 22px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+              <span style="font-size:18px; font-weight:800;">My clients</span>
+              <span style="font-size:12.5px; color:#9A9D96; font-weight:600;">{{ myClientsCount }} assigned to me</span>
+            </div>
+            <sc-for list="{{ myClients }}" as="c" hint-placeholder-count="5">
+              <div style="display:flex; align-items:center; gap:14px; padding:13px 0; border-top:1px solid #F0ECE3;">
+                <div style="flex:none; width:40px; height:40px; border-radius:12px; background:{{ c.avBg }}; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px;">{{ c.initials }}</div>
+                <div style="flex:1; min-width:0;"><div style="font-size:14.5px; font-weight:700;">{{ c.name }}</div><div style="font-size:12px; color:#9A9D96; margin-top:1px;">{{ c.meta }}</div></div>
+                <span style="font-size:11px; font-weight:700; color:{{ c.stageCol }}; background:{{ c.stageBg }}; padding:4px 10px; border-radius:999px;">{{ c.stage }}</span>
+                <button style="flex:none; cursor:pointer; border:1px solid #E0DCD2; background:#fff; color:#2B2A25; font-weight:700; font-size:12.5px; padding:9px 14px; border-radius:10px;" style-hover="background:#F4F2EA;">Update</button>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:18px;">
+            <div style="background:#fff; border:1px solid #E7E3D9; border-radius:20px; padding:20px 22px;">
+              <div style="font-size:18px; font-weight:800; margin-bottom:10px;">Recent activity</div>
+              <sc-for list="{{ recent }}" as="r" hint-placeholder-count="3">
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-top:1px solid #F0ECE3;"><div><div style="font-size:14.5px; font-weight:700;">{{ r.name }}</div><div style="font-size:12.5px; color:#9A9D96; margin-top:1px;">{{ r.meta }}</div></div><span style="font-size:12.5px; color:#B0ADA2; font-weight:600;">{{ r.when }}</span></div>
+              </sc-for>
+            </div>
+            <div style="background:#fff; border:1px solid #E7E3D9; border-radius:20px; padding:20px 22px;">
+              <div style="font-size:16px; font-weight:800; margin-bottom:3px;">Map Studio</div>
+              <div style="display:{{ helpShow }}; font-size:13.5px; color:#9A9D96; margin-bottom:14px; line-height:1.5;">Draw roads and mark plots yourself — no designer needed.</div>
+              <button onClick="{{ goStudio }}" style="cursor:pointer; width:100%; border:0; background:#3E6E96; color:#fff; font-weight:700; font-size:14.5px; padding:13px; border-radius:13px;" style-hover="background:#345D80;">Open Map Studio →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    </div>
+
+    <!-- ============ 11 · ADD CLIENT ============ -->
+    <div style="display:{{ addClientShow }};">
+    <section data-screen-label="Add Client" style="position:absolute; inset:0; overflow:auto; background:#F3F1EB;">
+      <div style="max-width:760px; margin:0 auto; padding:28px 30px 40px;">
+        <button onClick="{{ goTeam }}" style="display:flex; align-items:center; gap:8px; background:transparent; border:0; cursor:pointer; color:#6A6E68; font-size:14.5px; font-weight:600; padding:0; margin-bottom:16px;" style-hover="color:#1C1E1B;">‹ Back</button>
+        <div class="pm-serif" style="font-size:32px; font-weight:500; letter-spacing:-0.01em;">Add a client</div>
+        <div style="display:{{ helpShow }}; font-size:15px; color:#6A6E68; margin:4px 0 24px;">Just the basics — you can add more later.</div>
+        <div style="background:#fff; border:1px solid #E7E3D9; border-radius:22px; padding:26px 28px;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px;">
+            <div style="grid-column:span 2;"><div style="font-size:13.5px; font-weight:700; color:#56544A; margin-bottom:8px;">Full name</div><div style="background:#FAF8F3; border:1px solid #E7E3D9; border-radius:13px; padding:14px 15px; font-size:15px; color:#A6A399;">e.g. Rajdeep Singh</div></div>
+            <div><div style="font-size:13.5px; font-weight:700; color:#56544A; margin-bottom:8px;">Phone</div><div style="background:#FAF8F3; border:1px solid #E7E3D9; border-radius:13px; padding:14px 15px; font-size:15px; color:#A6A399;">+91 …</div></div>
+            <div><div style="font-size:13.5px; font-weight:700; color:#56544A; margin-bottom:8px;">Budget</div><div style="background:#FAF8F3; border:1px solid #E7E3D9; border-radius:13px; padding:14px 15px; font-size:15px; color:#A6A399;">₹ …</div></div>
+            <div><div style="font-size:13.5px; font-weight:700; color:#56544A; margin-bottom:8px;">Area interested in</div><div style="background:#FAF8F3; border:1px solid #E7E3D9; border-radius:13px; padding:14px 15px; font-size:15px; color:#56544A; display:flex; justify-content:space-between;">Aerocity <span style="color:#B0ADA2;">▾</span></div></div>
+            <div><div style="font-size:13.5px; font-weight:700; color:#56544A; margin-bottom:8px;">Property type</div><div style="background:#FAF8F3; border:1px solid #E7E3D9; border-radius:13px; padding:14px 15px; font-size:15px; color:#56544A; display:flex; justify-content:space-between;">Residential plot <span style="color:#B0ADA2;">▾</span></div></div>
+          </div>
+          <div style="margin-top:18px;"><div style="font-size:13.5px; font-weight:700; color:#56544A; margin-bottom:8px;">How did they reach you?</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <span style="background:#E7F0EB; border:1px solid #C9DED4; color:#1F5E47; font-size:13.5px; font-weight:700; padding:9px 15px; border-radius:999px;">Walk-in</span>
+              <span style="background:#FAF8F3; border:1px solid #E7E3D9; color:#6A6E68; font-size:13.5px; font-weight:600; padding:9px 15px; border-radius:999px;">Referral</span>
+              <span style="background:#FAF8F3; border:1px solid #E7E3D9; color:#6A6E68; font-size:13.5px; font-weight:600; padding:9px 15px; border-radius:999px;">WhatsApp</span>
+              <span style="background:#FAF8F3; border:1px solid #E7E3D9; color:#6A6E68; font-size:13.5px; font-weight:600; padding:9px 15px; border-radius:999px;">Online</span>
+            </div>
+          </div>
+          <div style="display:flex; gap:12px; margin-top:26px;">
+            <button onClick="{{ goTeam }}" style="cursor:pointer; border:1px solid #E0DCD2; background:#fff; color:#2B2A25; font-weight:700; font-size:15px; padding:14px 22px; border-radius:13px;" style-hover="background:#F4F2EA;">Cancel</button>
+            <button onClick="{{ goTeam }}" style="cursor:pointer; flex:1; border:0; background:#1F5E47; color:#fff; font-weight:700; font-size:15px; padding:14px; border-radius:13px; box-shadow:0 8px 18px rgba(31,94,71,.24);" style-hover="background:#184E3B;">Add Client</button>
+          </div>
+        </div>
+      </div>
+    </section>
+    </div>
+
+    <!-- ============ 12 · ADD PROPERTY (inline studio) ============ -->
+    <div style="display:{{ addPropShow }};">
+    <section data-screen-label="Add Property" style="position:absolute; inset:0; overflow:auto; background:#F3F1EB;">
+      <div style="max-width:900px; margin:0 auto; padding:28px 30px 40px;">
+        <button onClick="{{ goTeam }}" style="display:flex; align-items:center; gap:8px; background:transparent; border:0; cursor:pointer; color:#6A6E68; font-size:14.5px; font-weight:600; padding:0; margin-bottom:16px;" style-hover="color:#1C1E1B;">‹ Back</button>
+        <div class="pm-serif" style="font-size:32px; font-weight:500; letter-spacing:-0.01em;">Add a property</div>
+        <div style="display:{{ helpShow }}; font-size:15px; color:#6A6E68; margin:4px 0 24px;">Fill the details, place it on the map, then publish.</div>
+        <div style="background:#fff; border:1px solid #E7E3D9; border-radius:22px; padding:26px 28px;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px;">
+            <div style="grid-column:span 2;"><div style="font-size:13.5px; font-weight:700; color:#56544A; margin-bottom:8px;">Property name</div><div style="background:#FAF8F3; border:1px solid #E7E3D9; border-radius:13px; padding:14px 15px; font-size:15px; color:#A6A399;">e.g. Plot C-114</div></div>
+            <div><div style="font-size:13.5px; font-weight:700; color:#56544A; margin-bottom:8px;">Area</div><div style="background:#FAF8F3; border:1px solid #E7E3D9; border-radius:13px; padding:14px 15px; font-size:15px; color:#56544A; display:flex; justify-content:space-between;">Aerocity <span style="color:#B0ADA2;">▾</span></div></div>
+            <div><div style="font-size:13.5px; font-weight:700; color:#56544A; margin-bottom:8px;">Sector / Block</div><div style="background:#FAF8F3; border:1px solid #E7E3D9; border-radius:13px; padding:14px 15px; font-size:15px; color:#A6A399;">Sector 82 · Block C</div></div>
+            <div><div style="font-size:13.5px; font-weight:700; color:#56544A; margin-bottom:8px;">Type</div><div style="background:#FAF8F3; border:1px solid #E7E3D9; border-radius:13px; padding:14px 15px; font-size:15px; color:#56544A; display:flex; justify-content:space-between;">Residential <span style="color:#B0ADA2;">▾</span></div></div>
+            <div><div style="font-size:13.5px; font-weight:700; color:#56544A; margin-bottom:8px;">Size</div><div style="background:#FAF8F3; border:1px solid #E7E3D9; border-radius:13px; padding:14px 15px; font-size:15px; color:#A6A399;">200 sq yd</div></div>
+          </div>
+          <div style="font-size:13.5px; font-weight:700; color:#56544A; margin:22px 0 10px;">Photos</div>
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px;">
+            <div style="height:84px; border-radius:13px; border:1.5px dashed #D6D1C6; background:#FAF8F3; display:flex; align-items:center; justify-content:center; color:#B0ADA2; font-size:22px;">＋</div>
+            <div style="height:84px; border-radius:13px; background-image:repeating-linear-gradient(135deg,#E8E2D2 0 9px,#F1ECDD 9px 18px);"></div>
+            <div style="height:84px; border-radius:13px; background-image:repeating-linear-gradient(135deg,#E8E2D2 0 9px,#F1ECDD 9px 18px);"></div>
+            <div style="height:84px; border-radius:13px; background-image:repeating-linear-gradient(135deg,#E8E2D2 0 9px,#F1ECDD 9px 18px);"></div>
+          </div>
+          <div style="margin-top:24px; border:1px solid {{ studioBd }}; border-radius:18px; overflow:hidden;">
+            <button onClick="{{ toggleStudio }}" style="width:100%; cursor:pointer; display:flex; align-items:center; gap:14px; background:{{ studioHeadBg }}; border:0; padding:16px 18px; text-align:left;">
+              <span style="width:40px; height:40px; border-radius:12px; background:#E7F0EB; color:#1F5E47; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800; flex:none;">⌖</span>
+              <span style="flex:1;"><span style="display:block; font-size:16px; font-weight:800;">Add this property on the map</span><span style="display:block; font-size:13px; color:#7C8076; margin-top:2px;">{{ studioHint }}</span></span>
+              <span style="font-size:13px; font-weight:700; color:#1F5E47;">{{ studioToggleLabel }}</span>
+            </button>
+            <div style="display:{{ studioPanelShow }}; border-top:1px solid #E7E3D9;">
+              <div style="display:flex; gap:14px; padding:16px;">
+                <div style="flex:1; position:relative; height:280px; background:#EEEDE6; border:1px solid #E5E2D9; border-radius:16px; overflow:hidden;">
+                  <div style="position:absolute; inset:0; background-image:linear-gradient(rgba(110,108,90,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(110,108,90,0.06) 1px,transparent 1px); background-size:34px 34px;"></div>
+                  <div style="position:absolute; left:14%; top:24%; width:120px; height:88px; border-radius:10px; border:1.5px dashed #C9C3B5; background:rgba(62,110,150,.06);"></div>
+                  <div style="position:absolute; left:58%; top:22%; width:110px; height:92px; border-radius:10px; border:1.5px dashed #C9C3B5; background:rgba(46,139,102,.06);"></div>
+                  <svg viewBox="0 0 760 280" preserveAspectRatio="none" style="position:absolute; inset:0; width:100%; height:100%;"><path d="M90 230 L 280 170 L 440 140 L 640 80" fill="none" stroke="#1F5E47" stroke-width="3.5"></path></svg>
+                  <div style="position:absolute; left:55%; top:46%; width:22px; height:22px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); background:#1F5E47; border:2.5px solid #fff; box-shadow:0 6px 14px rgba(20,60,45,.35);"></div>
+                  <div style="position:absolute; left:50%; bottom:14px; transform:translateX(-50%); background:#fff; border:1px solid #E7E3D9; border-radius:11px; padding:9px 14px; font-size:13px; font-weight:600; color:#3A3F39; box-shadow:0 10px 24px rgba(40,32,15,.12);">Tap to drop the plot pin</div>
+                </div>
+                <div style="flex:none; width:220px; display:flex; flex-direction:column;">
+                  <div style="font-size:13px; color:#56544A; font-weight:700; margin-bottom:8px;">Group</div>
+                  <div style="display:flex; gap:7px; margin-bottom:16px;">
+                    <span style="flex:1; text-align:center; border:1.5px solid #1F5E47; background:#E7F0EB; border-radius:11px; padding:10px 0; font-size:14px; font-weight:800; color:#1F5E47;">A</span>
+                    <span style="flex:1; text-align:center; border:1px solid #E0DCD2; border-radius:11px; padding:10px 0; font-size:14px; font-weight:800; color:#9A9D96;">B</span>
+                    <span style="flex:1; text-align:center; border:1px solid #E0DCD2; border-radius:11px; padding:10px 0; font-size:14px; font-weight:800; color:#9A9D96;">C</span>
+                    <span style="flex:1; text-align:center; border:1px solid #E0DCD2; border-radius:11px; padding:10px 0; font-size:14px; font-weight:800; color:#9A9D96;">D</span>
+                  </div>
+                  <div style="font-size:13px; color:#56544A; font-weight:700; margin-bottom:8px;">Link sector map</div>
+                  <div style="display:flex; align-items:center; gap:10px; background:#FAF8F3; border:1px solid #E7E3D9; border-radius:12px; padding:11px 13px; margin-bottom:16px;"><span style="width:20px; height:20px; border-radius:6px; background:#E9EFF4; color:#3E6E96; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800;">＋</span><span style="font-size:13.5px; color:#3A3F39; font-weight:600;">Sector 82 · Pocket B</span></div>
+                  <div style="display:flex; align-items:center; gap:9px; background:#EAF3EE; border:1px solid #CDE6DA; border-radius:11px; padding:10px 12px;"><span style="width:20px; height:20px; border-radius:6px; background:#2E8B66; color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800;">✓</span><span style="font-size:12.5px; color:#216B4E; font-weight:600;">Snapped to masterplan</span></div>
+                  <button style="margin-top:auto; cursor:pointer; border:1px solid #E0DCD2; background:#fff; color:#2B2A25; font-weight:700; font-size:14px; padding:12px; border-radius:12px;" style-hover="background:#F4F2EA;">Save pin</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex; gap:12px; margin-top:24px;">
+            <button onClick="{{ goTeam }}" style="cursor:pointer; border:1px solid #E0DCD2; background:#fff; color:#2B2A25; font-weight:700; font-size:15px; padding:14px 22px; border-radius:13px;" style-hover="background:#F4F2EA;">Save draft</button>
+            <button onClick="{{ goProps }}" style="cursor:pointer; flex:1; border:0; background:#1F5E47; color:#fff; font-weight:700; font-size:15px; padding:14px; border-radius:13px; box-shadow:0 8px 18px rgba(31,94,71,.24);" style-hover="background:#184E3B;">Publish property</button>
+          </div>
+        </div>
+      </div>
+    </section>
+    </div>
+
+    <!-- ============ 13 · MAP STUDIO (simple) ============ -->
+    <div style="display:{{ studioShow }};">
+    <section data-screen-label="Map Studio" style="position:absolute; inset:0; overflow:hidden; background:#F3F1EB; display:flex; flex-direction:column;">
+      <div style="flex:none; padding:22px 30px 16px; max-width:1320px; margin:0 auto; width:100%;">
+        <div class="pm-serif" style="font-size:30px; font-weight:500; letter-spacing:-0.01em;">Map Studio</div>
+        <div style="display:{{ helpShow }}; font-size:16px; color:#6A6E68; margin-top:4px;">Mark your map in 3 easy steps. Big buttons, no rush.</div>
+      </div>
+
+      <div style="flex:none; padding:0 30px 14px; max-width:1320px; margin:0 auto; width:100%;">
+        <div style="display:flex; gap:12px;">
+          <sc-for list="{{ studioSteps }}" as="st" hint-placeholder-count="3">
+            <div style="flex:1; display:flex; align-items:center; gap:13px; background:{{ st.bg }}; border:1.5px solid {{ st.bd }}; border-radius:16px; padding:15px 18px;">
+              <span style="flex:none; width:34px; height:34px; border-radius:50%; background:{{ st.numBg }}; color:{{ st.numCol }}; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:800;">{{ st.num }}</span>
+              <div><div style="font-size:16px; font-weight:800; color:{{ st.txt }};">{{ st.label }}</div><div style="font-size:12.5px; color:#9A9D96;">{{ st.sub }}</div></div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="flex:1; display:flex; gap:18px; padding:0 30px 24px; max-width:1320px; margin:0 auto; width:100%; min-height:0;">
+        <!-- big toolbar -->
+        <div style="flex:none; width:150px; display:flex; flex-direction:column; gap:10px;">
+          <sc-for list="{{ studioTools }}" as="t" hint-placeholder-count="4">
+            <button style="cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:8px; background:{{ t.bg }}; border:1.5px solid {{ t.bd }}; border-radius:16px; padding:16px 10px;" style-hover="border-color:#1F5E47;">
+              <span style="width:42px; height:42px; border-radius:12px; background:{{ t.iconBg }}; color:{{ t.iconCol }}; display:flex; align-items:center; justify-content:center; font-size:21px; font-weight:800;">{{ t.icon }}</span>
+              <span style="font-size:13.5px; font-weight:700; color:{{ t.txt }};">{{ t.label }}</span>
+            </button>
+          </sc-for>
+        </div>
+
+        <!-- canvas -->
+        <div style="flex:1; position:relative; background:#EEEDE6; border:1px solid #E5E2D9; border-radius:22px; overflow:hidden;">
+          <div style="position:absolute; inset:0; background-image:linear-gradient(rgba(110,108,90,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(110,108,90,0.06) 1px,transparent 1px); background-size:44px 44px;"></div>
+          <div style="position:absolute; left:12%; top:22%; width:160px; height:112px; border-radius:12px; border:1.5px dashed #C9C3B5; background:rgba(62,110,150,.06);"></div>
+          <div style="position:absolute; left:60%; top:20%; width:150px; height:120px; border-radius:12px; border:1.5px dashed #C9C3B5; background:rgba(46,139,102,.06);"></div>
+          <svg viewBox="0 0 900 540" preserveAspectRatio="none" style="position:absolute; inset:0; width:100%; height:100%;"><path d="M120 470 L 330 360 L 520 300 L 730 170" fill="none" stroke="#1F5E47" stroke-width="5"></path></svg>
+          <div style="position:absolute; left:13%; top:86%;"><div style="width:16px; height:16px; border-radius:50%; background:#EEEDE6; border:3.5px solid #1F5E47;"></div></div>
+          <div style="position:absolute; left:57%; top:55%;"><div style="width:16px; height:16px; border-radius:50%; background:#EEEDE6; border:3.5px solid #1F5E47;"></div></div>
+          <div style="position:absolute; left:81%; top:31%;"><div style="width:19px; height:19px; border-radius:50%; background:#1F5E47; border:3.5px solid #fff; box-shadow:0 0 0 5px rgba(31,94,71,.2);"></div></div>
+          <div style="position:absolute; left:50%; bottom:22px; transform:translateX(-50%); display:flex; align-items:center; gap:13px; background:#1F5E47; border-radius:16px; padding:15px 22px; box-shadow:0 14px 32px rgba(20,60,45,.28);">
+            <span style="width:10px; height:10px; border-radius:50%; background:#9FE3C0;"></span>
+            <span style="font-size:16px; color:#fff; font-weight:700;">Tap along the road, then double-tap to finish.</span>
+          </div>
+        </div>
+
+        <!-- simple side panel -->
+        <div style="flex:none; width:280px; background:#fff; border:1px solid #E7E3D9; border-radius:22px; padding:22px; display:flex; flex-direction:column;">
+          <div style="font-size:18px; font-weight:800; margin-bottom:16px;">Name this road</div>
+          <div style="background:#FAF8F3; border:1.5px solid #1F5E47; border-radius:14px; padding:15px; font-size:16px; font-weight:600;">Airport Road Link</div>
+          <div style="font-size:14px; color:#56544A; font-weight:700; margin:20px 0 10px;">Pick a colour group</div>
+          <div style="display:flex; gap:9px;">
+            <span style="flex:1; text-align:center; border:1.5px solid #1F5E47; background:#E7F0EB; border-radius:13px; padding:13px 0; font-size:16px; font-weight:800; color:#1F5E47;">A</span>
+            <span style="flex:1; text-align:center; border:1px solid #E0DCD2; border-radius:13px; padding:13px 0; font-size:16px; font-weight:800; color:#9A9D96;">B</span>
+            <span style="flex:1; text-align:center; border:1px solid #E0DCD2; border-radius:13px; padding:13px 0; font-size:16px; font-weight:800; color:#9A9D96;">C</span>
+            <span style="flex:1; text-align:center; border:1px solid #E0DCD2; border-radius:13px; padding:13px 0; font-size:16px; font-weight:800; color:#9A9D96;">D</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; background:#EAF3EE; border:1px solid #CDE6DA; border-radius:13px; padding:12px 14px; margin-top:20px;"><span style="width:22px; height:22px; border-radius:7px; background:#2E8B66; color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800;">✓</span><span style="font-size:13.5px; color:#216B4E; font-weight:600;">Only safe markings go to clients</span></div>
+          <div style="margin-top:auto; display:flex; flex-direction:column; gap:11px; padding-top:20px;">
+            <button style="cursor:pointer; border:1.5px solid #E0DCD2; background:#fff; color:#2B2A25; font-weight:700; font-size:16px; padding:15px; border-radius:14px;" style-hover="background:#F4F2EA;">Save for later</button>
+            <button style="cursor:pointer; border:0; background:#1F5E47; color:#fff; font-weight:700; font-size:16px; padding:16px; border-radius:14px; box-shadow:0 8px 18px rgba(31,94,71,.26);" style-hover="background:#184E3B;">Publish to client map</button>
+          </div>
+        </div>
+      </div>
+    </section>
+    </div>
+
+    <!-- ============ REMOVE / CLOSE-OUT MODAL (team) ============ -->
+    <div style="display:{{ removeModalShow }}; position:fixed; inset:0; z-index:60; background:rgba(12,20,16,.5); backdrop-filter:blur(3px); align-items:center; justify-content:center; padding:24px;">
+      <div style="width:560px; max-width:100%; max-height:90vh; overflow:auto; background:#F7F5F0; border:1px solid #E7E3D9; border-radius:24px; box-shadow:0 40px 90px rgba(20,30,22,.4);">
+        <div style="padding:24px 26px 0; display:flex; align-items:flex-start; justify-content:space-between;">
+          <div>
+            <div style="font-size:12px; letter-spacing:0.14em; text-transform:uppercase; color:#9A4A2C; font-weight:700;">Close out property</div>
+            <div class="pm-serif" style="font-size:27px; font-weight:600; letter-spacing:-0.01em; margin-top:5px;">{{ removeName }}</div>
+            <div style="font-size:13.5px; color:#8A857B; margin-top:2px;">{{ removeArea }}</div>
+          </div>
+          <button onClick="{{ closeRemove }}" style="cursor:pointer; border:0; background:#EEEAE1; color:#6A6E68; width:34px; height:34px; border-radius:11px; font-size:17px; font-weight:700;" style-hover="background:#E4DFD4;">✕</button>
+        </div>
+        <div style="padding:18px 26px 26px;">
+          <div style="font-size:13px; font-weight:700; color:#56544A; margin-bottom:9px;">Why are you closing it?</div>
+          <div style="display:flex; gap:8px; margin-bottom:20px;">
+            <span style="flex:1; text-align:center; background:#E7F0EB; border:1.5px solid #1F5E47; color:#1F5E47; font-size:14px; font-weight:700; padding:11px 0; border-radius:12px;">Sold</span>
+            <span style="flex:1; text-align:center; background:#fff; border:1px solid #E7E3D9; color:#6A6E68; font-size:14px; font-weight:600; padding:11px 0; border-radius:12px;">Cancelled</span>
+            <span style="flex:1; text-align:center; background:#fff; border:1px solid #E7E3D9; color:#6A6E68; font-size:14px; font-weight:600; padding:11px 0; border-radius:12px;">On hold</span>
+          </div>
+          <div style="background:#fff; border:1px solid #E7E3D9; border-radius:16px; padding:18px 20px;">
+            <div style="font-size:13px; font-weight:700; color:#56544A; margin-bottom:13px;">Deal details for the owner</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+              <div><div style="font-size:12px; color:#9A9D96; font-weight:600; margin-bottom:6px;">Final deal value</div><div style="background:#FAF8F3; border:1px solid #E7E3D9; border-radius:11px; padding:12px 13px; font-size:14.5px; font-weight:700;">₹1.4 Cr</div></div>
+              <div><div style="font-size:12px; color:#9A9D96; font-weight:600; margin-bottom:6px;">Commission earned</div><div style="background:#FAF8F3; border:1px solid #E7E3D9; border-radius:11px; padding:12px 13px; font-size:14.5px; font-weight:700; color:#A87C3D;">₹2.5L</div></div>
+              <div><div style="font-size:12px; color:#9A9D96; font-weight:600; margin-bottom:6px;">Buyer / client</div><div style="background:#FAF8F3; border:1px solid #E7E3D9; border-radius:11px; padding:12px 13px; font-size:14.5px; font-weight:600;">Rajat Verma</div></div>
+              <div><div style="font-size:12px; color:#9A9D96; font-weight:600; margin-bottom:6px;">Who owes the money?</div><div style="background:#FAF8F3; border:1px solid #E7E3D9; border-radius:11px; padding:12px 13px; font-size:14.5px; font-weight:600; display:flex; justify-content:space-between;">Buyer <span style="color:#B0ADA2;">▾</span></div></div>
+              <div><div style="font-size:12px; color:#9A9D96; font-weight:600; margin-bottom:6px;">Payment status</div><div style="background:#FAF8F3; border:1px solid #E7E3D9; border-radius:11px; padding:12px 13px; font-size:14.5px; font-weight:600; display:flex; justify-content:space-between;">Pending <span style="color:#B0ADA2;">▾</span></div></div>
+              <div><div style="font-size:12px; color:#9A9D96; font-weight:600; margin-bottom:6px;">Promised by</div><div style="background:#FAF8F3; border:1px solid #E7E3D9; border-radius:11px; padding:12px 13px; font-size:14.5px; font-weight:600;">2 Jul 2026</div></div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; margin-top:16px; background:#EAF3EE; border:1px solid #CDE6DA; border-radius:12px; padding:11px 14px;">
+            <span style="width:22px; height:22px; border-radius:7px; background:#2E8B66; color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; flex:none;">i</span>
+            <span style="font-size:12.5px; color:#216B4E; font-weight:600;">The owner will verify the amount before it's added to Money.</span>
+          </div>
+          <div style="display:flex; gap:12px; margin-top:22px;">
+            <button onClick="{{ closeRemove }}" style="cursor:pointer; border:1px solid #E0DCD2; background:#fff; color:#2B2A25; font-weight:700; font-size:15px; padding:14px 22px; border-radius:13px;" style-hover="background:#F4F2EA;">Cancel</button>
+            <button onClick="{{ submitRemove }}" style="cursor:pointer; flex:1; border:0; background:#1F5E47; color:#fff; font-weight:700; font-size:15px; padding:14px; border-radius:13px; box-shadow:0 8px 18px rgba(31,94,71,.24);" style-hover="background:#184E3B;">Send to owner for approval</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ OWNER VERIFY MODAL ============ -->
+    <div style="display:{{ verifyModalShow }}; position:fixed; inset:0; z-index:61; background:rgba(8,12,10,.6); backdrop-filter:blur(4px); align-items:center; justify-content:center; padding:24px;">
+      <div style="width:520px; max-width:100%; max-height:90vh; overflow:auto; background:#121A15; border:1px solid #2C3D32; border-radius:24px; box-shadow:0 40px 90px rgba(0,0,0,.55);">
+        <div style="padding:24px 26px 0; display:flex; align-items:flex-start; justify-content:space-between;">
+          <div>
+            <div style="display:flex; align-items:center; gap:9px;"><span style="width:26px; height:26px; border-radius:8px; background:#3E6E96; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px;">P</span><span style="font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:#C7A35F; font-weight:700;">Priya needs your approval</span></div>
+            <div class="pm-serif" style="font-size:26px; font-weight:600; letter-spacing:-0.01em; color:#F4F1E8; margin-top:10px;">{{ verifyName }} · marked Sold</div>
+            <div style="font-size:13.5px; color:#7E9488; margin-top:2px;">{{ verifyArea }}</div>
+          </div>
+          <button onClick="{{ closeVerify }}" style="cursor:pointer; border:0; background:#1E2822; color:#9FB0A6; width:34px; height:34px; border-radius:11px; font-size:17px; font-weight:700;" style-hover="background:#243029;">✕</button>
+        </div>
+        <div style="padding:18px 26px 26px;">
+          <div style="background:#0E1612; border:1px solid #243029; border-radius:16px; padding:18px 20px;">
+            <div style="display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid #1E2822;"><span style="font-size:13px; color:#9FB0A6;">Final deal value</span><span class="pm-tab" style="font-size:14px; font-weight:700; color:#F4F1E8;">₹1.4 Cr</span></div>
+            <div style="display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid #1E2822;"><span style="font-size:13px; color:#9FB0A6;">Buyer</span><span style="font-size:14px; font-weight:700; color:#F4F1E8;">Rajat Verma</span></div>
+            <div style="display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid #1E2822;"><span style="font-size:13px; color:#9FB0A6;">Who owes</span><span style="font-size:14px; font-weight:700; color:#F4F1E8;">Buyer · Pending</span></div>
+            <div style="display:flex; justify-content:space-between; padding:9px 0 0;"><span style="font-size:13px; color:#9FB0A6;">Promised by</span><span style="font-size:14px; font-weight:700; color:#F4F1E8;">2 Jul 2026</span></div>
+          </div>
+          <div style="margin-top:16px;">
+            <div style="font-size:13px; font-weight:700; color:#C4AF7E; margin-bottom:8px;">Confirm commission amount</div>
+            <div style="display:flex; align-items:center; gap:12px; background:#1A1810; border:1.5px solid #3A3320; border-radius:13px; padding:14px 16px;">
+              <span class="pm-serif" style="font-size:24px; color:#9C8A5E;">₹</span>
+              <span class="pm-serif pm-tab" style="font-size:28px; font-weight:600; color:#E6C684;">2,50,000</span>
+              <span style="margin-left:auto; font-size:12px; color:#7E9488; font-weight:600;">Tap to adjust</span>
+            </div>
+          </div>
+          <div style="display:flex; gap:10px; margin-top:16px;">
+            <div style="flex:1; background:#0E1612; border:1px solid #243029; border-radius:12px; padding:12px 14px;"><div style="font-size:11px; color:#7E9488; font-weight:600;">Updates Money</div><div style="font-size:13px; font-weight:700; color:#E6C684; margin-top:3px;">+₹2.5L pending</div></div>
+            <div style="flex:1; background:#0E1612; border:1px solid #243029; border-radius:12px; padding:12px 14px;"><div style="font-size:11px; color:#7E9488; font-weight:600;">Updates Insights</div><div style="font-size:13px; font-weight:700; color:#7FD3A8; margin-top:3px;">Sold +1</div></div>
+          </div>
+          <div style="display:flex; gap:12px; margin-top:22px;">
+            <button onClick="{{ closeVerify }}" style="cursor:pointer; border:1px solid #2C3D32; background:transparent; color:#CFE0D7; font-weight:700; font-size:15px; padding:14px 20px; border-radius:13px;" style-hover="background:rgba(255,255,255,.04);">Send back</button>
+            <button onClick="{{ confirmVerify }}" style="cursor:pointer; flex:1; border:0; background:#E4C588; color:#1A140A; font-weight:700; font-size:15px; padding:14px; border-radius:13px;" style-hover="background:#D6B074;">Confirm &amp; add to Money</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ TOAST ============ -->
+    <div style="display:{{ toastShow }}; position:fixed; left:50%; bottom:30px; transform:translateX(-50%); z-index:62; align-items:center; gap:13px; background:#121A15; border:1px solid #2C3D32; border-radius:14px; padding:14px 20px; box-shadow:0 20px 50px rgba(0,0,0,.4);">
+      <span style="width:24px; height:24px; border-radius:8px; background:#7FD3A8; color:#0E1612; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800;">✓</span>
+      <span style="font-size:14px; font-weight:600; color:#F4F1E8;">{{ toastText }}</span>
+      <button onClick="{{ dismissToast }}" style="cursor:pointer; border:0; background:transparent; color:#7E9488; font-size:15px; font-weight:700; margin-left:6px;">✕</button>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Landing&quot;,&quot;Map&quot;,&quot;Dashboard&quot;,&quot;Property Insights&quot;,&quot;Clients&quot;,&quot;Money&quot;,&quot;Sector Maps&quot;,&quot;Properties&quot;,&quot;Team&quot;,&quot;Map Studio&quot;],&quot;default&quot;:&quot;Landing&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;mapType&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Easy / 3D Map&quot;,&quot;Original Map&quot;,&quot;Sector Map&quot;],&quot;default&quot;:&quot;Easy / 3D Map&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Map&quot;},&quot;showHelp&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;General&quot;}}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    const sMap = {'Landing':'landing','Map':'map','Properties':'props','Dashboard':'dash','Property Insights':'insights','Clients':'clients','Money':'money','Team':'team','Map Studio':'studio','Sector Maps':'sector'};
+    const mtMap = {'Easy / 3D Map':'easy','Original Map':'original','Sector Map':'sector'};
+    const start = sMap[props.startScreen] || 'landing';
+    let world = 'owner';
+    if (start==='landing') world='landing';
+    else if (start==='map' || start==='sector') world='client';
+    else if (start==='team' || start==='addClient' || start==='addProp') world='team';
+    this.state = { world, screen: start==='landing'?'':start, mapType: mtMap[props.mapType] || 'easy', selClient:0, selProp:0, studioOpen:false, detailBack:'map', removeModal:null, verifyModal:null, toast:'' };
+    this.allProps = this.buildProps();
+  }
+  go(world, screen){ this.setState({world, screen, studioOpen:false}); }
+
+  buildProps(){
+    // procedural premium "photo" scenes (layered CSS gradients)
+    const SC = {
+      plot:   'radial-gradient(120% 85% at 68% 16%, rgba(255,248,222,.55), transparent 46%), linear-gradient(180deg,#A6C6DE 0%,#C6DAD4 43%,#B0C588 46%,#809C54 100%)',
+      corner: 'radial-gradient(120% 85% at 30% 18%, rgba(255,242,214,.5), transparent 46%), linear-gradient(180deg,#B4CEE0 0%,#D0DFD2 45%,#C4CB90 48%,#8AA058 100%)',
+      road:   'linear-gradient(180deg,#ADC9E0 0%,#CEDBD3 37%,#BABFB0 39%,#9097906b 39%,#8C938C 40%,#5E655F 100%)',
+      aerial: 'repeating-linear-gradient(46deg,#9DB069 0 24px,#A6B872 24px 48px), repeating-linear-gradient(136deg, rgba(255,255,255,.16) 0 22px, transparent 22px 58px)',
+      skyline:'linear-gradient(180deg,#33406E 0%,#6A5C96 36%,#C0846A 68%,#F0C088 100%)',
+      park:   'radial-gradient(100% 70% at 50% 8%, rgba(255,250,228,.5), transparent 52%), linear-gradient(180deg,#A4C5DC,#84AE78 55%,#5C8850 100%)',
+      market: 'linear-gradient(180deg,#BCD0DE 0%,#E0D2BA 43%,#CFA676 72%,#A67E54 100%)',
+      temple: 'radial-gradient(90% 72% at 50% 28%, rgba(255,234,188,.72), transparent 56%), linear-gradient(180deg,#CDBEE2,#EAD09E 55%,#D6A865 100%)',
+      interior:'linear-gradient(180deg,#E8E1D4 0%,#D8CDBA 50%,#BCAE94 100%)'
+    };
+    const areas=['Aerocity','New Chandigarh','Zirakpur','Mullanpur','Derabassi','IT City','Kharar','Sector 82'];
+    const cities=['Mohali','New Chandigarh','Zirakpur','Mullanpur','Derabassi','Mohali','Kharar','Mohali'];
+    const types=['Residential Plot','Commercial SCO','Showroom','Villa','Industrial Plot','Corner Plot'];
+    const sizes=['150 sq yd','200 sq yd','250 sq yd','300 sq yd','500 sq yd','1 Kanal','SCO unit','200 sq yd'];
+    const facings=['East','West','North-East','Road Facing','Park Facing','Corner'];
+    const blocks=['A','B','C','D','E','F'];
+    const statuses=[
+      {s:'Available',sBg:'#E7F0EB',sFg:'#1F5E47'},
+      {s:'Available',sBg:'#E7F0EB',sFg:'#1F5E47'},
+      {s:'On hold',sBg:'#F3EAD8',sFg:'#8A6224'},
+      {s:'Internal only',sBg:'#EDEAF2',sFg:'#5F5A78'},
+      {s:'Completed',sBg:'#EFEBE2',sFg:'#7C8076'}
+    ];
+    const flagsCycle=['','Add photos','Map pin missing','Sector proof missing','Brochure not ready',''];
+    const scoreLabels=[['High Attention','#1F5E47','#E7F0EB'],['Rising','#8A6224','#F3EAD8'],['Stable','#3E6E96','#E9EFF4'],['Needs Push','#9A4A2C','#F7E7E0'],['Ignored','#7C8076','#EFEBE2']];
+    const caps=['Plot view','Corner & boundary','Road frontage','Aerial · sector','Nearby landmark','Local market'];
+    const out=[];
+    for(let i=0;i<50;i++){
+      const type=types[(i*3+1)%types.length];
+      const commercial=/SCO|Showroom|Industrial/.test(type);
+      const area=areas[i%areas.length];
+      const block=blocks[i%blocks.length];
+      const sector=20+((i*7)%160);
+      const size=commercial?(type==='Showroom'?'200 sq yd':'SCO unit'):sizes[(i*2)%sizes.length];
+      const facing=facings[i%facings.length];
+      const st=statuses[i%statuses.length];
+      const prefix=type==='Showroom'?'Showroom':(commercial?'SCO':'Plot');
+      const name=prefix+' '+block+'-'+(100+i);
+      const views=8+((i*13+7)%118);
+      const shares=1+((i*5)%14);
+      const proofOpens=((i*3)%9);
+      const matches=((i*7)%6);
+      const visits=((i*2)%4);
+      const score=Math.max(22, Math.min(96, 96-((i*9)%70)));
+      const slIdx= score>78?0 : score>62?1 : score>46?2 : score>34?3 : 4;
+      const sl=scoreLabels[slIdx];
+      const flag=flagsCycle[i%flagsCycle.length];
+      const ready = !flag;
+      const pScenes = commercial?['skyline','market','road','aerial']:['plot','corner','road','aerial'];
+      const aScenes = ['temple','market'];
+      const sceneKeys=[...pScenes,...aScenes];
+      const images=sceneKeys.map((k,j)=>({bg:SC[k]||SC.plot, cap:caps[j]||'View'}));
+      out.push({
+        id:'p'+i, name, area, city:cities[i%cities.length], block, sector, size, type, facing,
+        status:st.s, sBg:st.sBg, sFg:st.sFg,
+        views, shares, proofOpens, matches, visits, score,
+        scoreLabel:sl[0], scoreCol:sl[1], scoreBg:sl[2],
+        flag, ready, images, hero:images[0].bg,
+        road:(commercial?'60 ft':'40 ft')
+      });
+    }
+    // anchor the first one to the spec example
+    out[0]={...out[0], name:'Plot C-114', area:'Aerocity', city:'Mohali', block:'C', sector:82, size:'500 sq yd', type:'Residential Plot', facing:'Road Facing', status:'Available', sBg:'#E7F0EB', sFg:'#1F5E47', views:86, shares:12, proofOpens:6, matches:4, visits:1, score:86, scoreLabel:'High Attention', scoreCol:'#1F5E47', scoreBg:'#E7F0EB', flag:'', ready:true, road:'40 ft',
+      images:[{bg:SC.plot,cap:'Plot view'},{bg:SC.corner,cap:'Corner & boundary'},{bg:SC.road,cap:'Road frontage'},{bg:SC.aerial,cap:'Aerial · sector'},{bg:SC.temple,cap:'Nearby landmark'},{bg:SC.market,cap:'Local market'}], hero:SC.plot};
+    return out;
+  }
+
+  renderVals(){
+    const w = this.state.world;
+    const s = this.state.screen;
+    const help = (this.props.showHelp ?? true) ? 'block' : 'none';
+
+    const navDef = {
+      owner: [['Dashboard','dash'],['Property Insights','insights'],['Clients','clients'],['Money','money']],
+      team: [['Workspace','team'],['Properties','props'],['Map Studio','studio']],
+      client: [['Map','map'],['Properties','props'],['Sector Maps','sector']]
+    };
+    const tabsList = navDef[w] || [];
+    const activeFor = {detail: (w==='client'?'props':'insights'), client:'clients', addClient:'team', addProp:'props'};
+    const tabs = tabsList.map(([label,id]) => {
+      const on = s===id || activeFor[s]===id;
+      return { label, bg: on?'#E7F0EB':'transparent', col: on?'#1F5E47':'#6A6E68', fw: on?'700':'600', go:()=> this.setState({screen:id, studioOpen:false}) };
+    });
+
+    const roles = {
+      owner: {roleName:'Karan', roleKind:'Owner', roleColor:'#1F5E47', roleInitial:'K'},
+      team: {roleName:'Priya', roleKind:'Staff', roleColor:'#3E6E96', roleInitial:'P'},
+      client: {roleName:'Guest', roleKind:'Client view', roleColor:'#A87C3D', roleInitial:'C'}
+    };
+    const role = roles[w] || roles.owner;
+
+    const doors = [
+      {num:'01', tag:'For your client', title:'Client Presentation', desc:'Walk a buyer through any property, sector and location on a beautiful live map.', cta:'Start presenting', icon:'◑',
+        accent:'rgba(95,227,198,.6)', glow:'rgba(95,227,198,.32)', iconCol:'#7FE8CE', go:()=> this.go('client','map')},
+      {num:'02', tag:'For the owner', title:'Dealer Login', desc:'Your command room — business signals, client movement, property intelligence and all the money.', cta:'Enter command', icon:'◆',
+        accent:'rgba(255,217,160,.6)', glow:'rgba(255,217,160,.34)', iconCol:'#FFD9A0', go:()=> this.go('owner','dash')},
+      {num:'03', tag:'For your team', title:'Team Login', desc:'The daily work table — add clients and properties, schedule visits and mark maps.', cta:'Open workspace', icon:'◐',
+        accent:'rgba(168,150,255,.6)', glow:'rgba(168,150,255,.32)', iconCol:'#C0B0FF', go:()=> this.go('team','team')}
+    ];
+
+    const mtDef = [['easy','Easy','Simple, easy to explain'],['original','Original','Official proof map'],['sector','Sector','Exact plot location']];
+    const mapTypes = mtDef.map(([id,short,sub])=>{ const on=this.state.mapType===id; return {short,sub,bg:on?'#fff':'transparent',col:on?'#1F5E47':'#7C8076',sh:on?'0 1px 3px rgba(40,32,15,.12)':'none',go:()=>this.setState({mapType:id})}; });
+
+    const detailFacts = [{k:'Size',v:'200 yd²'},{k:'Facing',v:'East'},{k:'Road',v:'40 ft'},{k:'Plot',v:'C-114'}];
+    const detailNearby = [{place:'International Airport',dist:'4 km',col:'#3E6E96'},{place:'IT City',dist:'6 km',col:'#2E8B66'},{place:'Proposed Metro stop',dist:'1.2 km',col:'#A87C3D'},{place:'PR-7 Highway',dist:'2 km',col:'#1F5E47'}];
+    const detailSimilar = [{name:'Plot C-118',meta:'Block C · 250 yd²'},{name:'Plot C-102',meta:'Block C · 200 yd²'}];
+
+    const sChips = ['All Tricity','Aerocity','New Chandigarh','Zirakpur','Mullanpur','Derabassi'];
+    const sectorChips = sChips.map((label,i)=>({label, bg:i===0?'#1F5E47':'#fff', bd:i===0?'#1F5E47':'#E7E3D9', fg:i===0?'#fff':'#56544A'}));
+    const secAreas = ['Aerocity','New Chandigarh','Zirakpur','Mullanpur','Derabassi','IT City'];
+    const sectors = [82,66,115,20,9,127,48,93,5,160,34,71].map((n,i)=>{
+      const verified=i%4!==0; const tints=['rgba(31,94,71,.18)','rgba(62,110,150,.18)','rgba(168,124,61,.2)']; const cols=['#1F5E47','#3E6E96','#A87C3D']; const c=i%3;
+      return {name:'Sector '+n, area:secAreas[i%secAreas.length], plots:(28+(n%40)), status:verified?'Verified':'Draft', badgeBg:verified?'#E7F0EB':'#F3EAD8', badgeFg:verified?'#1F5E47':'#8A6224', tint:tints[c], col:cols[c]};
+    });
+
+    const spark=(arr,c)=>arr.map(h=>({h:h+'%',c}));
+    const stats=[
+      {k:'Active clients',v:'128',delta:'+9',delCol:'#1F5E47',delBg:'#E7F0EB',spark:spark([40,55,48,62,70,66,82],'#1F5E47')},
+      {k:'Site visits',v:'6',delta:'+2',delCol:'#1F5E47',delBg:'#E7F0EB',spark:spark([30,50,40,60,45,70,90],'#C7B083')},
+      {k:'Deals in progress',v:'14',delta:'+3',delCol:'#1F5E47',delBg:'#E7F0EB',spark:spark([55,48,60,52,68,72,80],'#1F5E47')},
+      {k:'Pipeline value',v:'₹3.2Cr',delta:'+18%',delCol:'#8A6224',delBg:'#F3EAD8',spark:spark([35,45,55,50,65,75,88],'#C7B083')}
+    ];
+    const momentum=['M','T','W','T','F','S','S','M','T','W','T','F','S','S'].map((d,i)=>{
+      const base=[40,55,48,70,62,80,58,52,66,74,60,88,70,46]; const enq=[55,62,58,80,72,90,64,60,76,84,70,96,80,58];
+      return {d, b:base[i]+'%', a:Math.round((enq[i]-base[i])*0.7)+'%'};
+    });
+    const areas=[{name:'Aerocity',change:'Most active',pct:'92%',col:'#1F5E47'},{name:'New Chandigarh',change:'Rising',pct:'62%',col:'#A87C3D'},{name:'IT City',change:'Steady',pct:'48%',col:'#3E6E96'},{name:'Zirakpur',change:'Quiet',pct:'26%',col:'#A6A199'}];
+    const ownerRecs=[
+      {tag:'Relationships',col:'#9A4A2C',t:'3 high-value clients haven\u2019t heard from you in a week — a quick hello keeps them warm.'},
+      {tag:'Inventory',col:'#1F5E47',t:'Aerocity demand is rising while stock runs low. Worth sourcing 2\u20133 more plots there.'},
+      {tag:'Money',col:'#A87C3D',t:'\u20B92.6L has aged past 30 days. A gentle recovery call could bring it in.'}
+    ];
+
+    const cData=[
+      {initials:'RS',name:'Rajdeep Singh',area:'Aerocity',budget:'\u20B91.2 Cr',value:'\u20B918L',stage:'Hot',stageCol:'#9A4A2C',stageBg:'#F7E7E0',avBg:'#1F5E47',avFg:'#fff',deals:'3',score:'High',referrals:'2',since:'2021',phone:'+91 98xx xx21',email:'rajdeep@email.com',last:'2d ago',
+        tags:['200 yd\u00B2 plot','Aerocity','Corner'],
+        details:[{k:'Occupation',v:'Business owner'},{k:'Family',v:'Married, 2 kids'},{k:'Budget',v:'\u20B91.2 Cr'},{k:'Preferred',v:'Residential plot'},{k:'Source',v:'Referral'}],
+        shown:[{name:'Plot C-114',meta:'Aerocity · 200 yd\u00B2'},{name:'Plot C-118',meta:'Aerocity · 250 yd\u00B2'}],
+        thread:[{t:'Visited Plot C-114',sub:'On-site with Priya · liked the corner',col:'#1F5E47',when:'2d ago'},{t:'Brochure shared',sub:'Aerocity Block C brochure on WhatsApp',col:'#A87C3D',when:'4d ago'},{t:'Phone call',sub:'15 min · serious, wants corner plot',col:'#3E6E96',when:'1w ago'},{t:'Added as client',sub:'Walk-in to Aerocity office',col:'#9A9D96',when:'May 2024'}]},
+      {initials:'AB',name:'Anita Bhatia',area:'New Chandigarh',budget:'\u20B985 L',value:'\u20B911L',stage:'Negotiating',stageCol:'#8A6224',stageBg:'#F3EAD8',avBg:'#A87C3D',avFg:'#fff',deals:'2',score:'High',referrals:'1',since:'2022',phone:'+91 99xx xx07',email:'anita.b@email.com',last:'1d ago',
+        tags:['250 yd\u00B2 plot','New Chandigarh'],
+        details:[{k:'Occupation',v:'Doctor'},{k:'Family',v:'Married'},{k:'Budget',v:'\u20B985 L'},{k:'Preferred',v:'Residential plot'},{k:'Source',v:'Online'}],
+        shown:[{name:'Plot 20-B',meta:'New Chandigarh · 250 yd\u00B2'}],
+        thread:[{t:'Token paid',sub:'\u20B92L token for Plot 20-B',col:'#1F5E47',when:'1d ago'},{t:'Site visit done',sub:'Visited with family',col:'#3E6E96',when:'3d ago'},{t:'Negotiation',sub:'Asked for 5% off',col:'#A87C3D',when:'5d ago'},{t:'Added as client',sub:'Online enquiry',col:'#9A9D96',when:'Jan 2022'}]},
+      {initials:'MK',name:'Mehul Kapoor',area:'IT City',budget:'\u20B91.6 Cr',value:'\u20B99L',stage:'Warm',stageCol:'#345D80',stageBg:'#E9EFF4',avBg:'#3E6E96',avFg:'#fff',deals:'1',score:'Medium',referrals:'0',since:'2023',phone:'+91 98xx xx55',email:'mehul.k@email.com',last:'5h ago',
+        tags:['SCO','Commercial','IT City'],
+        details:[{k:'Occupation',v:'IT professional'},{k:'Family',v:'Single'},{k:'Budget',v:'\u20B91.6 Cr'},{k:'Preferred',v:'Commercial SCO'},{k:'Source',v:'WhatsApp'}],
+        shown:[{name:'SCO F-7',meta:'IT City · 120 yd\u00B2'}],
+        thread:[{t:'Asked for brochure',sub:'SCO F-7 commercial details',col:'#A87C3D',when:'5h ago'},{t:'New enquiry',sub:'Interested in IT City SCO',col:'#1F5E47',when:'2d ago'},{t:'Added as client',sub:'WhatsApp enquiry',col:'#9A9D96',when:'Mar 2023'}]},
+      {initials:'GD',name:'Gurpreet Dhillon',area:'Derabassi',budget:'\u20B92.4 Cr',value:'\u20B924L',stage:'Repeat',stageCol:'#1F5E47',stageBg:'#E7F0EB',avBg:'#1C1E1B',avFg:'#fff',deals:'5',score:'High',referrals:'4',since:'2019',phone:'+91 97xx xx12',email:'gurpreet.d@email.com',last:'Yesterday',
+        tags:['Commercial','Showroom','Derabassi'],
+        details:[{k:'Occupation',v:'Industrialist'},{k:'Family',v:'Married, 3 kids'},{k:'Budget',v:'\u20B92.4 Cr'},{k:'Preferred',v:'Commercial'},{k:'Source',v:'Referral'}],
+        shown:[{name:'SCO D-12',meta:'Derabassi · Commercial'},{name:'Showroom Z-3',meta:'Zirakpur · Showroom'}],
+        thread:[{t:'Deal closed \u20B974L',sub:'SCO D-12 · commission \u20B92.5L',col:'#1F5E47',when:'Yesterday'},{t:'Referred a friend',sub:'Introduced new buyer',col:'#A87C3D',when:'1w ago'},{t:'Repeat purchase',sub:'4th deal with us',col:'#3E6E96',when:'2mo ago'},{t:'Added as client',sub:'Referral from partner',col:'#9A9D96',when:'2019'}]},
+      {initials:'SK',name:'Simran Kaur',area:'Aerocity',budget:'\u20B990 L',value:'\u20B97L',stage:'Warm',stageCol:'#345D80',stageBg:'#E9EFF4',avBg:'#6FA3C9',avFg:'#fff',deals:'1',score:'Medium',referrals:'0',since:'2024',phone:'+91 98xx xx88',email:'simran.k@email.com',last:'2h ago',
+        tags:['Plot','Aerocity'],
+        details:[{k:'Occupation',v:'Architect'},{k:'Family',v:'Married'},{k:'Budget',v:'\u20B990 L'},{k:'Preferred',v:'Residential plot'},{k:'Source',v:'Walk-in'}],
+        shown:[{name:'Plot C-114',meta:'Aerocity · 200 yd\u00B2'}],
+        thread:[{t:'New client added',sub:'Walk-in this morning',col:'#1F5E47',when:'2h ago'},{t:'First enquiry',sub:'Aerocity plots under \u20B91Cr',col:'#A87C3D',when:'2h ago'}]},
+      {initials:'HS',name:'Harman Sodhi',area:'Zirakpur',budget:'\u20B91.1 Cr',value:'\u20B95L',stage:'Cold',stageCol:'#7C8076',stageBg:'#EFEBE2',avBg:'#9A9D96',avFg:'#fff',deals:'1',score:'Low',referrals:'0',since:'2023',phone:'+91 97xx xx34',email:'harman.s@email.com',last:'3w ago',
+        tags:['Showroom','Zirakpur'],
+        details:[{k:'Occupation',v:'Retailer'},{k:'Family',v:'Married, 1 kid'},{k:'Budget',v:'\u20B91.1 Cr'},{k:'Preferred',v:'Showroom'},{k:'Source',v:'Online'}],
+        shown:[{name:'Showroom Z-3',meta:'Zirakpur · Showroom'}],
+        thread:[{t:'Went quiet',sub:'No reply in 3 weeks',col:'#7C8076',when:'3w ago'},{t:'Site visit',sub:'Visited Showroom Z-3',col:'#3E6E96',when:'2mo ago'},{t:'Added as client',sub:'Online enquiry',col:'#9A9D96',when:'2023'}]}
+    ];
+    const sel0=this.state.selClient;
+    const sel=cData[sel0];
+    const clients=cData.slice(0,4).map((c,i)=>({initials:c.initials,name:c.name,area:c.area,value:c.value,stage:c.stage,stageCol:c.stageCol,stageBg:c.stageBg,avBg:c.avBg,avFg:c.avFg,go:()=>this.setState({selClient:i,screen:'client'})}));
+    const clientChips=['All','Hot','Negotiating','Warm','Repeat','Cold'].map((label,i)=>({label,bg:i===0?'#1F5E47':'#fff',bd:i===0?'#1F5E47':'#E7E3D9',fg:i===0?'#fff':'#56544A'}));
+    const clientRows=cData.map((c,i)=>({initials:c.initials,name:c.name,phone:c.phone,area:c.area,budget:c.budget,value:c.value,stage:c.stage,stageCol:c.stageCol,stageBg:c.stageBg,avBg:c.avBg,avFg:c.avFg,last:c.last,go:()=>this.setState({selClient:i,screen:'client'})}));
+
+    // property insights
+    const insightKpis=[
+      {k:'Listed',v:'18',col:'#1C1E1B',sub:'across Tricity'},
+      {k:'Available',v:'12',col:'#1F5E47',sub:'ready to show'},
+      {k:'On hold',v:'3',col:'#A87C3D',sub:'token taken'},
+      {k:'Sold',v:'3',col:'#7C8076',sub:'this quarter'},
+      {k:'Avg days to sell',v:'34',col:'#3E6E96',sub:'down from 41'}
+    ];
+    const attention=[
+      {name:'Plot C-114',area:'Aerocity · Block C',views:'342',score:'A+',pct:'100%'},
+      {name:'SCO D-12',area:'Derabassi · Belt',views:'271',score:'A',pct:'79%'},
+      {name:'Showroom Z-3',area:'Zirakpur',views:'198',score:'B+',pct:'58%'},
+      {name:'Plot 20-B',area:'New Chandigarh',views:'164',score:'B',pct:'48%'},
+      {name:'SCO F-7',area:'IT City · Block F',views:'96',score:'C',pct:'28%'}
+    ];
+    const invHealth=[
+      {t:'Not on the map yet',n:'2',col:'#9A4A2C'},
+      {t:'Missing a photo',n:'2',col:'#A87C3D'},
+      {t:'Missing sector proof',n:'1',col:'#3E6E96'},
+      {t:'No price set internally',n:'1',col:'#C2922F'}
+    ];
+    const invArea=[{area:'Aerocity',n:'6',pct:'100%'},{area:'New Chand.',n:'4',pct:'67%'},{area:'Zirakpur',n:'4',pct:'67%'},{area:'Derabassi',n:'4',pct:'67%'}];
+    const invType=[{area:'Residential',n:'9',pct:'100%'},{area:'Commercial',n:'5',pct:'56%'},{area:'SCO',n:'3',pct:'33%'},{area:'Showroom',n:'1',pct:'11%'}];
+    const signals=[
+      {t:'High demand for 200 yd\u00B2 plots in Aerocity — only 1 left in stock.'},
+      {t:'Buyers asking for commercial SCO in IT City, but you have none listed.'},
+      {t:'New Chandigarh interest rising 60% — consider sourcing more there.'}
+    ];
+
+    // ===== FINANCE CENTER (money control room) =====
+    const moneyCards=[
+      {k:'Commission Earned',v:'\u20B962.0L',bg:'#141C17',bd:'#243029',kCol:'#9FB0A6',vCol:'#F4F1E8',subCol:'#7E9488',sub:'this quarter'},
+      {k:'Commission Received',v:'\u20B947.0L',bg:'#141C17',bd:'#243029',kCol:'#9FB0A6',vCol:'#7FD3A8',subCol:'#7E9488',sub:'76% realised'},
+      {k:'Commission Pending',v:'\u20B915.0L',bg:'#1A1810',bd:'#3A3320',kCol:'#C4AF7E',vCol:'#E6C684',subCol:'#9C8A5E',sub:'across 13 deals'},
+      {k:'Expected Cash-In This Week',v:'\u20B94.0L',bg:'#141C17',bd:'#243029',kCol:'#9FB0A6',vCol:'#7FD3A8',subCol:'#7E9488',sub:'4 deals likely'},
+      {k:'High-Risk Pending Money',v:'\u20B95.5L',bg:'#1C1410',bd:'#3E2A22',kCol:'#C9A38E',vCol:'#E8A06E',subCol:'#A87E68',sub:'odds dropping'},
+      {k:'Recovery Grade',v:'A\u2212',bg:'#141C17',bd:'#243029',kCol:'#9FB0A6',vCol:'#E6C684',subCol:'#7E9488',sub:'88% recovered'}
+    ];
+    const recovery=[
+      {initials:'RV',name:'Rajat Verma',party:'Buyer · sale deal',area:'Derabassi · Residential',dealValue:'\u20B91.4 Cr',amount:'\u20B91.5L',age:'7 days',ageCol:'#7FD3A8',prob:'High · 90%',probPct:'90%',probCol:'#7FD3A8',promised:'2 Jul 2026',action:'Call today — registry done, just unbilled',tone:'#9A4A2C'},
+      {initials:'GD',name:'Gurpreet Dhillon',party:'Builder party',area:'Derabassi · Commercial',dealValue:'\u20B92.5 Cr',amount:'\u20B92.5L',age:'11 days',ageCol:'#E6C684',prob:'High · 84%',probPct:'84%',probCol:'#7FD3A8',promised:'5 Jul 2026',action:'Send invoice + WhatsApp reminder',tone:'#1C1E1B'},
+      {initials:'PJ',name:'Priya Jain',party:'Seller side',area:'Zirakpur · Showroom',dealValue:'\u20B91.2 Cr',amount:'\u20B91.2L',age:'15 days',ageCol:'#E0A95E',prob:'Medium · 62%',probPct:'62%',probCol:'#E6C684',promised:'28 Jun 2026',action:'Promised date passed — follow up firmly',tone:'#A87C3D'},
+      {initials:'AB',name:'Anita Bhatia',party:'Buyer · token',area:'New Chandigarh · Plot',dealValue:'\u20B984 L',amount:'\u20B984K',age:'24 days',ageCol:'#E8A06E',prob:'Low · 38%',probPct:'38%',probCol:'#E8755A',promised:'No date set',action:'No follow-up in 12 days — set a date',tone:'#3E6E96'}
+    ];
+    const leaks=[
+      {t:'Closed deals with no commission entered',v:'\u20B92.5L'},
+      {t:'Site visits done, never followed up',v:'\u20B91.8L'},
+      {t:'Delayed follow-ups past promised date',v:'\u20B91.2L'},
+      {t:'Token taken, deal stalled 20+ days',v:'\u20B90.8L'}
+    ];
+    const deadMoney=[
+      {name:'Harman Sodhi',meta:'Zirakpur · Showroom · no contact 31d',v:'\u20B91.1L',age:'42 days'},
+      {name:'Vikram Rana',meta:'Mullanpur · Plot · disputed split',v:'\u20B90.9L',age:'55 days'},
+      {name:'Office party share',meta:'Aerocity · partner dealer silent',v:'\u20B90.8L',age:'38 days'}
+    ];
+    const aging=[{bucket:'0\u20137 days',val:'\u20B94.0L',pct:'27%',col:'#7FD3A8'},{bucket:'8\u201315 days',val:'\u20B94.6L',pct:'31%',col:'#E6C684'},{bucket:'16\u201330 days',val:'\u20B93.8L',pct:'25%',col:'#E0A95E'},{bucket:'30+ days',val:'\u20B92.6L',pct:'17%',col:'#E8755A'}];
+    const cashin=[{when:'This week',val:'\u20B94.0L',note:'4 deals likely to clear',col:'#7FD3A8'},{when:'This month',val:'\u20B99.0L',note:'Registry + token recovery',col:'#E6C684'},{when:'Next month',val:'\u20B96.0L',note:'Negotiations closing',col:'#6E7C73'}];
+    const ownerTimeline=[
+      {t:'Deal closed',v:'\u20B91.4 Cr',when:'18 Jun · Rajat Verma',col:'#7FD3A8'},
+      {t:'Commission earned',v:'\u20B91.5L',when:'18 Jun · booked',col:'#E6C684'},
+      {t:'Payment promised',v:'\u20B91.5L',when:'2 Jul · by buyer',col:'#6FA3C9'},
+      {t:'Received',v:'Pending',when:'awaiting · 7 days',col:'#E8A06E'}
+    ];
+    const areaProfit=[{area:'Aerocity',val:'\u20B924L',pct:'100%'},{area:'Derabassi',val:'\u20B916L',pct:'67%'},{area:'IT City',val:'\u20B912L',pct:'50%'},{area:'Zirakpur',val:'\u20B96L',pct:'25%'}];
+    const staffImpact=[{area:'Priya',val:'\u20B921L',pct:'100%'},{area:'Amit',val:'\u20B917L',pct:'81%'},{area:'Neha',val:'\u20B914L',pct:'67%'},{area:'Sahil',val:'\u20B910L',pct:'48%'}];
+    const ltv=[
+      {initials:'GD',name:'Gurpreet Dhillon',v:'\u20B924L',avBg:'#1C1E1B'},
+      {initials:'RS',name:'Rajdeep Singh',v:'\u20B918L',avBg:'#1F5E47'},
+      {initials:'AB',name:'Anita Bhatia',v:'\u20B911L',avBg:'#A87C3D'},
+      {initials:'MK',name:'Mehul Kapoor',v:'\u20B99L',avBg:'#3E6E96'}
+    ];
+    const gap=[
+      {area:'IT City',tag:'High interest, low money',tagCol:'#E8A06E',attn:'82%',rev:'34%'},
+      {area:'Mullanpur',tag:'Rising views, no deals',tagCol:'#E8A06E',attn:'66%',rev:'18%'},
+      {area:'Zirakpur',tag:'Steady, converting',tagCol:'#7FD3A8',attn:'48%',rev:'40%'}
+    ];
+
+    // properties / team
+    const isClient = w==='client';
+    const filters=[['All areas',1],['Type',0],['Status',0]].map(([label,a])=>({label,bg:a?'#1C1E1B':'#fff',bd:a?'#1C1E1B':'#E7E3D9',fg:a?'#fff':'#56544A'}));
+    const inv=this.allProps.map((p,i)=>({
+      name:p.name, area:p.area+' · Block '+p.block, size:p.size+' · '+p.type,
+      status:p.status, sBg:p.sBg, sFg:p.sFg, flag:p.flag, hero:p.hero,
+      flagShow:(!isClient && p.flag)?'inline-flex':'none',
+      actionsShow: w==='team' ? 'flex' : 'none',
+      goDetail:()=> this.setState({detailBack:(w==='client'?'map':'props'), selProp:i, screen:'detail'}),
+      openRemove:(e)=>{ if(e&&e.stopPropagation) e.stopPropagation(); this.setState({removeModal:{name:p.name, area:p.area}}); }
+    }));
+    const det=this.allProps[this.state.selProp] || this.allProps[0];
+    const detImages=det.images.map(im=>({bg:im.bg, cap:im.cap}));
+    const detReadyItems=[
+      {t:'Photos', ok:det.ready || det.flag!=='Add photos'},
+      {t:'Map pin', ok:det.flag!=='Map pin missing'},
+      {t:'Sector proof', ok:det.flag!=='Sector proof missing'},
+      {t:'Brochure', ok:det.flag!=='Brochure not ready'}
+    ].map(r=>({t:r.t, mk:r.ok?'✓':'!', col:r.ok?'#1F5E47':'#9A4A2C', bg:r.ok?'#E7F0EB':'#F7E7E0'}));
+
+    const tint={'#2E8B66':'#E7F2EC','#1F5E47':'#E7F0EB','#3E6E96':'#E9EFF4','#A87C3D':'#F3EAD8'};
+    const actions=[
+      {label:'Add Client',mark:'+',col:'#1F5E47',go:()=>this.setState({screen:'addClient'})},
+      {label:'Add Property',mark:'+',col:'#A87C3D',go:()=>this.setState({screen:'addProp'})},
+      {label:'Schedule Visit',mark:'\u25F7',col:'#3E6E96',go:()=>this.setState({screen:'team'})},
+      {label:'Open Map Studio',mark:'\u2316',col:'#2E8B66',go:()=>this.setState({screen:'studio'})}
+    ].map(a=>({...a,tint:tint[a.col]}));
+    const weekStats=[
+      {k:'Clients added',v:'6',unit:'this week'},
+      {k:'Site visits done',v:'4',unit:''},
+      {k:'Properties added',v:'3',unit:''},
+      {k:'Follow-ups logged',v:'9',unit:''}
+    ];
+    const myClients=[
+      {initials:'RS',name:'Rajdeep Singh',meta:'Aerocity · 200 yd²',stage:'Hot',stageCol:'#9A4A2C',stageBg:'#F7E7E0',avBg:'#1F5E47'},
+      {initials:'SK',name:'Simran Kaur',meta:'Aerocity · new today',stage:'Warm',stageCol:'#345D80',stageBg:'#E9EFF4',avBg:'#6FA3C9'},
+      {initials:'MK',name:'Mehul Kapoor',meta:'IT City · SCO',stage:'Warm',stageCol:'#345D80',stageBg:'#E9EFF4',avBg:'#3E6E96'},
+      {initials:'AB',name:'Anita Bhatia',meta:'New Chandigarh · token paid',stage:'Negotiating',stageCol:'#8A6224',stageBg:'#F3EAD8',avBg:'#A87C3D'},
+      {initials:'HS',name:'Harman Sodhi',meta:'Zirakpur · quiet 3w',stage:'Cold',stageCol:'#7C8076',stageBg:'#EFEBE2',avBg:'#9A9D96'}
+    ];
+    const teamRecs=[
+      {t:'Add Simran Kaur to the Aerocity list',sub:'She walked in this morning',col:'#1F5E47',cta:'Add'},
+      {t:'Upload photos for SCO F-7',sub:'Buyers skip plots without photos',col:'#A87C3D',cta:'Upload'},
+      {t:'2 plots in Sector 82 aren\u2019t on the map',sub:'Mark them so they\u2019re shareable',col:'#3E6E96',cta:'Map'},
+      {t:'Confirm Mehul\u2019s site visit time',sub:'Visit pencilled for today',col:'#2E8B66',cta:'Confirm'}
+    ];
+    const recent=[{name:'Simran Kaur',meta:'New client · Aerocity',when:'2h ago'},{name:'Plot C-118 added',meta:'Block C · 250 sq yd',when:'4h ago'},{name:'Gurpreet Dhillon',meta:'Deal closed · \u20B974L',when:'Yesterday'}];
+
+    const studioStepsDef=[['1','Pick your map','City + masterplan',true],['2','Mark it','Roads, blocks, plots',false],['3','Publish','Send safe markings',false]];
+    const studioSteps=studioStepsDef.map(([num,label,sub,active])=>({num,label,sub,bg:active?'#E7F0EB':'#fff',bd:active?'#1F5E47':'#E7E3D9',numBg:active?'#1F5E47':'#E7E3D9',numCol:active?'#fff':'#9A9D96',txt:active?'#1C1E1B':'#6A6E68'}));
+    const studioTools=[
+      {icon:'\u2500',label:'Road',active:true},
+      {icon:'\u25A2',label:'Block',active:false},
+      {icon:'\u24B7',label:'Sector',active:false},
+      {icon:'\u25C9',label:'Plot',active:false}
+    ].map(t=>({icon:t.icon,label:t.label,bg:t.active?'#E7F0EB':'#fff',bd:t.active?'#1F5E47':'#E7E3D9',iconBg:t.active?'#1F5E47':'#F4F2EC',iconCol:t.active?'#fff':'#7C8076',txt:t.active?'#1F5E47':'#56544A'}));
+
+    const studioOpen=this.state.studioOpen;
+
+    return {
+      navShow: w==='landing'?'none':'flex',
+      landingShow: w==='landing'?'block':'none',
+      mapShow: s==='map'?'block':'none',
+      detailShow: s==='detail'?'block':'none',
+      sectorShow: s==='sector'?'block':'none',
+      dashShow: s==='dash'?'block':'none',
+      insightsShow: s==='insights'?'block':'none',
+      clientsShow: s==='clients'?'block':'none',
+      clientShow: s==='client'?'block':'none',
+      moneyShow: s==='money'?'block':'none',
+      propsShow: s==='props'?'block':'none',
+      teamShow: s==='team'?'block':'none',
+      addClientShow: s==='addClient'?'block':'none',
+      addPropShow: s==='addProp'?'block':'none',
+      studioShow: s==='studio'?'block':'none',
+      help, helpShow:help,
+      tabs, doors, mapTypes,
+      detailFacts, detailNearby, detailSimilar,
+      sectorChips, sectors,
+      stats, momentum, areas, ownerRecs, clients,
+      clientChips, clientRows, sel,
+      insightKpis, attention, invHealth, invArea, invType, signals,
+      moneyCards, recovery, leaks, deadMoney, aging, cashin, ownerTimeline, areaProfit, staffImpact, ltv, gap,
+      filters, inv, actions, teamRecs, recent, studioSteps, studioTools, weekStats, myClients, myClientsCount: myClients.length,
+      det, detImages, detReadyItems,
+      detName:det.name, detArea:det.area+' · Sector '+det.sector+' · Block '+det.block, detSize:det.size+' · '+det.facing+' · '+det.type,
+      detViews:det.views, detShares:det.shares, detProof:det.proofOpens, detMatches:det.matches, detScore:det.score, detScoreLabel:det.scoreLabel,
+      propsSub: isClient ? 'Browse available plots, sectors and locations.' : 'Everything you have to sell, in one place.',
+      addPropBtn: w==='team' ? 'inline-flex' : 'none',
+      roleName:role.roleName, roleKind:role.roleKind, roleColor:role.roleColor, roleInitial:role.roleInitial,
+      goHome: ()=> this.setState({world:'landing', screen:''}),
+      goDetail: ()=> this.setState({detailBack: w==='client'?'map':'props', selProp:0, screen:'detail'}),
+      backFromDetail: ()=> this.setState(p=>({screen:p.detailBack||'map'})),
+      goClients: ()=> this.setState({screen:'clients'}),
+      goStudio: ()=> this.setState({screen:'studio'}),
+      goTeam: ()=> this.setState({screen:'team'}),
+      goProps: ()=> this.setState({screen:'props'}),
+      goAddProperty: ()=> this.setState({screen:'addProp'}),
+      removeModalShow: this.state.removeModal ? 'flex' : 'none',
+      removeName: this.state.removeModal ? this.state.removeModal.name : '',
+      removeArea: this.state.removeModal ? this.state.removeModal.area : '',
+      verifyModalShow: this.state.verifyModal ? 'flex' : 'none',
+      verifyName: this.state.verifyModal ? this.state.verifyModal.name : '',
+      verifyArea: this.state.verifyModal ? this.state.verifyModal.area : '',
+      closeRemove: ()=> this.setState({removeModal:null}),
+      submitRemove: ()=> this.setState(p=>({removeModal:null, verifyModal:p.removeModal})),
+      closeVerify: ()=> this.setState({verifyModal:null}),
+      confirmVerify: ()=> this.setState({verifyModal:null, toast:'₹2.5L added to Money · property marked Sold'}),
+      toastShow: this.state.toast ? 'flex' : 'none',
+      toastText: this.state.toast,
+      dismissToast: ()=> this.setState({toast:''}),
+      toggleStudio: ()=> this.setState(p=>({studioOpen:!p.studioOpen})),
+      studioPanelShow: studioOpen?'block':'none',
+      studioToggleLabel: studioOpen?'Close':'Open studio',
+      studioHint: studioOpen?'Drop the pin, pick a group, then save.':'Opens the map studio right here — no page change.',
+      studioBd: studioOpen?'#C9DED4':'#E7E3D9',
+      studioHeadBg: studioOpen?'#F4F9F6':'#FAF8F3'
+    };
+  }
+}
+</script>
+</body>
+</html>

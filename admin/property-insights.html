@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Property Insights — PlotMap</title>
+<link rel="stylesheet" href="/admin/crm-ui.css">
+<script src="/admin/crm-data.js"></script>
+<script src="/admin/core/data-adapter.js"></script>
+<script src="/admin/core/sync-queue.js"></script>
+<script src="/admin/core/finance-engine.js"></script>
+<script src="/admin/core/command-engine.js"></script>
+<script src="/admin/core/report-engine.js"></script>
+<script src="/admin/core/event-tracker.js"></script>
+<script src="/admin/core/access-control.js"></script>
+<script src="/admin/crm-store.js"></script>
+<script>
+if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
+  window.location.href = '/admin/index.html';
+} else if (window.PMAccess) {
+  window.PMAccess.guardPage({ roleRequired: 'owner' });
+}
+</script>
+</head>
+<body class="pm-shell">
+
+<header class="pm-topbar dealer-bar">
+  <a class="brand" href="/">
+    <div class="brand-icon"><i></i></div>
+    <span class="brand-name">PlotMap</span>
+  </a>
+  <nav>
+    <a href="/admin/owner.html">Dashboard</a>
+    <a href="/admin/property-insights.html" class="on">Property Insights</a>
+    <a href="/admin/clients.html">Clients</a>
+    <a href="/admin/finance.html">Finance</a>
+    <a href="/admin/area-intelligence.html">Area Intelligence</a>
+    <a href="/admin/reports.html">Reports</a>
+    <a href="/admin/access.html">Access</a>
+  </nav>
+  <div class="sp"></div>
+  <div class="role-chip">
+    <div class="role-info">
+      <div class="role-name" id="owner-name">Owner</div>
+      <div class="role-kind">Owner</div>
+    </div>
+    <div class="role-avatar" style="background:var(--pm-emerald);" id="owner-initial">O</div>
+  </div>
+</header>
+
+<main class="pm-main">
+  <div class="pm-page-header">
+    <div>
+      <h1>Property Insights</h1>
+      <div class="sub">Inventory health and market signals.</div>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="pm-grid cols-5" style="margin-bottom:18px;" id="kpi-cards">
+    <!-- JS -->
+  </div>
+
+  <!-- Getting attention + Needs attention -->
+  <div class="pm-grid wide-left" style="margin-bottom:18px;align-items:start;">
+    <div class="pm-card-xl">
+      <div class="pm-card-h">Getting the most attention</div>
+      <div class="pm-card-sub">Properties with highest activity</div>
+      <div id="attention-list">
+        <!-- JS -->
+      </div>
+    </div>
+    <div class="pm-card-xl">
+      <div class="pm-card-h">Needs attention</div>
+      <div class="pm-card-sub">Inventory issues requiring action</div>
+      <div id="issues-list">
+        <!-- JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Inventory by area + by type -->
+  <div class="pm-grid cols-2" style="margin-bottom:18px;align-items:start;">
+    <div class="pm-card" style="padding:20px 22px;">
+      <div style="font-size:18px;font-weight:800;margin-bottom:4px;">Inventory by area</div>
+      <div style="font-size:13px;color:var(--pm-text-mut);margin-bottom:16px;">Distribution of properties</div>
+      <div id="area-dist"></div>
+    </div>
+    <div class="pm-card" style="padding:20px 22px;">
+      <div style="font-size:18px;font-weight:800;margin-bottom:4px;">Inventory by type</div>
+      <div style="font-size:13px;color:var(--pm-text-mut);margin-bottom:16px;">Property type breakdown</div>
+      <div id="type-dist"></div>
+    </div>
+  </div>
+
+  <!-- Inventory signals -->
+  <div class="pm-pulse-card">
+    <div class="pulse-label">INVENTORY SIGNALS</div>
+    <div class="pulse-text" id="inv-pulse">Loading inventory signals...</div>
+  </div>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const crm = window.CRM;
+  const data = crm.getCRM();
+  const props = data.properties || [];
+  const ownerUser = data.users && data.users.find(u => u.role === 'owner');
+  const ownerName = ownerUser ? ownerUser.name : 'Owner';
+  document.getElementById('owner-name').textContent = ownerName.split(' ')[0];
+  document.getElementById('owner-initial').textContent = ownerName.charAt(0).toUpperCase();
+
+  const available = props.filter(p => p.internalStatus === 'Available');
+  const onHold = props.filter(p => p.internalStatus === 'On Hold');
+  const sold = props.filter(p => p.internalStatus === 'Sold');
+  const internal = props.filter(p => p.internalStatus === 'Internal Only');
+
+  // KPI Cards
+  document.getElementById('kpi-cards').innerHTML = [
+    { k: 'Listed', v: props.length, c: 'var(--pm-text)' },
+    { k: 'Available', v: available.length, c: 'var(--pm-emerald)' },
+    { k: 'On hold', v: onHold.length, c: 'var(--pm-gold)' },
+    { k: 'Sold', v: sold.length, c: 'var(--pm-emerald-mid)' },
+    { k: 'Internal', v: internal.length, c: 'var(--pm-blue)' }
+  ].map(s => `
+    <div class="pm-stat-card">
+      <div class="stat-label"><span>${s.k}</span></div>
+      <div class="stat-val" style="color:${s.c};">${s.v}</div>
+    </div>
+  `).join('');
+
+  // Most attention
+  const sorted = [...props].sort((a, b) => (b.views || 0) - (a.views || 0));
+  const attnEl = document.getElementById('attention-list');
+  if (sorted.length === 0) {
+    attnEl.innerHTML = '<div class="pm-empty"><div class="desc">No properties added yet.</div></div>';
+  } else {
+    attnEl.innerHTML = sorted.slice(0, 5).map(p => {
+      const maxViews = sorted[0].views || 1;
+      const pct = Math.round(((p.views || 0) / maxViews) * 100);
+      return `<div style="padding:12px 0;border-top:1px solid var(--pm-border-subtle);display:flex;align-items:center;gap:14px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:15px;font-weight:700;">${p.title || p.name || 'Unnamed'}</div>
+          <div style="font-size:12px;color:var(--pm-text-mut);">${p.area || '-'} · ${p.plotSize || '-'}</div>
+        </div>
+        <div style="width:120px;">
+          <div class="pm-progress xs"><div class="bar" style="width:${pct}%;background:var(--pm-emerald);"></div></div>
+        </div>
+        <span style="font-size:13px;font-weight:700;color:var(--pm-emerald);width:50px;text-align:right;">${p.views || 0} views</span>
+      </div>`;
+    }).join('');
+  }
+
+  // Needs attention
+  const issuesEl = document.getElementById('issues-list');
+  const issues = [];
+  props.forEach(p => {
+    if (!p.photos || p.photos.length === 0) issues.push({ title: p.title || p.name || 'Unnamed', issue: 'No photos', icon: '📷' });
+    if (!p.mapPinId) issues.push({ title: p.title || p.name || 'Unnamed', issue: 'Map pin missing', icon: '📌' });
+  });
+  if (issues.length === 0) {
+    issuesEl.innerHTML = '<div class="pm-empty"><div class="title">All good</div><div class="desc">No inventory issues found.</div></div>';
+  } else {
+    issuesEl.innerHTML = issues.slice(0, 5).map(i => `
+      <div style="padding:11px 0;border-top:1px solid var(--pm-border-subtle);display:flex;align-items:center;gap:12px;">
+        <span style="font-size:18px;">${i.icon}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:700;">${i.title}</div>
+          <div style="font-size:12px;color:var(--pm-orange);font-weight:600;">${i.issue}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Area distribution
+  const areas = {};
+  props.forEach(p => { if (p.area) areas[p.area] = (areas[p.area] || 0) + 1; });
+  const sortedAreas = Object.entries(areas).sort((a, b) => b[1] - a[1]);
+  const maxArea = sortedAreas.length ? sortedAreas[0][1] : 1;
+  const aColors = ['var(--pm-emerald)', 'var(--pm-gold)', 'var(--pm-blue)', '#A6A199', '#7C8076'];
+  document.getElementById('area-dist').innerHTML = sortedAreas.length === 0
+    ? '<div class="pm-empty"><div class="desc">No area data.</div></div>'
+    : sortedAreas.slice(0, 6).map(([name, count], i) => {
+        const pct = Math.round((count / maxArea) * 100);
+        return `<div style="margin-bottom:13px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:14px;font-weight:700;">${name}</span>
+            <span style="font-size:13px;font-weight:700;color:${aColors[i % aColors.length]};">${count}</span>
+          </div>
+          <div class="pm-progress slim"><div class="bar" style="width:${pct}%;background:${aColors[i % aColors.length]};"></div></div>
+        </div>`;
+      }).join('');
+
+  // Type distribution
+  const types = {};
+  props.forEach(p => { const t = p.propertyType || p.type || 'Other'; types[t] = (types[t] || 0) + 1; });
+  const sortedTypes = Object.entries(types).sort((a, b) => b[1] - a[1]);
+  const maxType = sortedTypes.length ? sortedTypes[0][1] : 1;
+  document.getElementById('type-dist').innerHTML = sortedTypes.length === 0
+    ? '<div class="pm-empty"><div class="desc">No type data.</div></div>'
+    : sortedTypes.map(([name, count], i) => {
+        const pct = Math.round((count / maxType) * 100);
+        return `<div style="margin-bottom:13px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:14px;font-weight:700;">${name}</span>
+            <span style="font-size:13px;font-weight:700;">${count}</span>
+          </div>
+          <div class="pm-progress slim"><div class="bar" style="width:${pct}%;background:var(--pm-emerald);"></div></div>
+        </div>`;
+      }).join('');
+
+  // Pulse
+  const pulseMessages = [];
+  if (available.length === 0 && props.length > 0) pulseMessages.push('All properties are off-market.');
+  if (issues.length > 3) pulseMessages.push(issues.length + ' properties need photos or map pins.');
+  if (sortedAreas.length > 0) pulseMessages.push('Highest inventory in ' + sortedAreas[0][0] + '.');
+  if (onHold.length > available.length) pulseMessages.push('More properties on hold than available — review holds.');
+  document.getElementById('inv-pulse').textContent = pulseMessages.length ? pulseMessages.join(' ') : 'Inventory looks healthy. ' + available.length + ' properties available across ' + sortedAreas.length + ' areas.';
+});
+</script>
+</body>
+</html>

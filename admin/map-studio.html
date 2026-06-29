@@ -20,379 +20,204 @@
 <!-- Include datasets so they register in PM.datasets -->
 <script src="/app/plotmap/datasets/tricity.dataset.js"></script>
 <script>
-if (localStorage.getItem('plotmap_admin_role') !== 'team') {
+const pmRole = localStorage.getItem('plotmap_admin_role');
+if (pmRole !== 'team' && pmRole !== 'dealer') {
   window.location.href = '/admin/index.html';
 } else if (window.PMAccess) {
-  window.PMAccess.guardPage({ roleRequired: 'team' });
+  window.PMAccess.guardPage({ roleRequired: pmRole === 'dealer' ? 'owner' : 'team' });
 }
 </script>
 <style>
-/* Adjustments for Drawing Map Studio */
-.ms-layout {
-  display: flex; height: calc(100vh - 60px); background: #f0f0f4; overflow: hidden;
-}
-.ms-tools {
-  width: 300px; background: #fff; border-right: 1px solid var(--pm-border); display: flex; flex-direction: column; overflow-y: auto;
-}
-.ms-tools-header {
-  padding: 16px; font-weight: 700; font-size: 16px; border-bottom: 1px solid var(--pm-border); background: #f9f9fb;
-}
-.ms-tool-section { padding: 16px; border-bottom: 1px solid var(--pm-border); }
-.sec-title { font-size: 12px; font-weight: 700; color: var(--pm-text-mut); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px; }
-.ms-tool-btn {
-  display: flex; align-items: center; width: 100%; padding: 10px 12px; margin-bottom: 6px; border: 1px solid var(--pm-border);
-  border-radius: 8px; background: #fff; cursor: pointer; text-align: left; font-size: 13px; color: var(--pm-text); font-weight: 600;
-}
-.ms-tool-btn:hover:not(:disabled) { background: #f9f9fb; }
-.ms-tool-btn.active { border-color: var(--pm-primary); background: #f0f7ff; color: var(--pm-primary); }
-.ms-tool-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.ms-tool-btn .tool-icon { margin-right: 10px; font-size: 16px; }
-.ms-select { width: 100%; padding: 8px; border: 1px solid var(--pm-border); border-radius: 6px; font-size: 13px; margin-bottom: 12px; }
+/* New styles from Claude Design for Map Studio */
+  body { background:#F3F1EB; font-family:'Plus Jakarta Sans',system-ui,sans-serif; -webkit-font-smoothing:antialiased; color:#1C1E1B; margin:0; padding:0; height:100vh; overflow:hidden; }
+  ::selection { background:#CFE2D7; color:#13402F; }
+  ::-webkit-scrollbar { width:11px; height:11px; }
+  ::-webkit-scrollbar-thumb { background:#D8D3C8; border-radius:9px; border:3px solid #F3F1EB; }
+  button { font-family:inherit; }
+  .pm-serif { font-family:'Fraunces',serif; }
+  .pm-tab { font-variant-numeric:tabular-nums; font-feature-settings:'tnum'; }
 
-/* Canvas */
-.ms-canvas {
-  flex: 1; position: relative; overflow: auto; background: #e0e0e0; display: flex; align-items: center; justify-content: center;
-}
-.ms-canvas-inner {
-  position: relative; line-height: 0; box-shadow: 0 4px 20px rgba(0,0,0,0.1); transform-origin: top left;
-}
-.ms-canvas-img {
-  max-width: none; display: block;
-}
-.ms-svg-overlay {
-  position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;
-}
-.ms-svg-overlay.drawing {
-  pointer-events: auto; cursor: crosshair;
-}
-.ms-coords {
-  position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.8); color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-variant-numeric: tabular-nums; z-index: 10; display: none;
-}
-.ms-instructions {
-  position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--pm-primary); color: #fff; padding: 10px 20px; border-radius: 8px; font-weight: 600; z-index: 10; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-.ms-canvas-bar {
-  position: absolute; bottom: 20px; right: 20px; display: flex; gap: 8px; background: #fff; padding: 6px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 10;
-}
-.ms-canvas-bar button {
-  width: 32px; height: 32px; border: none; background: #f0f0f4; border-radius: 4px; cursor: pointer; font-weight: bold; color: var(--pm-text);
-}
-.ms-canvas-bar button:hover { background: #e0e0e0; }
+  /* Map tools active state */
+  .tool-btn { cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:8px; background:#fff; border:1.5px solid #E7E3D9; border-radius:16px; padding:16px 10px; transition:border-color 0.2s; }
+  .tool-btn:hover { border-color:#1F5E47; }
+  .tool-btn.active { border-color:#1F5E47; background:#EAF3EE; }
+  .tool-btn.active .tool-icon-bg { background:#1F5E47 !important; color:#fff !important; }
+  .tool-btn .tool-icon-bg { width:42px; height:42px; border-radius:12px; background:#F4F2EA; color:#9A9D96; display:flex; align-items:center; justify-content:center; font-size:21px; font-weight:800; transition:all 0.2s; }
 
-/* Inspector */
-.ms-inspector {
-  width: 320px; background: #fff; border-left: 1px solid var(--pm-border); display: flex; flex-direction: column; overflow-y: auto;
-}
-.ms-inspector-header {
-  padding: 16px; font-weight: 700; font-size: 16px; border-bottom: 1px solid var(--pm-border); background: #f9f9fb;
-}
-.ms-inspector-body { padding: 16px; flex: 1; }
-.ms-inspector-empty {
-  text-align: center; color: var(--pm-text-mut); padding-top: 40px; font-size: 14px; line-height: 1.5;
-}
+  .ms-svg-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .ms-svg-overlay.drawing { pointer-events: auto; cursor: crosshair; }
 
-/* Layer List */
-.layer-group { margin-bottom: 16px; }
-.layer-group-title { font-size: 11px; font-weight: 700; color: var(--pm-text-mut); text-transform: uppercase; margin-bottom: 8px; }
-.layer-item {
-  display: flex; align-items: center; padding: 8px; border: 1px solid var(--pm-border); border-radius: 6px; margin-bottom: 4px; font-size: 13px; cursor: pointer; background: #fff;
-}
-.layer-item:hover { background: #f9f9fb; }
-.layer-item.selected { border-color: var(--pm-primary); background: #f0f7ff; }
-.layer-item-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
-.layer-vis { font-size: 11px; padding: 2px 6px; border-radius: 4px; background: #eee; color: #666; margin-left: 8px; }
-.layer-vis.public { background: #e8f5e9; color: #2e7d32; }
-
-/* Secondary Actions */
-.action-btn {
-  display: block; width: 100%; padding: 8px; margin-bottom: 8px; background: #f9f9fb; border: 1px solid var(--pm-border); border-radius: 6px; font-weight: 600; cursor: pointer; color: var(--pm-text); font-size: 13px; text-align: center;
-}
-.action-btn:hover:not(:disabled) { background: #eee; }
-.action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.action-btn.finish { background: var(--pm-primary); color: #fff; border-color: var(--pm-primary); }
-.action-btn.finish:hover { background: #1565c0; }
-
-/* Tab Toggle */
-.ms-tab-toggle { display: flex; align-items: center; }
-.ms-tab-toggle button {
-  padding: 4px 12px; border: 1px solid var(--pm-border); background: #fff; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--pm-text);
-}
-.ms-tab-toggle button.active {
-  background: var(--pm-primary); color: #fff; border-color: var(--pm-primary);
-}
-.ms-tab-toggle button:first-child { border-radius: 6px 0 0 6px; border-right: none; }
-.ms-tab-toggle button:last-child { border-radius: 0 6px 6px 0; }
-
-/* Review Queue */
-.rq-group { margin-bottom: 24px; }
-.rq-group h3 { font-size: 14px; font-weight: 700; color: var(--pm-text-mut); text-transform: uppercase; margin-bottom: 12px; border-bottom: 1px solid var(--pm-border); padding-bottom: 8px; }
-.rq-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.rq-table th, .rq-table td { text-align: left; padding: 10px; border-bottom: 1px solid var(--pm-border); }
-.rq-table th { font-weight: 600; color: var(--pm-text-mut); background: #f9f9fb; }
-.rq-table tr:hover { background: #f9f9fb; }
-.rq-status { padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
-.rq-status.Draft { background: #eee; color: #666; }
-.rq-status.Review { background: #fff3e0; color: #e65100; }
-.rq-status.Verified { background: #e3f2fd; color: #1565c0; }
-.rq-status.Published { background: #e8f5e9; color: #2e7d32; }
-.rq-status.Hidden { background: #ffebee; color: #c62828; }
-.rq-btn { padding: 4px 8px; font-size: 11px; font-weight: 600; border: 1px solid var(--pm-border); border-radius: 4px; background: #fff; cursor: pointer; color: var(--pm-text); }
-.rq-btn:hover { background: #eee; }
+  /* Hidden UI for compatibility */
+  #legacy-controls { display: none; }
 </style>
 </head>
 <body class="pm-shell">
 
-<header class="pm-topbar">
-  <div class="brand">PlotMap Admin</div>
-  <div class="role-badge">Team Mode</div>
-  <nav>
-    <a href="/admin/team.html">Workspace</a>
-    <a href="/admin/clients.html">Clients</a>
-    <a href="/admin/properties.html">Properties</a>
-    <a href="/admin/followups.html">Follow-ups</a>
-    <a href="/admin/site-visits.html">Site Visits</a>
-    <a href="/admin/deals.html">Deals</a>
-    <a href="/admin/map-studio.html" class="on">Map Studio</a>
-  </nav>
-  <div class="sp"></div>
-  <a href="/admin/index.html">Switch Role</a>
-</header>
+<!-- Legacy controls for map selection, hidden visually but manipulated via JS or kept for DOM compat -->
+<div id="legacy-controls">
+  <select id="sel-city"></select>
+  <select id="sel-map-type"></select>
+  <select id="sel-map"></select>
+  <button id="tab-draw"></button>
+  <button id="tab-review"></button>
+  <div id="ms-tools-col"></div>
+  <div id="review-queue-container"></div>
+  <div id="layer-list-container"></div>
+</div>
 
-<div class="ms-layout">
-  <!-- LEFT: Tools -->
-  <div class="ms-tools" id="ms-tools-col">
-    <div class="ms-tools-header" style="display:flex; justify-content:space-between; align-items:center;">
-      <span>🗺️ Map Studio</span>
-      <div class="ms-tab-toggle">
-        <button id="tab-draw" class="active" onclick="switchMode('draw')">Draw</button>
-        <button id="tab-review" onclick="switchMode('review')">Review</button>
+<div style="display:flex; flex-direction:column; height:100vh;">
+  <!-- Topbar -->
+  <header class="pm-topbar team-bar" id="topbar">
+    <a class="brand" href="/"><div class="brand-icon"><i></i></div><span class="brand-name">PlotMap</span></a>
+    <nav>
+      <a href="/admin/team.html">Workspace</a>
+      <a href="/admin/clients.html">Clients</a>
+      <a href="/admin/properties.html">Properties</a>
+      <a href="/admin/deals.html">Deals</a>
+      <a href="/admin/map-studio.html" class="on">Map Studio</a>
+    </nav>
+    <div class="sp"></div>
+    <a href="/admin/index.html" style="font-size:13.5px;font-weight:700;">Switch Role</a>
+  </header>
+
+  <section id="map-canvas" style="flex:1; position:relative; overflow:hidden; background:#F3F1EB; display:flex; flex-direction:column;">
+    <div style="flex:none; padding:22px 30px 16px; max-width:1320px; margin:0 auto; width:100%;">
+      <div class="pm-serif" style="font-size:30px; font-weight:500; letter-spacing:-0.01em;">Map Studio</div>
+      <div style="font-size:16px; color:#6A6E68; margin-top:4px;">Mark your map in 3 easy steps. Big buttons, no rush.</div>
+    </div>
+
+    <!-- 3 Steps -->
+    <div style="flex:none; padding:0 30px 14px; max-width:1320px; margin:0 auto; width:100%;">
+      <div style="display:flex; gap:12px;">
+        <div style="flex:1; display:flex; align-items:center; gap:13px; background:#EAF3EE; border:1.5px solid #1F5E47; border-radius:16px; padding:15px 18px;" id="step1-card">
+          <span style="flex:none; width:34px; height:34px; border-radius:50%; background:#1F5E47; color:#fff; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:800;">1</span>
+          <div><div style="font-size:16px; font-weight:800; color:#1F5E47;">Pick your map</div>
+            <div style="font-size:12.5px; color:#1F5E47; display:flex; gap:6px; margin-top:4px; align-items:center;">
+              <!-- Mini map selectors that proxy the hidden legacy ones -->
+              <select id="ui-city" style="border:1px solid #CDE6DA; border-radius:6px; background:#fff; font-size:12px; padding:2px; max-width:120px;"><option value="">City...</option></select>
+              <select id="ui-type" style="border:1px solid #CDE6DA; border-radius:6px; background:#fff; font-size:12px; padding:2px; max-width:100px;"><option value="">Type...</option><option value="masterplan">Masterplan</option><option value="sector">Sector</option><option value="block">Block</option></select>
+              <select id="ui-map" style="border:1px solid #CDE6DA; border-radius:6px; background:#fff; font-size:12px; padding:2px; max-width:120px;"><option value="">Map...</option></select>
+            </div>
+          </div>
+        </div>
+        <div style="flex:1; display:flex; align-items:center; gap:13px; background:#fff; border:1.5px solid #E7E3D9; border-radius:16px; padding:15px 18px;">
+          <span style="flex:none; width:34px; height:34px; border-radius:50%; background:#F4F2EA; color:#9A9D96; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:800;">2</span>
+          <div><div style="font-size:16px; font-weight:800; color:#9A9D96;">Mark it</div><div style="font-size:12.5px; color:#9A9D96;">Roads, blocks, plots</div></div>
+        </div>
+        <div style="flex:1; display:flex; align-items:center; gap:13px; background:#fff; border:1.5px solid #E7E3D9; border-radius:16px; padding:15px 18px;">
+          <span style="flex:none; width:34px; height:34px; border-radius:50%; background:#F4F2EA; color:#9A9D96; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:800;">3</span>
+          <div><div style="font-size:16px; font-weight:800; color:#9A9D96;">Publish</div><div style="font-size:12.5px; color:#9A9D96;">Send safe markings</div></div>
+        </div>
       </div>
     </div>
 
-    <!-- Map Selection -->
-    <div class="ms-tool-section" style="background:#fefefe; padding-bottom:4px;">
-      <div class="sec-title">Step 1: Choose City</div>
-      <select id="sel-city" class="ms-select">
-        <option value="">Select City / Area...</option>
-      </select>
-      
-      <div class="sec-title">Step 2: Map Type</div>
-      <select id="sel-map-type" class="ms-select" disabled>
-        <option value="">Select Map Type...</option>
-        <option value="masterplan">Masterplan</option>
-        <option value="sector">Sector Map</option>
-        <option value="block">Block/Pocket Map</option>
-      </select>
-
-      <div class="sec-title">Step 3: Choose Map</div>
-      <select id="sel-map" class="ms-select" disabled>
-        <option value="">Select Map...</option>
-      </select>
-    </div>
-
-    <!-- Drawing Tools -->
-    <div class="ms-tool-section">
-      <div class="sec-title">Step 4: Draw</div>
-      <button class="ms-tool-btn" id="btn-draw-road" data-tool="road" onclick="startDrawing('road')" disabled>
-        <span class="tool-icon">🛣️</span> Draw Road
-      </button>
-      <button class="ms-tool-btn" id="btn-draw-block" data-tool="block" onclick="startDrawing('block')" disabled>
-        <span class="tool-icon">🟦</span> Mark Block / Pocket
-      </button>
-      <button class="ms-tool-btn" id="btn-draw-sector" data-tool="sectorTag" onclick="startDrawing('sectorTag')" disabled>
-        <span class="tool-icon">🔲</span> Tag Sector on Masterplan
-      </button>
-
-      <div id="drawing-actions" style="display:none; margin-top:12px; padding-top:12px; border-top:1px dashed var(--pm-border);">
-        <button class="action-btn" onclick="undoPoint()">↩️ Undo Last Point</button>
-        <button class="action-btn finish" onclick="finishDrawing()">✅ Finish Drawing</button>
-        <button class="action-btn" onclick="cancelDrawing()" style="color:var(--pm-err);">❌ Cancel</button>
-      </div>
-    </div>
-
-    <div class="ms-tool-section" style="flex:1;">
-      <div class="sec-title">Layer List</div>
-      <div id="layer-list-container">
-        <!-- Rendered by JS -->
-      </div>
-    </div>
-
-      <div class="sec-title">Export JSON</div>
-      <button class="action-btn" id="btn-export-current-drafts" onclick="exportJSON('current-drafts')" disabled>📋 Export Current Drafts</button>
-      <button class="action-btn" id="btn-export-current-published" onclick="exportJSON('current-published')" disabled>📋 Export Current Published</button>
-      <button class="action-btn" onclick="exportJSON('all-published')">📥 Export All Published (Client-Safe)</button>
-      <button class="action-btn" onclick="exportJSON('all')" style="margin-top:12px; border-color:var(--pm-err); color:var(--pm-err);">📥 Export EVERYTHING (Backup)</button>
-    </div>
-  </div>
-
-  <!-- CENTER: Canvas -->
-  <div class="ms-canvas" id="map-canvas">
-    
-    <div id="no-map-msg" style="text-align:center; padding:40px; color:var(--pm-text-mut); font-weight:600; font-size:16px;">
-       Please select a map to begin.
-    </div>
-
-    <div class="ms-canvas-inner" id="canvas-inner" style="display:none;">
-      <!-- Image is injected via JS -->
-      <img src="" class="ms-canvas-img" id="canvas-img" alt="Map">
-      
-      <!-- SVG Overlay for drawing and rendering items -->
-      <svg class="ms-svg-overlay" id="svg-overlay" preserveAspectRatio="none">
-        <g id="rendered-layers"></g>
-        <g id="active-drawing"></g>
-      </svg>
-    </div>
-
-    <div class="ms-instructions" id="instructions"></div>
-    <div class="ms-coords" id="coords">X: —  Y: —</div>
-
-    <div class="ms-canvas-bar" id="canvas-controls" style="display:none;">
-      <button title="Zoom In" onclick="zoomCanvas(1.2)">＋</button>
-      <button title="Zoom Out" onclick="zoomCanvas(0.8)">−</button>
-      <button title="Reset View" onclick="zoomCanvas('reset')">⤢</button>
-    </div>
-  </div>
-
-  <!-- CENTER: Review Queue (Replaces Canvas in Review Mode) -->
-  <div class="ms-review-queue" id="review-queue-container" style="display:none; flex:1; background:#fff; overflow:auto; padding:24px;">
-    <h2 style="margin-bottom:24px;">Review Queue</h2>
-    <div id="review-queue-content"></div>
-  </div>
-
-  <!-- RIGHT: Inspector -->
-  <div class="ms-inspector">
-    <div class="ms-inspector-header" id="inspector-title">Inspector</div>
-    <div class="ms-inspector-body">
-      
-      <div class="ms-inspector-empty" id="inspector-empty">
-        <div style="font-size:32px; margin-bottom:12px;">📌</div>
-        <div>Select a layer to edit or finish a drawing to save.</div>
+    <div style="flex:1; display:flex; gap:18px; padding:0 30px 24px; max-width:1320px; margin:0 auto; width:100%; min-height:0;">
+      <!-- big toolbar -->
+      <div style="flex:none; width:150px; display:flex; flex-direction:column; gap:10px;">
+        <button class="tool-btn ms-tool-btn" id="btn-draw-road" data-tool="road" onclick="startDrawing('road')">
+          <span class="tool-icon-bg">—</span>
+          <span style="font-size:13.5px; font-weight:700; color:#2B2A25;">Road</span>
+        </button>
+        <button class="tool-btn ms-tool-btn" id="btn-draw-block" data-tool="block" onclick="startDrawing('block')">
+          <span class="tool-icon-bg">⬚</span>
+          <span style="font-size:13.5px; font-weight:700; color:#2B2A25;">Block</span>
+        </button>
+        <button class="tool-btn ms-tool-btn" id="btn-draw-sector" data-tool="sectorTag" onclick="startDrawing('sectorTag')">
+          <span class="tool-icon-bg">Ⓑ</span>
+          <span style="font-size:13.5px; font-weight:700; color:#2B2A25;">Sector</span>
+        </button>
+        <button class="tool-btn ms-tool-btn" id="btn-draw-plot" data-tool="plot" onclick="startDrawing('block')" style="display:none;">
+          <span class="tool-icon-bg">⌖</span>
+          <span style="font-size:13.5px; font-weight:700; color:#2B2A25;">Plot</span>
+        </button>
       </div>
 
-      <div id="inspector-form" style="display:none;">
-        <form class="pm-form" id="drawing-form">
+      <!-- canvas -->
+      <div style="flex:1; position:relative; background:#EEEDE6; border:1px solid #E5E2D9; border-radius:22px; overflow:hidden;" id="canvas-container">
+        
+        <div id="no-map-msg" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-weight:600; color:#9A9D96; font-size:16px;">
+          Please select a map to begin.
+        </div>
+
+        <div id="canvas-inner" style="position:absolute; inset:0; display:none; transform-origin: top left;">
+          <div style="position:absolute; inset:0; background-image:linear-gradient(rgba(110,108,90,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(110,108,90,0.06) 1px,transparent 1px); background-size:44px 44px; pointer-events:none; z-index: -1;"></div>
+          <img id="canvas-img" src="" style="display:block; max-width:none;" />
+          <svg class="ms-svg-overlay" id="svg-overlay" preserveAspectRatio="none">
+            <g id="rendered-layers"></g>
+            <g id="active-drawing"></g>
+          </svg>
+        </div>
+        
+        <!-- drawing instruction overlay -->
+        <div id="instructions" style="position:absolute; left:50%; bottom:22px; transform:translateX(-50%); display:none; align-items:center; gap:13px; background:#1F5E47; border-radius:16px; padding:15px 22px; box-shadow:0 14px 32px rgba(20,60,45,.28); z-index:10;">
+          <span style="width:10px; height:10px; border-radius:50%; background:#9FE3C0;"></span>
+          <span style="font-size:16px; color:#fff; font-weight:700;" id="instr-text">Tap along the road, then double-tap to finish.</span>
+        </div>
+        
+        <div class="ms-coords" id="coords" style="display:none; position:absolute; left:20px; bottom:20px; z-index:10; background: rgba(31, 94, 71, 0.9); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;"></div>
+        
+        <div class="ms-canvas-bar" id="canvas-controls" style="display:none; position:absolute; right:20px; bottom:20px; z-index:10; display:flex; gap:8px;">
+            <button onclick="zoomCanvas(1.2)" style="width:36px; height:36px; border:1px solid #E7E3D9; background:#fff; border-radius:10px; cursor:pointer;">+</button>
+            <button onclick="zoomCanvas(0.8)" style="width:36px; height:36px; border:1px solid #E7E3D9; background:#fff; border-radius:10px; cursor:pointer;">-</button>
+            <button onclick="undoPoint()" style="width:36px; height:36px; border:1px solid #E7E3D9; background:#fff; border-radius:10px; cursor:pointer;">↩</button>
+            <button id="drawing-actions" onclick="finishDrawing()" style="height:36px; padding:0 14px; border:none; background:#1F5E47; color:#fff; font-weight:700; border-radius:10px; cursor:pointer; display:none;">Finish</button>
+        </div>
+      </div>
+
+      <!-- inspector side panel -->
+      <div id="inspector-empty" style="flex:none; width:280px; background:#fff; border:1px solid #E7E3D9; border-radius:22px; padding:22px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+          <div style="font-size:24px; margin-bottom:12px;">📌</div>
+          <div style="color:#6A6E68; font-size:14px; font-weight:600;">Select a layer to edit or draw something new.</div>
+      </div>
+
+      <div id="inspector-form" style="display:none; flex:none; width:280px; background:#fff; border:1px solid #E7E3D9; border-radius:22px; padding:22px; flex-direction:column;">
+        <form id="drawing-form" style="display:flex; flex-direction:column; height:100%; margin:0;">
           <input type="hidden" id="f-id">
           <input type="hidden" id="f-kind">
           
-          <div class="fld">
-            <label>Name</label>
-            <input type="text" id="f-title" required placeholder="e.g. Main Road, Sector 82">
+          <!-- Default hidden legacy fields so JS doesn't break -->
+          <div style="display:none;">
+            <select id="f-roadType"><option value="Main Road">Main Road</option></select>
+            <select id="f-blockType"><option value="Residential Block">Residential Block</option></select>
+            <select id="f-parentSector"><option value="">None</option></select>
+            <select id="f-sectorCode"><option value=""></option></select>
+            <select id="f-linkedMap"><option value="">None</option></select>
+            <select id="f-status"><option value="Draft">Draft</option><option value="Published">Published</option></select>
+            <input type="checkbox" id="chk-nameClear" checked><input type="checkbox" id="chk-correctMap" checked><input type="checkbox" id="chk-geometryChecked" checked><input type="checkbox" id="chk-visibilityChecked" checked><input type="checkbox" id="chk-linkedMapChecked" checked>
+            <textarea id="f-notes"></textarea>
+            <button id="btn-save"></button>
+            <button id="btn-delete"></button>
+            <select id="f-sectorTagGroup"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select>
+            <select id="f-visibility"><option value="public">public</option><option value="internal">internal</option></select>
           </div>
 
-          <!-- Road Specific -->
-          <div class="fld" id="grp-roadType" style="display:none;">
-            <label>Road Type</label>
-            <select id="f-roadType">
-              <option value="Main Road">Main Road</option>
-              <option value="Important Road">Important Road</option>
-              <option value="Expressway">Expressway</option>
-              <option value="Internal Road">Internal Road</option>
-              <option value="Entry / Exit Road">Entry / Exit Road</option>
-            </select>
+          <div style="font-size:18px; font-weight:800; margin-bottom:16px;" id="insp-title">Name this road</div>
+          
+          <input type="text" id="f-title" placeholder="e.g. Airport Road Link" style="background:#FAF8F3; border:1.5px solid #1F5E47; border-radius:14px; padding:15px; font-size:16px; font-weight:600; width:100%; box-sizing:border-box; color:#1C1E1B;">
+          
+          <div style="font-size:14px; color:#56544A; font-weight:700; margin:20px 0 10px;">Pick a colour group</div>
+          <div style="display:flex; gap:9px;" id="ui-color-group">
+            <div class="cg-btn cg-active" data-val="A" style="flex:1; text-align:center; border:1.5px solid #1F5E47; background:#E7F0EB; border-radius:13px; padding:13px 0; font-size:16px; font-weight:800; color:#1F5E47; cursor:pointer;">A</div>
+            <div class="cg-btn" data-val="B" style="flex:1; text-align:center; border:1px solid #E0DCD2; border-radius:13px; padding:13px 0; font-size:16px; font-weight:800; color:#9A9D96; cursor:pointer;">B</div>
+            <div class="cg-btn" data-val="C" style="flex:1; text-align:center; border:1px solid #E0DCD2; border-radius:13px; padding:13px 0; font-size:16px; font-weight:800; color:#9A9D96; cursor:pointer;">C</div>
+            <div class="cg-btn" data-val="D" style="flex:1; text-align:center; border:1px solid #E0DCD2; border-radius:13px; padding:13px 0; font-size:16px; font-weight:800; color:#9A9D96; cursor:pointer;">D</div>
           </div>
+          
+          <label style="display:flex; align-items:center; gap:10px; background:#EAF3EE; border:1px solid #CDE6DA; border-radius:13px; padding:12px 14px; margin-top:20px; cursor:pointer;">
+            <input type="checkbox" id="ui-safe-marking" checked style="width:20px; height:20px;">
+            <span style="font-size:13.5px; color:#216B4E; font-weight:600;">Only safe markings go to clients</span>
+          </label>
 
-          <!-- Block Specific -->
-          <div class="fld" id="grp-blockType" style="display:none;">
-            <label>Block Type</label>
-            <select id="f-blockType">
-              <option value="Residential Block">Residential Block</option>
-              <option value="Commercial Block">Commercial Block</option>
-              <option value="Park Facing Block">Park Facing Block</option>
-              <option value="Main Road Block">Main Road Block</option>
-              <option value="Corner Block">Corner Block</option>
-              <option value="Custom">Custom</option>
-            </select>
-          </div>
-          <div class="fld" id="grp-parentSector" style="display:none;">
-            <label>Parent Sector</label>
-            <select id="f-parentSector">
-              <option value="">None / Independent</option>
-              <!-- Filled via JS from other block/sector drawings -->
-            </select>
-          </div>
-
-          <!-- Sector Tag Specific -->
-          <div class="fld" id="grp-sectorCode" style="display:none;">
-            <label>Sector Code (Optional)</label>
-            <input type="text" id="f-sectorCode" placeholder="e.g. 82A">
-          </div>
-          <div class="fld" id="grp-sectorTagGroup" style="display:none;">
-            <label>A/B/C/D Group</label>
-            <select id="f-sectorTagGroup">
-              <option value="General">General</option>
-              <option value="A">Category A</option>
-              <option value="B">Category B</option>
-              <option value="C">Category C</option>
-              <option value="D">Category D</option>
-            </select>
-          </div>
-          <div class="fld" id="grp-linkedMap" style="display:none;">
-            <label>Linked Sector Map</label>
-            <select id="f-linkedMap">
-              <option value="">None</option>
-              <!-- Filled via Manifest -->
-            </select>
-          </div>
-
-          <!-- Shared -->
-          <div class="fld">
-            <label>Visibility</label>
-            <select id="f-visibility">
-              <option value="public">Client-visible</option>
-              <option value="internal">Internal Only</option>
-            </select>
-            <div style="font-size:11px; color:var(--pm-text-mut); margin-top:4px;">Internal items will not be exported to the client app.</div>
-          </div>
-
-          <!-- Quality Checklist -->
-          <div class="fld" id="grp-checklist" style="display:none; margin-top:16px; padding-top:16px; border-top:1px solid var(--pm-border);">
-            <label style="font-weight:700;">Quality Checklist</label>
-            <div style="font-size:13px; color:var(--pm-text-mut); margin-bottom:8px;">Check these before verifying/publishing.</div>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:6px; font-weight:normal; cursor:pointer;">
-              <input type="checkbox" id="chk-nameClear"> Name is clear
-            </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:6px; font-weight:normal; cursor:pointer;">
-              <input type="checkbox" id="chk-correctMap"> Correct city/map selected
-            </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:6px; font-weight:normal; cursor:pointer;">
-              <input type="checkbox" id="chk-geometryChecked"> Boundary/line visually matches map
-            </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:6px; font-weight:normal; cursor:pointer;">
-              <input type="checkbox" id="chk-visibilityChecked"> Visibility is correct
-            </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:6px; font-weight:normal; cursor:pointer;">
-              <input type="checkbox" id="chk-linkedMapChecked"> Linked map/group correct (if applicable)
-            </label>
-          </div>
-
-          <div class="fld" style="margin-top:16px;" id="grp-status">
-            <label>Status</label>
-            <select id="f-status">
-              <option value="Draft">Draft</option>
-              <option value="Review Needed">Review Needed</option>
-              <option value="Verified">Verified</option>
-              <option value="Published">Published</option>
-              <option value="Hidden">Hidden</option>
-            </select>
-            <div id="publish-warning" style="display:none; color:var(--pm-err); font-size:12px; margin-top:6px; font-weight:600;">
-              Cannot publish yet. Please verify name, map, visibility, and boundary.
-            </div>
-          </div>
-
-          <div class="fld">
-            <label>Notes</label>
-            <textarea id="f-notes" rows="3" placeholder="Optional internal notes"></textarea>
-          </div>
-
-          <div style="display:flex; gap:8px; margin-top:16px;">
-            <button type="submit" class="pm-button primary" style="flex:1;" id="btn-save">Save</button>
-            <button type="button" class="pm-button danger" id="btn-delete" style="flex:none; padding:9px 14px; display:none;">Delete</button>
+          <div style="margin-top:auto; display:flex; flex-direction:column; gap:11px; padding-top:20px;">
+            <button type="button" id="ui-btn-draft" style="cursor:pointer; border:1.5px solid #E0DCD2; background:#fff; color:#2B2A25; font-weight:700; font-size:16px; padding:15px; border-radius:14px; transition:background 0.2s;">Save for later</button>
+            <button type="button" id="ui-btn-publish" style="cursor:pointer; border:0; background:#1F5E47; color:#fff; font-weight:700; font-size:16px; padding:16px; border-radius:14px; box-shadow:0 8px 18px rgba(31,94,71,.26); transition:background 0.2s;">Publish to client map</button>
+            <button type="button" id="ui-btn-del" style="cursor:pointer; border:0; background:transparent; color:#EF4444; font-weight:700; font-size:14px; padding:8px; display:none;">Delete Marking</button>
           </div>
         </form>
       </div>
 
     </div>
-  </div>
+  </section>
 </div>
 
 <script>
@@ -1264,6 +1089,112 @@ document.addEventListener('DOMContentLoaded', async () => {
     a.click();
     URL.revokeObjectURL(url);
   };
+});
+</script>
+<script>
+// --- Claude Design UI Wiring ---
+document.addEventListener('DOMContentLoaded', () => {
+  // Sync legacy dropdowns to UI dropdowns
+  const syncSelects = (legacyId, uiId) => {
+    const legacy = document.getElementById(legacyId);
+    const ui = document.getElementById(uiId);
+    if (!legacy || !ui) return;
+    
+    // UI -> Legacy
+    ui.addEventListener('change', () => {
+      legacy.value = ui.value;
+      legacy.dispatchEvent(new Event('change'));
+    });
+    
+    // Legacy -> UI (Options and Disabled state)
+    const observer = new MutationObserver(() => {
+      ui.innerHTML = legacy.innerHTML;
+      ui.disabled = legacy.disabled;
+      ui.value = legacy.value;
+    });
+    observer.observe(legacy, { childList: true, attributes: true, subtree: true });
+  };
+  
+  syncSelects('sel-city', 'ui-city');
+  syncSelects('sel-map-type', 'ui-type');
+  syncSelects('sel-map', 'ui-map');
+
+  // Sync Color Groups
+  const cgBtns = document.querySelectorAll('.cg-btn');
+  const fTagGroup = document.getElementById('f-sectorTagGroup');
+  cgBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      cgBtns.forEach(b => {
+        b.classList.remove('cg-active');
+        b.style.background = 'transparent';
+        b.style.border = '1px solid #E0DCD2';
+        b.style.color = '#9A9D96';
+      });
+      btn.classList.add('cg-active');
+      btn.style.background = '#E7F0EB';
+      btn.style.border = '1.5px solid #1F5E47';
+      btn.style.color = '#1F5E47';
+      if(fTagGroup) fTagGroup.value = btn.dataset.val;
+    });
+  });
+
+  // Checkbox Visibility
+  const chkSafe = document.getElementById('ui-safe-marking');
+  const fVis = document.getElementById('f-visibility');
+  if(chkSafe && fVis) {
+    chkSafe.addEventListener('change', () => {
+      fVis.value = chkSafe.checked ? 'public' : 'internal';
+    });
+  }
+
+  // Action Buttons
+  const fStatus = document.getElementById('f-status');
+  const btnSave = document.getElementById('btn-save');
+  const btnDel = document.getElementById('btn-delete');
+  
+  document.getElementById('ui-btn-draft')?.addEventListener('click', () => {
+    if(fStatus) fStatus.value = 'Draft';
+    if(btnSave) btnSave.click();
+  });
+  document.getElementById('ui-btn-publish')?.addEventListener('click', () => {
+    if(fStatus) fStatus.value = 'Published';
+    if(btnSave) btnSave.click();
+  });
+  document.getElementById('ui-btn-del')?.addEventListener('click', () => {
+    if(btnDel) btnDel.click();
+  });
+
+  // Sync back to UI when inspector opens/updates
+  const form = document.getElementById('inspector-form');
+  if(form) {
+    const titleObserver = new MutationObserver(() => {
+      // If f-visibility changes, update chkSafe
+      if(fVis && chkSafe) chkSafe.checked = (fVis.value === 'public');
+      
+      // Update color group buttons
+      const val = fTagGroup ? (fTagGroup.value || 'A') : 'A';
+      cgBtns.forEach(b => {
+        b.classList.remove('cg-active');
+        b.style.background = 'transparent';
+        b.style.border = '1px solid #E0DCD2';
+        b.style.color = '#9A9D96';
+        if(b.dataset.val === val) {
+          b.classList.add('cg-active');
+          b.style.background = '#E7F0EB';
+          b.style.border = '1.5px solid #1F5E47';
+          b.style.color = '#1F5E47';
+        }
+      });
+
+      // Show delete button if editing
+      const fId = document.getElementById('f-id');
+      const uiDel = document.getElementById('ui-btn-del');
+      if(uiDel && fId) {
+        uiDel.style.display = fId.value ? 'block' : 'none';
+      }
+    });
+    titleObserver.observe(form, { attributes: true, subtree: true, childList: true });
+  }
 });
 </script>
 </body>

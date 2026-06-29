@@ -3,8 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Properties - PlotMap Admin</title>
-<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<title>Property Inventory — PlotMap</title>
 <link rel="stylesheet" href="/admin/crm-ui.css">
 <script src="/admin/crm-data.js"></script>
 <script src="/admin/core/data-adapter.js"></script>
@@ -16,75 +15,60 @@
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
 <script>
-if (localStorage.getItem('plotmap_admin_role') !== 'team') {
+const pmRole = localStorage.getItem('plotmap_admin_role');
+if (pmRole !== 'team' && pmRole !== 'dealer') {
   window.location.href = '/admin/index.html';
 } else if (window.PMAccess) {
-  window.PMAccess.guardPage({ roleRequired: 'team' });
+  window.PMAccess.guardPage({ roleRequired: pmRole === 'dealer' ? 'owner' : 'team' });
 }
 </script>
 </head>
 <body class="pm-shell">
 
-<header class="pm-topbar">
-  <div class="brand">PlotMap Admin</div>
-  <div class="role-badge">Team Mode</div>
-  <nav>
-    <a href="/admin/team.html">Workspace</a>
-    <a href="/admin/clients.html">Clients</a>
-    <a href="/admin/properties.html" class="on">Properties</a>
-    <a href="/admin/followups.html">Follow-ups</a>
-    <a href="/admin/site-visits.html">Site Visits</a>
-    <a href="/admin/deals.html">Deals</a>
-    <a href="/admin/map-studio.html">Map Studio</a>
-  </nav>
-  <div class="sp"></div>
-  <a href="/admin/index.html">Switch Role</a>
+<header class="pm-topbar" id="topbar">
+  <!-- JS sets nav based on role -->
 </header>
 
 <main class="pm-main">
-  <div class="pm-header">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-      <div>
-        <h1>Properties</h1>
-        <div class="sub">Inventory and listings management.</div>
-      </div>
-      <button class="pm-button primary" onclick="document.getElementById('add-prop').style.display='block'">+ Add Property</button>
+  <div class="pm-page-header">
+    <div>
+      <h1>Property Inventory</h1>
+      <div class="sub" id="prop-count">All listed properties.</div>
     </div>
+    <button class="pm-btn pm-btn-primary" onclick="document.getElementById('add-prop').style.display = document.getElementById('add-prop').style.display === 'none' ? 'block' : 'none'">+ Add Property</button>
   </div>
-  
-  <div class="pm-card" id="add-prop" style="display:none; margin-bottom:24px;">
+
+  <!-- Add property form -->
+  <div class="pm-card-xl" id="add-prop" style="display:none;margin-bottom:18px;">
     <div class="pm-card-h">Add New Property</div>
     <form class="pm-form" id="add-prop-form">
-      <div class="pm-grid cols-2">
-        <div class="fld"><label>Title</label><input type="text" id="p-title" required></div>
-        <div class="fld"><label>Area</label><input type="text" id="p-area" required></div>
-        <div class="fld"><label>Sector / Block</label><input type="text" id="p-sector"></div>
-        <div class="fld"><label>Type</label><select id="p-type"><option>Residential Plot</option><option>Commercial SCO</option><option>Villa</option></select></div>
-        <div class="fld"><label>Size</label><input type="text" id="p-size"></div>
-        <div class="fld"><label>Internal Status</label><select id="p-status"><option>Available</option><option>Hold</option></select></div>
+      <div class="pm-grid cols-3">
+        <div class="fld"><label>Title</label><input type="text" id="p-title" required placeholder="Property name"></div>
+        <div class="fld"><label>Area</label><input type="text" id="p-area" required placeholder="e.g. Aerocity"></div>
+        <div class="fld"><label>Sector / Block</label><input type="text" id="p-sector" placeholder="e.g. Sector 82"></div>
+        <div class="fld"><label>Type</label><select id="p-type"><option>Plot</option><option>Flat</option><option>Floor</option><option>SCO</option><option>Villa</option><option>Booth</option><option>Other</option></select></div>
+        <div class="fld"><label>Size</label><input type="text" id="p-size" placeholder="e.g. 200 sq.yd."></div>
+        <div class="fld"><label>Status</label><select id="p-status"><option>Available</option><option>On Hold</option><option>Internal Only</option></select></div>
       </div>
-      <div class="fld" style="margin-top:16px;">
-        <button type="submit" class="pm-button primary" style="width:200px;">Save Property</button>
+      <div style="margin-top:16px;display:flex;gap:10px;">
+        <button type="submit" class="pm-btn pm-btn-primary">Save Property</button>
+        <button type="button" class="pm-btn pm-btn-secondary" onclick="document.getElementById('add-prop').style.display='none'">Cancel</button>
       </div>
     </form>
   </div>
 
-  <div class="pm-card">
-    <div class="pm-table-wrap">
-      <table class="pm-table" id="prop-table">
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Area / Sector</th>
-            <th>Type / Size</th>
-            <th>Status</th>
-            <th>Map Pin</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+  <!-- Search + Filters -->
+  <div class="pm-search" style="margin-bottom:12px;">
+    <span class="icon">○</span>
+    <input type="text" placeholder="Search properties by name, area, or sector..." id="search-input">
+  </div>
+  <div class="pm-filters" id="status-filters">
+    <!-- JS -->
+  </div>
+
+  <!-- Property Cards Grid -->
+  <div class="pm-grid cols-3" id="prop-grid">
+    <!-- JS rendered -->
   </div>
 </main>
 
@@ -92,32 +76,133 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
 document.addEventListener('DOMContentLoaded', () => {
   const crm = window.CRM;
   const data = crm.getCRM();
-  
+  const role = localStorage.getItem('plotmap_admin_role');
+  const isDealer = role === 'dealer';
+
+  // Set topbar
+  const topbar = document.getElementById('topbar');
+  if (isDealer) {
+    topbar.classList.add('dealer-bar');
+    const ownerUser = data.users && data.users.find(u => u.role === 'owner');
+    const ownerName = ownerUser ? ownerUser.name : 'Owner';
+    topbar.innerHTML = `
+      <a class="brand" href="/"><div class="brand-icon"><i></i></div><span class="brand-name">PlotMap</span></a>
+      <nav>
+        <a href="/admin/owner.html">Dashboard</a>
+        <a href="/admin/property-insights.html">Property Insights</a>
+        <a href="/admin/clients.html">Clients</a>
+        <a href="/admin/finance.html">Finance</a>
+        <a href="/admin/area-intelligence.html">Area Intelligence</a>
+        <a href="/admin/reports.html">Reports</a>
+        <a href="/admin/access.html">Access</a>
+      </nav>
+      <div class="sp"></div>
+      <div class="role-chip">
+        <div class="role-info"><div class="role-name">${ownerName.split(' ')[0]}</div><div class="role-kind">Owner</div></div>
+        <div class="role-avatar" style="background:var(--pm-emerald);">${ownerName.charAt(0).toUpperCase()}</div>
+      </div>`;
+  } else {
+    topbar.classList.add('team-bar');
+    topbar.innerHTML = `
+      <a class="brand" href="/"><div class="brand-icon"><i></i></div><span class="brand-name">PlotMap</span></a>
+      <nav>
+        <a href="/admin/team.html">Workspace</a>
+        <a href="/admin/clients.html">Clients</a>
+        <a href="/admin/properties.html" class="on">Properties</a>
+        <a href="/admin/deals.html">Deals</a>
+        <a href="/admin/map-studio.html">Map Studio</a>
+      </nav>
+      <div class="sp"></div>
+      <a href="/admin/index.html" style="font-size:13.5px;font-weight:700;">Switch Role</a>`;
+  }
+
+  const props = data.properties.filter(p => p.internalStatus !== 'Archived');
+  document.getElementById('prop-count').textContent = props.length + ' properties listed.';
+
+  // Archive / status change
   window.archiveProp = function(id) {
     crm.archiveProperty(id);
     window.location.reload();
   };
-  
-  const tbody = document.querySelector('#prop-table tbody');
-  const props = data.properties.filter(p => p.internalStatus !== 'Archived');
-  
-  if(props.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6">No properties.</td></tr>';
-  } else {
-    tbody.innerHTML = props.map(p => `
-      <tr>
-        <td style="font-weight:700">${p.title}</td>
-        <td>${p.area}<br><span style="font-size:12px;color:var(--pm-text-mut)">${p.sector||''}</span></td>
-        <td>${p.type}<br><span style="font-size:12px;color:var(--pm-text-mut)">${p.size||''}</span></td>
-        <td><span class="pm-status ${p.internalStatus==='Available'?'ok':'neutral'}">${p.internalStatus}</span></td>
-        <td>${p.mapPinStatus==='Pinned'?'📍 Pinned':'❌ Unpinned'}</td>
-        <td>
-          <button class="pm-button ghost danger" style="padding:4px 8px;font-size:12px;" onclick="archiveProp('${p.id}')">Archive</button>
-        </td>
-      </tr>
-    `).join('');
+
+  // Gradient backgrounds for property cards
+  const gradients = [
+    'linear-gradient(135deg,#E7F0EB 0%,#D4E5DB 100%)',
+    'linear-gradient(135deg,#F3EAD8 0%,#E8D9BE 100%)',
+    'linear-gradient(135deg,#E9EFF4 0%,#D6E3EE 100%)',
+    'linear-gradient(135deg,#EDEAF2 0%,#DDD8E8 100%)',
+    'linear-gradient(135deg,#F7E7E0 0%,#EFD6CA 100%)'
+  ];
+
+  // Status badge classes
+  function statusBadge(s) {
+    if (s === 'Available') return { cls: 'available', bg: 'rgba(234,243,238,.95)', color: '#1F5E47' };
+    if (s === 'On Hold') return { cls: 'on-hold', bg: 'rgba(243,234,216,.95)', color: '#8A6224' };
+    if (s === 'Internal Only') return { cls: 'internal', bg: 'rgba(237,234,242,.95)', color: '#5F5A78' };
+    if (s === 'Sold') return { cls: 'closed', bg: 'rgba(239,235,226,.95)', color: '#7C8076' };
+    return { cls: 'neutral', bg: '#F4F2EA', color: '#56544A' };
   }
-  
+
+  // Filter chips
+  const statuses = ['All', 'Available', 'On Hold', 'Internal Only', 'Sold'];
+  let activeFilter = 'All';
+  const filtersEl = document.getElementById('status-filters');
+
+  function renderFilters() {
+    filtersEl.innerHTML = statuses.map(s => `<span class="pm-chip ${activeFilter === s ? 'active' : ''}" data-status="${s}">${s}</span>`).join('');
+    filtersEl.querySelectorAll('.pm-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        activeFilter = chip.dataset.status;
+        renderFilters();
+        renderProps();
+      });
+    });
+  }
+
+  function renderProps() {
+    const searchTerm = (document.getElementById('search-input').value || '').toLowerCase();
+    const filtered = props.filter(p => {
+      const matchSearch = !searchTerm ||
+        (p.title || '').toLowerCase().includes(searchTerm) ||
+        (p.area || '').toLowerCase().includes(searchTerm) ||
+        (p.sector || '').toLowerCase().includes(searchTerm);
+      const matchStatus = activeFilter === 'All' || p.internalStatus === activeFilter;
+      return matchSearch && matchStatus;
+    });
+
+    const grid = document.getElementById('prop-grid');
+    if (filtered.length === 0) {
+      grid.innerHTML = '<div class="pm-empty" style="grid-column:1/-1;"><div class="title">No properties found</div><div class="desc">Try changing your search or filter.</div></div>';
+      return;
+    }
+
+    grid.innerHTML = filtered.map((p, i) => {
+      const badge = statusBadge(p.internalStatus);
+      const flags = [];
+      if (!p.photos || p.photos.length === 0) flags.push('Add photos');
+      if (!p.mapPinId) flags.push('Map pin missing');
+
+      return `<div class="pm-prop-card">
+        <div class="hero" style="background:${gradients[i % gradients.length]};">
+          <span class="badge" style="background:${badge.bg};color:${badge.color};">${p.internalStatus}</span>
+          ${flags.length ? `<span class="flag">${flags[0]}</span>` : ''}
+        </div>
+        <div class="body">
+          <div class="area">${p.area || '-'} ${p.sector ? '· ' + p.sector : ''}</div>
+          <div class="name">${p.title || 'Unnamed'}</div>
+          <div class="size">${p.type || '-'} · ${p.size || p.plotSize || '-'}</div>
+          <div class="actions">
+            <button onclick="archiveProp('${p.id}')" class="warn">Remove</button>
+            ${p.internalStatus === 'Available' ? `<button onclick="CRM.updatePropertyStatus('${p.id}','Sold');location.reload();">Mark Sold</button>` : ''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('search-input').addEventListener('input', renderProps);
+
+  // Add property form
   document.getElementById('add-prop-form').addEventListener('submit', (e) => {
     e.preventDefault();
     crm.addProperty({
@@ -130,6 +215,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     window.location.reload();
   });
+
+  renderFilters();
+  renderProps();
 });
 </script>
 </body>

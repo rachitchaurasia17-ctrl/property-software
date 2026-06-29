@@ -3,8 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Reports - PlotMap Admin</title>
-<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<title>Reports — PlotMap</title>
 <link rel="stylesheet" href="/admin/crm-ui.css">
 <script src="/admin/crm-data.js"></script>
 <script src="/admin/core/data-adapter.js"></script>
@@ -26,39 +25,47 @@ if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
 <body class="pm-shell">
 
 <header class="pm-topbar dealer-bar">
-  <div class="brand">PlotMap Admin</div>
-  <div class="role-badge">Dealer Mode</div>
+  <a class="brand" href="/"><div class="brand-icon"><i></i></div><span class="brand-name">PlotMap</span></a>
   <nav>
-    <a href="/admin/owner.html">Dealer Command</a>
+    <a href="/admin/owner.html">Dashboard</a>
+    <a href="/admin/property-insights.html">Property Insights</a>
+    <a href="/admin/clients.html">Clients</a>
+    <a href="/admin/finance.html">Finance</a>
     <a href="/admin/area-intelligence.html">Area Intelligence</a>
-    <a href="/admin/finance.html">Finance Center</a>
     <a href="/admin/reports.html" class="on">Reports</a>
     <a href="/admin/access.html">Access</a>
-    <a href="/app/plotmap/" target="_blank">Presentation Map</a>
   </nav>
   <div class="sp"></div>
-  <a href="/admin/index.html">Switch Role</a>
+  <div class="role-chip" id="role-chip">
+    <!-- JS -->
+  </div>
 </header>
 
 <main class="pm-main">
-  <div class="pm-header" style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;">
+  <div class="pm-page-header">
     <div>
       <h1>Reports</h1>
-      <div class="sub">Daily owner report generated from the command, finance, and inventory engines.</div>
+      <div class="sub">Daily owner reports from command, finance, and inventory engines.</div>
     </div>
-    <button class="pm-button primary" id="generate-report">Generate Daily Report</button>
+    <button class="pm-btn pm-btn-primary" id="generate-report">Generate Daily Report</button>
   </div>
 
-  <div class="pm-card" style="margin-bottom:24px;">
+  <div class="pm-card-xl" style="margin-bottom:18px;">
     <div class="pm-card-h">Latest Report</div>
     <div id="latest-report"></div>
   </div>
 
-  <div class="pm-card">
-    <div class="pm-card-h">Report History</div>
+  <div class="pm-card-xl" style="padding:0;overflow:hidden;">
     <div class="pm-table-wrap">
       <table class="pm-table" id="reports-table">
-        <thead><tr><th>Date</th><th>Type</th><th>Summary</th><th>Created</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Summary</th>
+            <th>Created</th>
+          </tr>
+        </thead>
         <tbody></tbody>
       </table>
     </div>
@@ -77,7 +84,7 @@ function fmtDate(value) {
 }
 
 function renderReport(report) {
-  if (!report) return '<div style="color:var(--pm-text-mut)">No reports generated yet.</div>';
+  if (!report) return '<div class="pm-empty"><div class="desc">No reports generated yet.</div></div>';
   const metrics = report.metricsJson || {};
   const priority = metrics.priorityClients || [];
   const leaks = metrics.missedOpportunities || [];
@@ -85,13 +92,13 @@ function renderReport(report) {
   const inventory = metrics.inventorySignals || {};
   const money = metrics.moneyPending || {};
   return `
-    <div style="font-size:15px;line-height:1.55;margin-bottom:18px;">${esc(report.aiText || report.summary || '')}</div>
+    <div style="font-size:15px;line-height:1.55;margin-bottom:18px;color:var(--pm-text);">${esc(report.aiText || report.summary || '')}</div>
     <div class="pm-grid cols-5">
-      <div class="pm-metric-card"><div class="val">${priority.length}</div><div class="lbl">Call First</div></div>
-      <div class="pm-metric-card"><div class="val">${leaks.length}</div><div class="lbl">Business Leaks</div></div>
-      <div class="pm-metric-card"><div class="val">${esc(area ? area.name : '-')}</div><div class="lbl">Top Area</div></div>
-      <div class="pm-metric-card"><div class="val">${Number(inventory.needsReview || 0)}</div><div class="lbl">Inventory Review</div></div>
-      <div class="pm-metric-card"><div class="val">${Number(money.count || 0)}</div><div class="lbl">Money Pending</div></div>
+      <div class="pm-stat-card"><div class="stat-label"><span>Call First</span></div><div class="stat-val" style="color:var(--pm-emerald);">${priority.length}</div></div>
+      <div class="pm-stat-card"><div class="stat-label"><span>Business Leaks</span></div><div class="stat-val" style="color:var(--pm-orange);">${leaks.length}</div></div>
+      <div class="pm-stat-card"><div class="stat-label"><span>Top Area</span></div><div class="stat-val" style="color:var(--pm-blue);font-size:24px;">${esc(area ? area.name : '-')}</div></div>
+      <div class="pm-stat-card"><div class="stat-label"><span>Inventory Review</span></div><div class="stat-val" style="color:var(--pm-gold);">${Number(inventory.needsReview || 0)}</div></div>
+      <div class="pm-stat-card"><div class="stat-label"><span>Money Pending</span></div><div class="stat-val" style="font-family:'Fraunces',serif;color:var(--pm-purple);">${Number(money.count || 0)}</div></div>
     </div>
   `;
 }
@@ -102,17 +109,25 @@ function renderReports() {
   document.getElementById('latest-report').innerHTML = renderReport(reports[0]);
   document.querySelector('#reports-table tbody').innerHTML = reports.map(report => `
     <tr>
-      <td>${esc(report.reportDate || '-')}</td>
-      <td style="text-transform:capitalize">${esc(report.reportType || 'daily')}</td>
-      <td>${esc(report.summary || '').slice(0, 180)}</td>
+      <td style="font-weight:600;">${esc(report.reportDate || '-')}</td>
+      <td><span class="pm-tag">${esc(report.reportType || 'daily')}</span></td>
+      <td style="color:var(--pm-text-mut);">${esc(report.summary || '').slice(0, 180)}</td>
       <td>${fmtDate(report.createdAt)}</td>
     </tr>
-  `).join('') || '<tr><td colspan="4" style="padding:24px;text-align:center;color:var(--pm-text-mut)">No reports generated yet.</td></tr>';
+  `).join('') || '<tr><td colspan="4" class="pm-empty" style="padding:24px;"><div class="desc">No reports generated yet.</div></td></tr>';
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  const data = window.CRM.getCRM();
+  const ownerUser = data.users && data.users.find(u => u.role === 'owner');
+  const ownerName = ownerUser ? ownerUser.name : 'Owner';
+  document.getElementById('role-chip').innerHTML = `
+    <div class="role-info"><div class="role-name">${ownerName.split(' ')[0]}</div><div class="role-kind">Owner</div></div>
+    <div class="role-avatar" style="background:var(--pm-emerald);">${ownerName.charAt(0).toUpperCase()}</div>
+  `;
+
   document.getElementById('generate-report').addEventListener('click', () => {
-    const dealer = window.CRM.getCRM().dealers[0];
+    const dealer = data.dealers[0];
     window.CRM.generateDailyOwnerReport(dealer && dealer.id);
     renderReports();
   });

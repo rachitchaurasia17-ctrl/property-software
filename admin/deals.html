@@ -3,8 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Deals - PlotMap Admin</title>
-<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<title>Deals — PlotMap</title>
 <link rel="stylesheet" href="/admin/crm-ui.css">
 <script src="/admin/crm-data.js"></script>
 <script src="/admin/core/data-adapter.js"></script>
@@ -25,57 +24,47 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
 </head>
 <body class="pm-shell">
 
-<header class="pm-topbar">
-  <div class="brand">PlotMap Admin</div>
-  <div class="role-badge">Team Mode</div>
+<header class="pm-topbar team-bar">
+  <a class="brand" href="/"><div class="brand-icon"><i></i></div><span class="brand-name">PlotMap</span></a>
   <nav>
     <a href="/admin/team.html">Workspace</a>
     <a href="/admin/clients.html">Clients</a>
     <a href="/admin/properties.html">Properties</a>
-    <a href="/admin/followups.html">Follow-ups</a>
-    <a href="/admin/site-visits.html">Site Visits</a>
     <a href="/admin/deals.html" class="on">Deals</a>
     <a href="/admin/map-studio.html">Map Studio</a>
   </nav>
   <div class="sp"></div>
-  <a href="/admin/index.html">Switch Role</a>
+  <a href="/admin/index.html" style="font-size:13.5px;font-weight:700;">Switch Role</a>
 </header>
 
 <main class="pm-main">
-  <div class="pm-header">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-      <div>
-        <h1>Deals</h1>
-        <div class="sub">Mark deals closed and track transactions.</div>
-      </div>
-      <button class="pm-button primary" onclick="document.getElementById('add-deal').style.display='block'">+ Mark Deal Closed</button>
+  <div class="pm-page-header">
+    <div>
+      <h1>Deals</h1>
+      <div class="sub">Record closed deals and track commissions.</div>
     </div>
+    <button class="pm-btn pm-btn-primary" onclick="document.getElementById('add-deal').style.display = document.getElementById('add-deal').style.display === 'none' ? 'block' : 'none'">+ Record Deal</button>
   </div>
-  
-  <div class="pm-card" id="add-deal" style="display:none; margin-bottom:24px;">
-    <div class="pm-card-h">Record a Closed Deal</div>
+
+  <div class="pm-card-xl" id="add-deal" style="display:none;margin-bottom:18px;">
+    <div class="pm-card-h">Record New Deal</div>
     <form class="pm-form" id="add-deal-form">
-      <div class="pm-grid cols-2">
-        <div class="fld">
-          <label>Client</label>
-          <select id="d-client" required><option value="">Select Client...</option></select>
-        </div>
-        <div class="fld">
-          <label>Deal Type</label>
-          <select id="d-type"><option>Sale</option><option>Purchase</option><option>Rent</option></select>
-        </div>
-        <div class="fld"><label>Area / Sector</label><input type="text" id="d-area"></div>
-        <div class="fld"><label>Deal Value (₹)</label><input type="number" id="d-val" placeholder="e.g. 25000000"></div>
-        <div class="fld"><label>Total Commission (₹)</label><input type="number" id="d-comm" placeholder="e.g. 250000"></div>
-        <div class="fld"><label>Commission Received Today (₹)</label><input type="number" id="d-rec" placeholder="e.g. 100000"></div>
+      <div class="pm-grid cols-3">
+        <div class="fld"><label>Client</label><select id="d-client" required><option value="">Select client...</option></select></div>
+        <div class="fld"><label>Deal Type</label><select id="d-type"><option>sale</option><option>purchase</option><option>rental</option></select></div>
+        <div class="fld"><label>Area</label><input type="text" id="d-area" placeholder="e.g. Aerocity"></div>
+        <div class="fld"><label>Deal Value (₹)</label><input type="number" id="d-val" required placeholder="0"></div>
+        <div class="fld"><label>Commission (₹)</label><input type="number" id="d-comm" required placeholder="0"></div>
+        <div class="fld"><label>Received (₹)</label><input type="number" id="d-rec" value="0" placeholder="0"></div>
       </div>
-      <div class="fld" style="margin-top:16px;">
-        <button type="submit" class="pm-button primary" style="width:200px;">Save Deal</button>
+      <div style="margin-top:16px;display:flex;gap:10px;">
+        <button type="submit" class="pm-btn pm-btn-primary">Save Deal</button>
+        <button type="button" class="pm-btn pm-btn-secondary" onclick="document.getElementById('add-deal').style.display='none'">Cancel</button>
       </div>
     </form>
   </div>
 
-  <div class="pm-card">
+  <div class="pm-card-xl" style="padding:0;overflow:hidden;">
     <div class="pm-table-wrap">
       <table class="pm-table" id="deals-table">
         <thead>
@@ -98,17 +87,17 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
 document.addEventListener('DOMContentLoaded', () => {
   const crm = window.CRM;
   const data = crm.getCRM();
-  
+
   // Populate client select
   const sel = document.getElementById('d-client');
   data.clients.forEach(c => {
     sel.innerHTML += `<option value="${c.id}">${c.name} (${c.phone})</option>`;
   });
-  
+
   const tbody = document.querySelector('#deals-table tbody');
-  
+
   if(data.deals.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6">No deals recorded yet.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="pm-empty" style="padding:32px;"><div class="title">No deals yet</div><div class="desc">Record your first deal above.</div></td></tr>';
   } else {
     tbody.innerHTML = data.deals.map(d => {
       const c = data.clients.find(cl => cl.id === d.clientId) || {};
@@ -120,20 +109,20 @@ document.addEventListener('DOMContentLoaded', () => {
         <td style="font-weight:600">${dt}</td>
         <td style="font-weight:700">${c.name || '-'}</td>
         <td style="text-transform:capitalize">${d.dealType}<br><span style="font-size:12px;color:var(--pm-text-mut)">${d.area||''}</span></td>
-        <td style="font-weight:700">${valFmt}</td>
-        <td>${commFmt}</td>
+        <td style="font-weight:700;font-family:'Fraunces',serif;">${valFmt}</td>
+        <td style="color:var(--pm-gold);font-weight:700;">${commFmt}</td>
         <td><span class="pm-status ok">${d.status}</span></td>
       </tr>
       `;
     }).join('');
   }
-  
+
   document.getElementById('add-deal-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const commAmt = Number(document.getElementById('d-comm').value) || 0;
     const recAmt = Number(document.getElementById('d-rec').value) || 0;
     const clientId = document.getElementById('d-client').value;
-    
+
     crm.addDeal({
       clientId: clientId,
       dealType: document.getElementById('d-type').value,

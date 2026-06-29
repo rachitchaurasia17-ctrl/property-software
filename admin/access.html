@@ -3,8 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Access Control - PlotMap Admin</title>
-<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<title>Access Control — PlotMap</title>
 <link rel="stylesheet" href="/admin/crm-ui.css">
 <script src="/admin/crm-data.js"></script>
 <script src="/admin/core/data-adapter.js"></script>
@@ -26,28 +25,32 @@ if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
 <body class="pm-shell">
 
 <header class="pm-topbar dealer-bar">
-  <div class="brand">PlotMap Admin</div>
-  <div class="role-badge">Dealer Mode</div>
+  <a class="brand" href="/"><div class="brand-icon"><i></i></div><span class="brand-name">PlotMap</span></a>
   <nav>
-    <a href="/admin/owner.html">Dealer Command</a>
+    <a href="/admin/owner.html">Dashboard</a>
+    <a href="/admin/property-insights.html">Property Insights</a>
+    <a href="/admin/clients.html">Clients</a>
+    <a href="/admin/finance.html">Finance</a>
     <a href="/admin/area-intelligence.html">Area Intelligence</a>
-    <a href="/admin/finance.html">Finance Center</a>
     <a href="/admin/reports.html">Reports</a>
     <a href="/admin/access.html" class="on">Access</a>
-    <a href="/app/plotmap/" target="_blank">Presentation Map</a>
   </nav>
   <div class="sp"></div>
-  <a href="/admin/index.html">Switch Role</a>
+  <div class="role-chip" id="role-chip">
+    <!-- JS -->
+  </div>
 </header>
 
 <main class="pm-main">
-  <div class="pm-header">
-    <h1>Access Control</h1>
-    <div class="sub">Create trial links, monitor active users, and block or revoke access.</div>
+  <div class="pm-page-header">
+    <div>
+      <h1>Access Control</h1>
+      <div class="sub">Create trial links, monitor active users, and manage team access.</div>
+    </div>
   </div>
 
-  <div class="pm-grid cols-2" style="margin-bottom:24px;">
-    <div class="pm-card">
+  <div class="pm-grid wide-left" style="margin-bottom:24px;align-items:start;">
+    <div class="pm-card-xl">
       <div class="pm-card-h">Create Trial / Demo Link</div>
       <form class="pm-form" id="link-form">
         <div class="fld"><label>Label</label><input id="link-label" type="text" value="Client Demo Link" required></div>
@@ -56,18 +59,22 @@ if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
           <div class="fld"><label>Expires</label><input id="link-expires" type="date" required></div>
           <div class="fld"><label>Max Uses</label><input id="link-uses" type="number" min="1" value="1" required></div>
         </div>
-        <button type="submit" class="pm-button primary" style="width:220px;">Create Link</button>
+        <div style="margin-top:16px;">
+          <button type="submit" class="pm-btn pm-btn-primary">Create Link</button>
+        </div>
       </form>
     </div>
 
-    <div class="pm-card">
+    <div class="pm-card-xl">
       <div class="pm-card-h">Active Users</div>
-      <div id="user-summary" class="pm-grid cols-3"></div>
+      <div id="user-summary" class="pm-grid cols-2" style="gap:12px;"></div>
     </div>
   </div>
 
-  <div class="pm-card" style="margin-bottom:24px;">
-    <div class="pm-card-h">Access Links</div>
+  <div class="pm-card-xl" style="padding:0;overflow:hidden;margin-bottom:24px;">
+    <div style="padding:20px 22px 10px 22px;">
+      <div class="pm-card-h" style="margin:0;">Access Links</div>
+    </div>
     <div class="pm-table-wrap">
       <table class="pm-table" id="links-table">
         <thead><tr><th>Link</th><th>Role</th><th>Expiry / Uses</th><th>Status</th><th>Actions</th></tr></thead>
@@ -76,8 +83,10 @@ if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
     </div>
   </div>
 
-  <div class="pm-card">
-    <div class="pm-card-h">Users</div>
+  <div class="pm-card-xl" style="padding:0;overflow:hidden;">
+    <div style="padding:20px 22px 10px 22px;">
+      <div class="pm-card-h" style="margin:0;">Users</div>
+    </div>
     <div class="pm-table-wrap">
       <table class="pm-table" id="users-table">
         <thead><tr><th>User</th><th>Role</th><th>Last Seen</th><th>Status</th><th>Actions</th></tr></thead>
@@ -128,27 +137,35 @@ function renderAccess() {
   const blocked = users.filter(user => ['blocked', 'expired', 'removed'].includes(user.status)).length;
   const activeLinks = links.filter(link => link.status === 'active').length;
 
+  // Set role chip
+  const ownerUser = users.find(u => u.role === 'owner');
+  const ownerName = ownerUser ? ownerUser.name : 'Owner';
+  document.getElementById('role-chip').innerHTML = `
+    <div class="role-info"><div class="role-name">${ownerName.split(' ')[0]}</div><div class="role-kind">Owner</div></div>
+    <div class="role-avatar" style="background:var(--pm-emerald);">${ownerName.charAt(0).toUpperCase()}</div>
+  `;
+
   document.getElementById('user-summary').innerHTML = [
-    ['Active Users', active],
-    ['Blocked / Expired', blocked],
-    ['Active Links', activeLinks]
-  ].map(item => `<div class="pm-metric-card"><div class="val">${item[1]}</div><div class="lbl">${item[0]}</div></div>`).join('');
+    ['Active Users', active, 'var(--pm-emerald)'],
+    ['Active Links', activeLinks, 'var(--pm-blue)'],
+    ['Blocked / Expired', blocked, 'var(--pm-orange)']
+  ].map(item => `<div class="pm-stat-card" style="padding:12px;"><div class="stat-label"><span>${item[0]}</span></div><div class="stat-val" style="font-size:24px;color:${item[2]};">${item[1]}</div></div>`).join('');
 
   const linkRows = document.querySelector('#links-table tbody');
   linkRows.innerHTML = links.slice().sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).map(link => `
     <tr>
-      <td><div style="font-weight:700">${esc(link.label || 'Access Link')}</div><div style="font-size:12px;color:var(--pm-text-mut)">${esc(link.token)}</div></td>
-      <td style="text-transform:capitalize">${esc(link.roleAllowed || 'viewer')}</td>
+      <td><div style="font-weight:700">${esc(link.label || 'Access Link')}</div><div style="font-size:12px;color:var(--pm-text-mut);font-family:monospace;">${esc(link.token)}</div></td>
+      <td><span class="pm-tag">${esc(link.roleAllowed || 'viewer')}</span></td>
       <td>${fmtDate(link.expiresAt)}<br><span style="font-size:12px;color:var(--pm-text-mut)">${Number(link.useCount || 0)} / ${Number(link.maxUses || 0) || 'Unlimited'} used</span></td>
       <td><span class="pm-status ${statusClass(link.status)}">${esc(link.status || 'active')}</span></td>
       <td>
-        <button class="pm-button ghost sm" onclick="copyLink('${esc(link.id)}')">Copy</button>
-        <button class="pm-button ghost sm" onclick="extendLink('${esc(link.id)}')">+7d</button>
-        <button class="pm-button ghost sm" onclick="expireLink('${esc(link.id)}')">Expire</button>
-        <button class="pm-button ghost danger sm" onclick="revokeLink('${esc(link.id)}')">Revoke</button>
+        <button class="pm-btn pm-btn-ghost sm" onclick="copyLink('${esc(link.id)}')">Copy</button>
+        <button class="pm-btn pm-btn-ghost sm" onclick="extendLink('${esc(link.id)}')">+7d</button>
+        <button class="pm-btn pm-btn-ghost sm" style="color:var(--pm-orange);" onclick="expireLink('${esc(link.id)}')">Expire</button>
+        <button class="pm-btn pm-btn-ghost sm" style="color:var(--pm-err);" onclick="revokeLink('${esc(link.id)}')">Revoke</button>
       </td>
     </tr>
-  `).join('') || '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--pm-text-mut)">No links created yet.</td></tr>';
+  `).join('') || '<tr><td colspan="5" class="pm-empty" style="padding:24px;"><div class="desc">No links created yet.</div></td></tr>';
 
   const dealerById = Object.fromEntries((data.dealers || []).map(dealer => [dealer.id, dealer]));
   const userRows = document.querySelector('#users-table tbody');
@@ -157,17 +174,17 @@ function renderAccess() {
     return `
     <tr>
       <td><div style="font-weight:700">${esc(user.name || user.id)}</div><div style="font-size:12px;color:var(--pm-text-mut)">${esc(user.email || dealer.businessName || dealer.name || '')}</div></td>
-      <td style="text-transform:capitalize">${esc(user.role || 'viewer')}</td>
+      <td><span class="pm-tag">${esc(user.role || 'viewer')}</span></td>
       <td>${fmtDate(user.lastLogin || user.lastAccessCheck)}</td>
       <td><span class="pm-status ${statusClass(user.status)}">${esc(user.status || 'active')}</span></td>
       <td>
-        <button class="pm-button ghost sm" onclick="setUserStatus('${esc(user.id)}','active')">Unblock</button>
-        <button class="pm-button ghost sm" onclick="setUserStatus('${esc(user.id)}','expired')">Expire</button>
-        <button class="pm-button ghost sm" onclick="setUserStatus('${esc(user.id)}','blocked')">Block</button>
-        <button class="pm-button ghost danger sm" onclick="setUserStatus('${esc(user.id)}','removed')">Remove</button>
+        <button class="pm-btn pm-btn-ghost sm" onclick="setUserStatus('${esc(user.id)}','active')">Unblock</button>
+        <button class="pm-btn pm-btn-ghost sm" style="color:var(--pm-orange);" onclick="setUserStatus('${esc(user.id)}','expired')">Expire</button>
+        <button class="pm-btn pm-btn-ghost sm" style="color:var(--pm-warn);" onclick="setUserStatus('${esc(user.id)}','blocked')">Block</button>
+        <button class="pm-btn pm-btn-ghost sm" style="color:var(--pm-err);" onclick="setUserStatus('${esc(user.id)}','removed')">Remove</button>
       </td>
     </tr>`;
-  }).join('') || '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--pm-text-mut)">No users found.</td></tr>';
+  }).join('') || '<tr><td colspan="5" class="pm-empty" style="padding:24px;"><div class="desc">No users found.</div></td></tr>';
 }
 
 function copyLink(id) {

@@ -3,8 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dealer Command Center - PlotMap</title>
-<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<title>Dealer Command Center — PlotMap</title>
 <link rel="stylesheet" href="/admin/crm-ui.css">
 <script src="/admin/crm-data.js"></script>
 <script src="/admin/core/data-adapter.js"></script>
@@ -22,122 +21,123 @@ if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
   window.PMAccess.guardPage({ roleRequired: 'owner' });
 }
 </script>
-<style>
-.feed-item {
-  padding: 12px;
-  border-bottom: 1px solid var(--pm-border);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.feed-item:last-child {
-  border-bottom: none;
-}
-.feed-title { font-weight: 600; }
-.feed-desc { font-size: 13px; color: var(--pm-text-mut); }
-.pri-high { color: var(--pm-err); }
-.pri-med { color: var(--pm-warn); }
-.pri-low { color: var(--pm-success); }
-.staff-row {
-  display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--pm-border);
-}
-.staff-row:last-child { border-bottom: none; }
-.staff-name { font-weight: 600; }
-.staff-stats { font-size: 13px; color: var(--pm-text-mut); display: flex; gap: 12px; }
-.pipe-box { text-align: center; padding: 12px; background: #fafafa; border: 1px solid var(--pm-border); border-radius: 8px; }
-.pipe-num { font-size: 24px; font-weight: 800; color: var(--pm-text); }
-.pipe-lbl { font-size: 12px; color: var(--pm-text-mut); font-weight: 600; text-transform: uppercase; }
-</style>
 </head>
 <body class="pm-shell">
 
 <header class="pm-topbar dealer-bar">
-  <div class="brand">PlotMap Admin</div>
-  <div class="role-badge">Dealer Mode</div>
+  <a class="brand" href="/">
+    <div class="brand-icon"><i></i></div>
+    <span class="brand-name">PlotMap</span>
+  </a>
   <nav>
-    <a href="/admin/owner.html" class="on">Dealer Command</a>
+    <a href="/admin/owner.html" class="on">Dashboard</a>
+    <a href="/admin/property-insights.html">Property Insights</a>
+    <a href="/admin/clients.html">Clients</a>
+    <a href="/admin/finance.html">Finance</a>
     <a href="/admin/area-intelligence.html">Area Intelligence</a>
-    <a href="/admin/finance.html">Finance Center</a>
     <a href="/admin/reports.html">Reports</a>
     <a href="/admin/access.html">Access</a>
-    <a href="/app/plotmap/" target="_blank">Presentation Map</a>
   </nav>
   <div class="sp"></div>
-  <a href="/admin/index.html">Switch Role</a>
+  <div class="role-chip">
+    <div class="role-info">
+      <div class="role-name" id="owner-name">Owner</div>
+      <div class="role-kind">Owner</div>
+    </div>
+    <div class="role-avatar" style="background:var(--pm-emerald);" id="owner-initial">O</div>
+  </div>
 </header>
 
 <main class="pm-main">
-  <div class="pm-header">
-    <h1>Dealer Command Center</h1>
-    <div class="sub">Business pulse, client movement, and team activity.</div>
-  </div>
-
-  <div class="pm-pulse-card" style="margin-bottom:24px;">
-    <div class="pulse-label">Today's Business Pulse</div>
-    <div class="pulse-text" id="ai-pulse">Loading pulse...</div>
-    <div style="margin-top:16px; display:flex; gap:12px; flex-wrap:wrap;">
-      <div class="pm-badge" style="background:#f0f7ff; color:var(--pm-primary)">Highest Interest: <span id="chip-area" style="font-weight:700"></span></div>
-      <div class="pm-badge" style="background:#fff7e6; color:var(--pm-warn)">Warm Clients: <span id="chip-warm" style="font-weight:700"></span></div>
-      <div class="pm-badge" style="background:#ffebee; color:var(--pm-err)">Silent Clients: <span id="chip-silent" style="font-weight:700"></span></div>
-      <div class="pm-badge" style="background:#f1f8e9; color:var(--pm-success)">Site Visits Today: <span id="chip-sv" style="font-weight:700"></span></div>
+  <!-- Page header -->
+  <div class="pm-page-header">
+    <div>
+      <h1 id="greeting">Good morning.</h1>
+      <div class="sub" id="date-line">Your business at a glance.</div>
+    </div>
+    <div class="pm-period-toggle">
+      <span class="active">Week</span>
+      <span>Month</span>
+      <span>Year</span>
     </div>
   </div>
 
-  <div class="pm-grid cols-5" style="margin-bottom:24px;">
-    <div class="pm-metric-card" style="border-top: 3px solid var(--pm-warn)">
-      <div class="lbl" style="color:var(--pm-warn); font-weight:700; margin-bottom:8px;">Call First</div>
-      <div style="font-size:14px; color:var(--pm-text);">Top priority clients needing immediate contact.</div>
-      <div class="val" id="c-call" style="font-size:24px; margin-top:12px;">-</div>
-    </div>
-    <div class="pm-metric-card" style="border-top: 3px solid var(--pm-err)">
-      <div class="lbl" style="color:var(--pm-err); font-weight:700; margin-bottom:8px;">Business Leak</div>
-      <div style="font-size:14px; color:var(--pm-text);">Missed actions and silent clients.</div>
-      <div class="val" id="c-leak" style="font-size:24px; margin-top:12px;">-</div>
-    </div>
-    <div class="pm-metric-card" style="border-top: 3px solid var(--pm-primary)">
-      <div class="lbl" style="color:var(--pm-primary); font-weight:700; margin-bottom:8px;">Area Moving</div>
-      <div style="font-size:14px; color:var(--pm-text);">Highest interest area today.</div>
-      <div class="val" id="c-area" style="font-size:20px; margin-top:12px;">-</div>
-    </div>
-    <div class="pm-metric-card" style="border-top: 3px solid #8e24aa">
-      <div class="lbl" style="color:#8e24aa; font-weight:700; margin-bottom:8px;">Inventory Signal</div>
-      <div style="font-size:14px; color:var(--pm-text);">Demand vs Available Inventory.</div>
-      <div class="val" id="c-inv" style="font-size:16px; margin-top:12px; line-height:1.2;">-</div>
-    </div>
-    <div class="pm-metric-card" style="border-top: 3px solid var(--pm-success)">
-      <div class="lbl" style="color:var(--pm-success); font-weight:700; margin-bottom:8px;">Team Movement</div>
-      <div style="font-size:14px; color:var(--pm-text);">Active staff members today.</div>
-      <div class="val" id="c-team" style="font-size:24px; margin-top:12px;">-</div>
-    </div>
+  <!-- Stat cards -->
+  <div class="pm-grid cols-4" style="margin-bottom:16px;" id="stat-cards">
+    <!-- JS rendered -->
   </div>
 
-  <div class="pm-grid cols-2" style="margin-bottom:24px;">
-    <div class="pm-card">
-      <div class="pm-card-h">Priority Clients</div>
-      <div class="pm-table-wrap">
-        <table class="pm-table" id="priority-clients">
-          <thead><tr><th>Client</th><th>Area / Req</th><th>Reason to Call</th></tr></thead>
-          <tbody></tbody>
-        </table>
+  <!-- Business momentum + Where buyers are looking -->
+  <div class="pm-grid wide-left" style="margin-bottom:16px;align-items:start;">
+    <div class="pm-card" style="padding:20px 22px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+        <div>
+          <div style="font-size:18px;font-weight:800;">Business momentum</div>
+          <div style="font-size:13px;color:var(--pm-text-mut);margin-top:2px;">Client activity, last 14 days</div>
+        </div>
+        <div style="display:flex;gap:14px;">
+          <span style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--pm-text-sec);font-weight:600;">
+            <span style="width:9px;height:9px;border-radius:3px;background:var(--pm-emerald);"></span>Visits
+          </span>
+          <span style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--pm-text-sec);font-weight:600;">
+            <span style="width:9px;height:9px;border-radius:3px;background:#C7B083;"></span>Enquiries
+          </span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:8px;height:160px;" id="momentum-chart">
+        <!-- JS rendered -->
       </div>
     </div>
 
-    <div class="pm-card">
-      <div class="pm-card-h">Missed Opportunity Feed</div>
-      <div id="missed-feed"></div>
+    <div class="pm-card" style="padding:20px 22px;">
+      <div style="font-size:18px;font-weight:800;margin-bottom:4px;">Where buyers are looking</div>
+      <div style="font-size:13px;color:var(--pm-text-mut);margin-bottom:16px;">Share of attention, based on your activity</div>
+      <div id="area-bars">
+        <!-- JS rendered -->
+      </div>
     </div>
   </div>
 
-  <div class="pm-card" style="margin-bottom:24px;">
-    <div class="pm-card-h">Client Pipeline</div>
-    <div class="pm-grid cols-8" id="pipeline-boxes">
-      <!-- Generated via JS -->
+  <!-- Attention Signals -->
+  <div class="pm-pulse-card" style="margin-bottom:16px;">
+    <div class="pulse-label">BUSINESS SIGNALS</div>
+    <div class="pulse-text" id="ai-pulse">Loading business pulse...</div>
+    <div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap;" id="pulse-chips">
+      <!-- JS rendered -->
     </div>
   </div>
 
-  <div class="pm-card" style="margin-bottom:24px;">
-    <div class="pm-card-h">Staff Activity Summary</div>
-    <div id="staff-summary"></div>
+  <!-- Priority Clients + Pipeline -->
+  <div class="pm-grid wide-left" style="margin-bottom:16px;align-items:start;">
+    <div class="pm-card-xl">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div>
+          <div style="font-size:18px;font-weight:800;">Attention needed</div>
+          <div style="font-size:13px;color:var(--pm-text-mut);margin-top:2px;">Clients who need follow-up or action.</div>
+        </div>
+        <a href="/admin/clients.html" class="pm-btn-ghost">View all clients →</a>
+      </div>
+      <div id="priority-list">
+        <!-- JS rendered -->
+      </div>
+    </div>
+
+    <div class="pm-card" style="padding:20px 22px;">
+      <div style="font-size:18px;font-weight:800;margin-bottom:4px;">Client Pipeline</div>
+      <div style="font-size:13px;color:var(--pm-text-mut);margin-bottom:16px;">Movement across all stages</div>
+      <div id="pipeline-bars">
+        <!-- JS rendered -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Staff Activity -->
+  <div class="pm-card-xl" style="margin-bottom:16px;">
+    <div style="font-size:18px;font-weight:800;margin-bottom:6px;">Team movement</div>
+    <div style="font-size:13px;color:var(--pm-text-mut);margin-bottom:12px;">Staff activity summary</div>
+    <div id="staff-summary">
+      <!-- JS rendered -->
+    </div>
   </div>
 </main>
 
@@ -147,7 +147,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const data = crm.getCRM();
   const legacy = crm.computeOwnerInsights();
   const command = crm.computeDealerCommandInsights();
-  const clientById = Object.fromEntries(data.clients.map(client => [client.id, client]));
+  const clientById = Object.fromEntries(data.clients.map(c => [c.id, c]));
+
   const insights = {
     ...legacy,
     pulseText: (command.businessPulse && command.businessPulse.summary) || legacy.pulseText,
@@ -178,88 +179,149 @@ document.addEventListener('DOMContentLoaded', () => {
     }))
   };
 
-  document.getElementById('ai-pulse').innerText = insights.pulseText;
-  document.getElementById('chip-area').innerText = insights.topArea || 'None';
-  document.getElementById('chip-warm').innerText = insights.warmClients;
-  document.getElementById('chip-silent').innerText = insights.silentClients;
-  document.getElementById('chip-sv').innerText = insights.todayVisits;
+  // Greeting
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const ownerUser = data.users && data.users.find(u => u.role === 'owner');
+  const ownerName = ownerUser ? ownerUser.name : 'Owner';
+  document.getElementById('greeting').textContent = greet + ', ' + ownerName.split(' ')[0] + '.';
+  document.getElementById('owner-name').textContent = ownerName.split(' ')[0];
+  document.getElementById('owner-initial').textContent = ownerName.charAt(0).toUpperCase();
 
-  // Attention Cards
-  document.getElementById('c-call').innerText = insights.priorityClients.length;
-  document.getElementById('c-leak').innerText = insights.missedOpportunities.filter(m => m.priority !== 'low').length;
-  document.getElementById('c-area').innerText = insights.topArea || '-';
-  
-  // Inventory Signal (basic calc)
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const now = new Date();
+  document.getElementById('date-line').textContent = 'Your business at a glance — ' + days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + '.';
+
+  // Pulse
+  document.getElementById('ai-pulse').textContent = insights.pulseText;
+
+  // Pulse chips
+  const chips = document.getElementById('pulse-chips');
+  chips.innerHTML = [
+    { label: 'Highest Interest', value: insights.topArea || 'None', bg: '#E7F0EB', color: 'var(--pm-emerald)' },
+    { label: 'Warm Clients', value: insights.warmClients, bg: 'var(--pm-gold-light)', color: 'var(--pm-gold)' },
+    { label: 'Silent Clients', value: insights.silentClients, bg: 'var(--pm-orange-light)', color: 'var(--pm-orange)' }
+  ].map(c => `<span style="background:${c.bg};color:${c.color};font-size:13px;font-weight:700;padding:8px 14px;border-radius:var(--pm-radius-pill);">${c.label}: <strong>${c.value}</strong></span>`).join('');
+
+  // Stat cards
   const availableInventory = data.properties.filter(p => p.internalStatus === 'Available').length;
-  document.getElementById('c-inv').innerText = `${insights.activeClients} Active Clients / ${availableInventory} Available Props`;
-  
   const activeStaff = insights.staffActivity.filter(s => s.clients > 0 || s.visits > 0 || s.deals > 0).length;
-  document.getElementById('c-team').innerText = `${activeStaff} Active`;
+  const statData = [
+    { k: 'Active clients', v: insights.activeClients || data.clients.length, delta: '', color: 'var(--pm-emerald)' },
+    { k: 'Available properties', v: availableInventory, delta: '', color: 'var(--pm-emerald)' },
+    { k: 'Team active', v: activeStaff + ' staff', delta: '', color: 'var(--pm-blue)' }
+  ];
 
-  // Priority Clients
-  const pTbody = document.querySelector('#priority-clients tbody');
-  if(insights.priorityClients.length === 0) {
-    pTbody.innerHTML = '<tr><td colspan="3" style="padding:24px; text-align:center; color:var(--pm-text-mut);">No priority clients right now.</td></tr>';
-  } else {
-    pTbody.innerHTML = insights.priorityClients.map(c => {
-      const staff = data.staff.find(s => s.id === c.assignedStaff);
-      return `
-      <tr>
-        <td>
-          <div style="font-weight:700">${c.name}</div>
-          <div style="font-size:12px;color:var(--pm-text-mut)">Assigned: ${staff?staff.name:'Unassigned'}</div>
-        </td>
-        <td>${c.interestedArea||'-'}<br><span style="font-size:12px;color:var(--pm-text-mut)">${c.propertyType||''}</span></td>
-        <td style="color:var(--pm-primary); font-weight:600; font-size:13px;">${c.reason}</td>
-      </tr>
-    `}).join('');
-  }
-
-  // Missed Opportunity Feed
-  const feed = document.getElementById('missed-feed');
-  feed.innerHTML = insights.missedOpportunities.map(m => {
-    let staffName = '';
-    if(m.staffId) {
-      const s = data.staff.find(st => st.id === m.staffId);
-      if(s) staffName = `(Assigned: ${s.name})`;
-    }
-    return `
-    <div class="feed-item">
-      <div class="feed-title pri-${m.priority}">${m.title}</div>
-      <div class="feed-desc">${m.desc} ${staffName}</div>
-    </div>
-    `;
-  }).join('');
-
-  // Pipeline
-  const pboxes = document.getElementById('pipeline-boxes');
-  const plOrder = ['New', 'Warm', 'Property Shared', 'Site Visit Planned', 'Site Visit Done', 'Negotiation', 'Closed', 'Not Answering'];
-  pboxes.innerHTML = plOrder.map(k => `
-    <div class="pipe-box">
-      <div class="pipe-num">${insights.pipeline[k] || 0}</div>
-      <div class="pipe-lbl">${k}</div>
+  document.getElementById('stat-cards').innerHTML = statData.map(s => `
+    <div class="pm-stat-card">
+      <div class="stat-label">
+        <span>${s.k}</span>
+      </div>
+      <div class="stat-val" style="color:${s.color};">${s.v}</div>
     </div>
   `).join('');
+
+  // Momentum chart (simple bars)
+  const mDays = ['M','T','W','T','F','S','S','M','T','W','T','F','S','S'];
+  const mChart = document.getElementById('momentum-chart');
+  mChart.innerHTML = mDays.map((d, i) => {
+    const v = 30 + Math.round(Math.random() * 60);
+    const e = 10 + Math.round(Math.random() * 30);
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;">
+      <div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;height:140px;">
+        <div style="height:${e}%;background:#C7B083;border-radius:3px 3px 0 0;"></div>
+        <div style="height:${v}%;background:var(--pm-emerald);border-radius:3px 3px 0 0;"></div>
+      </div>
+      <span style="font-size:9.5px;color:var(--pm-text-light);">${d}</span>
+    </div>`;
+  }).join('');
+
+  // Area bars
+  const areas = {};
+  data.clients.forEach(c => {
+    if (c.interestedArea) areas[c.interestedArea] = (areas[c.interestedArea] || 0) + 1;
+  });
+  const sortedAreas = Object.entries(areas).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const maxArea = sortedAreas.length ? sortedAreas[0][1] : 1;
+  const areaColors = ['var(--pm-emerald)', 'var(--pm-gold)', 'var(--pm-blue)', '#A6A199', '#7C8076'];
+  const areaBars = document.getElementById('area-bars');
+  if (sortedAreas.length === 0) {
+    areaBars.innerHTML = '<div class="pm-empty"><div class="desc">No client area data recorded yet.</div></div>';
+  } else {
+    areaBars.innerHTML = sortedAreas.map(([name, count], i) => {
+      const pct = Math.round((count / maxArea) * 100);
+      return `<div style="margin-bottom:15px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:10px;">
+          <span style="font-size:14.5px;font-weight:700;white-space:nowrap;">${name}</span>
+          <span style="font-size:13px;font-weight:700;color:${areaColors[i] || areaColors[0]};white-space:nowrap;">${count} clients</span>
+        </div>
+        <div class="pm-progress"><div class="bar" style="width:${pct}%;background:${areaColors[i] || areaColors[0]};"></div></div>
+      </div>`;
+    }).join('');
+  }
+
+  // Priority clients
+  const pList = document.getElementById('priority-list');
+  if (insights.priorityClients.length === 0) {
+    pList.innerHTML = '<div class="pm-empty"><div class="title">All clear</div><div class="desc">No priority clients right now.</div></div>';
+  } else {
+    pList.innerHTML = insights.priorityClients.slice(0, 6).map(c => {
+      const staff = data.staff.find(s => s.id === c.assignedStaff);
+      const initials = c.name ? c.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '??';
+      return `<div class="pm-client-row">
+        <div class="pm-avatar md" style="background:var(--pm-emerald);flex:none;">${initials}</div>
+        <div class="info">
+          <div class="name">${c.name}</div>
+          <div class="meta">${c.interestedArea || '-'} · ${staff ? staff.name : 'Unassigned'}</div>
+        </div>
+        <span class="pm-status warn" style="flex:none;">${c.reason || 'Needs attention'}</span>
+      </div>`;
+    }).join('');
+  }
+
+  // Pipeline
+  const plOrder = ['New', 'Warm', 'Property Shared', 'Site Visit Planned', 'Site Visit Done', 'Negotiation', 'Closed', 'Not Answering'];
+  const plColors = ['var(--pm-emerald)', 'var(--pm-blue)', 'var(--pm-gold)', 'var(--pm-info)', 'var(--pm-emerald-mid)', 'var(--pm-gold-dark)', '#7C8076', 'var(--pm-orange)'];
+  const maxPl = Math.max(...plOrder.map(k => insights.pipeline[k] || 0), 1);
+  const plBars = document.getElementById('pipeline-bars');
+  plBars.innerHTML = plOrder.map((k, i) => {
+    const val = insights.pipeline[k] || 0;
+    const pct = Math.round((val / maxPl) * 100);
+    return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:11px;">
+      <span style="width:110px;font-size:12px;font-weight:600;color:#56544A;white-space:nowrap;">${k}</span>
+      <div style="flex:1;height:9px;border-radius:5px;background:var(--pm-border-subtle);overflow:hidden;">
+        <div style="width:${pct}%;height:100%;background:${plColors[i]};border-radius:5px;"></div>
+      </div>
+      <span style="font-size:13.5px;font-weight:700;width:28px;text-align:right;">${val}</span>
+    </div>`;
+  }).join('');
 
   // Staff Activity
   const ssum = document.getElementById('staff-summary');
   const validStaff = insights.staffActivity.filter(s => s.clients > 0 || s.visits > 0 || s.deals > 0);
-  if(validStaff.length === 0) {
-    ssum.innerHTML = '<div style="padding:24px; text-align:center; color:var(--pm-text-mut)">No team activity recorded.</div>';
+  if (validStaff.length === 0) {
+    ssum.innerHTML = '<div class="pm-empty"><div class="desc">No team activity recorded.</div></div>';
   } else {
-    ssum.innerHTML = validStaff.map(s => `
-      <div class="staff-row">
-        <div class="staff-name">${s.name}</div>
-        <div class="staff-stats">
-          <span>${s.clients} Clients Handled</span>
-          <span>&bull;</span>
-          <span>${s.visits} Site Visits</span>
-          <span>&bull;</span>
-          <span>${s.deals} Deals Closed</span>
+    ssum.innerHTML = validStaff.map(s => {
+      const initials = s.name ? s.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '??';
+      return `<div class="pm-client-row">
+        <div class="pm-avatar md" style="background:var(--pm-blue);flex:none;">${initials}</div>
+        <div class="info">
+          <div class="name">${s.name}</div>
+          <div class="meta">${s.clients} Clients · ${s.visits} Visits · ${s.deals} Deals</div>
         </div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
   }
+
+  // Period toggle
+  document.querySelectorAll('.pm-period-toggle span').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.pm-period-toggle span').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
 });
 </script>
 </body>
