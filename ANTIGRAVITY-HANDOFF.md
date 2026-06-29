@@ -624,3 +624,41 @@ Move to the next requested phase; do not mix this completed Phase 4B work with O
 
 ### Exact Next Step
 After Claude Design finishes the premium screens, apply the final visual design on top of this foundation without changing the data/access/report contracts unless a backend migration phase explicitly requires it.
+
+## Design Integration Complete - Claude Design Applied
+
+### What Changed
+- Applied the Claude Design visual language to the shared admin design system in `admin/crm-ui.css`.
+- Added Fraunces + Plus Jakarta Sans typography, warm land-map backgrounds, ink/emerald/airport-blue/proof-gold/orange tokens, richer cards, chips, tables, forms, role gateway, and Map Studio panel styling.
+- Applied a visual-only presentation polish layer to `app/plotmap/styles.css` for the client map shell, controls, panel, property tags, cards, and tablet/mobile behavior.
+
+### Logic Preserved
+- No architecture rewrite, no React/TypeScript/build system added.
+- Existing CRM store, access control, finance/report/command engines, sync queue, and event tracking remain unchanged.
+- Client-facing app logic and safety filters remain unchanged; only CSS was updated for this phase.
+
+### Pages Affected Visually
+- `/admin/index.html`
+- `/admin/team.html`
+- `/admin/clients.html`
+- `/admin/properties.html`
+- `/admin/owner.html`
+- `/admin/area-intelligence.html`
+- `/admin/finance.html`
+- `/admin/map-studio.html`
+- `/admin/reports.html`
+- `/admin/access.html`
+- `/app/plotmap/`
+
+### Role Safety Status
+- Owner/team route guards were not modified.
+- Finance remains owner/admin-side only.
+- Presentation Mode remains client-safe by code path; no new client data fields were exposed.
+
+### Known Limitations
+- This pass is a shared design-system integration, not a pixel-perfect rewrite of every individual page layout.
+- Some page-specific inline styles still exist and can be removed in a later cleanup pass.
+- Backend/Supabase remains pending; the current app is still local/demo-first where previously documented.
+
+### Next Exact Step
+Run a browser pass across the listed routes and tighten any page-specific spacing or overflow issues that remain after the shared CSS integration.
