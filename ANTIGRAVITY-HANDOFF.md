@@ -662,3 +662,69 @@ After Claude Design finishes the premium screens, apply the final visual design 
 
 ### Next Exact Step
 Run a browser pass across the listed routes and tighten any page-specific spacing or overflow issues that remain after the shared CSS integration.
+
+## New Map Folder System + Map Studio Test
+
+### New Source Of Truth
+- `maps/` is now the Easy / 3D designed-map folder.
+- `normal maps/` is now the Original / Normal proof-map folder.
+- `tools/generate-map-registry.js` scans both folders and writes `app/plotmap/map-registry.js`.
+- Current generated registry: 85 active maps, 9 masterplans, 76 sector/local maps, 59 paired Easy+Original records.
+
+### Detection And Pairing
+- Filenames containing `masterplan`, `master plan`, or `master-plan` are imported as `type: "masterplan"`.
+- All other image files are imported as `type: "sector"`.
+- Easy/3D files are read from `maps/`; Original/Normal files are read from `normal maps/`.
+- Pairing is by normalized filename with typo/city cleanup (`chd` to Chandigarh, `zirkpur` to Zirakpur, `sctor/secter` to Sector, etc.). Missing Easy or Original versions stay active with `hasEasyMap` / `hasOriginalMap` flags.
+
+### Active App Flow
+- `/app/plotmap/` loads `map-registry.js` before `data.js`.
+- `window.PM.areas` is generated from registry masterplans, so the masterplan switcher no longer shows the old hardcoded Aerocity/Zirakpur/Mohali coming-soon list.
+- The masterplan renderer uses the active registry map:
+  - `3D Map` uses `easyMapSrc` when available.
+  - `Original` uses `originalMapSrc` when available.
+  - If one side is missing, it falls back gracefully to the available image.
+- The Sector Maps screen uses registry sector maps only when the registry exists. The old `map-assets.manifest.json` is fallback-only and no longer drives the active UI.
+- Old hardcoded Aerocity geometry overlays are suppressed on registry masterplans, so they do not appear misaligned on the new folder maps. The click/highlight engine remains intact for published CRM overlays.
+
+### Map Studio
+- `/admin/map-studio.html` loads `map-registry.js` and uses registry areas/maps in Pick Map.
+- The picker now offers only Masterplan and Sector Map groups from the folder registry.
+- Map option labels include availability (`3D + Original`, `3D only`, `Original only`) plus overlay count.
+- Linked sector-map choices are populated from registry sector maps.
+- Hidden compatibility controls were restored so the Claude visual redesign still works with the existing draw/edit/publish logic.
+
+### Publish / Client Visibility
+- Map Studio now saves `clientVisible: true` when the safe client checkbox maps to public visibility.
+- Client Presentation only reads overlays that are:
+  - `status: "Published"`
+  - explicitly `clientVisible: true` or legacy `visibility: "client-visible"`
+  - visibility in the public/client-safe allowlist
+  - kind `road`, `block`, or `sectorTag`
+- Draft/internal/review markings remain Map Studio only.
+
+### Deploy Config
+- `vercel.json` now serves `maps/**` and `normal maps/**`, matching local `/maps/...` and `/normal%20maps/...` URLs.
+
+### Tests Run
+- `node tools/generate-map-registry.js`
+- `node --check admin/crm-data.js`
+- `node --check admin/crm-store.js`
+- `node --check app/plotmap/app.js`
+- `node --check app/plotmap/data.js`
+- `node --check app/plotmap/datasets/tricity.dataset.js`
+- `node --check app/plotmap/map-registry.js`
+- `node --check tools/generate-map-registry.js`
+- `node --check admin/core/*.js`
+- `node tools/audit-plotmap.js`
+- HTTP route checks for `/app/plotmap/`, `/admin/map-studio.html`, `/app/plotmap/map-registry.js`, `/maps/aerocity%20and%20mohali%20masterplan.png`, and `/normal%20maps/aerocity%20masterplan.jpg`.
+- Headless client smoke: selected the first registry masterplan, confirmed active image is `/maps/aerocity%20and%20mohali%20masterplan.png`, confirmed mode bar is `3D Map | Original | A | B | C | D`, and confirmed 76 registry sector cards.
+- Map Studio inline scripts parsed successfully; registry probe confirmed 85 active maps and an Aerocity masterplan with both Easy and Original sources.
+
+### Known Limitations
+- Full headless Map Studio browser smoke was blocked by local Chrome/Playwright automation hangs after image-heavy runs. Automation Chrome processes were cleaned up. Static script parsing, route checks, registry checks, and client browser smoke passed.
+- Existing published overlays saved against old map ids are intentionally disconnected from the active registry maps. Redraw/publish overlays in Map Studio against the new registry map ids.
+- The old processed manifest files remain in the repo as fallback/reference but are not active while `PM_MAP_REGISTRY` is present.
+
+### Next Exact Step
+Open `/admin/map-studio.html`, pick the Aerocity masterplan from the registry, draw one small sector/road overlay, publish with the safe client checkbox on, then open `/app/plotmap/`, select the same masterplan, and confirm the published overlay highlights/clicks on both `3D Map` and `Original`.

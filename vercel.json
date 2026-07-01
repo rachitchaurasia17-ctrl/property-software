@@ -2,6 +2,8 @@
   "builds": [
     { "src": "index.html", "use": "@vercel/static" },
     { "src": "app/plotmap/**", "use": "@vercel/static" },
+    { "src": "maps/**", "use": "@vercel/static" },
+    { "src": "normal maps/**", "use": "@vercel/static" },
     { "src": "public/plotmap-assets/aerotropolis-original-web.jpg", "use": "@vercel/static" },
     { "src": "public/plotmap-assets/aerotropolis-overlays.svg", "use": "@vercel/static" },
     { "src": "public/plotmap-assets/markings.jpg", "use": "@vercel/static" },

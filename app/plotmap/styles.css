@@ -61,6 +61,8 @@ input{font-family:inherit;-webkit-appearance:none;}
 .maplayer.original .orig-ov{width:4599px;height:3069px;position:absolute;left:0;top:0;}
 .maplayer.markings img.orig-crop{position:absolute;left:0;top:0;width:862px;height:1028px;max-width:none;}
 .maplayer.markings .orig-ov{width:4599px;height:3069px;position:absolute;left:-2493px;top:-1084px;max-width:none;}
+.maplayer.registry-map img.orig,.maplayer.registry-map img.orig-crop{position:absolute;left:0;top:0;width:100%;height:100%;max-width:none;object-fit:contain;}
+.maplayer.registry-map .orig-ov{width:100%;height:100%;position:absolute;left:0;top:0;max-width:none;}
 .maplayer.original.dimmed img.orig{filter:brightness(.82) saturate(.92);}
 .easy-svg{position:absolute;inset:0;width:100%;height:100%;display:block;}
 /* ---- Easy Map premium vectors ---- */

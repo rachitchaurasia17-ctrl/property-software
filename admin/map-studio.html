@@ -16,6 +16,7 @@
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
 <!-- PM.areas and dataset registry -->
+<script src="/app/plotmap/map-registry.js"></script>
 <script src="/app/plotmap/data.js"></script>
 <!-- Include datasets so they register in PM.datasets -->
 <script src="/app/plotmap/datasets/tricity.dataset.js"></script>
@@ -95,7 +96,7 @@ if (pmRole !== 'team' && pmRole !== 'dealer') {
             <div style="font-size:12.5px; color:#1F5E47; display:flex; gap:6px; margin-top:4px; align-items:center;">
               <!-- Mini map selectors that proxy the hidden legacy ones -->
               <select id="ui-city" style="border:1px solid #CDE6DA; border-radius:6px; background:#fff; font-size:12px; padding:2px; max-width:120px;"><option value="">City...</option></select>
-              <select id="ui-type" style="border:1px solid #CDE6DA; border-radius:6px; background:#fff; font-size:12px; padding:2px; max-width:100px;"><option value="">Type...</option><option value="masterplan">Masterplan</option><option value="sector">Sector</option><option value="block">Block</option></select>
+              <select id="ui-type" style="border:1px solid #CDE6DA; border-radius:6px; background:#fff; font-size:12px; padding:2px; max-width:100px;"><option value="">Type...</option><option value="masterplan">Masterplan</option><option value="sector">Sector Map</option></select>
               <select id="ui-map" style="border:1px solid #CDE6DA; border-radius:6px; background:#fff; font-size:12px; padding:2px; max-width:120px;"><option value="">Map...</option></select>
             </div>
           </div>
@@ -177,21 +178,24 @@ if (pmRole !== 'team' && pmRole !== 'dealer') {
           
           <!-- Default hidden legacy fields so JS doesn't break -->
           <div style="display:none;">
-            <select id="f-roadType"><option value="Main Road">Main Road</option></select>
-            <select id="f-blockType"><option value="Residential Block">Residential Block</option></select>
-            <select id="f-parentSector"><option value="">None</option></select>
-            <select id="f-sectorCode"><option value=""></option></select>
-            <select id="f-linkedMap"><option value="">None</option></select>
+            <div id="grp-roadType"><select id="f-roadType"><option value="Main Road">Main Road</option></select></div>
+            <div id="grp-blockType"><select id="f-blockType"><option value="Residential Block">Residential Block</option></select></div>
+            <div id="grp-parentSector"><select id="f-parentSector"><option value="">None</option></select></div>
+            <div id="grp-sectorCode"><select id="f-sectorCode"><option value=""></option></select></div>
+            <div id="grp-sectorTagGroup"><select id="f-sectorTagGroup"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="General">General</option></select></div>
+            <div id="grp-linkedMap"><select id="f-linkedMap"><option value="">None</option></select></div>
             <select id="f-status"><option value="Draft">Draft</option><option value="Published">Published</option></select>
+            <div id="grp-checklist"></div>
+            <div id="publish-warning"></div>
             <input type="checkbox" id="chk-nameClear" checked><input type="checkbox" id="chk-correctMap" checked><input type="checkbox" id="chk-geometryChecked" checked><input type="checkbox" id="chk-visibilityChecked" checked><input type="checkbox" id="chk-linkedMapChecked" checked>
             <textarea id="f-notes"></textarea>
             <button id="btn-save"></button>
-            <button id="btn-delete"></button>
-            <select id="f-sectorTagGroup"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select>
+            <button type="button" id="btn-delete"></button>
+            <button type="button" id="btn-export-current"></button>
             <select id="f-visibility"><option value="public">public</option><option value="internal">internal</option></select>
           </div>
 
-          <div style="font-size:18px; font-weight:800; margin-bottom:16px;" id="insp-title">Name this road</div>
+          <div style="font-size:18px; font-weight:800; margin-bottom:16px;" id="inspector-title">Name this road</div>
           
           <input type="text" id="f-title" placeholder="e.g. Airport Road Link" style="background:#FAF8F3; border:1.5px solid #1F5E47; border-radius:14px; padding:15px; font-size:16px; font-weight:600; width:100%; box-sizing:border-box; color:#1C1E1B;">
           
@@ -228,6 +232,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let selectedId = null;
   let canvasScale = 1;
   let manifestData = null;
+  const registryData = window.PM_MAP_REGISTRY || null;
 
   // View Mode
   let currentMode = 'draw'; // 'draw' or 'review'
@@ -251,14 +256,49 @@ document.addEventListener('DOMContentLoaded', async () => {
   const selMapType = document.getElementById('sel-map-type');
   const selMap = document.getElementById('sel-map');
 
-  // Load Manifest
-  try {
-    const res = await fetch('/app/plotmap/map-assets.manifest.json');
-    manifestData = await res.json();
-    populateLinkedMapDropdown();
-  } catch (e) {
-    console.error("Failed to load map manifest", e);
+  const registryMaps = () => registryData && Array.isArray(registryData.maps)
+    ? registryData.maps.filter(m => m && m.status === 'active')
+    : [];
+  const registryMapById = (id) => registryMaps().find(m => m.id === id) || (registryData && registryData.byId && registryData.byId[id]) || null;
+  const registryMapsByType = (type) => registryMaps().filter(m => m.type === (type === 'block' ? 'sector' : type));
+  const mapAsset = (map, preference = 'easy') => {
+    if (!map) return null;
+    const src = preference === 'original'
+      ? (map.originalMapSrc || map.easyMapSrc)
+      : (map.easyMapSrc || map.originalMapSrc);
+    return src || null;
+  };
+  const mapAvailabilityLabel = (map) => {
+    if (!map) return '';
+    if (map.hasEasyMap && map.hasOriginalMap) return '3D + Original';
+    return map.hasEasyMap ? '3D only' : 'Original only';
+  };
+  const overlayCountFor = (mapId) => {
+    const data = crm.getCRM();
+    const drawings = Array.isArray(data.mapDrawings) ? data.mapDrawings : [];
+    return drawings.filter(d => d.mapId === mapId).length;
+  };
+
+  canvasImg.addEventListener('load', () => {
+    const w = canvasImg.naturalWidth || 1200;
+    const h = canvasImg.naturalHeight || 800;
+    canvasInner.style.width = `${w}px`;
+    canvasInner.style.height = `${h}px`;
+    canvasImg.style.width = `${w}px`;
+    canvasImg.style.height = `${h}px`;
+    renderAll();
+  });
+
+  // Load legacy manifest only as a fallback. The folder registry is the active source.
+  if (!registryData) {
+    try {
+      const res = await fetch('/app/plotmap/map-assets.manifest.json');
+      manifestData = await res.json();
+    } catch (e) {
+      console.error("Failed to load legacy map manifest", e);
+    }
   }
+  populateLinkedMapDropdown();
 
   // --- Mode Switching ---
   window.switchMode = function(mode) {
@@ -289,8 +329,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // --- Map Selection Logic ---
 
-  // Populate Step 1: Cities
-  if (window.PM && window.PM.areas) {
+  // Populate Step 1: Map areas from the new folder registry.
+  if (registryData) {
+    const areas = Array.from(new Set(registryMaps().map(map => map.area || 'Other'))).sort((a, b) => a.localeCompare(b));
+    areas.forEach(area => {
+      const opt = document.createElement('option');
+      opt.value = area;
+      opt.textContent = area;
+      selCity.appendChild(opt);
+    });
+  } else if (window.PM && window.PM.areas) {
     window.PM.areas.forEach(area => {
       const opt = document.createElement('option');
       opt.value = area.id;
@@ -298,6 +346,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       selCity.appendChild(opt);
     });
   }
+  selMapType.innerHTML = '<option value="">Select Type...</option><option value="masterplan">Masterplan</option><option value="sector">Sector Map</option>';
 
   selCity.addEventListener('change', (e) => {
     if (activePoints.length > 0) {
@@ -350,7 +399,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     selMap.innerHTML = '<option value="">Select Map...</option>';
     if (!currentCity || !currentMapType) return;
 
-    if (currentMapType === 'masterplan') {
+    if (registryData) {
+      const maps = registryMapsByType(currentMapType).filter(map => (map.area || 'Other') === currentCity);
+      maps.forEach(map => {
+        const count = overlayCountFor(map.id);
+        const opt = document.createElement('option');
+        opt.value = map.id;
+        opt.textContent = `${map.title} · ${mapAvailabilityLabel(map)}${count ? ` · ${count} overlay${count === 1 ? '' : 's'}` : ''}`;
+        selMap.appendChild(opt);
+      });
+    } else if (currentMapType === 'masterplan') {
       // Find the masterplan dataset for this city
       const area = window.PM.areas.find(a => a.id === currentCity);
       if (area && area.dataset) {
@@ -380,7 +438,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let imgUrl = null;
 
-    if (currentMapType === 'masterplan') {
+    if (registryData) {
+      const entry = registryMapById(currentMapId);
+      imgUrl = mapAsset(entry, currentMapType === 'sector' ? 'original' : 'easy');
+    } else if (currentMapType === 'masterplan') {
       const area = window.PM.areas.find(a => a.id === currentCity);
       if (area && area.dataset) {
         const ds = window.PM.datasets[area.dataset];
@@ -516,7 +577,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   function populateLinkedMapDropdown() {
     const lMap = document.getElementById('f-linkedMap');
     lMap.innerHTML = '<option value="">None</option>';
-    if (manifestData && manifestData.entries) {
+    if (registryData) {
+      registryMapsByType('sector').forEach(e => {
+        lMap.innerHTML += `<option value="${e.id}">${e.title} (${mapAvailabilityLabel(e)})</option>`;
+      });
+    } else if (manifestData && manifestData.entries) {
       manifestData.entries.filter(e => e.mapType === 'sector').forEach(e => {
         lMap.innerHTML += `<option value="${e.id}">${e.displayName}</option>`;
       });
@@ -842,6 +907,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       sectorCode,
       visibility: document.getElementById('f-visibility').value,
       status: document.getElementById('f-status').value,
+      clientVisible: document.getElementById('f-visibility').value === 'public',
       notes: document.getElementById('f-notes').value,
       qualityChecklist: {
         nameClear: document.getElementById('chk-nameClear').checked,
@@ -1044,7 +1110,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       let filtered = drawings.filter(d => d.mapId === currentMapId);
       
       if (mode === 'current-published') {
-        filtered = filtered.filter(d => d.status === 'Published' && d.visibility === 'public');
+        filtered = filtered.filter(d => d.status === 'Published' && d.clientVisible === true && (d.visibility === 'public' || d.visibility === 'client-visible'));
       }
 
       exportData = {
@@ -1057,7 +1123,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         exportedAt: new Date().toISOString()
       };
     } else if (mode === 'all-published') {
-      safeDrawings = drawings.filter(d => d.status === 'Published' && d.visibility === 'public');
+      safeDrawings = drawings.filter(d => d.status === 'Published' && d.clientVisible === true && (d.visibility === 'public' || d.visibility === 'client-visible'));
       // Strip internal stuff
       const cleanDrawings = safeDrawings.map(d => ({
         id: d.id, kind: d.kind, title: d.title, city: d.city, mapType: d.mapType, mapId: d.mapId,
@@ -1107,11 +1173,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // Legacy -> UI (Options and Disabled state)
-    const observer = new MutationObserver(() => {
+    const syncFromLegacy = () => {
       ui.innerHTML = legacy.innerHTML;
       ui.disabled = legacy.disabled;
       ui.value = legacy.value;
-    });
+    };
+    syncFromLegacy();
+    const observer = new MutationObserver(syncFromLegacy);
     observer.observe(legacy, { childList: true, attributes: true, subtree: true });
   };
   

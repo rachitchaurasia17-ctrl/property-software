@@ -701,7 +701,9 @@
       return drawings.reduce((safe, drawing) => {
         if (!drawing || drawing.mapId !== mapId) return safe;
         if (drawing.status !== 'Published') return safe;
-        if (!safeVisibility.has(String(drawing.visibility || '').trim().toLowerCase())) return safe;
+        const visibility = String(drawing.visibility || '').trim().toLowerCase();
+        const clientVisible = drawing.clientVisible === true || visibility === 'client-visible';
+        if (!clientVisible || !safeVisibility.has(visibility)) return safe;
         if (!safeKinds.has(drawing.kind)) return safe;
 
         const rawPoints = Array.isArray(drawing.points) ? drawing.points : [];

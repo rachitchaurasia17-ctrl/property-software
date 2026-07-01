@@ -16,10 +16,12 @@
   };
 
   /* ---- map asset path + display helpers (shared by client UI + admin) ---- */
-  // Normalize any manifest path to the served "/public/plotmap-assets/…" form
-  // (matches the app + vercel.json convention). Handles Windows backslashes,
-  // strips anything before /public/, and returns null for paths the browser
-  // can't load (e.g. source paths like /maps/enhanced/… or C:\… absolutes).
+  const encodeAssetPath = (p) => p.split('/').map((part, i) => {
+    if (i === 0) return part;
+    try { return encodeURIComponent(decodeURIComponent(part)); }
+    catch { return encodeURIComponent(part); }
+  }).join('/');
+  // Normalize legacy manifest paths and new folder-registry paths to browser URLs.
   const toPublicAssetPath = (p) => {
     if (!p || typeof p !== 'string') return null;
     p = p.replace(/\\/g, '/');
@@ -28,14 +30,23 @@
     if (p.startsWith('/public/')) return p;
     if (p.startsWith('public/')) return '/' + p;    // public/x    -> /public/x
     if (p.startsWith('/plotmap-assets/')) return '/public' + p;
+    if (p.startsWith('maps/')) return encodeAssetPath('/' + p);
+    if (p.startsWith('/maps/')) return encodeAssetPath(p);
+    if (p.startsWith('normal maps/')) return encodeAssetPath('/' + p);
+    if (p.startsWith('/normal maps/') || p.startsWith('/normal%20maps/')) return encodeAssetPath(p);
     return null;                                    // not browser-served
   };
-  // Opened-map image: processed first. originalPath is a source path that is not
-  // browser-served, so it is intentionally skipped (would 404).
-  const mapImage = (e) => e && (toPublicAssetPath(e.bestProcessedPath)
+  // Opened map image: Original/Normal proof first, then Easy/3D, then legacy processed fallback.
+  const mapImage = (e) => e && (toPublicAssetPath(e.originalMapSrc)
+    || toPublicAssetPath(e.easyMapSrc)
+    || toPublicAssetPath(e.asset)
+    || toPublicAssetPath(e.bestProcessedPath)
     || toPublicAssetPath((e.processedPaths || [])[0])
     || toPublicAssetPath(e.thumbnailPath));
-  const mapThumb = (e) => e && (toPublicAssetPath(e.thumbnailPath)
+  const mapThumb = (e) => e && (toPublicAssetPath(e.easyMapSrc)
+    || toPublicAssetPath(e.originalMapSrc)
+    || toPublicAssetPath(e.asset)
+    || toPublicAssetPath(e.thumbnailPath)
     || toPublicAssetPath((e.processedPaths || [])[0]) || mapImage(e));
   const mapCity = (e) => { const c = String((e && e.city) || '').trim(); return c && c.toLowerCase() !== 'unknown' ? c : 'Other'; };
   // Clean client-facing title — never a raw filename, path, or quality label.
@@ -88,9 +99,9 @@
   const supabase = window.supabase ? window.supabase.createClient(supabaseUrl, supabaseKey) : null;
 
   const state = {
-    space: 'area', areaId: 'aerotropolis', areaMenuOpen: false,
+    space: 'area', areaId: (PM.areas.find(a => a.live) || PM.areas[0] || { id:'aerotropolis' }).id, areaMenuOpen: false,
     prebuiltMaps: [], activeLetter: null,
-    section: 'master', mapMode: 'original', showProps: false,
+    section: 'master', mapMode: 'markings', showProps: false,
     activeCats: new Set(), displayCatId: null, selectedIds: new Set(), itemOpen: false,
     propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, activePinId: null,
     filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set(), blockId: new Set() },
@@ -129,17 +140,46 @@
   const area = () => PM.areas.find(a => a.id === state.areaId) || PM.areas[0];
   const num = (n) => typeof n === 'number' && Number.isFinite(n);
   const rectOk = (o) => o && ['x','y','w','h'].every(k => num(o[k]));
+  const mapRegistry = () => window.PM_MAP_REGISTRY && Array.isArray(window.PM_MAP_REGISTRY.maps) ? window.PM_MAP_REGISTRY : null;
+  const registryMaps = () => (mapRegistry() ? window.PM_MAP_REGISTRY.maps.filter(m => m && m.status === 'active') : []);
+  const registryMapById = (id) => {
+    const registry = mapRegistry();
+    return registry && id ? ((registry.byId && registry.byId[id]) || registry.maps.find(m => m.id === id)) : null;
+  };
+  const registryMasterplans = () => registryMaps().filter(m => m.type === 'masterplan');
+  const registrySectorMaps = () => registryMaps().filter(m => m.type === 'sector' && (m.hasOriginalMap || m.hasEasyMap));
+  const activeMasterMap = () => {
+    const a = area();
+    return (a && a.mapRegistryId && registryMapById(a.mapRegistryId)) || registryMasterplans()[0] || null;
+  };
+  const activeMasterSrc = (kind) => {
+    const m = activeMasterMap();
+    if (!m) return kind === 'markings' ? (DS && DS.assets && DS.assets.markings) : (DS && DS.assets && DS.assets.original);
+    if (kind === 'markings') return toPublicAssetPath(m.easyMapSrc) || toPublicAssetPath(m.originalMapSrc);
+    return toPublicAssetPath(m.originalMapSrc) || toPublicAssetPath(m.easyMapSrc);
+  };
+  const activeMasterDimensions = (kind) => {
+    const m = activeMasterMap();
+    if (!m) return null;
+    return (kind === 'markings' ? (m.easyDimensions || m.dimensions) : (m.originalDimensions || m.dimensions)) || null;
+  };
+  const registryOverlayFlow = () => !!activeMasterMap();
+  const areaMatchesActive = (itemArea) => {
+    const m = activeMasterMap();
+    if (!m) return true;
+    return String(itemArea || '').toLowerCase() === String(m.area || '').toLowerCase();
+  };
   const activeCategories = () => PM.categoriesFor(DS).filter(c => c.id !== 'green' && c.id !== 'entry');
   const catById = (id) => activeCategories().find(c => c.id === id) || PM.categoryById(id);
-  const keyRoads = () => (DS.keyRoads || []).filter(r => r && r.clientVisible !== false && r.id && r.name && r.easyD && Array.isArray(r.labelAt));
-  const mapBlocks = () => (DS.blocks || []).filter(b => b && b.clientVisible !== false && b.id && b.name && b.cat && rectOk(b));
-  const mapZones = () => (DS.zones || []).filter(z => z && z.clientVisible !== false && z.id && z.name && z.cat && rectOk(z));
-  const mapPins = () => (DS.pins || []).filter(p => p && p.clientVisible !== false && p.id && p.name && p.cat && Array.isArray(p.at) && p.at.length === 2);
+  const keyRoads = () => registryOverlayFlow() ? [] : (DS.keyRoads || []).filter(r => r && r.clientVisible !== false && r.id && r.name && r.easyD && Array.isArray(r.labelAt));
+  const mapBlocks = () => registryOverlayFlow() ? [] : (DS.blocks || []).filter(b => b && b.clientVisible !== false && b.id && b.name && b.cat && rectOk(b));
+  const mapZones = () => registryOverlayFlow() ? [] : (DS.zones || []).filter(z => z && z.clientVisible !== false && z.id && z.name && z.cat && rectOk(z));
+  const mapPins = () => registryOverlayFlow() ? [] : (DS.pins || []).filter(p => p && p.clientVisible !== false && p.id && p.name && p.cat && Array.isArray(p.at) && p.at.length === 2);
   const blockById = (id) => mapBlocks().find(b => b.id === id);
   const roadById = (id) => keyRoads().find(r => r.id === id);
   const zoneById = (id) => mapZones().find(z => z.id === id);
   const pinById = (id) => mapPins().find(p => p.id === id);
-  const mapProperties = () => (DS.properties || []).filter(p => p && p.clientVisible !== false && p.id && p.plotNumber && p.blockId && blockById(p.blockId));
+  const mapProperties = () => (DS.properties || []).filter(p => p && p.clientVisible !== false && areaMatchesActive(p.area) && p.id && p.plotNumber && p.blockId && blockById(p.blockId));
   const propById = (id) => mapProperties().find(p => p.id === id);
   const propsInBlock = (blockId) => mapProperties().filter(p => p.blockId === blockId);
 
@@ -149,7 +189,8 @@
   function currentClientMapId() {
     if (state.section !== 'master') return null;
     if (mapKind() !== 'original' && mapKind() !== 'markings') return null;
-    if (state.areaId !== 'aerotropolis') return null;
+    const registryMap = activeMasterMap();
+    if (registryMap) return registryMap.id;
     const activeArea = area();
     return activeArea && activeArea.dataset === 'tricity-aerotropolis' ? activeArea.dataset : null;
   }
@@ -191,7 +232,7 @@
   const scopedPins = () => state.activeCats.size > 0 ? mapPins().filter(p => state.activeCats.has(p.cat)) : mapPins();
   const scopedProperties = () => state.activeCats.size > 0 ? mapProperties().filter(p => { const b = blockById(p.blockId); return b && state.activeCats.has(b.cat); }) : mapProperties();
 
-  const readySectorMaps = pitchModeMaps;
+  const readySectorMaps = () => registrySectorMaps().length ? registrySectorMaps() : pitchModeMaps();
   const sectorMapById = (id) => readySectorMaps().find(s => s.id === id);
   const sectorMapForProperty = (p) => {
     if (!p) return null;
@@ -366,11 +407,16 @@
   // Per-city map-mode capability (future-ready): Easy Map needs traced geometry
   // (overlayGeo); "Aerocity Blocks" markings need a markings asset. Cities without
   // them simply don't show those toggles — no broken buttons, no fake Easy Maps.
-  const easyMapAvailable = () => !!(DS && DS.assets && DS.assets.overlayGeo);
-  const markingsAvailable = () => !!(DS && DS.assets && DS.assets.markings);
+  const easyMapAvailable = () => !!(!activeMasterMap() && DS && DS.assets && DS.assets.overlayGeo);
+  const markingsAvailable = () => {
+    const registryMap = activeMasterMap();
+    if (registryMap) return !!activeMasterSrc('markings');
+    return !!(DS && DS.assets && DS.assets.markings);
+  };
+  const shortcutGroupsAvailable = () => !!currentClientMapId();
   // The single client-facing masterplan view ("3D Map"): the premium colored-block
   // markings view if a city has one, else the official original masterplan image.
-  const premiumMasterMode = () => 'original';
+  const premiumMasterMode = () => markingsAvailable() ? 'markings' : 'original';
   function mapKind() {
     if (state.section === 'props' && state.propView === 'sector') return 'sector';
     if (state.mapMode === 'easy' && !easyMapAvailable()) return 'original';
@@ -385,18 +431,33 @@
       // easySVG() computes the geometry frame (EGW/EGH) before we size the layer
       html = easySVG(); LW = EGW; LH = EGH;
     } else if (kind === 'markings') {
-      LW = 862; LH = 1028;
+      const dim = activeMasterDimensions('markings');
+      LW = (dim && dim.width) || 862; LH = (dim && dim.height) || 1028;
     } else if (kind === 'sector') {
       // size the layer to the map image so percentage pin coords are accurate
       sectorSm = activeSectorMap();
       const dim = sectorSm && sectorSm.dimensions;
       LW = (dim && dim.width) || 3880; LH = (dim && dim.height) || 3069;
-    } else { LW = 3880; LH = 3069; }
+    } else {
+      const dim = activeMasterDimensions('original');
+      LW = (dim && dim.width) || 3880; LH = (dim && dim.height) || 3069;
+    }
+    if (activeMasterMap() && kind !== 'sector' && kind !== 'easy') {
+      IW = LW; IH = LH;
+      GEO = { viewBox: `0 0 ${IW} ${IH}`, cyan: [], red: [], black: [], paths: {} };
+    }
     l.style.width = LW + 'px'; l.style.height = LH + 'px';
-    l.className = 'maplayer ' + kind;
+    l.className = 'maplayer ' + kind + (activeMasterMap() ? ' registry-map' : '');
     fetchCRMDrawings(currentClientMapId());
-    if (kind === 'original') l.innerHTML = `<img class="orig" src="${DS.assets.original}" alt="Official masterplan">` + origSVG();
-    else if (kind === 'markings') l.innerHTML = `<img class="orig-crop" src="${DS.assets.markings}" alt="Masterplan Marking">` + origSVG();
+    if (kind === 'original') {
+      const src = activeMasterSrc('original') || DS.assets.original;
+      l.innerHTML = `<img class="orig" src="${src}" alt="Official masterplan" style="width:${LW}px;height:${LH}px;max-width:none;">` + origSVG();
+    }
+    else if (kind === 'markings') {
+      const src = activeMasterSrc('markings') || DS.assets.markings;
+      const cls = activeMasterMap() ? 'orig' : 'orig-crop';
+      l.innerHTML = `<img class="${cls}" src="${src}" alt="3D masterplan" style="width:${LW}px;height:${LH}px;max-width:none;">` + origSVG();
+    }
     else if (kind === 'sector') { const sectorAsset = mapImage(sectorSm) || DS.assets.sector; l.innerHTML = `<div class="sector-wrap" style="width:${LW}px;height:${LH}px;background-image:url('${sectorAsset}');background-size:100% 100%"></div><div id="sectorPinG"></div><div id="proofG"></div>`; }
     else l.innerHTML = html;
     builtSig = sig; updateMapOverlays();
@@ -835,7 +896,7 @@
       window.logEvent('presentation_opened', { area: state.areaId || null });
     }
   }
-  function resetPlan(extra) { return Object.assign({ section: 'master', mapMode: 'original', showProps: false, activeCats: new Set(), displayCatId: null, selectedIds: new Set(), previewIdx: 0, itemOpen: false, propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, activePinId: null, areaMenuOpen: false, filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set(), blockId: new Set() }, secQ: '', secArea: 'all' }, extra || {}); }
+  function resetPlan(extra) { return Object.assign({ section: 'master', mapMode: 'markings', showProps: false, activeCats: new Set(), displayCatId: null, selectedIds: new Set(), previewIdx: 0, itemOpen: false, propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, activePinId: null, areaMenuOpen: false, filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set(), blockId: new Set() }, secQ: '', secArea: 'all' }, extra || {}); }
 
   /* ---------- AREA SELECT ---------- */
   function areaSelectHTML() {
@@ -864,7 +925,7 @@
         <button class="area-switch" id="areaToggle"><span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.1"><span class="cur">${esc(area().name)}</span><span class="lab">View all maps</span></span><span class="caret">▾</span></button>
         <div class="divider"></div>
         <div style="display:flex;gap:3px"><button class="tab ${state.section === 'master' ? 'on' : ''}" id="tabMaster">Masterplan</button><button class="tab ${state.section === 'props' && state.propView !== 'sector' ? 'on' : ''}" id="tabProps">Properties</button><button class="tab ${state.section === 'sectors' ? 'on' : ''}" id="tabSectors">Sector Maps</button></div>
-        ${state.section === 'master' ? `<div class="divider"></div><div class="mode-switch topbar-mode"><button class="${!state.activeLetter ? 'on' : ''}" id="mode3d">3D Map</button>${easyMapAvailable() ? `<div class="divider" style="margin:3px 6px;width:1px;background:#1B3F7C"></div>${['A','B','C','D'].map(L => `<button class="transparent-btn ${state.activeLetter === L ? 'on' : ''}" data-prebuilt-label="${L}" title="Highlight set ${L}">${L}</button>`).join('')}` : ''}</div>` : ''}
+        ${state.section === 'master' ? `<div class="divider"></div><div class="mode-switch topbar-mode"><button class="${mapKind() === 'markings' && !state.activeLetter ? 'on' : ''}" id="mode3d" ${markingsAvailable() ? '' : 'disabled'}>3D Map</button><button class="${mapKind() === 'original' && !state.activeLetter ? 'on' : ''}" id="modeOriginal">Original</button>${shortcutGroupsAvailable() ? `<div class="divider" style="margin:3px 6px;width:1px;background:#1B3F7C"></div>${['A','B','C','D'].map(L => `<button class="transparent-btn ${state.activeLetter === L ? 'on' : ''}" data-prebuilt-label="${L}" title="Highlight set ${L}">${L}</button>`).join('')}` : ''}</div>` : ''}
         <div class="spacer"></div>
         ${showBack ? '<button class="back-btn" id="backMaster"><span>‹</span> Back to Masterplan</button>' : ''}
 
@@ -1172,6 +1233,7 @@
 
     each('[data-mode]', b => b.addEventListener('click', () => { state.mapMode = b.getAttribute('data-mode'); if (state.mapMode === 'original') state.showProps = false; builtSig = ''; render(); }));
     on('mode3d', () => { state.activeLetter = null; state.selectedIds.clear(); state.activeCats.clear(); state.displayCatId = null; state.mapMode = premiumMasterMode(); state.showProps = false; builtSig = ''; render(); });
+    on('modeOriginal', () => { state.activeLetter = null; state.selectedIds.clear(); state.activeCats.clear(); state.displayCatId = null; state.mapMode = 'original'; state.showProps = false; builtSig = ''; render(); });
     each('[data-prebuilt-label]', b => b.addEventListener('click', () => {
       const L = b.getAttribute('data-prebuilt-label');
 
@@ -1376,15 +1438,17 @@
   window.addEventListener('resize', () => { if (state.space === 'plan') fit(); });
   
   try {
-    let mRes;
-    try {
-      mRes = await fetch('./map-assets.manifest.json');
-    } catch(err1) {
-      mRes = await fetch('/app/plotmap/map-assets.manifest.json');
+    if (!mapRegistry()) {
+      let mRes;
+      try {
+        mRes = await fetch('./map-assets.manifest.json');
+      } catch(err1) {
+        mRes = await fetch('/app/plotmap/map-assets.manifest.json');
+      }
+      PM_MANIFEST = await mRes.json();
     }
-    PM_MANIFEST = await mRes.json();
-  } catch(e) { 
-    console.error('Failed to load map manifest', e); 
+  } catch(e) {
+    console.error('Failed to load legacy map manifest', e);
   }
 
   await useDataset(state.areaId);
