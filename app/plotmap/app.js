@@ -43,11 +43,15 @@
     || toPublicAssetPath(e.bestProcessedPath)
     || toPublicAssetPath((e.processedPaths || [])[0])
     || toPublicAssetPath(e.thumbnailPath));
-  const mapThumb = (e) => e && (toPublicAssetPath(e.easyMapSrc)
-    || toPublicAssetPath(e.originalMapSrc)
-    || toPublicAssetPath(e.asset)
+  const mapThumb = (e) => {
+    if (!e) return null;
+    const original = toPublicAssetPath(e.originalMapSrc);
+    if (original) return original;
+    if (e.hasOriginalMap === false && e.hasEasyMap === true) return null;
+    return (toPublicAssetPath(e.asset)
     || toPublicAssetPath(e.thumbnailPath)
     || toPublicAssetPath((e.processedPaths || [])[0]) || mapImage(e));
+  };
   const mapCity = (e) => { const c = String((e && e.city) || '').trim(); return c && c.toLowerCase() !== 'unknown' ? c : 'Other'; };
   // Clean client-facing title — never a raw filename, path, or quality label.
   const mapTitle = (e) => {
@@ -101,7 +105,7 @@
   const state = {
     space: 'area', areaId: (PM.areas.find(a => a.live) || PM.areas[0] || { id:'aerotropolis' }).id, areaMenuOpen: false,
     prebuiltMaps: [], activeLetter: null,
-    section: 'master', mapMode: 'markings', showProps: false,
+    section: 'master', mapMode: 'original', sectorMapMode: 'original', showProps: false,
     activeCats: new Set(), displayCatId: null, selectedIds: new Set(), itemOpen: false,
     propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, activePinId: null,
     filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set(), blockId: new Set() },
@@ -147,7 +151,7 @@
     return registry && id ? ((registry.byId && registry.byId[id]) || registry.maps.find(m => m.id === id)) : null;
   };
   const registryMasterplans = () => registryMaps().filter(m => m.type === 'masterplan');
-  const registrySectorMaps = () => registryMaps().filter(m => m.type === 'sector' && (m.hasOriginalMap || m.hasEasyMap));
+  const registrySectorMaps = () => registryMaps().filter(m => m.type === 'sector' && m.hasOriginalMap);
   const activeMasterMap = () => {
     const a = area();
     return (a && a.mapRegistryId && registryMapById(a.mapRegistryId)) || registryMasterplans()[0] || null;
@@ -155,7 +159,7 @@
   const activeMasterSrc = (kind) => {
     const m = activeMasterMap();
     if (!m) return kind === 'markings' ? (DS && DS.assets && DS.assets.markings) : (DS && DS.assets && DS.assets.original);
-    if (kind === 'markings') return toPublicAssetPath(m.easyMapSrc) || toPublicAssetPath(m.originalMapSrc);
+    if (kind === 'markings') return toPublicAssetPath(m.easyMapSrc);
     return toPublicAssetPath(m.originalMapSrc) || toPublicAssetPath(m.easyMapSrc);
   };
   const activeMasterDimensions = (kind) => {
@@ -332,15 +336,15 @@
     l.style.transition = anim ? 'transform .5s cubic-bezier(.33,0,.2,1)' : 'none'; 
     l.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`; 
   }
-  function fit() { const vp = wrap(); if (!vp || !vp.clientWidth) return; const W = vp.clientWidth, H = vp.clientHeight; const s = Math.max(W / LW, H / LH); scale = s; tx = (W - LW * s) / 2; ty = (H - LH * s) / 2; applyT(true); }
+  function fit() { const vp = wrap(); if (!vp || !vp.clientWidth) return; const W = vp.clientWidth, H = vp.clientHeight; const s = Math.min(W / LW, H / LH); scale = s; tx = (W - LW * s) / 2; ty = (H - LH * s) / 2; applyT(false); }
   function focusBox(cx, cy, bw, bh, maxZoom) {
     const vp = wrap(); if (!vp || !vp.clientWidth) return; const W = vp.clientWidth, H = vp.clientHeight;
     const pad = 2.4; const sFit = Math.min(W / (bw * pad), H / (bh * pad));
-    const minScale = Math.max(W / LW, H / LH);
+    const minScale = Math.min(W / LW, H / LH);
     const s = Math.max(minScale, Math.min(sFit, maxZoom || 1.6));
     scale = s; tx = W / 2 - cx * s; ty = H / 2 - cy * s; applyT(true);
   }
-  function zoomAt(cx, cy, f) { const vp = wrap(); if (!vp) return; const r = vp.getBoundingClientRect(); const ox = cx - r.left, oy = cy - r.top; const W = vp.clientWidth, H = vp.clientHeight; const minScale = Math.max(W / LW, H / LH); const ns = Math.max(minScale, Math.min(scale * f, 5)); const k = ns / scale; tx = ox - (ox - tx) * k; ty = oy - (oy - ty) * k; scale = ns; applyT(false); }
+  function zoomAt(cx, cy, f) { const vp = wrap(); if (!vp) return; const r = vp.getBoundingClientRect(); const ox = cx - r.left, oy = cy - r.top; const W = vp.clientWidth, H = vp.clientHeight; const minScale = Math.min(W / LW, H / LH); const ns = Math.max(minScale, Math.min(scale * f, 5)); const k = ns / scale; tx = ox - (ox - tx) * k; ty = oy - (oy - ty) * k; scale = ns; applyT(false); }
   function bindMap() {
     const vp = wrap(); if (!vp || vp._bound) return; vp._bound = true;
     vp.addEventListener('pointerdown', e => { if (e.target.closest('[data-hit],[data-tag]')) { panning = false; return; } panning = true; moved = false; sx = e.clientX; sy = e.clientY; stx = tx; sty = ty; vp.style.cursor = 'grabbing'; });
@@ -410,7 +414,7 @@
   const easyMapAvailable = () => !!(!activeMasterMap() && DS && DS.assets && DS.assets.overlayGeo);
   const markingsAvailable = () => {
     const registryMap = activeMasterMap();
-    if (registryMap) return !!activeMasterSrc('markings');
+    if (registryMap) return !!toPublicAssetPath(registryMap.easyMapSrc);
     return !!(DS && DS.assets && DS.assets.markings);
   };
   const shortcutGroupsAvailable = () => !!currentClientMapId();
@@ -424,7 +428,7 @@
     return state.mapMode;
   }
   function buildMap() {
-    const kind = mapKind(); const sig = state.areaId + '|' + kind; const fresh = sig !== builtSig;
+    const kind = mapKind(); const sig = [state.areaId, kind, state.sectorBlock || '', kind === 'sector' ? state.sectorMapMode : state.mapMode].join('|'); const fresh = sig !== builtSig;
     const l = layer(); if (!l) return;
     let html = '', sectorSm = null;
     if (kind === 'easy') {
@@ -436,7 +440,10 @@
     } else if (kind === 'sector') {
       // size the layer to the map image so percentage pin coords are accurate
       sectorSm = activeSectorMap();
-      const dim = sectorSm && sectorSm.dimensions;
+      const sectorMode = state.sectorMapMode === 'easy' && sectorSm && sectorSm.hasEasyMap ? 'easy' : 'original';
+      const dim = sectorSm && (sectorMode === 'easy'
+        ? (sectorSm.easyDimensions || sectorSm.dimensions)
+        : (sectorSm.originalDimensions || sectorSm.dimensions));
       LW = (dim && dim.width) || 3880; LH = (dim && dim.height) || 3069;
     } else {
       const dim = activeMasterDimensions('original');
@@ -458,7 +465,13 @@
       const cls = activeMasterMap() ? 'orig' : 'orig-crop';
       l.innerHTML = `<img class="${cls}" src="${src}" alt="3D masterplan" style="width:${LW}px;height:${LH}px;max-width:none;">` + origSVG();
     }
-    else if (kind === 'sector') { const sectorAsset = mapImage(sectorSm) || DS.assets.sector; l.innerHTML = `<div class="sector-wrap" style="width:${LW}px;height:${LH}px;background-image:url('${sectorAsset}');background-size:100% 100%"></div><div id="sectorPinG"></div><div id="proofG"></div>`; }
+    else if (kind === 'sector') {
+      const sectorMode = state.sectorMapMode === 'easy' && sectorSm && sectorSm.hasEasyMap ? 'easy' : 'original';
+      const sectorAsset = sectorMode === 'easy'
+        ? (toPublicAssetPath(sectorSm && sectorSm.easyMapSrc) || mapImage(sectorSm))
+        : (toPublicAssetPath(sectorSm && sectorSm.originalMapSrc) || mapImage(sectorSm) || (DS && DS.assets && DS.assets.sector));
+      l.innerHTML = `<div class="sector-wrap" style="width:${LW}px;height:${LH}px"><img class="sector-img" src="${sectorAsset}" alt="Official sector map" loading="eager" decoding="async"></div><div id="sectorPinG"></div><div id="proofG"></div>`;
+    }
     else l.innerHTML = html;
     builtSig = sig; updateMapOverlays();
     if (fresh) requestAnimationFrame(fit); else applyT(false);
@@ -853,7 +866,6 @@
     if (!p) { g.innerHTML = ''; requestAnimationFrame(fit); return; }
     const x = p.plotAt[0] / 100 * LW, y = p.plotAt[1] / 100 * LH;
     g.innerHTML = `<div class="plot-hi" style="left:${x}px;top:${y}px"></div><div class="plot-dot" style="left:${x}px;top:${y}px"></div><div class="plot-lbl" style="left:${x}px;top:${y}px">Plot ${esc(p.plotNumber)}</div>`;
-    requestAnimationFrame(() => focusBox(x, y, 360, 360, 1.9));
   }
 
   /* ---------- SECTOR MAP PINS (normalized % coords; no price) ---------- */
@@ -896,7 +908,7 @@
       window.logEvent('presentation_opened', { area: state.areaId || null });
     }
   }
-  function resetPlan(extra) { return Object.assign({ section: 'master', mapMode: 'markings', showProps: false, activeCats: new Set(), displayCatId: null, selectedIds: new Set(), previewIdx: 0, itemOpen: false, propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, activePinId: null, areaMenuOpen: false, filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set(), blockId: new Set() }, secQ: '', secArea: 'all' }, extra || {}); }
+  function resetPlan(extra) { return Object.assign({ section: 'master', mapMode: 'original', sectorMapMode: 'original', showProps: false, activeCats: new Set(), displayCatId: null, selectedIds: new Set(), previewIdx: 0, itemOpen: false, propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, activePinId: null, areaMenuOpen: false, filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set(), blockId: new Set() }, secQ: '', secArea: 'all' }, extra || {}); }
 
   /* ---------- AREA SELECT ---------- */
   function areaSelectHTML() {
@@ -925,7 +937,7 @@
         <button class="area-switch" id="areaToggle"><span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.1"><span class="cur">${esc(area().name)}</span><span class="lab">View all maps</span></span><span class="caret">▾</span></button>
         <div class="divider"></div>
         <div style="display:flex;gap:3px"><button class="tab ${state.section === 'master' ? 'on' : ''}" id="tabMaster">Masterplan</button><button class="tab ${state.section === 'props' && state.propView !== 'sector' ? 'on' : ''}" id="tabProps">Properties</button><button class="tab ${state.section === 'sectors' ? 'on' : ''}" id="tabSectors">Sector Maps</button></div>
-        ${state.section === 'master' ? `<div class="divider"></div><div class="mode-switch topbar-mode"><button class="${mapKind() === 'markings' && !state.activeLetter ? 'on' : ''}" id="mode3d" ${markingsAvailable() ? '' : 'disabled'}>3D Map</button><button class="${mapKind() === 'original' && !state.activeLetter ? 'on' : ''}" id="modeOriginal">Original</button>${shortcutGroupsAvailable() ? `<div class="divider" style="margin:3px 6px;width:1px;background:#1B3F7C"></div>${['A','B','C','D'].map(L => `<button class="transparent-btn ${state.activeLetter === L ? 'on' : ''}" data-prebuilt-label="${L}" title="Highlight set ${L}">${L}</button>`).join('')}` : ''}</div>` : ''}
+        ${state.section === 'master' ? `<div class="divider"></div><div class="mode-switch topbar-mode"><button class="${mapKind() === 'original' && !state.activeLetter ? 'on' : ''}" id="modeOriginal">Original</button><button class="${mapKind() === 'markings' && !state.activeLetter ? 'on' : ''}" id="mode3d" ${markingsAvailable() ? '' : 'disabled'}>3D Map</button>${shortcutGroupsAvailable() ? `<div class="divider" style="margin:3px 6px;width:1px;background:#1B3F7C"></div>${['A','B','C','D'].map(L => `<button class="transparent-btn ${state.activeLetter === L ? 'on' : ''}" data-prebuilt-label="${L}" title="Highlight set ${L}">${L}</button>`).join('')}` : ''}</div>` : ''}
         <div class="spacer"></div>
         ${showBack ? '<button class="back-btn" id="backMaster"><span>‹</span> Back to Masterplan</button>' : ''}
 
@@ -949,7 +961,10 @@
   }
   function mapControlsHTML() {
     const showModes = state.section === 'master';
-    return `${showModes && state.mapMode === 'easy' ? `<div class="prop-switch ${state.showProps ? 'on' : ''}" id="propSwitch"><span class="lbl">Show Properties</span><span class="knob"><i></i></span></div>` : ''}
+    const sectorSm = activeSectorMap();
+    const showSectorModes = state.section === 'props' && state.propView === 'sector' && sectorSm && sectorSm.hasOriginalMap && sectorSm.hasEasyMap;
+    return `${showSectorModes ? `<div class="mode-switch sector-mode"><button class="${state.sectorMapMode !== 'easy' ? 'on' : ''}" data-sector-mode="original">Original</button><button class="${state.sectorMapMode === 'easy' ? 'on' : ''}" data-sector-mode="easy">3D Map</button></div>` : ''}
+      ${showModes && state.mapMode === 'easy' ? `<div class="prop-switch ${state.showProps ? 'on' : ''}" id="propSwitch"><span class="lbl">Show Properties</span><span class="knob"><i></i></span></div>` : ''}
       <div class="zoom"><button id="zin" title="Zoom in">+</button><div class="zsep"></div><button id="zout" title="Zoom out">−</button><div class="zsep"></div><button id="zfit" title="Reset view">⤢</button></div>
       ${state.previewId ? previewHTML() : ''}
       ${crmDrawingPreviewHTML()}`;
@@ -1198,9 +1213,14 @@
     const title = mapTitle(s);
     const accent = catColor('sectors');
     const thumb = mapThumb(s);
+    const badges = [
+      s.hasOriginalMap ? '<span class="sec-tag ready">Original available</span>' : '',
+      s.hasEasyMap ? '<span class="sec-tag easy">3D available</span>' : ''
+    ].filter(Boolean).join('');
     return `<div class="seccard">
-      <div class="sec-thumb" style="--a:${accent}; background-image:url('${thumb ? esc(thumb) : ''}'); background-size:cover; background-position:center;">
-        ${!thumb ? `<span class="sec-grid"></span><span class="sec-big">${esc(title.replace(/[^A-Z0-9]/gi, '').slice(-2))}</span>` : ''}</div>
+      <div class="sec-thumb ${thumb ? 'has-thumb' : ''}" style="--a:${accent};">
+        ${thumb ? `<img src="${esc(thumb)}" alt="${esc(title)} map preview" loading="lazy" decoding="async">` : `<span class="sec-grid"></span><span class="sec-big">${esc(title.replace(/[^A-Z0-9]/gi, '').slice(-2))}</span>`}
+        ${badges}</div>
       <div class="sec-body"><div class="sec-name">${esc(title)}</div><div class="sec-area">${esc(mapCity(s))}</div>
         <button class="btn-primary wfull" style="height:44px;margin-top:11px;font-size:13.5px" data-opensec="${esc(s.id)}">Open Map</button></div></div>`;
   }
@@ -1232,6 +1252,7 @@
     on('presentBtn', () => { state.present = !state.present; render(); setTimeout(fit, 70); });
 
     each('[data-mode]', b => b.addEventListener('click', () => { state.mapMode = b.getAttribute('data-mode'); if (state.mapMode === 'original') state.showProps = false; builtSig = ''; render(); }));
+    each('[data-sector-mode]', b => b.addEventListener('click', () => { state.sectorMapMode = b.getAttribute('data-sector-mode') === 'easy' ? 'easy' : 'original'; state.activePinId = null; builtSig = ''; render(); }));
     on('mode3d', () => { state.activeLetter = null; state.selectedIds.clear(); state.activeCats.clear(); state.displayCatId = null; state.mapMode = premiumMasterMode(); state.showProps = false; builtSig = ''; render(); });
     on('modeOriginal', () => { state.activeLetter = null; state.selectedIds.clear(); state.activeCats.clear(); state.displayCatId = null; state.mapMode = 'original'; state.showProps = false; builtSig = ''; render(); });
     each('[data-prebuilt-label]', b => b.addEventListener('click', () => {
@@ -1409,6 +1430,7 @@
     vp.querySelectorAll('.mode-switch,.prop-switch,.zoom,.preview').forEach(n => n.remove());
     vp.insertAdjacentHTML('beforeend', mapControlsHTML());
     each('[data-mode]', b => b.addEventListener('click', () => { state.mapMode = b.getAttribute('data-mode'); if (state.mapMode === 'original') state.showProps = false; builtSig = ''; render(); }));
+    each('[data-sector-mode]', b => b.addEventListener('click', () => { state.sectorMapMode = b.getAttribute('data-sector-mode') === 'easy' ? 'easy' : 'original'; state.activePinId = null; builtSig = ''; render(); }));
     on('propSwitch', toggleProps); on('zin', () => zoomBtn(1.2)); on('zout', () => zoomBtn(1 / 1.2)); on('zfit', fit);
     on('closePreview', () => { state.previewId = null; refreshControls(); renderTags(); });
     on('closeCrmPreview', () => { state.selectedIds.clear(); state.activeLetter = null; state.activeCats.clear(); state.displayCatId = null; refreshControls(); updateMapOverlays(); });
@@ -1420,11 +1442,11 @@
     const p = propById(id), sm = sectorMapForProperty(p);
     if (!p || !sm) return;
     window.logEvent('sector_proof_clicked', { area: state.areaId || null, sector: sm.id, propertyId: id });
-    Object.assign(state, { section: 'props', propView: 'sector', selectedId: id, sectorBlock: sm.id, previewId: null, activePinId: null, sectorFrom: state.section });
+    Object.assign(state, { section: 'props', propView: 'sector', selectedId: id, sectorBlock: sm.id, sectorMapMode: 'original', previewId: null, activePinId: null, sectorFrom: state.section });
     builtSig = '';
     render();
   }
-  function openSectorHub(smId) { if (!sectorMapById(smId)) return; window.logEvent('sector_viewed', { area: state.areaId || null, sector: smId }); window.logEvent('sector_proof_clicked', { area: state.areaId || null, sector: smId }); Object.assign(state, { section: 'props', propView: 'sector', selectedId: null, sectorBlock: smId, previewId: null, activePinId: null }); builtSig = ''; render(); }
+  function openSectorHub(smId) { if (!sectorMapById(smId)) return; window.logEvent('sector_viewed', { area: state.areaId || null, sector: smId }); window.logEvent('sector_proof_clicked', { area: state.areaId || null, sector: smId }); Object.assign(state, { section: 'props', propView: 'sector', selectedId: null, sectorBlock: smId, sectorMapMode: 'original', previewId: null, activePinId: null }); builtSig = ''; render(); }
   function showAreaContext(id) { const p = propById(id); window.logEvent('original_proof_clicked', { area: state.areaId || null, propertyId: id }); Object.assign(state, { section: 'master', mapMode: 'easy', showProps: true, selectedId: id, selectedIds: new Set([id]), itemOpen: false, previewId: id }); builtSig = ''; render(); if (p) { const b = blockById(p.blockId); if (b && hasGeo(b)) { const bd = pathBounds(GEO.paths[b.svgId]); const [cx, cy] = geoToLayer((bd.minX + bd.maxX) / 2, (bd.minY + bd.maxY) / 2); setTimeout(() => focusBox(cx, cy, Math.max(bd.maxX - bd.minX, 300), Math.max(bd.maxY - bd.minY, 300), 1.8), 80); } else if (b) { setTimeout(() => focusBox(b.x + b.w / 2, b.y + b.h / 2, b.w, b.h, 1.7), 80); } } }
   function openLightbox(idx) {
     let photos, name;

@@ -47,6 +47,10 @@ if (pmRole !== 'team' && pmRole !== 'dealer') {
 
   .ms-svg-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
   .ms-svg-overlay.drawing { pointer-events: auto; cursor: crosshair; }
+  .map-view-toggle { display:flex; gap:3px; background:#F4F2EA; border:1px solid #CDE6DA; border-radius:9px; padding:3px; }
+  .map-view-toggle button { border:0; background:transparent; color:#6A6E68; border-radius:7px; padding:5px 9px; font-size:12px; font-weight:800; cursor:pointer; }
+  .map-view-toggle button.active { background:#1F5E47; color:#fff; }
+  .map-view-toggle button:disabled { color:#B8B5AB; cursor:default; }
 
   /* Hidden UI for compatibility */
   #legacy-controls { display: none; }
@@ -98,6 +102,10 @@ if (pmRole !== 'team' && pmRole !== 'dealer') {
               <select id="ui-city" style="border:1px solid #CDE6DA; border-radius:6px; background:#fff; font-size:12px; padding:2px; max-width:120px;"><option value="">City...</option></select>
               <select id="ui-type" style="border:1px solid #CDE6DA; border-radius:6px; background:#fff; font-size:12px; padding:2px; max-width:100px;"><option value="">Type...</option><option value="masterplan">Masterplan</option><option value="sector">Sector Map</option></select>
               <select id="ui-map" style="border:1px solid #CDE6DA; border-radius:6px; background:#fff; font-size:12px; padding:2px; max-width:120px;"><option value="">Map...</option></select>
+              <span class="map-view-toggle" id="ui-map-view">
+                <button type="button" id="ui-view-original" class="active">Original</button>
+                <button type="button" id="ui-view-easy">3D</button>
+              </span>
             </div>
           </div>
         </div>
@@ -140,9 +148,9 @@ if (pmRole !== 'team' && pmRole !== 'dealer') {
           Please select a map to begin.
         </div>
 
-        <div id="canvas-inner" style="position:absolute; inset:0; display:none; transform-origin: top left;">
+        <div id="canvas-inner" style="position:absolute; left:50%; top:50%; display:none; transform-origin:center center;">
           <div style="position:absolute; inset:0; background-image:linear-gradient(rgba(110,108,90,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(110,108,90,0.06) 1px,transparent 1px); background-size:44px 44px; pointer-events:none; z-index: -1;"></div>
-          <img id="canvas-img" src="" style="display:block; max-width:none;" />
+          <img id="canvas-img" src="" style="display:block; max-width:none; object-fit:contain;" />
           <svg class="ms-svg-overlay" id="svg-overlay" preserveAspectRatio="none">
             <g id="rendered-layers"></g>
             <g id="active-drawing"></g>
@@ -241,6 +249,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let currentCity = '';
   let currentMapType = '';
   let currentMapId = '';
+  let currentMapView = 'original';
 
   const overlay = document.getElementById('svg-overlay');
   const activeDrawingGroup = document.getElementById('active-drawing');
@@ -255,13 +264,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   const selCity = document.getElementById('sel-city');
   const selMapType = document.getElementById('sel-map-type');
   const selMap = document.getElementById('sel-map');
+  const viewOriginalBtn = document.getElementById('ui-view-original');
+  const viewEasyBtn = document.getElementById('ui-view-easy');
 
   const registryMaps = () => registryData && Array.isArray(registryData.maps)
     ? registryData.maps.filter(m => m && m.status === 'active')
     : [];
   const registryMapById = (id) => registryMaps().find(m => m.id === id) || (registryData && registryData.byId && registryData.byId[id]) || null;
   const registryMapsByType = (type) => registryMaps().filter(m => m.type === (type === 'block' ? 'sector' : type));
-  const mapAsset = (map, preference = 'easy') => {
+  const selectableRegistryMapsByType = (type) => registryMapsByType(type).filter(map => map.hasOriginalMap);
+  const mapAsset = (map, preference = 'original') => {
     if (!map) return null;
     const src = preference === 'original'
       ? (map.originalMapSrc || map.easyMapSrc)
@@ -279,6 +291,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     return drawings.filter(d => d.mapId === mapId).length;
   };
 
+  function updateMapViewButtons(map) {
+    const entry = map || registryMapById(currentMapId);
+    if (!viewOriginalBtn || !viewEasyBtn) return;
+    if (entry && currentMapView === 'easy' && !entry.hasEasyMap) currentMapView = 'original';
+    viewOriginalBtn.classList.toggle('active', currentMapView !== 'easy');
+    viewEasyBtn.classList.toggle('active', currentMapView === 'easy');
+    viewOriginalBtn.disabled = !entry || !entry.hasOriginalMap;
+    viewEasyBtn.disabled = !entry || !entry.hasEasyMap;
+    viewEasyBtn.title = entry && entry.hasEasyMap ? 'Switch to 3D / Easy map' : 'No 3D / Easy map paired yet';
+  }
+
+  function applyCanvasTransform() {
+    canvasInner.style.transform = `translate(-50%, -50%) scale(${canvasScale})`;
+  }
+
+  function fitCanvas() {
+    const w = canvasImg.naturalWidth || 1200;
+    const h = canvasImg.naturalHeight || 800;
+    const box = document.getElementById('canvas-container');
+    const cw = Math.max(1, (box && box.clientWidth) || w);
+    const ch = Math.max(1, (box && box.clientHeight) || h);
+    canvasScale = Math.max(0.05, Math.min((cw - 48) / w, (ch - 48) / h));
+    applyCanvasTransform();
+  }
+
   canvasImg.addEventListener('load', () => {
     const w = canvasImg.naturalWidth || 1200;
     const h = canvasImg.naturalHeight || 800;
@@ -286,7 +323,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     canvasInner.style.height = `${h}px`;
     canvasImg.style.width = `${w}px`;
     canvasImg.style.height = `${h}px`;
+    fitCanvas();
     renderAll();
+  });
+  window.addEventListener('resize', () => {
+    if (currentMapId && canvasInner.style.display !== 'none') fitCanvas();
   });
 
   // Load legacy manifest only as a fallback. The folder registry is the active source.
@@ -299,6 +340,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
   populateLinkedMapDropdown();
+  updateMapViewButtons(null);
 
   // --- Mode Switching ---
   window.switchMode = function(mode) {
@@ -331,7 +373,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Populate Step 1: Map areas from the new folder registry.
   if (registryData) {
-    const areas = Array.from(new Set(registryMaps().map(map => map.area || 'Other'))).sort((a, b) => a.localeCompare(b));
+    const areas = Array.from(new Set(registryMaps().filter(map => map.hasOriginalMap).map(map => map.area || 'Other'))).sort((a, b) => a.localeCompare(b));
     areas.forEach(area => {
       const opt = document.createElement('option');
       opt.value = area;
@@ -357,6 +399,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       resetDrawingState();
     }
     currentCity = e.target.value;
+    currentMapView = 'original';
+    updateMapViewButtons(null);
     selMapType.disabled = !currentCity;
     selMapType.value = '';
     selMap.disabled = true;
@@ -373,6 +417,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       resetDrawingState();
     }
     currentMapType = e.target.value;
+    currentMapView = 'original';
+    updateMapViewButtons(null);
     selMap.disabled = !currentMapType;
     selMap.innerHTML = '<option value="">Select Map...</option>';
     
@@ -392,6 +438,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       resetDrawingState();
     }
     currentMapId = e.target.value;
+    currentMapView = 'original';
+    loadMap();
+  });
+
+  viewOriginalBtn.addEventListener('click', () => {
+    if (!currentMapId || currentMapView === 'original') return;
+    currentMapView = 'original';
+    loadMap();
+  });
+
+  viewEasyBtn.addEventListener('click', () => {
+    const entry = registryMapById(currentMapId);
+    if (!entry || !entry.hasEasyMap || currentMapView === 'easy') return;
+    currentMapView = 'easy';
     loadMap();
   });
 
@@ -400,7 +460,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!currentCity || !currentMapType) return;
 
     if (registryData) {
-      const maps = registryMapsByType(currentMapType).filter(map => (map.area || 'Other') === currentCity);
+      const maps = selectableRegistryMapsByType(currentMapType).filter(map => (map.area || 'Other') === currentCity);
       maps.forEach(map => {
         const count = overlayCountFor(map.id);
         const opt = document.createElement('option');
@@ -440,7 +500,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (registryData) {
       const entry = registryMapById(currentMapId);
-      imgUrl = mapAsset(entry, currentMapType === 'sector' ? 'original' : 'easy');
+      if (entry && currentMapView === 'easy' && !entry.hasEasyMap) currentMapView = 'original';
+      updateMapViewButtons(entry);
+      imgUrl = mapAsset(entry, currentMapView);
     } else if (currentMapType === 'masterplan') {
       const area = window.PM.areas.find(a => a.id === currentCity);
       if (area && area.dataset) {
@@ -461,12 +523,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       canvasImg.src = imgUrl;
       noMapMsg.style.display = 'none';
       canvasInner.style.display = 'block';
+      applyCanvasTransform();
       canvasControls.style.display = 'flex';
       coordsLabel.style.display = 'block';
       enableDrawingTools();
       renderAll();
     } else {
-      noMapMsg.innerText = "No map image available yet for this area. Add the map asset before drawing.";
+      noMapMsg.textContent = "No map image available yet for this area. Add the map asset before drawing.";
       noMapMsg.style.display = 'block';
       canvasInner.style.display = 'none';
       canvasControls.style.display = 'none';
@@ -479,7 +542,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function clearMap() {
     currentMapId = '';
-    noMapMsg.innerText = "Please select a map to begin.";
+    currentMapView = 'original';
+    updateMapViewButtons(null);
+    noMapMsg.textContent = "Please select a map to begin.";
     noMapMsg.style.display = 'block';
     canvasInner.style.display = 'none';
     canvasControls.style.display = 'none';
@@ -578,7 +643,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const lMap = document.getElementById('f-linkedMap');
     lMap.innerHTML = '<option value="">None</option>';
     if (registryData) {
-      registryMapsByType('sector').forEach(e => {
+      selectableRegistryMapsByType('sector').forEach(e => {
         lMap.innerHTML += `<option value="${e.id}">${e.title} (${mapAvailabilityLabel(e)})</option>`;
       });
     } else if (manifestData && manifestData.entries) {
@@ -611,9 +676,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('drawing-actions').style.display = 'block';
     overlay.classList.add('drawing');
     
-    if (kind === 'road') instr.innerText = "Click along the road. Click Finish Drawing when done.";
-    if (kind === 'sectorTag') instr.innerText = "Use this only on masterplans. Click around a sector boundary, then link it.";
-    if (kind === 'block') instr.innerText = "Click around the block boundary. Click Finish Drawing when done.";
+    if (kind === 'road') instr.textContent = "Click along the road. Click Finish Drawing when done.";
+    if (kind === 'sectorTag') instr.textContent = "Use this only on masterplans. Click around a sector boundary, then link it.";
+    if (kind === 'block') instr.textContent = "Click around the block boundary. Click Finish Drawing when done.";
     instr.style.display = 'block';
 
     hideInspector();
@@ -718,7 +783,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   function hideInspector() {
     document.getElementById('inspector-empty').style.display = 'block';
     document.getElementById('inspector-form').style.display = 'none';
-    document.getElementById('inspector-title').innerText = 'Inspector';
+    document.getElementById('inspector-title').textContent = 'Inspector';
     document.getElementById('btn-delete').style.display = 'none';
     selectedId = null;
     tempPointsForSave = [];
@@ -730,7 +795,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     let titleKind = kind;
     if(kind === 'sectorTag') titleKind = 'Sector Tag';
-    document.getElementById('inspector-title').innerText = `Save New ${titleKind.charAt(0).toUpperCase() + titleKind.slice(1)}`;
+    document.getElementById('inspector-title').textContent = `Save New ${titleKind.charAt(0).toUpperCase() + titleKind.slice(1)}`;
     
     document.getElementById('btn-delete').style.display = 'none';
     
@@ -784,7 +849,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('inspector-empty').style.display = 'none';
     document.getElementById('inspector-form').style.display = 'block';
-    document.getElementById('inspector-title').innerText = `Edit ${item.title}`;
+    document.getElementById('inspector-title').textContent = `Edit ${item.title}`;
     
     document.getElementById('btn-delete').style.display = 'block';
     
@@ -965,11 +1030,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   // --- Zoom ---
   window.zoomCanvas = function(factor) {
     if (factor === 'reset') {
-      canvasScale = 1;
+      fitCanvas();
+      return;
     } else {
-      canvasScale = Math.max(0.5, Math.min(3, canvasScale * factor));
+      canvasScale = Math.max(0.05, Math.min(3, canvasScale * factor));
     }
-    canvasInner.style.transform = `scale(${canvasScale})`;
+    applyCanvasTransform();
   };
 
   // --- Review Queue Rendering ---
@@ -1258,10 +1324,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const fId = document.getElementById('f-id');
       const uiDel = document.getElementById('ui-btn-del');
       if(uiDel && fId) {
-        uiDel.style.display = fId.value ? 'block' : 'none';
+        uiDel.style.display = form.style.display !== 'none' && fId.value ? 'block' : 'none';
       }
     });
-    titleObserver.observe(form, { attributes: true, subtree: true, childList: true });
+    titleObserver.observe(form, { attributes: true, attributeFilter: ['style', 'class'] });
   }
 });
 </script>

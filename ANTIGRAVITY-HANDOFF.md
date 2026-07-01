@@ -728,3 +728,42 @@ Run a browser pass across the listed routes and tighten any page-specific spacin
 
 ### Next Exact Step
 Open `/admin/map-studio.html`, pick the Aerocity masterplan from the registry, draw one small sector/road overlay, publish with the safe client checkbox on, then open `/app/plotmap/`, select the same masterplan, and confirm the published overlay highlights/clicks on both `3D Map` and `Original`.
+
+## Claude Design 2 + Normal Map Default Fix
+
+### Audit Findings
+- Client Presentation map loading is controlled by `app/plotmap/index.html`, `app/plotmap/map-registry.js`, `app/plotmap/data.js`, `app/plotmap/app.js`, and `app/plotmap/styles.css`.
+- Map Studio map loading is controlled by `admin/map-studio.html` with shared admin data/store/core scripts.
+- `app/plotmap/map-registry.js` is the active source of truth while present. The legacy `map-assets.manifest.json` path remains fallback-only.
+- The lag came from sector cards eagerly painting 76 large thumbnails, with thumbnails preferring `maps/` Easy/3D assets. Map Studio also had a Claude UI `MutationObserver` watching the entire inspector subtree and mutating that same subtree, creating a self-triggering mutation loop.
+- The cropping/zooming came from cover-style fit math in Client Presentation and from Map Studio placing natural-size images in an overflow-hidden canvas instead of fitting them with contain-style scale.
+
+### Fixes Applied
+- Client Presentation now defaults masterplans, sector cards, and sector detail views to `normal maps/`.
+- `maps/` is used only after the user clicks `3D Map` / Easy.
+- Sector cards render lazy `<img loading="lazy" decoding="async">` normal-map thumbnails instead of CSS background images.
+- Easy-only sector registry records are hidden from active Client Presentation and Map Studio pickers until a normal map exists, so 3D never becomes the default.
+- Client map fit uses contain-style `Math.min(...)` scaling and sector images use `object-fit: contain`, preserving full-map aspect ratio.
+- Existing click/highlight rendering remains in place; plot proof highlighting no longer auto-zooms/crops the selected plot.
+- Map Studio gets an Original/3D toggle, defaults to Original, fits the selected map into `#canvas-container`, and filters active map choices to records with normal maps.
+- The inspector subtree observer was narrowed to form-level attributes only, stopping the recursive mutation loop during Studio selection/reset.
+
+### Files Changed
+- `app/plotmap/app.js`
+- `app/plotmap/styles.css`
+- `admin/map-studio.html`
+- `ANTIGRAVITY-HANDOFF.md`
+
+### Verification
+- Required syntax checks passed for registry generator, registry, client app, admin data/store, and all `admin/core/*.js`.
+- `node tools/audit-plotmap.js` passed.
+- Headless Chrome smoke passed:
+  - Claude-style area picker renders.
+  - Client masterplan defaults to `/normal maps/`, is contained, and switches to `/maps/` only on `3D Map`.
+  - Sector cards use 70 lazy normal-map thumbnails and no `/maps/` thumbnails.
+  - Sector detail defaults to normal map, remains contained, and switches to `/maps/` only via sector `3D Map`.
+  - Map Studio loads after team role setup, defaults to normal map, fits inside the canvas, and keeps 3D disabled or switches only when paired Easy assets exist.
+
+### Notes
+- The older note saying full Map Studio smoke was blocked is resolved by this pass.
+- Six active registry sector records are Easy-only; active UI hides them until matching normal-map files are added.
