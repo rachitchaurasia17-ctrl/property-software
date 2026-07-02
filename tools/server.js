@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PlotMap — local dev server for the admin polygon tool and client app.
+ * PlotMap — local dev server for the client app and admin polygon tool.
  * - Serves the whole project statically (maps, app, admin, data).
  * - POST /api/polygons/:id  -> writes maps/polygons/:id.json (Phase 5 save).
  * - GET  /api/maps          -> maps/metadata/index.json
@@ -45,7 +45,7 @@ const server = http.createServer((req, res) => {
     catch { return send(res, 404, '[]'); }
   }
 
-  if (pathname === '/') pathname = '/admin/index.html';
+  if (pathname === '/') pathname = '/app/plotmap/index.html';
   if (pathname.endsWith('/')) pathname += 'index.html';
   const fp = path.join(ROOT, pathname);
   if (!fp.startsWith(ROOT)) return send(res, 403, 'forbidden', 'text/plain');

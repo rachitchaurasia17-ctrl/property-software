@@ -870,11 +870,12 @@
   }
 
   /* ---------- SECTOR MAP PINS (normalized % coords; no price) ---------- */
-  const PIN_LABELS = { 'available-property': 'Available Property', 'highlighted-property': 'Highlighted Property', 'landmark': 'Landmark', 'future-update': 'Future Update' };
+  const PUBLIC_PIN_TYPES = new Set(['available-property', 'highlighted-property', 'landmark']);
+  const PIN_LABELS = { 'available-property': 'Available Property', 'highlighted-property': 'Highlighted Property', 'landmark': 'Landmark' };
   function sectorPins() {
     const sm = activeSectorMap(); if (!sm) return [];
     const all = (window.PM_SECTOR_PINS && window.PM_SECTOR_PINS[sm.id]) || [];
-    return all.filter(p => p && typeof p.x === 'number' && typeof p.y === 'number');
+    return all.filter(p => p && PUBLIC_PIN_TYPES.has(p.type) && typeof p.x === 'number' && typeof p.y === 'number');
   }
   function renderSectorPins() {
     const lay = layer(), wrap = el('mapwrap'); if (!lay || !wrap) return;
