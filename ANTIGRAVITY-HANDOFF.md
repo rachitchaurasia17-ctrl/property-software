@@ -821,3 +821,62 @@ Open `/admin/map-studio.html`, pick the Aerocity masterplan from the registry, d
 - This pass did not regenerate `app/plotmap/map-registry.js` or alter map assets.
 - The design match is a parity correction on the existing app, not a wholesale rewrite of the Claude static prototype.
 - Temporary visual screenshots were used locally for verification and are intentionally not committed.
+
+## Client Presentation Full Map + Dealer Navigation Cleanup
+
+### Claude Design 2 Visual Parity Review
+- Client Presentation was close in color, typography and premium card treatment, but the always-visible Photo Proof image area made the map feel secondary.
+- The right proof panel was wider/taller than the current product needs and was stealing horizontal and vertical space from the map stage.
+- Sector cards and the Map Studio frame were already close to Claude Design 2 after the prior visual pass.
+- Map Studio still had minor picker truncation in the real registry-backed selector, so the Pick Map step card and map select widths were adjusted.
+
+### Remaining Visual Mismatches Fixed
+- Removed the default large Photo Proof header from the Client Presentation side card.
+- Added a compact Photo Proof button inside the proof details area.
+- Photo Proof now opens only in the existing modal/lightbox flow and closes back to the map-first layout.
+- Reduced the Client Presentation side panel width and padding so the map gets more screen width.
+- Kept the warm Claude Design 2 background, rounded map stage, soft shadows, serif headings, chips, and proof card styling.
+- Expanded the Map Studio Pick Map step enough for real registry map names to read cleanly.
+
+### Dealer / Team Navigation Cleanup
+- Removed Finance from visible Dealer navigation.
+- Removed Reports from visible Dealer navigation.
+- Removed Access from visible Dealer navigation.
+- Removed the homepage Dealer Login copy that mentioned money.
+- Team navigation still shows only daily work pages and Map Studio; no Finance, Reports, or Access entries were added.
+
+### Route Handling For Removed Sections
+- `/admin/finance.html`, `/admin/reports.html`, and `/admin/access.html` now render a simple inactive-section page instead of the old product surfaces.
+- The inactive pages point users back to Dealer dashboard or Team workspace.
+- The old finance/report/access route content is no longer visible from direct route access.
+
+### Map Behavior Preserved
+- `app/plotmap/map-registry.js` remains the active map source of truth.
+- Normal maps remain the Client Presentation and Map Studio default.
+- `/maps/` Easy/3D assets still load only after the user switches to 3D.
+- Sector thumbnails remain lazy-loaded normal maps.
+- Map images keep `object-fit: contain` and contain-style fit; no crop/auto-zoom was reintroduced.
+- Existing layer click/highlight state still toggles from the Client Presentation side panel.
+
+### Verification Run
+- `node --check tools/generate-map-registry.js`
+- `node --check app/plotmap/map-registry.js`
+- `node --check app/plotmap/app.js`
+- `node --check admin/crm-data.js`
+- `node --check admin/crm-store.js`
+- `node --check admin/core/*.js`
+- `node tools/audit-plotmap.js`
+- Inline script parse for Map Studio, inactive removed-section pages, and touched admin pages.
+- Headless Chrome Client Presentation smoke confirmed no default Photo Proof header, compact Photo Proof button, modal open/close, wider map stage, normal-map default, contain fit, sector lazy thumbnails, and client-safe panel copy.
+- Headless Chrome confirmed the 3D switch loads `/maps/aerocity%20and%20mohali%20masterplan.png`.
+- Headless Chrome Dealer/Team nav smoke confirmed no Finance, Reports, or Access in the visible owner/team navs.
+- Headless Chrome direct route smoke confirmed `/admin/finance.html` shows the inactive-section page.
+- Headless Chrome Map Studio smoke confirmed registry map selection, normal-map default, contain fit, and 3D not active by default.
+
+### Known Limitations
+- The inactive route pages intentionally do not delete underlying CRM store/core finance/report/access helpers; those internal files remain for now but are no longer exposed through visible Dealer/Team UI.
+- The Client Presentation proof modal still uses the existing placeholder-style photo proof treatment until real photo assets exist.
+- Map Studio visual parity remains an adaptation of Claude Design 2 around real registry selectors and real map imagery, not the static mock canvas.
+
+### Next Exact Step
+- Open the deployed site after Vercel finishes building this commit, then check `/app/plotmap/`, `/admin/owner.html`, `/admin/team.html`, `/admin/map-studio.html`, and one removed route such as `/admin/finance.html` against the local smoke results.

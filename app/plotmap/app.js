@@ -983,9 +983,6 @@
       || null;
     const displayCatId = (state.selectedIds.size === 0 && state.activeCats.size === 0) ? 'roads' : getCatId();
 
-    const heroBg = pickedProperty
-      ? (PM.grads.property[hash(pickedProperty.id) % PM.grads.property.length] || '#C7D8E0')
-      : 'linear-gradient(140deg,#C7D8E0 0%,#CBD6C2 52%,#A9BE86 100%)';
     const title = pickedProperty ? `Plot ${pickedProperty.plotNumber}` : `${area().name} Map`;
     const meta = pickedProperty
       ? `${pickedProperty.block} · ${pickedProperty.size} · ${pickedProperty.plotType}`
@@ -999,15 +996,13 @@
     const detailAction = pickedProperty
       ? `<button class="panel-primary" data-details-prop="${pickedProperty.id}">Full details</button>`
       : '';
+    const photoTitle = pickedProperty ? `Plot ${pickedProperty.plotNumber}` : `${area().name} map proof`;
+    const photoAction = `<button class="panel-photo-btn" data-proof-photo="${pickedProperty ? pickedProperty.id : ''}" data-proof-title="${esc(photoTitle)}"><span></span>Photo Proof</button>`;
 
     return `<div class="client-proof-card">
-        <button class="client-proof-photo" ${pickedProperty ? `data-photos="${pickedProperty.id}"` : ''} style="background:${heroBg};">
-          <span class="photo-label">Photo proof</span>
-          <span class="photo-chip">${pickedProperty ? esc(pickedProperty.roadFacing || 'Location proof') : 'Map proof'}</span>
-          <span class="ph-tex"></span>
-        </button>
         <div class="client-proof-body">
           <div class="client-proof-kicker">${esc(area().name)} · Official proof</div>
+          <div class="client-proof-utility">${photoAction}</div>
           <div class="client-proof-title">${esc(title)}</div>
           <div class="client-proof-meta">${esc(meta)}</div>
           <div class="client-proof-tags">${tags.map(t => `<span>${esc(t)}</span>`).join('')}</div>
@@ -1362,6 +1357,14 @@
     each('[data-item]', b => b.addEventListener('click', () => selectItem(b.getAttribute('data-item'), b.getAttribute('data-kind'))));
     each('[data-photoico]', b => b.addEventListener('click', e => { e.stopPropagation(); const id = b.getAttribute('data-photoico'); state.selectedIds = new Set([id]); openLightbox(0); }));
     each('[data-photos]', b => b.addEventListener('click', () => { state.selectedIds = new Set([b.getAttribute('data-photos')]); openLightbox(0); }));
+    each('[data-proof-photo]', b => b.addEventListener('click', () => {
+      const id = b.getAttribute('data-proof-photo') || '';
+      const p = id ? propById(id) : null;
+      const key = id || state.areaId || 'map-proof';
+      const name = p ? `Plot ${p.plotNumber}` : (b.getAttribute('data-proof-title') || `${area().name} map proof`);
+      state.lightbox = { photos: photosFor('property', key, 4), index: 0, name };
+      render();
+    }));
     
     // Multi-select tray actions
     on('clearAllItems', () => { state.selectedIds.clear(); render(); });
