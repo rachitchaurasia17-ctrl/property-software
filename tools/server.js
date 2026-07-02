@@ -4,7 +4,7 @@
  * - Serves the whole project statically (maps, app, admin, data).
  * - POST /api/polygons/:id  -> writes maps/polygons/:id.json (Phase 5 save).
  * - GET  /api/maps          -> maps/metadata/index.json
- * No external deps. Run: node tools/server.js  (http://localhost:5173/admin/)
+ * No external deps. Run: node tools/server.js  (http://localhost:5173/app/plotmap/)
  */
 const http = require('http');
 const fs = require('fs');
@@ -58,5 +58,5 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, () => {
   console.log(`PlotMap dev server: http://localhost:${PORT}/`);
   console.log(`  Admin polygon tool: http://localhost:${PORT}/admin/`);
-  console.log(`  Client experience:  http://localhost:${PORT}/app/`);
+  console.log(`  Client experience:  http://localhost:${PORT}/app/plotmap/`);
 });
