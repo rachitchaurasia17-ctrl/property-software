@@ -767,3 +767,57 @@ Open `/admin/map-studio.html`, pick the Aerocity masterplan from the registry, d
 ### Notes
 - The older note saying full Map Studio smoke was blocked is resolved by this pass.
 - Six active registry sector records are Easy-only; active UI hides them until matching normal-map files are added.
+
+## Claude Design 2 Visual Parity Pass
+
+### Visual Mismatches Found
+- Client Presentation had the correct registry/map behavior from commit 6e886bd, but the selected-map screen still looked like the old utilitarian toolbar plus full-bleed map instead of the Claude Design 2 presentation surface.
+- The area picker was visually closer but had a stale/mojibake live label and needed explicit stacking so the light premium hero could not render behind its own background layer.
+- Sector cards were already using normal-map thumbnails, but the final pass tightened the Design 2 card, chip, search, and topbar treatment without changing the lazy thumbnail flow.
+- Map Studio was close to the Claude layout, but the sync status rendered like ordinary text and the first default city value was not copied into the active Studio state, so choosing Masterplan could leave the map dropdown empty until the city was changed manually.
+
+### Client Presentation Status
+- The first screen now follows the Claude Design 2 area-picker direction with the light premium background, serif headline, centered PlotMap mark, and simple area cards.
+- The selected map view now has a white premium topbar, contained map stage, right-side proof card, client role chip, and Design 2 layer/action chips.
+- Normal maps remain the default for masterplans, sector cards, and sector details.
+- The `maps/` 3D asset is loaded only after the user clicks the 3D Map switch.
+- Map images remain contained with correct aspect ratio; no auto-cropping or zooming was reintroduced.
+- Existing click/highlight and panel action hooks were preserved.
+
+### Map Studio Status
+- Map Studio keeps the existing draw/edit/publish architecture and now has the polished sync pill, premium selector controls, cards, canvas, tool buttons, and inspector surface.
+- The default city is now initialized into `currentCity`, so the visible Aerocity default is also the active state and the map dropdown populates immediately after selecting Masterplan or Sector Map.
+- Studio loads the Aerocity masterplan from `/normal maps/` by default with `object-fit: contain`.
+- The 3D toggle remains available only as the paired Easy/3D switch and is not the default.
+
+### Files Changed
+- `app/plotmap/app.js`
+- `app/plotmap/styles.css`
+- `admin/map-studio.html`
+- `ANTIGRAVITY-HANDOFF.md`
+
+### Preserved From Commit 6e886bd
+- `app/plotmap/map-registry.js` remains the active source of truth.
+- The folder registry flow, normal-map default, 3D switch behavior, lazy sector thumbnails, old-manifest fallback guard, and client-safe overlay filtering remain intact.
+- No unrelated pages were redesigned.
+
+### Verification Run
+- `node --check tools/generate-map-registry.js`
+- `node --check app/plotmap/map-registry.js`
+- `node --check app/plotmap/app.js`
+- `node --check admin/crm-data.js`
+- `node --check admin/crm-store.js`
+- `node --check admin/core/*.js`
+- `node tools/audit-plotmap.js`
+- Map Studio inline script parse: 3 inline scripts parsed.
+- Headless Chrome client smoke confirmed normal default, `object-fit: contain`, contained main map, 3D switch loads `/maps/`, 70 lazy sector cards, and normal thumbnails.
+- Headless Chrome Studio smoke confirmed role-gated Studio load, default Aerocity city state, masterplan dropdown population, selected map `masterplan-aerocity-mohali-masterplan`, normal-map canvas source, and no 3D asset loaded by default.
+
+### Vercel / Live Deployment Note
+- The pushed repo code contains the visual parity changes and `vercel.json` already serves `app/plotmap/**`, `admin/**`, `maps/**`, and `normal maps/**`.
+- No live Vercel URL was provided in this pass, so deployment propagation was not independently verified from a public URL. If the live site still shows the old UI after this commit is pushed, check Vercel deployment status and browser/CDN cache first.
+
+### Known Limitations
+- This pass did not regenerate `app/plotmap/map-registry.js` or alter map assets.
+- The design match is a parity correction on the existing app, not a wholesale rewrite of the Claude static prototype.
+- Temporary visual screenshots were used locally for verification and are intentionally not committed.

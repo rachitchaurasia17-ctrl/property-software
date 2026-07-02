@@ -912,12 +912,13 @@
 
   /* ---------- AREA SELECT ---------- */
   function areaSelectHTML() {
-    return `<div class="area-select"><div class="as-in">
-        <div class="as-brand"><span class="logo" style="width:34px;height:34px"><i style="width:13px;height:13px;border-width:3.5px"></i></span>
-          <span style="font-size:19px;font-weight:740;letter-spacing:-.3px;color:#FBF6EA">PlotMap</span>
-          <span style="font-size:13px;font-weight:600;color:rgba(251,246,234,.55)">Interactive Masterplans</span></div>
-        <div class="as-hero">Open a masterplan.</div>
-        <div class="as-sub">Walk your client through the location — roads, blocks, landmarks and properties, with photo proof on the map. You explain; PlotMap shows.</div>
+    return `<div class="area-select">
+      <div class="as-top"><span><i></i>Tricity - Live</span><span>Powered by <b>PlotMap</b></span></div>
+      <div class="as-in">
+        <div class="as-mark"><span class="logo"><i></i></span></div>
+        <div class="as-overline">For your client</div>
+        <div class="as-hero">Client Presentation</div>
+        <div class="as-sub">Walk a buyer through any property, sector and location on a beautiful live map.</div>
       </div>
       <div class="as-grid">${PM.areas.map(a => `<button class="as-tile ${a.live ? '' : 'soon'}" data-area="${a.id}" ${a.live ? '' : 'disabled'}>
         <div><div style="display:flex;align-items:baseline;gap:9px"><span class="as-name">${esc(a.name)}</span>${a.sub ? `<span style="font-size:12.5px;color:#9C957F;font-weight:600">${esc(a.sub)}</span>` : ''}</div>
@@ -939,12 +940,13 @@
         <div style="display:flex;gap:3px"><button class="tab ${state.section === 'master' ? 'on' : ''}" id="tabMaster">Masterplan</button><button class="tab ${state.section === 'props' && state.propView !== 'sector' ? 'on' : ''}" id="tabProps">Properties</button><button class="tab ${state.section === 'sectors' ? 'on' : ''}" id="tabSectors">Sector Maps</button></div>
         ${state.section === 'master' ? `<div class="divider"></div><div class="mode-switch topbar-mode"><button class="${mapKind() === 'original' && !state.activeLetter ? 'on' : ''}" id="modeOriginal">Original</button><button class="${mapKind() === 'markings' && !state.activeLetter ? 'on' : ''}" id="mode3d" ${markingsAvailable() ? '' : 'disabled'}>3D Map</button>${shortcutGroupsAvailable() ? `<div class="divider" style="margin:3px 6px;width:1px;background:#1B3F7C"></div>${['A','B','C','D'].map(L => `<button class="transparent-btn ${state.activeLetter === L ? 'on' : ''}" data-prebuilt-label="${L}" title="Highlight set ${L}">${L}</button>`).join('')}` : ''}</div>` : ''}
         <div class="spacer"></div>
+        <div class="client-role-chip"><span><b>Guest</b><small>Client view</small></span><i>C</i></div>
         ${showBack ? '<button class="back-btn" id="backMaster"><span>‹</span> Back to Masterplan</button>' : ''}
 
         ${state.areaMenuOpen ? areaMenuHTML() : ''}
       </div>
-      <div class="body" style="flex:1; display:flex; position:relative; min-height:0;">
-        ${split ? `<div class="mapwrap" id="mapwrap"><div class="maplayer" id="maplayer"></div>${mapControlsHTML()}</div>`
+      <div class="body ${split ? 'split-body' : 'full-body'}" style="flex:1; display:flex; position:relative; min-height:0;">
+        ${split ? `<div class="map-stage"><div class="mapwrap" id="mapwrap"><div class="maplayer" id="maplayer"></div>${mapControlsHTML()}</div></div><aside class="panel presentation-panel">${panelHTML()}</aside>`
           : `<div class="full" id="full">${fullHTML()}</div>`}
       </div>
     </div>
@@ -973,30 +975,66 @@
   /* ---------- RIGHT PANEL ---------- */
   function panelHTML() {
     if (state.section === 'props' && state.propView === 'sector') return sectorPanelHTML();
-    
+
+    const ids = Array.from(state.selectedIds);
+    const pickedProperty = (state.previewId && propById(state.previewId))
+      || ids.map(id => propById(id)).find(Boolean)
+      || mapProperties()[0]
+      || null;
     const displayCatId = (state.selectedIds.size === 0 && state.activeCats.size === 0) ? 'roads' : getCatId();
-    
-    return `<div class="scroll" style="padding-top:16px;">
-        ${state.selectedIds.size > 0 || displayCatId ? previewCardHTML(displayCatId) : ''}
-        
-        <div style="font-size:12px;font-weight:750;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;margin-top:${state.selectedIds.size > 0 || displayCatId ? '16px' : '0'}">Map Layers</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px">
+
+    const heroBg = pickedProperty
+      ? (PM.grads.property[hash(pickedProperty.id) % PM.grads.property.length] || '#C7D8E0')
+      : 'linear-gradient(140deg,#C7D8E0 0%,#CBD6C2 52%,#A9BE86 100%)';
+    const title = pickedProperty ? `Plot ${pickedProperty.plotNumber}` : `${area().name} Map`;
+    const meta = pickedProperty
+      ? `${pickedProperty.block} · ${pickedProperty.size} · ${pickedProperty.plotType}`
+      : 'Official map proof · Client-safe view';
+    const tags = pickedProperty
+      ? [pickedProperty.roadFacing, pickedProperty.plotType, pickedProperty.area].filter(Boolean).slice(0, 3)
+      : ['Official proof map', 'Normal map default', '3D on switch'];
+    const sectorAction = pickedProperty && hasSectorMap(pickedProperty)
+      ? `<button class="panel-ghost" data-sector="${pickedProperty.id}">Sector map</button>`
+      : '';
+    const detailAction = pickedProperty
+      ? `<button class="panel-primary" data-details-prop="${pickedProperty.id}">Full details</button>`
+      : '';
+
+    return `<div class="client-proof-card">
+        <button class="client-proof-photo" ${pickedProperty ? `data-photos="${pickedProperty.id}"` : ''} style="background:${heroBg};">
+          <span class="photo-label">Photo proof</span>
+          <span class="photo-chip">${pickedProperty ? esc(pickedProperty.roadFacing || 'Location proof') : 'Map proof'}</span>
+          <span class="ph-tex"></span>
+        </button>
+        <div class="client-proof-body">
+          <div class="client-proof-kicker">${esc(area().name)} · Official proof</div>
+          <div class="client-proof-title">${esc(title)}</div>
+          <div class="client-proof-meta">${esc(meta)}</div>
+          <div class="client-proof-tags">${tags.map(t => `<span>${esc(t)}</span>`).join('')}</div>
+          <div class="verified-row"><i>✓</i><span>Location verified on the official map</span></div>
+        </div>
+        <div class="client-proof-actions">${detailAction}${sectorAction || '<button class="panel-ghost" id="qAllSectors">Sector maps</button>'}</div>
+      </div>
+      <div class="panel-section">
+        <div class="panel-section-title">Map layers</div>
+        <div class="panel-chip-row">
           ${activeCategories().map(c => `
             <button class="layer-pill ${state.activeCats.has(c.id) ? 'act' : ''}" data-cat="${c.id}">
               ${esc(c.label)}
             </button>`).join('')}
         </div>
-
-        ${displayCatId && catItems(displayCatId).some(i => i.kind !== 'pin') ? `
-          <div style="font-size:12px;font-weight:750;color:#A89F89;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;margin-top:24px;">Select Items in ${esc(catById(displayCatId).label)}</div>
-          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px">
+      </div>
+      ${displayCatId && catItems(displayCatId).some(i => i.kind !== 'pin') ? `
+        <div class="panel-section">
+          <div class="panel-section-title">${esc(catById(displayCatId).label)}</div>
+          <div class="panel-chip-row item-row">
             ${catItems(displayCatId).map(i => `
               <button class="item-chip ${state.selectedIds.has(i.id) ? 'act' : ''}" data-item="${i.id}" data-kind="${i.kind}">
                 ${esc(i.name)}
               </button>`).join('')}
           </div>
-        ` : ''}
-      </div>`;
+        </div>
+      ` : ''}`;
   }
 
   function previewCardHTML(fallbackCatId) {

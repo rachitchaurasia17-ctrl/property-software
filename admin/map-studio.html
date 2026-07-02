@@ -51,6 +51,19 @@ if (pmRole !== 'team' && pmRole !== 'dealer') {
   .map-view-toggle button { border:0; background:transparent; color:#6A6E68; border-radius:7px; padding:5px 9px; font-size:12px; font-weight:800; cursor:pointer; }
   .map-view-toggle button.active { background:#1F5E47; color:#fff; }
   .map-view-toggle button:disabled { color:#B8B5AB; cursor:default; }
+  #pm-sync-mini { display:inline-flex; align-items:center; gap:7px; border:1px solid #E7E3D9 !important; background:#FAF8F3 !important; color:#6A6E68 !important; border-radius:999px; padding:7px 12px; font-size:12px; font-weight:800; text-decoration:none; }
+  #pm-sync-mini::before { content:''; width:7px; height:7px; border-radius:50%; background:#2E8B66; box-shadow:0 0 0 4px rgba(46,139,102,.14); }
+  #ui-city, #ui-type, #ui-map { min-height:28px; border:1px solid #CDE6DA !important; border-radius:8px !important; background:#fff !important; color:#1C1E1B !important; font-weight:700; outline:none; }
+  #ui-city:focus, #ui-type:focus, #ui-map:focus { border-color:#1F5E47 !important; box-shadow:0 0 0 3px rgba(31,94,71,.10); }
+  #step1-card { box-shadow:0 10px 26px rgba(31,94,71,.08); }
+  #canvas-container { box-shadow:0 1px 2px rgba(20,18,12,.03),0 18px 42px rgba(40,38,20,.08); }
+  #canvas-container::after { content:''; position:absolute; inset:0; pointer-events:none; box-shadow:inset 0 1px 0 rgba(255,255,255,.75); }
+  #inspector-empty, #inspector-form { box-shadow:0 1px 2px rgba(20,18,12,.03),0 18px 42px rgba(40,38,20,.08); }
+  .tool-btn { box-shadow:0 1px 2px rgba(20,18,12,.03),0 8px 18px rgba(40,32,15,.035); }
+  .tool-btn:hover { transform:translateY(-1px); box-shadow:0 10px 24px rgba(40,32,15,.07); }
+  .tool-btn:disabled { opacity:.48; cursor:default; transform:none; box-shadow:none; }
+  #ui-btn-draft:hover { background:#F4F2EA !important; }
+  #ui-btn-publish:hover { background:#184E3B !important; }
 
   /* Hidden UI for compatibility */
   #legacy-controls { display: none; }
@@ -389,6 +402,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
   selMapType.innerHTML = '<option value="">Select Type...</option><option value="masterplan">Masterplan</option><option value="sector">Sector Map</option>';
+  currentCity = selCity.value || '';
+  selMapType.disabled = !currentCity;
+  selMap.disabled = true;
 
   selCity.addEventListener('change', (e) => {
     if (activePoints.length > 0) {
