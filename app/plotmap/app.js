@@ -102,6 +102,7 @@
   const supabaseKey = 'sb_publishable_DGqcs0JaDVgzImUGGgg_FQ_Q_SkgnhX';
   const supabase = window.supabase ? window.supabase.createClient(supabaseUrl, supabaseKey) : null;
 
+
   const state = {
     space: 'area', areaId: (PM.areas.find(a => a.live) || PM.areas[0] || { id:'aerotropolis' }).id, areaMenuOpen: false,
     prebuiltMaps: [], activeLetter: null,
@@ -110,7 +111,7 @@
     propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, activePinId: null,
     filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set(), blockId: new Set() },
     secQ: '', secArea: 'all',
-    lightbox: null, present: false
+    lightbox: null, present: false, drawerOpen: false
   };
 
   /* --- Lightweight CRM Tracking --- */
@@ -908,7 +909,7 @@
       window.logEvent('presentation_opened', { area: state.areaId || null });
     }
   }
-  function resetPlan(extra) { return Object.assign({ section: 'master', mapMode: 'original', sectorMapMode: 'original', showProps: false, activeCats: new Set(), displayCatId: null, selectedIds: new Set(), previewIdx: 0, itemOpen: false, propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, activePinId: null, areaMenuOpen: false, filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set(), blockId: new Set() }, secQ: '', secArea: 'all' }, extra || {}); }
+  function resetPlan(extra) { return Object.assign({ section: 'master', mapMode: 'original', sectorMapMode: 'original', showProps: false, activeCats: new Set(), displayCatId: null, selectedIds: new Set(), previewIdx: 0, itemOpen: false, propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, activePinId: null, areaMenuOpen: false, filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set(), blockId: new Set() }, secQ: '', secArea: 'all', drawerOpen: false }, extra || {}); }
 
   /* ---------- AREA SELECT ---------- */
   function areaSelectHTML() {
@@ -931,7 +932,6 @@
   function planHTML() {
     const showBack = state.section !== 'master';
     const split = state.section === 'master' || (state.section === 'props' && state.propView === 'sector');
-    const full = !split;
     return `<div style="flex:1; display:flex; flex-direction:column; min-width:0; position:relative;">
       <div class="topbar">
         <div class="brand"><span class="logo"><i></i></span><span class="brand-name">PlotMap</span></div>
@@ -946,7 +946,7 @@
         ${state.areaMenuOpen ? areaMenuHTML() : ''}
       </div>
       <div class="body ${split ? 'split-body' : 'full-body'}" style="flex:1; display:flex; position:relative; min-height:0;">
-        ${split ? `<div class="map-stage"><div class="mapwrap" id="mapwrap"><div class="maplayer" id="maplayer"></div>${mapControlsHTML()}</div></div><aside class="panel presentation-panel">${panelHTML()}</aside>`
+        ${split ? `<div class="map-stage" style="flex:1; width:100%;"><div class="mapwrap" id="mapwrap"><div class="maplayer" id="maplayer"></div>${mapControlsHTML()}</div></div><aside class="panel presentation-panel ${state.drawerOpen ? 'open' : ''}">${panelHTML()}</aside>`
           : `<div class="full" id="full">${fullHTML()}</div>`}
       </div>
     </div>
@@ -999,7 +999,8 @@
     const photoTitle = pickedProperty ? `Plot ${pickedProperty.plotNumber}` : `${area().name} map proof`;
     const photoAction = `<button class="panel-photo-btn" data-proof-photo="${pickedProperty ? pickedProperty.id : ''}" data-proof-title="${esc(photoTitle)}"><span></span>Photo Proof</button>`;
 
-    return `<div class="client-proof-card">
+    return `<div class="client-proof-card" style="position:relative;">
+        <button class="drawer-close" id="drawerCloseBtn" aria-label="Close" style="position:absolute;top:16px;right:16px;border:none;background:rgba(0,0,0,0.05);color:#5A554A;width:32px;height:32px;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s;">×</button>
         <div class="client-proof-body">
           <div class="client-proof-kicker">${esc(area().name)} · Official proof</div>
           <div class="client-proof-utility">${photoAction}</div>
@@ -1114,7 +1115,8 @@
   }
   function sectorPanelHTML() {
     const p = propById(state.selectedId);
-    if (p) return `<div class="head" style="padding-bottom:14px">
+    if (p) return `<div class="head" style="padding-bottom:14px; position:relative;">
+        <button class="drawer-close" id="drawerCloseBtn" aria-label="Close" style="position:absolute;top:16px;right:16px;border:none;background:rgba(0,0,0,0.05);color:#5A554A;width:32px;height:32px;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s;">×</button>
         <button class="backlink" id="backToProperty">‹ Back to property</button>
         <div class="serif" style="font-size:26px;font-weight:560;margin-top:10px">${esc(p.block)} · Plot ${esc(p.plotNumber)}</div>
         <div style="font-size:13.5px;color:#9C957F;font-weight:600;margin-top:3px">${esc(p.area)} · ${esc(p.size)}</div></div>
@@ -1124,7 +1126,8 @@
         <button class="btn-ghost wfull" id="areaContext" style="height:48px;margin-top:20px;color:#16356A">Show Area Context →</button>
         <button class="btn-ghost wfull" id="backMaster2" style="height:46px;margin-top:10px">Back to Masterplan</button></div>`;
     const b = activeSectorMap();
-    return `<div class="head" style="padding-bottom:14px">
+    return `<div class="head" style="padding-bottom:14px; position:relative;">
+        <button class="drawer-close" id="drawerCloseBtn" aria-label="Close" style="position:absolute;top:16px;right:16px;border:none;background:rgba(0,0,0,0.05);color:#5A554A;width:32px;height:32px;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s;">×</button>
         <button class="backlink" id="backToSectors">‹ All sector maps</button>
         <div class="serif" style="font-size:26px;font-weight:560;margin-top:10px">${b ? esc(b.sectorOrBlockName) : 'Sector Map'}</div>
         <div style="font-size:13.5px;color:#9C957F;font-weight:600;margin-top:3px">Exact layout — official sector map proof</div></div>
@@ -1349,10 +1352,10 @@
         state.displayCatId = null;
       }
       
-      // Removed state.selectedIds.clear() to allow cross-category multi-selection
-      // Removed state.previewIdx = 0 to avoid losing preview position when toggling categories
+      state.drawerOpen = true;
       render(); 
     }));
+    on('drawerCloseBtn', () => { state.drawerOpen = false; render(); });
     on('backCats', () => { state.activeCats.clear(); state.displayCatId = null; state.selectedIds.clear(); state.itemOpen = false; render(); });
     each('[data-item]', b => b.addEventListener('click', () => selectItem(b.getAttribute('data-item'), b.getAttribute('data-kind'))));
     each('[data-photoico]', b => b.addEventListener('click', e => { e.stopPropagation(); const id = b.getAttribute('data-photoico'); state.selectedIds = new Set([id]); openLightbox(0); }));
@@ -1463,6 +1466,7 @@
     state.activeCats.add(itemCategory(id));
     state.displayCatId = itemCategory(id);
     state.section = 'master';
+    state.drawerOpen = true;
     window.logEvent('property_selected', { area: state.areaId || null, metadata: { itemId: id, kind } });
     render();
   }
@@ -1483,12 +1487,12 @@
     const p = propById(id), sm = sectorMapForProperty(p);
     if (!p || !sm) return;
     window.logEvent('sector_proof_clicked', { area: state.areaId || null, sector: sm.id, propertyId: id });
-    Object.assign(state, { section: 'props', propView: 'sector', selectedId: id, sectorBlock: sm.id, sectorMapMode: 'original', previewId: null, activePinId: null, sectorFrom: state.section });
+    Object.assign(state, { section: 'props', propView: 'sector', selectedId: id, sectorBlock: sm.id, sectorMapMode: 'original', previewId: null, activePinId: null, sectorFrom: state.section, drawerOpen: true });
     builtSig = '';
     render();
   }
-  function openSectorHub(smId) { if (!sectorMapById(smId)) return; window.logEvent('sector_viewed', { area: state.areaId || null, sector: smId }); window.logEvent('sector_proof_clicked', { area: state.areaId || null, sector: smId }); Object.assign(state, { section: 'props', propView: 'sector', selectedId: null, sectorBlock: smId, sectorMapMode: 'original', previewId: null, activePinId: null }); builtSig = ''; render(); }
-  function showAreaContext(id) { const p = propById(id); window.logEvent('original_proof_clicked', { area: state.areaId || null, propertyId: id }); Object.assign(state, { section: 'master', mapMode: 'easy', showProps: true, selectedId: id, selectedIds: new Set([id]), itemOpen: false, previewId: id }); builtSig = ''; render(); if (p) { const b = blockById(p.blockId); if (b && hasGeo(b)) { const bd = pathBounds(GEO.paths[b.svgId]); const [cx, cy] = geoToLayer((bd.minX + bd.maxX) / 2, (bd.minY + bd.maxY) / 2); setTimeout(() => focusBox(cx, cy, Math.max(bd.maxX - bd.minX, 300), Math.max(bd.maxY - bd.minY, 300), 1.8), 80); } else if (b) { setTimeout(() => focusBox(b.x + b.w / 2, b.y + b.h / 2, b.w, b.h, 1.7), 80); } } }
+  function openSectorHub(smId) { if (!sectorMapById(smId)) return; window.logEvent('sector_viewed', { area: state.areaId || null, sector: smId }); window.logEvent('sector_proof_clicked', { area: state.areaId || null, sector: smId }); Object.assign(state, { section: 'props', propView: 'sector', selectedId: null, sectorBlock: smId, sectorMapMode: 'original', previewId: null, activePinId: null, drawerOpen: true }); builtSig = ''; render(); }
+  function showAreaContext(id) { const p = propById(id); window.logEvent('original_proof_clicked', { area: state.areaId || null, propertyId: id }); Object.assign(state, { section: 'master', mapMode: 'easy', showProps: true, selectedId: id, selectedIds: new Set([id]), itemOpen: false, previewId: id, drawerOpen: true }); builtSig = ''; render(); if (p) { const b = blockById(p.blockId); if (b && hasGeo(b)) { const bd = pathBounds(GEO.paths[b.svgId]); const [cx, cy] = geoToLayer((bd.minX + bd.maxX) / 2, (bd.minY + bd.maxY) / 2); setTimeout(() => focusBox(cx, cy, Math.max(bd.maxX - bd.minX, 300), Math.max(bd.maxY - bd.minY, 300), 1.8), 80); } else if (b) { setTimeout(() => focusBox(b.x + b.w / 2, b.y + b.h / 2, b.w, b.h, 1.7), 80); } } }
   function openLightbox(idx) {
     let photos, name;
     if (state.section === 'props' && state.propView === 'detail') { photos = photosFor('property', state.selectedId, 4); name = 'Plot ' + (propById(state.selectedId) || {}).plotNumber; }

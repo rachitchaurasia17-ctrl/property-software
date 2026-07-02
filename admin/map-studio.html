@@ -203,12 +203,8 @@ if (pmRole !== 'team' && pmRole !== 'dealer') {
           
           <!-- Default hidden legacy fields so JS doesn't break -->
           <div style="display:none;">
-            <div id="grp-roadType"><select id="f-roadType"><option value="Main Road">Main Road</option></select></div>
-            <div id="grp-blockType"><select id="f-blockType"><option value="Residential Block">Residential Block</option></select></div>
-            <div id="grp-parentSector"><select id="f-parentSector"><option value="">None</option></select></div>
             <div id="grp-sectorCode"><select id="f-sectorCode"><option value=""></option></select></div>
             <div id="grp-sectorTagGroup"><select id="f-sectorTagGroup"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="General">General</option></select></div>
-            <div id="grp-linkedMap"><select id="f-linkedMap"><option value="">None</option></select></div>
             <select id="f-status"><option value="Draft">Draft</option><option value="Published">Published</option></select>
             <div id="grp-checklist"></div>
             <div id="publish-warning"></div>
@@ -236,6 +232,16 @@ if (pmRole !== 'team' && pmRole !== 'dealer') {
             <input type="checkbox" id="ui-safe-marking" checked style="width:20px; height:20px;">
             <span style="font-size:13.5px; color:#216B4E; font-weight:600;">Only safe markings go to clients</span>
           </label>
+
+          <details style="margin-top:16px; font-size:13px; color:#56544A; cursor:pointer;">
+            <summary style="font-weight:700; padding:8px 0; outline:none;">Advanced Details</summary>
+            <div style="padding-top:8px; display:flex; flex-direction:column; gap:10px; cursor:default;">
+              <div id="grp-roadType">Road Type: <select id="f-roadType" style="width:100%; padding:6px; border-radius:6px; border:1px solid #ddd; margin-top:4px;"><option value="Main Road">Main Road</option><option value="Internal Road">Internal Road</option></select></div>
+              <div id="grp-blockType">Block Type: <select id="f-blockType" style="width:100%; padding:6px; border-radius:6px; border:1px solid #ddd; margin-top:4px;"><option value="Residential Block">Residential Block</option><option value="Commercial Block">Commercial Block</option></select></div>
+              <div id="grp-parentSector">Parent Sector: <select id="f-parentSector" style="width:100%; padding:6px; border-radius:6px; border:1px solid #ddd; margin-top:4px;"><option value="">None</option></select></div>
+              <div id="grp-linkedMap">Linked Map: <select id="f-linkedMap" style="width:100%; padding:6px; border-radius:6px; border:1px solid #ddd; margin-top:4px;"><option value="">None</option></select></div>
+            </div>
+          </details>
 
           <div style="margin-top:auto; display:flex; flex-direction:column; gap:11px; padding-top:20px;">
             <button type="button" id="ui-btn-draft" style="cursor:pointer; border:1.5px solid #E0DCD2; background:#fff; color:#2B2A25; font-weight:700; font-size:16px; padding:15px; border-radius:14px; transition:background 0.2s;">Save for later</button>
@@ -696,9 +702,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('drawing-actions').style.display = 'block';
     overlay.classList.add('drawing');
     
-    if (kind === 'road') instr.textContent = "Click along the road. Click Finish Drawing when done.";
-    if (kind === 'sectorTag') instr.textContent = "Use this only on masterplans. Click around a sector boundary, then link it.";
-    if (kind === 'block') instr.textContent = "Click around the block boundary. Click Finish Drawing when done.";
+    if (kind === 'road') instr.textContent = "Tap along the road. Tap Finish when done.";
+    if (kind === 'sectorTag') instr.textContent = "Use this only on masterplans. Tap around a sector boundary, then link it.";
+    if (kind === 'block') instr.textContent = "Tap around the boundary. Tap Finish when done.";
     instr.style.display = 'block';
 
     hideInspector();

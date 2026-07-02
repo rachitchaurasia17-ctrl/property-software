@@ -880,3 +880,17 @@ Open `/admin/map-studio.html`, pick the Aerocity masterplan from the registry, d
 
 ### Next Exact Step
 - Open the deployed site after Vercel finishes building this commit, then check `/app/plotmap/`, `/admin/owner.html`, `/admin/team.html`, `/admin/map-studio.html`, and one removed route such as `/admin/finance.html` against the local smoke results.
+## Client Presentation and Map Studio Layout Update
+
+### Client Presentation Updates
+- Made the map full-stage by hiding the right-side presentation panel by default.
+- Changed the presentation panel into a slide-in drawer that opens only when a map item is selected.
+- Ensured the map container takes full width and maintains `object-fit: contain` without being squeezed.
+
+### Map Studio Updates
+- Simplified tool instruction text for drawing roads, blocks, and sector tags.
+- Hid advanced inspector fields (e.g. Road Type, Block Type, Parent Sector, Linked Map) behind an 'Advanced Details' toggle inside the inspector.
+- Resolved duplicate instruction logic for 'block' tool.
+
+### Verification
+- Ran `node tools/audit-plotmap.js` successfully.
