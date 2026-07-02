@@ -68,3 +68,19 @@ Then manually verify `http://localhost:5173/app/plotmap/`:
 - no price, sold, add/edit, admin, or dealer-login controls in client view
 - map images keep their original proportions
 - tablet/mobile layout is still usable
+
+## Phase 3 - Data Reference Centralization
+
+Added `app/plotmap/datasets/map-config.js` as the first client data config loaded after `map-registry.js`.
+
+Centralized:
+
+- dataset ids
+- Tricity fallback original, overlay, geometry, markings, and sector map paths
+- legacy manifest fetch paths
+- public/private visibility rules for hidden categories, CRM drawing kinds, POI defaults, and sector pin types
+- sector pin labels
+- sector city ordering
+- property filter key order
+
+Existing behavior stays the same: `app/plotmap/data.js` still owns shared categories and the dataset registry, `app/plotmap/datasets/tricity.dataset.js` still owns the Tricity roads/blocks/zones/pins/properties/sector maps, and `app/plotmap/app.js` still owns rendering.

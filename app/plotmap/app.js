@@ -3,6 +3,19 @@
   const PM = window.PM;
   const el = (id) => document.getElementById(id);
   const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const CONFIG = PM.config || window.PM_CONFIG || {};
+  const VISIBILITY = CONFIG.visibility || {};
+  const DATASETS = CONFIG.datasets || {};
+  const TRICITY_DATASET_ID = DATASETS.tricity || 'tricity-aerotropolis';
+  const FILTER_KEYS = Array.isArray(CONFIG.filterKeys) && CONFIG.filterKeys.length ? CONFIG.filterKeys : ['type', 'area', 'location', 'size', 'blockId'];
+  const HIDDEN_CATEGORY_IDS = new Set(VISIBILITY.hiddenCategoryIds || ['green', 'entry']);
+  const CRM_SAFE_KINDS = new Set(VISIBILITY.publicCrmDrawingKinds || ['road', 'block', 'sectorTag']);
+  const POI_CATEGORY_IDS = new Set(VISIBILITY.defaultPoiCategoryIds || ['landmarks', 'institutions', 'it', 'entry']);
+  const PUBLIC_PIN_TYPES = new Set(VISIBILITY.publicSectorPinTypes || ['available-property', 'highlighted-property', 'landmark']);
+  const PIN_LABELS = Object.assign({ 'available-property': 'Available Property', 'highlighted-property': 'Highlighted Property', landmark: 'Landmark' }, CONFIG.sectorPinLabels || {});
+  const SECTOR_CITY_ORDER = Array.isArray(CONFIG.sectorCityOrder) && CONFIG.sectorCityOrder.length ? CONFIG.sectorCityOrder : ['Mohali', 'Panchkula', 'New Chandigarh', 'Aerocity'];
+  const MANIFEST_PATHS = Array.isArray(CONFIG.manifestPaths) && CONFIG.manifestPaths.length ? CONFIG.manifestPaths : ['./map-assets.manifest.json', '/app/plotmap/map-assets.manifest.json'];
+  const emptyFilters = () => FILTER_KEYS.reduce((out, key) => { out[key] = new Set(); return out; }, {});
 
   /* ---- reusable map engine: resolve the active dataset + its geometry ---- */
   let PM_MANIFEST = null;
@@ -109,7 +122,7 @@
     section: 'master', mapMode: 'original', sectorMapMode: 'original', showProps: false,
     activeCats: new Set(), displayCatId: null, selectedIds: new Set(), itemOpen: false,
     propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, activePinId: null,
-    filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set(), blockId: new Set() },
+    filters: emptyFilters(),
     secQ: '', secArea: 'all',
     lightbox: null, present: false, drawerOpen: false
   };
@@ -174,7 +187,7 @@
     if (!m) return true;
     return String(itemArea || '').toLowerCase() === String(m.area || '').toLowerCase();
   };
-  const activeCategories = () => PM.categoriesFor(DS).filter(c => c.id !== 'green' && c.id !== 'entry');
+  const activeCategories = () => PM.categoriesFor(DS).filter(c => !HIDDEN_CATEGORY_IDS.has(c.id));
   const catById = (id) => activeCategories().find(c => c.id === id) || PM.categoryById(id);
   const keyRoads = () => registryOverlayFlow() ? [] : (DS.keyRoads || []).filter(r => r && r.clientVisible !== false && r.id && r.name && r.easyD && Array.isArray(r.labelAt));
   const mapBlocks = () => registryOverlayFlow() ? [] : (DS.blocks || []).filter(b => b && b.clientVisible !== false && b.id && b.name && b.cat && rectOk(b));
@@ -190,14 +203,13 @@
 
   /* --- CRM Map Drawings --- */
   let CRM_DRAWINGS = [];
-  const CRM_SAFE_KINDS = new Set(['road', 'block', 'sectorTag']);
   function currentClientMapId() {
     if (state.section !== 'master') return null;
     if (mapKind() !== 'original' && mapKind() !== 'markings') return null;
     const registryMap = activeMasterMap();
     if (registryMap) return registryMap.id;
     const activeArea = area();
-    return activeArea && activeArea.dataset === 'tricity-aerotropolis' ? activeArea.dataset : null;
+    return activeArea && activeArea.dataset === TRICITY_DATASET_ID ? activeArea.dataset : null;
   }
   function isSafeCRMPoint(point) {
     return point && typeof point.x === 'number' && Number.isFinite(point.x) && point.x >= 0 && point.x <= 100 &&
@@ -770,14 +782,13 @@
       // Landmark / education / IT / entry POIs are shown by DEFAULT (premium, like
       // Apple Maps). When the dealer focuses a block or A/B/C/D set, POIs dim away
       // so the highlighted parcels stand out.
-      const POI_CATS = new Set(['landmarks', 'institutions', 'it', 'entry']);
       const noFocus = !hasSel && state.activeCats.size === 0;
       l.querySelectorAll('.o-pin').forEach(g => {
         const id = g.getAttribute('data-itempath');
         const cat = itemCategory(id);
         const inCat = state.activeCats.size > 0 && state.activeCats.has(cat);
         const isSel = selIds.has(id);
-        const defaultPoi = noFocus && POI_CATS.has(cat);
+        const defaultPoi = noFocus && POI_CATEGORY_IDS.has(cat);
         const isActive = isSel || inCat || defaultPoi;
         g.classList.toggle('act', isSel || inCat);
         g.classList.toggle('soft', defaultPoi && !isSel && !inCat);
@@ -870,8 +881,6 @@
   }
 
   /* ---------- SECTOR MAP PINS (normalized % coords; no price) ---------- */
-  const PUBLIC_PIN_TYPES = new Set(['available-property', 'highlighted-property', 'landmark']);
-  const PIN_LABELS = { 'available-property': 'Available Property', 'highlighted-property': 'Highlighted Property', 'landmark': 'Landmark' };
   function sectorPins() {
     const sm = activeSectorMap(); if (!sm) return [];
     const all = (window.PM_SECTOR_PINS && window.PM_SECTOR_PINS[sm.id]) || [];
@@ -910,7 +919,7 @@
       window.logEvent('presentation_opened', { area: state.areaId || null });
     }
   }
-  function resetPlan(extra) { return Object.assign({ section: 'master', mapMode: 'original', sectorMapMode: 'original', showProps: false, activeCats: new Set(), displayCatId: null, selectedIds: new Set(), previewIdx: 0, itemOpen: false, propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, activePinId: null, areaMenuOpen: false, filters: { type: new Set(), area: new Set(), location: new Set(), size: new Set(), blockId: new Set() }, secQ: '', secArea: 'all', drawerOpen: false }, extra || {}); }
+  function resetPlan(extra) { return Object.assign({ section: 'master', mapMode: 'original', sectorMapMode: 'original', showProps: false, activeCats: new Set(), displayCatId: null, selectedIds: new Set(), previewIdx: 0, itemOpen: false, propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, activePinId: null, areaMenuOpen: false, filters: emptyFilters(), secQ: '', secArea: 'all', drawerOpen: false }, extra || {}); }
 
   /* ---------- AREA SELECT ---------- */
   function areaSelectHTML() {
@@ -1176,21 +1185,27 @@
   }
   function matchProp(p) {
     const f = state.filters;
-    if (f.area.size && !f.area.has(p.area)) return false;
-    if (f.size.size && !f.size.has(p.size)) return false;
-    if (f.location.size && ![...f.location].some(l => p.near.includes(l))) return false;
-    if (f.blockId && f.blockId.size && !f.blockId.has(p.blockId)) return false;
-    if (f.type.size && ![...f.type].some(t => p.plotType === t || p.roadFacing === t || (t === 'Road Facing' && /Road/.test(p.roadFacing)) || (t === 'Corner Plot' && /Corner/.test(p.roadFacing)) || (t === 'Park Facing' && /Park/.test(p.roadFacing)))) return false;
+    const areaFilter = f.area || new Set();
+    const size = f.size || new Set();
+    const location = f.location || new Set();
+    const blockId = f.blockId || new Set();
+    const type = f.type || new Set();
+    if (areaFilter.size && !areaFilter.has(p.area)) return false;
+    if (size.size && !size.has(p.size)) return false;
+    if (location.size && ![...location].some(l => p.near.includes(l))) return false;
+    if (blockId.size && !blockId.has(p.blockId)) return false;
+    if (type.size && ![...type].some(t => p.plotType === t || p.roadFacing === t || (t === 'Road Facing' && /Road/.test(p.roadFacing)) || (t === 'Corner Plot' && /Corner/.test(p.roadFacing)) || (t === 'Park Facing' && /Park/.test(p.roadFacing)))) return false;
     return true;
   }
   function browseHTML() {
     const list = mapProperties().filter(matchProp);
-    const active = ['type', 'area', 'location', 'size', 'blockId'].reduce((n, k) => n + state.filters[k].size, 0);
-    const grp = (key) => { const g = DS.filters[key]; return `<div class="fgroup"><div class="fglabel">${g.label}</div><div class="fchips">${g.values.map(v => { const val = v.val || v, lab = v.label || v; const on = state.filters[key].has(val); return `<button class="fchip ${on ? 'on' : ''}" data-fk="${key}" data-fv="${esc(val)}">${esc(lab)}</button>`; }).join('')}</div></div>`; };
+    const filterKeys = FILTER_KEYS.filter(k => DS.filters && DS.filters[k]);
+    const active = FILTER_KEYS.reduce((n, k) => n + ((state.filters[k] && state.filters[k].size) || 0), 0);
+    const grp = (key) => { const g = DS.filters[key], s = state.filters[key] || new Set(); return `<div class="fgroup"><div class="fglabel">${g.label}</div><div class="fchips">${g.values.map(v => { const val = v.val || v, lab = v.label || v; const on = s.has(val); return `<button class="fchip ${on ? 'on' : ''}" data-fk="${key}" data-fv="${esc(val)}">${esc(lab)}</button>`; }).join('')}</div></div>`; };
     return `<div class="full-in">
       <div class="eyebrow">Selected properties</div>
       <div class="serif" style="font-size:40px;font-weight:560;letter-spacing:-1px;line-height:1.02;margin-top:6px">${esc(area().name)} Properties</div>
-      <div class="filters">${grp('type')}${grp('area')}${grp('location')}${grp('size')}${active ? '<button class="clear-all" id="clearF">Clear all filters</button>' : ''}</div>
+      <div class="filters">${filterKeys.map(grp).join('')}${active ? '<button class="clear-all" id="clearF">Clear all filters</button>' : ''}</div>
       ${list.length ? `<div class="grid-cards">${list.map(cardHTML).join('')}</div>` : `<div class="empty" style="background:#fff; border:1px solid #EBE1CC; border-radius:18px; padding:60px 40px; margin-top:24px;"><div style="font-size:36px; margin-bottom:12px;">🔍</div><div style="font-size:18px; font-weight:700; color:#0B1A36;">No properties match</div><div style="font-size:14px; margin-top:6px; color:#6B6456;">Try adjusting your filters to see more results.</div><button class="btn-ghost" id="clearF2" style="margin:6px auto 0; height:42px; padding:0 18px">Clear all filters</button></div>`}
     </div>`;
   }
@@ -1233,7 +1248,7 @@
     if (q) list = list.filter(s => (mapTitle(s) + ' ' + mapCity(s) + ' ' + (s.area || '')).toLowerCase().includes(q));
     // City chips: preferred order first, then any others present, then "Other".
     const present = new Set(all.map(mapCity));
-    const preferred = ['Mohali', 'Panchkula', 'New Chandigarh', 'Aerocity'].filter(c => present.has(c));
+    const preferred = SECTOR_CITY_ORDER.filter(c => present.has(c));
     const extras = [...present].filter(c => !preferred.includes(c) && c !== 'Other').sort();
     const cities = preferred.concat(extras).concat(present.has('Other') ? ['Other'] : []);
     const chips = [['all', 'All']].concat(cities.map(c => [c, c]));
@@ -1420,7 +1435,7 @@
     each('[data-areacontext]', b => b.addEventListener('click', () => showAreaContext(b.getAttribute('data-areacontext'))));
 
     // filters (multi-select)
-    each('[data-fk]', b => b.addEventListener('click', () => { const k = b.getAttribute('data-fk'), v = b.getAttribute('data-fv'); const s = state.filters[k]; s.has(v) ? s.delete(v) : s.add(v); el('full').innerHTML = browseHTML(); bindPlan(); }));
+    each('[data-fk]', b => b.addEventListener('click', () => { const k = b.getAttribute('data-fk'), v = b.getAttribute('data-fv'); const s = state.filters[k] || (state.filters[k] = new Set()); s.has(v) ? s.delete(v) : s.add(v); el('full').innerHTML = browseHTML(); bindPlan(); }));
     on('clearF', clearFilters); on('clearF2', clearFilters);
 
     // sector hub
@@ -1450,7 +1465,7 @@
     setTimeout(() => focusBox(cx, cy, Math.max(x1 - x0, 600), Math.max(y1 - y0, 600), 1.5), 60);
   }
   function toggleProps() { state.showProps = !state.showProps; state.previewId = null; refreshControls(); updateMapOverlays(); if (state.showProps) focusProps(); else fit(); }
-  function clearFilters() { state.filters = { type: new Set(), area: new Set(), location: new Set(), size: new Set(), blockId: new Set() }; render(); }
+  function clearFilters() { state.filters = emptyFilters(); render(); }
 
   function selectItem(id, kind) {
     if (state.selectedIds.has(id)) {
@@ -1507,13 +1522,15 @@
   
   try {
     if (!mapRegistry()) {
-      let mRes;
-      try {
-        mRes = await fetch('./map-assets.manifest.json');
-      } catch(err1) {
-        mRes = await fetch('/app/plotmap/map-assets.manifest.json');
+      for (const manifestPath of MANIFEST_PATHS) {
+        try {
+          const mRes = await fetch(manifestPath);
+          if (mRes && mRes.ok) {
+            PM_MANIFEST = await mRes.json();
+            break;
+          }
+        } catch (err) {}
       }
-      PM_MANIFEST = await mRes.json();
     }
   } catch(e) {
     console.error('Failed to load legacy map manifest', e);

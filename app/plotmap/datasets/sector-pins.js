@@ -6,5 +6,7 @@
    Pin shape:
    { id, title, type, x, y, size, block, roadFacing, status, notes, image }
    type: 'available-property' | 'highlighted-property' | 'landmark'
+   Client rendering also checks PM_CONFIG.visibility.publicSectorPinTypes,
+   so internal-only or future-update pin types stay hidden.
    ============================================================ */
 window.PM_SECTOR_PINS = {};

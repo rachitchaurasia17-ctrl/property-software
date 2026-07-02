@@ -6,12 +6,15 @@
    Aerocity/Aerotropolis is the first dataset (datasets/tricity.dataset.js).
    To add a city: drop a new dataset file + point an area at it below.
    ============================================================ */
+const PM_CORE_CONFIG = window.PM_CONFIG || {};
+const PM_CORE_DATASETS = PM_CORE_CONFIG.datasets || {};
+const PM_CORE_TRICITY_DATASET_ID = PM_CORE_DATASETS.tricity || 'tricity-aerotropolis';
 const PM_FOLDER_REGISTRY = window.PM_MAP_REGISTRY || null;
 const PM_REGISTRY_MASTERPLANS = PM_FOLDER_REGISTRY && Array.isArray(PM_FOLDER_REGISTRY.masterplans)
   ? PM_FOLDER_REGISTRY.masterplans.map(id => PM_FOLDER_REGISTRY.byId && PM_FOLDER_REGISTRY.byId[id]).filter(Boolean)
   : [];
 const PM_FALLBACK_AREAS = [
-  { id:'aerotropolis', name:'Aerocity', sub:'Mega Map', live:true,  hook:'Mega Aerocity Map', dataset:'tricity-aerotropolis', focusArea:'Aerocity' },
+  { id:'aerotropolis', name:'Aerocity', sub:'Mega Map', live:true,  hook:'Mega Aerocity Map', dataset:PM_CORE_TRICITY_DATASET_ID, focusArea:'Aerocity' },
   { id:'zirakpur',     name:'Zirakpur',     sub:'',                 live:false, dataset:null },
   { id:'mohali',       name:'Mohali',       sub:'',                 live:false, dataset:null },
   { id:'new-chandigarh',name:'New Chandigarh',sub:'Mullanpur',      live:false, dataset:null },
@@ -24,12 +27,13 @@ const PM_REGISTRY_AREAS = PM_REGISTRY_MASTERPLANS.map(map => ({
   sub: [map.area, map.hasEasyMap ? '3D' : null, map.hasOriginalMap ? 'Original' : null].filter(Boolean).join(' · '),
   live: true,
   hook: map.hasEasyMap && map.hasOriginalMap ? '3D + original proof' : (map.hasEasyMap ? '3D map available' : 'Original proof map'),
-  dataset: 'tricity-aerotropolis',
+  dataset: PM_CORE_TRICITY_DATASET_ID,
   focusArea: map.area,
   mapRegistryId: map.id
 }));
 
 window.PM = {
+  config: PM_CORE_CONFIG,
   /* shared value-driver taxonomy (datasets map their items onto these) */
   categories: [
     { id:'roads',        label:'Key Roads',                color:'#16356A', kind:'line' },

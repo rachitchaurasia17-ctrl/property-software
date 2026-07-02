@@ -5,6 +5,25 @@
      annotation arrays (roads/blocks/zones/pins), sectorMaps, properties.
    No price anywhere — client-facing only.
     ============================================================ */
+const PM_TRICITY_CONFIG = window.PM_CONFIG || {};
+const PM_TRICITY_DATASET_ID = (PM_TRICITY_CONFIG.datasets && PM_TRICITY_CONFIG.datasets.tricity) || 'tricity-aerotropolis';
+const PM_TRICITY_FALLBACK_ASSETS = Object.assign({
+  original: '/public/plotmap-assets/aerotropolis-original-web.jpg',
+  overlay: '/public/plotmap-assets/aerotropolis-overlays.svg',
+  overlayGeo: '/app/plotmap/geo.json',
+  markings: '/public/plotmap-assets/markings.jpg',
+  sector: '/public/plotmap-assets/sector-map.jpg'
+}, (PM_TRICITY_CONFIG.fallbackAssets && PM_TRICITY_CONFIG.fallbackAssets.tricity) || {});
+const PM_TRICITY_FALLBACK_SECTOR_MAPS = [
+  { id:'sm-ac-a', area:'Aerocity', block:'Sector 66A', name:'Aerocity \u2014 Sector 66A', asset:PM_TRICITY_FALLBACK_ASSETS.sector, status:'ready' },
+  { id:'sm-ac-b', area:'Aerocity', block:'Sector 66B', name:'Aerocity \u2014 Sector 66B', asset:PM_TRICITY_FALLBACK_ASSETS.sector, status:'ready' },
+  { id:'sm-ac-c', area:'Aerocity', block:'Sector 82', name:'Aerocity \u2014 Sector 82', asset:PM_TRICITY_FALLBACK_ASSETS.sector, status:'ready' },
+  { id:'sm-ac-1', area:'Aerocity', block:'Sector 82A', name:'Aerocity \u2014 Sector 82A', asset:PM_TRICITY_FALLBACK_ASSETS.sector, status:'ready' },
+  { id:'sm-at-a', area:'Aerocity', block:'Block A', name:'Aerocity \u2014 Block A', asset:PM_TRICITY_FALLBACK_ASSETS.sector, status:'ready' },
+  { id:'sm-at-b', area:'Aerocity', block:'Block B', name:'Aerocity \u2014 Block B', asset:PM_TRICITY_FALLBACK_ASSETS.sector, status:'ready' },
+  { id:'sm-at-c', area:'Aerocity', block:'Block C', name:'Aerocity \u2014 Block C', status:'planned' },
+  { id:'sm-at-d', area:'Aerocity', block:'Block D', name:'Aerocity \u2014 Block D', status:'planned' }
+];
 const PM_TRICITY_REGISTRY = window.PM_MAP_REGISTRY || null;
 const PM_TRICITY_REGISTRY_MAPS = PM_TRICITY_REGISTRY && Array.isArray(PM_TRICITY_REGISTRY.maps) ? PM_TRICITY_REGISTRY.maps : [];
 const PM_TRICITY_MASTERPLANS = PM_TRICITY_REGISTRY_MAPS.filter(map => map && map.type === 'masterplan' && map.status === 'active');
@@ -17,18 +36,19 @@ const PM_TRICITY_SRC = (map, kind) => {
     : (map.originalMapSrc || map.easyMapSrc || null);
 };
 
-window.PM.registerDataset('tricity-aerotropolis', {
+window.PM.registerDataset(PM_TRICITY_DATASET_ID, {
   name: PM_TRICITY_DEFAULT_MASTERPLAN ? PM_TRICITY_DEFAULT_MASTERPLAN.title : 'Mega Aerocity Map',
   EASY_W: 1440, EASY_H: 960,        // Easy Map design canvas
   IMG_W: 4599, IMG_H: 3069,         // Original PNG / overlay space
   categories: ['roads','blocks','sectors','commercial','institutions','it','green','growth','entry','landmarks'],
 
   assets: {
-    original:   PM_TRICITY_SRC(PM_TRICITY_DEFAULT_MASTERPLAN, 'original') || '/public/plotmap-assets/aerotropolis-original-web.jpg',
-    overlay:    PM_TRICITY_REGISTRY ? null : '/public/plotmap-assets/aerotropolis-overlays.svg',
-    overlayGeo: PM_TRICITY_REGISTRY ? null : '/app/plotmap/geo.json',          // extracted geometry for Original-Map highlights (also enables Easy Map)
-    markings:   PM_TRICITY_SRC(PM_TRICITY_DEFAULT_MASTERPLAN, 'easy') || (PM_TRICITY_REGISTRY ? null : '/public/plotmap-assets/markings.jpg'),
-    sector:     PM_TRICITY_SRC(PM_TRICITY_SECTOR_MAPS[0], 'original') || '/public/plotmap-assets/sector-map.jpg'
+    // Fallbacks are only used when the generated folder registry is unavailable.
+    original:   PM_TRICITY_SRC(PM_TRICITY_DEFAULT_MASTERPLAN, 'original') || PM_TRICITY_FALLBACK_ASSETS.original,
+    overlay:    PM_TRICITY_REGISTRY ? null : PM_TRICITY_FALLBACK_ASSETS.overlay,
+    overlayGeo: PM_TRICITY_REGISTRY ? null : PM_TRICITY_FALLBACK_ASSETS.overlayGeo, // extracted proof geometry for Original/Easy map highlights
+    markings:   PM_TRICITY_SRC(PM_TRICITY_DEFAULT_MASTERPLAN, 'easy') || (PM_TRICITY_REGISTRY ? null : PM_TRICITY_FALLBACK_ASSETS.markings),
+    sector:     PM_TRICITY_SRC(PM_TRICITY_SECTOR_MAPS[0], 'original') || PM_TRICITY_FALLBACK_ASSETS.sector
   },
 
   /* KEY ROADS: easyD = clean path (design space); svgId -> overlay geometry (Original).
@@ -136,16 +156,7 @@ window.PM.registerDataset('tricity-aerotropolis', {
     hasOriginalMap: map.hasOriginalMap,
     dimensions: map.dimensions,
     status:'ready'
-  })) : [
-    { id:'sm-ac-a', area:'Aerocity', block:'Sector 66A', name:'Aerocity — Sector 66A', asset:'/public/plotmap-assets/sector-map.jpg', status:'ready' },
-    { id:'sm-ac-b', area:'Aerocity', block:'Sector 66B', name:'Aerocity — Sector 66B', asset:'/public/plotmap-assets/sector-map.jpg', status:'ready' },
-    { id:'sm-ac-c', area:'Aerocity', block:'Sector 82', name:'Aerocity — Sector 82', asset:'/public/plotmap-assets/sector-map.jpg', status:'ready' },
-    { id:'sm-ac-1', area:'Aerocity', block:'Sector 82A', name:'Aerocity — Sector 82A', asset:'/public/plotmap-assets/sector-map.jpg', status:'ready' },
-    { id:'sm-at-a', area:'Aerocity', block:'Block A', name:'Aerocity — Block A', asset:'/public/plotmap-assets/sector-map.jpg', status:'ready' },
-    { id:'sm-at-b', area:'Aerocity', block:'Block B', name:'Aerocity — Block B', asset:'/public/plotmap-assets/sector-map.jpg', status:'ready' },
-    { id:'sm-at-c', area:'Aerocity', block:'Block C', name:'Aerocity — Block C', status:'planned' },
-    { id:'sm-at-d', area:'Aerocity', block:'Block D', name:'Aerocity — Block D', status:'planned' }
-  ],
+  })) : PM_TRICITY_FALLBACK_SECTOR_MAPS,
 
   filters: {
     type:     { label:'Property Type', values:['Residential Plot','Commercial Plot','Villa','Park Facing','Corner Plot','Road Facing'] },
