@@ -1,0 +1,41 @@
+/* PlotMap production overlays: SVG/CSS layers above untouched proof maps. */
+.plotmap-map-stage{position:absolute;left:0;top:0;pointer-events:none;}
+.plotmap-base-map{position:absolute;left:0;top:0;}
+.plotmap-overlay-root{overflow:visible;z-index:8;}
+.plotmap-road-layer,.plotmap-selection-layer{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
+.plotmap-road-layer{pointer-events:none;}
+.plotmap-selection-layer{pointer-events:none;}
+
+.plotmap-road .road-shadow,
+.plotmap-road .road-body,
+.plotmap-road .road-core,
+.plotmap-road .road-hit{fill:none;stroke-linecap:round;stroke-linejoin:round;}
+.road-shadow{stroke:rgba(0,26,58,.5);stroke-width:17;filter:blur(5px);transform:translateY(5px);opacity:.72;}
+.road-body{stroke:rgba(31,196,255,.74);stroke-width:11;filter:url(#plotmapRoadGlow) drop-shadow(0 0 12px rgba(27,188,255,.72));opacity:.86;}
+.road-core{stroke:rgba(242,253,255,.96);stroke-width:3.4;filter:drop-shadow(0 0 5px rgba(255,255,255,.9)) drop-shadow(0 0 13px rgba(0,178,255,.85));}
+.road-hit{stroke:rgba(0,0,0,0);stroke-width:28;pointer-events:stroke;cursor:pointer;}
+
+.plotmap-shape{pointer-events:visiblePainted;cursor:pointer;stroke-linejoin:round;transition:opacity .18s ease,filter .18s ease;}
+.plotmap-shape-sector{fill:rgba(168,127,31,.13);stroke:rgba(255,218,128,.72);stroke-width:2.2;filter:drop-shadow(0 8px 10px rgba(37,28,9,.22));}
+.plotmap-shape-block{fill:rgba(255,213,104,.17);stroke:rgba(255,237,178,.78);stroke-width:2.1;filter:drop-shadow(0 7px 9px rgba(38,27,8,.18));}
+.plotmap-shape-landmark{fill:rgba(255,199,76,.16);stroke:rgba(255,214,92,.85);stroke-width:2.4;filter:drop-shadow(0 0 9px rgba(246,181,45,.24));}
+.plotmap-shape:hover{opacity:.96;filter:drop-shadow(0 10px 14px rgba(32,24,8,.28)) drop-shadow(0 0 10px rgba(255,220,120,.34));}
+
+.selected-house,.selected-school{position:absolute;border:none;background:transparent;padding:0;pointer-events:auto;cursor:pointer;transform-origin:center bottom;}
+.selected-house{border-radius:7px;background:linear-gradient(145deg,rgba(255,242,158,.58),rgba(255,176,26,.28));box-shadow:0 0 10px rgba(255,220,85,.82),0 0 22px rgba(255,176,30,.46),0 13px 22px rgba(0,0,0,.32),inset 0 1px 3px rgba(255,255,255,.68),inset 0 -5px 10px rgba(110,60,0,.2);border:2px solid rgba(255,229,105,.96);transform:perspective(900px) rotateX(8deg) translateY(-7px);}
+.selected-school{border-radius:8px;background:linear-gradient(145deg,rgba(255,229,137,.45),rgba(255,179,39,.18));box-shadow:0 0 8px rgba(255,210,75,.7),0 15px 26px rgba(0,0,0,.28),inset 0 1px 3px rgba(255,255,255,.58);border:2px solid rgba(255,210,82,.96);transform:translateY(-5px);}
+.overlay-box-shine{position:absolute;inset:4px;border-radius:5px;border:1px solid rgba(255,255,255,.42);background:linear-gradient(135deg,rgba(255,255,255,.34),transparent 48%);pointer-events:none;}
+
+.map-pin{position:absolute;width:34px;height:34px;transform:translate(-50%,-118%) rotate(-45deg);border-radius:50% 50% 50% 0;background:radial-gradient(circle at 50% 50%,#fff 0 5px,rgba(255,255,255,0) 5.6px),linear-gradient(145deg,#58D8FF,#0077E7 60%,#004EA8);border:3px solid #fff;box-shadow:0 0 9px rgba(0,190,255,.82),0 11px 20px rgba(0,0,0,.34);pointer-events:auto;cursor:pointer;z-index:7;}
+.map-pin span{position:absolute;left:50%;top:50%;width:8px;height:8px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);}
+
+.overlay-info-card{position:absolute;min-width:168px;max-width:220px;z-index:12;display:flex;flex-direction:column;gap:4px;padding:10px 12px;border:1px solid rgba(35,32,26,.14);border-radius:10px;background:rgba(255,253,247,.97);box-shadow:0 15px 34px rgba(32,24,8,.24);color:#23201A;pointer-events:auto;}
+.overlay-info-card b{font-size:13.5px;line-height:1.15;}
+.overlay-info-card span{font-size:11.5px;color:#7B705E;text-transform:capitalize;}
+
+.overlay-capture-panel{position:fixed;left:14px;bottom:14px;z-index:9999;width:min(360px,calc(100vw - 28px));background:rgba(15,23,42,.94);color:#EAF6FF;border:1px solid rgba(125,211,252,.38);border-radius:12px;padding:12px;box-shadow:0 18px 40px rgba(0,0,0,.32);font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;}
+.capture-title{font-weight:800;margin-bottom:8px;}
+.capture-modes{display:flex;gap:6px;margin-bottom:8px;}
+.capture-modes button{height:28px;border-radius:7px;border:1px solid rgba(125,211,252,.35);background:rgba(15,23,42,.7);color:#EAF6FF;font:inherit;cursor:pointer;padding:0 9px;}
+.capture-modes button.is-active{background:#0EA5E9;border-color:#7DD3FC;color:#fff;}
+.capture-output{white-space:pre-wrap;margin:0;max-height:130px;overflow:auto;color:#D9F3FF;}

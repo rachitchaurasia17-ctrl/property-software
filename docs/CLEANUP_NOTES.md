@@ -84,3 +84,33 @@ Centralized:
 - property filter key order
 
 Existing behavior stays the same: `app/plotmap/data.js` still owns shared categories and the dataset registry, `app/plotmap/datasets/tricity.dataset.js` still owns the Tricity roads/blocks/zones/pins/properties/sector maps, and `app/plotmap/app.js` still owns rendering.
+
+## Overlay Engine - Design Handoff Implementation
+
+Added the first production overlay engine from the map studio design handoff.
+
+Changed:
+
+- Added `app/plotmap/datasets/overlays.js` for public overlay data keyed by stable map ids.
+- Added `app/plotmap/overlay-engine.js` to render SVG roads/shapes and HTML plot, landmark, pin, and info-card overlays above the existing map image.
+- Added `app/plotmap/overlay-capture.js` for coordinate capture behind `?overlayCapture=1`; the panel is not present in the normal client route.
+- Added `app/plotmap/styles/overlays.css` for raised blue road overlays, subtle lifted sectors/blocks, gold selected plot frames, school/landmark frames, and premium blue pins.
+- Wired the engine through `app/plotmap/app.js` after the existing map image is rendered, so maps without overlay data continue to behave normally.
+- Loaded the new overlay files in `app/plotmap/index.html` without adding frameworks, bundlers, backend, or new dependencies.
+
+Used from the handoff:
+
+- New Chandigarh overlay geometry from `map-data.js`
+- New Chandigarh `GROUPS`, `ROADS`, `SHAPES`, and selected pin references
+- Sector 28 visual reference for a small sample overlay on the existing stable Sector 28 id
+- Premium raised-road, selected-plot, school/landmark, and blue-pin visual language
+
+Not copied:
+
+- Claude Design wrapper/runtime
+- generated studio shell
+- add/edit/publish/manage controls
+- fake map-card data
+- uploaded map image assets
+
+All original map files remain untouched.

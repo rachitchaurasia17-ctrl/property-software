@@ -440,10 +440,31 @@
     if (state.mapMode === 'markings' && !markingsAvailable()) return 'original';
     return state.mapMode;
   }
+  function activeOverlayMapId(kind, sectorSm) {
+    if (kind === 'sector') return sectorSm && sectorSm.id;
+    const m = activeMasterMap();
+    return m && m.id;
+  }
+  function mountPlotMapOverlay(kind, sectorSm, mode) {
+    const l = layer();
+    if (!l || !window.PlotMapOverlayEngine) return;
+    const mapId = activeOverlayMapId(kind, sectorSm);
+    window.PlotMapOverlayEngine.mount({
+      container: l,
+      mapId,
+      width: LW,
+      height: LH,
+      mode: mode || kind,
+      client: true
+    });
+    if (window.PlotMapOverlayCapture) {
+      window.PlotMapOverlayCapture.refresh({ container: l, mapId, mode: mode || kind });
+    }
+  }
   function buildMap() {
     const kind = mapKind(); const sig = [state.areaId, kind, state.sectorBlock || '', kind === 'sector' ? state.sectorMapMode : state.mapMode].join('|'); const fresh = sig !== builtSig;
     const l = layer(); if (!l) return;
-    let html = '', sectorSm = null;
+    let html = '', sectorSm = null, sectorMode = kind;
     if (kind === 'easy') {
       // easySVG() computes the geometry frame (EGW/EGH) before we size the layer
       html = easySVG(); LW = EGW; LH = EGH;
@@ -453,7 +474,7 @@
     } else if (kind === 'sector') {
       // size the layer to the map image so percentage pin coords are accurate
       sectorSm = activeSectorMap();
-      const sectorMode = state.sectorMapMode === 'easy' && sectorSm && sectorSm.hasEasyMap ? 'easy' : 'original';
+      sectorMode = state.sectorMapMode === 'easy' && sectorSm && sectorSm.hasEasyMap ? 'easy' : 'original';
       const dim = sectorSm && (sectorMode === 'easy'
         ? (sectorSm.easyDimensions || sectorSm.dimensions)
         : (sectorSm.originalDimensions || sectorSm.dimensions));
@@ -471,21 +492,21 @@
     fetchCRMDrawings(currentClientMapId());
     if (kind === 'original') {
       const src = activeMasterSrc('original') || DS.assets.original;
-      l.innerHTML = `<img class="orig" src="${src}" alt="Official masterplan" style="width:${LW}px;height:${LH}px;max-width:none;">` + origSVG();
+      l.innerHTML = `<img class="orig plotmap-base-map" src="${src}" alt="Official masterplan" style="width:${LW}px;height:${LH}px;max-width:none;">` + origSVG();
     }
     else if (kind === 'markings') {
       const src = activeMasterSrc('markings') || DS.assets.markings;
       const cls = activeMasterMap() ? 'orig' : 'orig-crop';
-      l.innerHTML = `<img class="${cls}" src="${src}" alt="3D masterplan" style="width:${LW}px;height:${LH}px;max-width:none;">` + origSVG();
+      l.innerHTML = `<img class="${cls} plotmap-base-map" src="${src}" alt="3D masterplan" style="width:${LW}px;height:${LH}px;max-width:none;">` + origSVG();
     }
     else if (kind === 'sector') {
-      const sectorMode = state.sectorMapMode === 'easy' && sectorSm && sectorSm.hasEasyMap ? 'easy' : 'original';
       const sectorAsset = sectorMode === 'easy'
         ? (toPublicAssetPath(sectorSm && sectorSm.easyMapSrc) || mapImage(sectorSm))
         : (toPublicAssetPath(sectorSm && sectorSm.originalMapSrc) || mapImage(sectorSm) || (DS && DS.assets && DS.assets.sector));
-      l.innerHTML = `<div class="sector-wrap" style="width:${LW}px;height:${LH}px"><img class="sector-img" src="${sectorAsset}" alt="Official sector map" loading="eager" decoding="async"></div><div id="sectorPinG"></div><div id="proofG"></div>`;
+      l.innerHTML = `<div class="sector-wrap" style="width:${LW}px;height:${LH}px"><img class="sector-img plotmap-base-map" src="${sectorAsset}" alt="Official sector map" loading="eager" decoding="async"></div><div id="sectorPinG"></div><div id="proofG"></div>`;
     }
     else l.innerHTML = html;
+    mountPlotMapOverlay(kind, sectorSm, sectorMode);
     builtSig = sig; updateMapOverlays();
     if (fresh) requestAnimationFrame(fit); else applyT(false);
   }
