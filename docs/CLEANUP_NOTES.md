@@ -122,3 +122,10 @@ All original map files remain untouched.
 - Added defensive property fallbacks and missing-coordinate guards for selected pin highlights.
 - Reduced road glow/stroke weight, shape fill opacity, plot/school lift, and pin size so map labels remain readable.
 - Removed hardcoded coordinates from pins that already target selected plot/school boxes.
+
+## Root Landing Gateway Restore
+
+- Restored `/` as a self-contained PlotMap role-selection gateway instead of redirecting directly to `/app/plotmap/`.
+- Mapped Client Login to `/app/plotmap/`, Dealer Login to `/admin/owner.html`, and Team Login to `/admin/team.html`.
+- Kept dealer/team role selection outside the client map route by setting `plotmap_admin_role` only from the root gateway before opening existing admin pages.
+- Updated the local dev server so `/` serves the root landing page while `/app/plotmap/` remains the clean client-facing map product.

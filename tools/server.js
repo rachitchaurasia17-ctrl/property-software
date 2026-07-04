@@ -4,7 +4,7 @@
  * - Serves the whole project statically (maps, app, admin, data).
  * - POST /api/polygons/:id  -> writes maps/polygons/:id.json (Phase 5 save).
  * - GET  /api/maps          -> maps/metadata/index.json
- * No external deps. Run: node tools/server.js  (http://localhost:5173/app/plotmap/)
+ * No external deps. Run: node tools/server.js  (http://localhost:5173/)
  */
 const http = require('http');
 const fs = require('fs');
@@ -45,7 +45,7 @@ const server = http.createServer((req, res) => {
     catch { return send(res, 404, '[]'); }
   }
 
-  if (pathname === '/') pathname = '/app/plotmap/index.html';
+  if (pathname === '/') pathname = '/index.html';
   if (pathname.endsWith('/')) pathname += 'index.html';
   const fp = path.join(ROOT, pathname);
   if (!fp.startsWith(ROOT)) return send(res, 403, 'forbidden', 'text/plain');
