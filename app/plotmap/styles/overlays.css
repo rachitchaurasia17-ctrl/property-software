@@ -29,9 +29,9 @@
 .map-pin{position:absolute;width:22px;height:24px;transform:translate(-50%,-112%) rotate(-45deg);border-radius:50% 50% 50% 0;background:radial-gradient(circle at 50% 50%,#fff 0 3.2px,rgba(255,255,255,0) 3.8px),linear-gradient(145deg,#58D8FF,#0877DC 62%,#0750A0);border:2px solid #fff;box-shadow:0 0 5px rgba(0,176,240,.5),0 7px 12px rgba(0,0,0,.24);pointer-events:auto;cursor:pointer;z-index:7;}
 .map-pin span{position:absolute;left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);}
 
-.overlay-info-card{position:absolute;min-width:168px;max-width:220px;z-index:12;display:flex;flex-direction:column;gap:4px;padding:10px 12px;border:1px solid rgba(35,32,26,.14);border-radius:10px;background:rgba(255,253,247,.97);box-shadow:0 15px 34px rgba(32,24,8,.24);color:#23201A;pointer-events:auto;}
-.overlay-info-card b{font-size:13.5px;line-height:1.15;}
-.overlay-info-card span{font-size:11.5px;color:#7B705E;text-transform:capitalize;}
+.overlay-info-card{position:absolute;min-width:168px;max-width:220px;z-index:12;display:flex;flex-direction:column;gap:4px;padding:12px 14px;border:1px solid rgba(255,255,255,.15);border-radius:12px;background:rgba(22,53,106,.85);backdrop-filter:blur(12px);box-shadow:0 14px 32px rgba(6,14,32,.35);color:#FBF6EA;pointer-events:auto;font-family:'Hanken Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+.overlay-info-card b{font-family:'Newsreader',serif;font-size:16px;font-weight:560;letter-spacing:-.2px;line-height:1.15;}
+.overlay-info-card span{font-size:12.5px;color:rgba(251,246,234,.75);text-transform:capitalize;font-weight:550;}
 
 .overlay-capture-panel{position:fixed;left:14px;bottom:14px;z-index:9999;width:min(360px,calc(100vw - 28px));background:rgba(15,23,42,.94);color:#EAF6FF;border:1px solid rgba(125,211,252,.38);border-radius:12px;padding:12px;box-shadow:0 18px 40px rgba(0,0,0,.32);font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;}
 .capture-title{font-weight:800;margin-bottom:8px;}
