@@ -114,3 +114,11 @@ Not copied:
 - uploaded map image assets
 
 All original map files remain untouched.
+
+## Phase 4 - Overlay Stability And Polish
+
+- Switched production overlay SVGs from stretched rendering to `xMidYMid meet`.
+- Matched HTML overlay boxes/pins to the same fitted overlay content area.
+- Added defensive property fallbacks and missing-coordinate guards for selected pin highlights.
+- Reduced road glow/stroke weight, shape fill opacity, plot/school lift, and pin size so map labels remain readable.
+- Removed hardcoded coordinates from pins that already target selected plot/school boxes.

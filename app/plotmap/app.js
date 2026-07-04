@@ -272,7 +272,7 @@
   };
   const activeSectorMap = () => sectorMapById(state.sectorBlock) || sectorMapForProperty(propById(state.selectedId)) || readySectorMaps()[0] || null;
   const hasSectorMap = (p) => !!sectorMapForProperty(p);
-  const itemObj = (id) => roadById(id) || zoneById(id) || pinById(id) || blockById(id) || crmDrawingById(id);
+  const itemObj = (id) => roadById(id) || zoneById(id) || pinById(id) || blockById(id) || propById(id) || crmDrawingById(id);
   const driverName = (id) => {
     const o = itemObj(id);
     if (!o) return id;
@@ -390,7 +390,8 @@
     }
     // Fallback for items without traced geometry (schematic coords).
     if (kind === 'block' || kind === 'zone') { focusBox(o.x + o.w / 2, o.y + o.h / 2, o.w, o.h, 1.7); }
-    else if (kind === 'pin') { focusBox(o.at[0], o.at[1], 260, 260, 1.5); }
+    else if (kind === 'pin' && Array.isArray(o.at)) { focusBox(o.at[0], o.at[1], 260, 260, 1.5); }
+    else if (kind === 'pin' && Array.isArray(o.plotAt)) { focusBox((o.plotAt[0] / 100) * LW, (o.plotAt[1] / 100) * LH, 260, 260, 1.5); }
   }
   function pathPoints(d) { return (d.match(/-?\d+(\.\d+)?/g) || []).map(Number).reduce((a, n, i, arr) => { if (i % 2 === 0) a.push([n, arr[i + 1]]); return a; }, []); }
   /* --- real-geometry helpers (shared by Original + Easy maps) ---
@@ -846,10 +847,14 @@
            let pinHtml = '';
            selIds.forEach(sel => {
              if (itemKindOf(sel) === 'pin') {
-               const it = itemObj(sel); let cx = 0, cy = 0;
-               if (it.at) { cx = (it.at[0] / EW) * IW; cy = (it.at[1] / EH) * IH; }
-               const c = catColor(it.cat);
-               pinHtml += `<g style="transform:translate(${cx}px,${cy}px)"><circle cx="0" cy="0" r="58" fill="${c}" opacity="0.3"/><circle cx="0" cy="0" r="42" fill="none" stroke="${c}" stroke-width="12"/></g>`;
+                const it = itemObj(sel);
+                if (!it) return;
+                let cx = 0, cy = 0;
+                if (Array.isArray(it.at)) { cx = (it.at[0] / EW) * IW; cy = (it.at[1] / EH) * IH; }
+                else if (Array.isArray(it.plotAt)) { cx = (it.plotAt[0] / 100) * IW; cy = (it.plotAt[1] / 100) * IH; }
+                else return;
+                const c = catColor(it.cat || itemCategory(sel));
+                pinHtml += `<g style="transform:translate(${cx}px,${cy}px)"><circle cx="0" cy="0" r="58" fill="${c}" opacity="0.3"/><circle cx="0" cy="0" r="42" fill="none" stroke="${c}" stroke-width="12"/></g>`;
              }
            });
            if (pinHtml) sp.insertAdjacentHTML('beforeend', pinHtml);
@@ -1085,6 +1090,7 @@
       id = ids[idx];
       kind = itemKindOf(id);
       it = itemObj(id);
+      if (!it) return '';
       cat = catById(itemCategory(id)) || { label: 'Map Overlay', color: '#16356A' };
       hasPhotos = it.photos !== false && !isCrmDrawing(id);
 

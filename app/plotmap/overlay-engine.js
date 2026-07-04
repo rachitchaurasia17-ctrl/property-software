@@ -72,12 +72,33 @@
     return Number.isFinite(n) ? `${n}%` : '0%';
   }
 
+  function parseViewBox(raw, fallbackWidth, fallbackHeight) {
+    const parts = String(raw || '').trim().split(/\s+/).map(Number);
+    if (parts.length === 4 && parts.every(Number.isFinite) && parts[2] > 0 && parts[3] > 0) return parts;
+    return [0, 0, fallbackWidth || 1, fallbackHeight || 1];
+  }
+
+  function contentFit(viewBox, width, height) {
+    const vb = parseViewBox(viewBox, width, height);
+    const w = Number(width) || vb[2] || 1;
+    const h = Number(height) || vb[3] || 1;
+    const scale = Math.min(w / vb[2], h / vb[3]);
+    const fitWidth = vb[2] * scale;
+    const fitHeight = vb[3] * scale;
+    return {
+      x: (w - fitWidth) / 2,
+      y: (h - fitHeight) / 2,
+      width: fitWidth,
+      height: fitHeight
+    };
+  }
+
   function targetCenter(targets, item) {
     if (!item || !item.targetId || !targets[item.targetId]) return null;
     const target = targets[item.targetId];
     return {
       x: Number(target.x) + Number(target.w || 0) / 2,
-      y: Number(target.y)
+      y: Number(target.y) + Number(target.h || 0) / 2
     };
   }
 
@@ -160,16 +181,22 @@
     const svg = createSvg('svg', {
       class: 'plotmap-road-layer',
       viewBox: overlay.viewBox || `0 0 ${options.width || 1} ${options.height || 1}`,
-      preserveAspectRatio: 'none',
+      preserveAspectRatio: 'xMidYMid meet',
       'aria-hidden': 'true'
     });
 
     const defs = createSvg('defs');
-    defs.innerHTML = '<filter id="plotmapRoadGlow" x="-20%" y="-40%" width="140%" height="180%"><feGaussianBlur stdDeviation="6" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
+    defs.innerHTML = '<filter id="plotmapRoadGlow" x="-20%" y="-40%" width="140%" height="180%"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
     svg.appendChild(defs);
 
     const selectionLayer = document.createElement('div');
     selectionLayer.className = 'plotmap-selection-layer';
+    const fit = contentFit(overlay.viewBox, options.width, options.height);
+    selectionLayer.style.inset = 'auto';
+    selectionLayer.style.left = `${fit.x}px`;
+    selectionLayer.style.top = `${fit.y}px`;
+    selectionLayer.style.width = `${fit.width}px`;
+    selectionLayer.style.height = `${fit.height}px`;
 
     const onPick = (item, event) => showInfo(root, item, event);
 

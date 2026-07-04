@@ -46,10 +46,10 @@
       { id: 'school-strawberry-fields', label: 'School', type: 'school', x: 45.8, y: 32.4, w: 2.6, h: 2.2, public: true }
     ],
     pins: [
-      { id: 'pin-plot214', targetId: 'plot-214', label: 'Plot 214', x: 40.75, y: 47.4, public: true },
+      { id: 'pin-plot214', targetId: 'plot-214', label: 'Plot 214', public: true },
       { id: 'poi-tradetower', label: 'Trade Tower', x: 38.47, y: 31.27, public: true },
       { id: 'poi-medcity', label: 'Medcity Hospital', x: 41.94, y: 26.16, public: true },
-      { id: 'poi-school', targetId: 'school-strawberry-fields', label: 'School', x: 46.25, y: 32.4, public: true }
+      { id: 'poi-school', targetId: 'school-strawberry-fields', label: 'School', public: true }
     ]
   };
 
@@ -69,8 +69,8 @@
       { id: 'sector28-school', label: 'School', type: 'school', x: 58.5, y: 38, w: 8, h: 7, public: true }
     ],
     pins: [
-      { id: 'sector28-pin-plot-a', targetId: 'sector28-plot-a', label: 'Selected Plot', x: 41.6, y: 48.2, public: true },
-      { id: 'sector28-pin-school', targetId: 'sector28-school', label: 'School', x: 62.5, y: 37.8, public: true }
+      { id: 'sector28-pin-plot-a', targetId: 'sector28-plot-a', label: 'Selected Plot', public: true },
+      { id: 'sector28-pin-school', targetId: 'sector28-school', label: 'School', public: true }
     ]
   };
 
