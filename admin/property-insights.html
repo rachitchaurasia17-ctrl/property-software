@@ -14,6 +14,7 @@
 <script src="/admin/core/event-tracker.js"></script>
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
+<script src="/admin/core/supabase-sync.js"></script>
 <script>
 if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
   window.location.href = '/admin/index.html';
@@ -126,15 +127,19 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   `).join('');
 
-  // Most attention
-  const sorted = [...props].sort((a, b) => (b.views || 0) - (a.views || 0));
+  // Most attention — views counted ONLY from Client Presentation activity
+  const pstats = crm.computePresentationStats ? crm.computePresentationStats() : { perProperty: {} };
+  const viewsOf = (p) => (pstats.perProperty[p.id] && pstats.perProperty[p.id].views) || 0;
+  const sorted = [...props].sort((a, b) => viewsOf(b) - viewsOf(a));
   const attnEl = document.getElementById('attention-list');
   if (sorted.length === 0) {
     attnEl.innerHTML = '<div class="pm-empty"><div class="desc">No properties added yet.</div></div>';
+  } else if (sorted.every(p => viewsOf(p) === 0)) {
+    attnEl.innerHTML = '<div class="pm-empty"><div class="title">No presentation views yet</div><div class="desc">When you walk clients through PlotMap, property attention shows up here.</div></div>';
   } else {
     attnEl.innerHTML = sorted.slice(0, 5).map(p => {
-      const maxViews = sorted[0].views || 1;
-      const pct = Math.round(((p.views || 0) / maxViews) * 100);
+      const maxViews = viewsOf(sorted[0]) || 1;
+      const pct = Math.round((viewsOf(p) / maxViews) * 100);
       return `<div style="padding:12px 0;border-top:1px solid var(--pm-border-subtle);display:flex;align-items:center;gap:14px;">
         <div style="flex:1;min-width:0;">
           <div style="font-size:15px;font-weight:700;">${p.title || p.name || 'Unnamed'}</div>
@@ -143,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div style="width:120px;">
           <div class="pm-progress xs"><div class="bar" style="width:${pct}%;background:var(--pm-emerald);"></div></div>
         </div>
-        <span style="font-size:13px;font-weight:700;color:var(--pm-emerald);width:50px;text-align:right;">${p.views || 0} views</span>
+        <span style="font-size:13px;font-weight:700;color:var(--pm-emerald);width:50px;text-align:right;">${viewsOf(p)} views</span>
       </div>`;
     }).join('');
   }

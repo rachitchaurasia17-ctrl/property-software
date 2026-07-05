@@ -129,9 +129,26 @@
 
   /* --- Lightweight CRM Tracking --- */
   let presentationOpenTracked = false;
+  // Insights group by human area names ("New Chandigarh"), never internal ids.
+  function friendlyAreaName(value) {
+    if (!value) return null;
+    const byArea = PM.areas && PM.areas.find(a => a.id === value);
+    if (byArea) return byArea.name || value;
+    const reg = window.PM_MAP_REGISTRY && window.PM_MAP_REGISTRY.maps;
+    const byMap = reg && reg.find(m => m.id === value);
+    if (byMap) return byMap.area || byMap.city || byMap.title || value;
+    return value;
+  }
   window.logEvent = function(type, meta = {}) {
     if (window.PMEventTracker && typeof window.PMEventTracker.trackPresentationEvent === 'function') {
-      window.PMEventTracker.trackPresentationEvent(type, Object.assign({ area: state.areaId || null }, meta || {}));
+      const payload = Object.assign({ area: state.areaId || null }, meta || {});
+      payload.area = friendlyAreaName(payload.area);
+      if (payload.sector) {
+        const reg = window.PM_MAP_REGISTRY && window.PM_MAP_REGISTRY.maps;
+        const m = reg && reg.find(x => x.id === payload.sector);
+        payload.sector = (m && m.title) || payload.sector;
+      }
+      window.PMEventTracker.trackPresentationEvent(type, payload);
       return;
     }
     try {
@@ -198,7 +215,32 @@
   const zoneById = (id) => mapZones().find(z => z.id === id);
   const pinById = (id) => mapPins().find(p => p.id === id);
   const mapProperties = () => (DS.properties || []).filter(p => p && p.clientVisible !== false && areaMatchesActive(p.area) && p.id && p.plotNumber && p.blockId && blockById(p.blockId));
-  const propById = (id) => mapProperties().find(p => p.id === id);
+  /* Dealer-added properties (CRM store) shown to clients. Client-safe fields
+     only — no price, no sold, no internal status ever reaches this shape. */
+  const crmClientProperties = () => {
+    try {
+      if (!window.CRM || typeof window.CRM.getCRM !== 'function') return [];
+      const data = window.CRM.getCRM();
+      return (data.properties || [])
+        .filter(p => p && p.id && !/archived|internal|hold|sold/i.test(p.internalStatus || '') && areaMatchesActive(p.area))
+        .map(p => ({
+          id: p.id,
+          size: p.plotSize || p.size || 'Plot',
+          block: p.block || p.sector || '',
+          plotNumber: p.plotNumber || p.propertyCode || '—',
+          area: p.area || '',
+          plotType: p.propertyType || p.type || 'Plot',
+          roadFacing: p.facing || p.roadFacing || '',
+          near: [],
+          availability: 'Available',
+          blockId: null,
+          sectorMapId: p.sectorMapId || null,
+          fromCRM: true
+        }));
+    } catch (e) { return []; }
+  };
+  const allClientProperties = () => mapProperties().concat(crmClientProperties());
+  const propById = (id) => allClientProperties().find(p => p.id === id);
   const propsInBlock = (blockId) => mapProperties().filter(p => p.blockId === blockId);
 
   /* --- CRM Map Drawings --- */
@@ -253,6 +295,7 @@
   const sectorMapById = (id) => readySectorMaps().find(s => s.id === id);
   const sectorMapForProperty = (p) => {
     if (!p) return null;
+    if (p.sectorMapId && sectorMapById(p.sectorMapId)) return sectorMapById(p.sectorMapId);
     const blk = (p.block || '').toLowerCase().replace(/ /g,'-');
     return readySectorMaps().find(s => 
       (s.matchKey && s.matchKey.toLowerCase() === blk) ||
@@ -508,6 +551,10 @@
     }
     else l.innerHTML = html;
     mountPlotMapOverlay(kind, sectorSm, sectorMode);
+    if (fresh) {
+      const openedMapId = kind === 'sector' ? (sectorSm && sectorSm.id) : currentClientMapId();
+      if (openedMapId) window.logEvent('map_opened', { area: state.areaId || null, sector: kind === 'sector' ? openedMapId : null, metadata: { mapId: openedMapId, view: kind } });
+    }
     builtSig = sig; updateMapOverlays();
     if (fresh) requestAnimationFrame(fit); else applyT(false);
   }
@@ -1225,7 +1272,7 @@
     return true;
   }
   function browseHTML() {
-    const list = mapProperties().filter(matchProp);
+    const list = allClientProperties().filter(matchProp);
     const filterKeys = FILTER_KEYS.filter(k => DS.filters && DS.filters[k]);
     const active = FILTER_KEYS.reduce((n, k) => n + ((state.filters[k] && state.filters[k].size) || 0), 0);
     const grp = (key) => { const g = DS.filters[key], s = state.filters[key] || new Set(); return `<div class="fgroup"><div class="fglabel">${g.label}</div><div class="fchips">${g.values.map(v => { const val = v.val || v, lab = v.label || v; const on = s.has(val); return `<button class="fchip ${on ? 'on' : ''}" data-fk="${key}" data-fv="${esc(val)}">${esc(lab)}</button>`; }).join('')}</div></div>`; };
@@ -1346,6 +1393,17 @@
       state.activeCats.clear();
       state.displayCatId = null;
 
+      // Map Studio overlay groups take priority: highlight on the map only,
+      // no legacy item panel.
+      const engine = window.PlotMapOverlayEngine;
+      if (engine && engine.hasGroupItems && engine.hasGroupItems(L)) {
+        state.activeLetter = currentlyActive ? null : L;
+        state.itemOpen = false;
+        render();
+        engine.setGroup(state.activeLetter);   // after render: mount is fresh
+        return;
+      }
+
       if (!currentlyActive) {
         if (hasAnyCrmSectorTags) {
           if (crmSectorTags.length) {
@@ -1373,6 +1431,10 @@
       state.showProps = false;
       builtSig = '';
       render();
+      // premium overlay group highlight (Map Studio A/B/C/D groups)
+      if (window.PlotMapOverlayEngine && window.PlotMapOverlayEngine.setGroup) {
+        window.PlotMapOverlayEngine.setGroup(state.activeLetter);
+      }
     }));
     on('propSwitch', toggleProps);
     on('zin', () => zoomBtn(1.2)); on('zout', () => zoomBtn(1 / 1.2)); on('zfit', fit);

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Team Workspace — PlotMap</title>
+<title>Team Workspace â€” PlotMap</title>
 <link rel="stylesheet" href="/admin/crm-ui.css">
 <script src="/admin/crm-data.js"></script>
 <script src="/admin/core/data-adapter.js"></script>
@@ -14,6 +14,7 @@
 <script src="/admin/core/event-tracker.js"></script>
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
+<script src="/admin/core/supabase-sync.js"></script>
 <script>
 if (localStorage.getItem('plotmap_admin_role') !== 'team') {
   window.location.href = '/admin/index.html';
@@ -59,15 +60,15 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
     <div style="font-size:20px;font-weight:800;margin-bottom:14px;">Quick actions</div>
     <div class="pm-grid cols-3">
       <a href="/admin/clients.html" class="pm-action-card">
-        <div class="ic" style="background:#E7F0EB;color:var(--pm-emerald);">👤</div>
+        <div class="ic" style="background:#E7F0EB;color:var(--pm-emerald);">ðŸ‘¤</div>
         <div class="txt">Add Client</div>
       </a>
       <a href="/admin/properties.html" class="pm-action-card">
-        <div class="ic" style="background:#F3EAD8;color:var(--pm-gold);">🏠</div>
+        <div class="ic" style="background:#F3EAD8;color:var(--pm-gold);">ðŸ </div>
         <div class="txt">Add Property</div>
       </a>
       <a href="/admin/map-studio.html" class="pm-action-card">
-        <div class="ic" style="background:#EDEAF2;color:var(--pm-purple);">🗺️</div>
+        <div class="ic" style="background:#EDEAF2;color:var(--pm-purple);">ðŸ—ºï¸</div>
         <div class="txt">Map Studio</div>
       </a>
     </div>
@@ -81,7 +82,7 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
           <div style="font-size:18px;font-weight:800;">My clients</div>
           <div style="font-size:13px;color:var(--pm-text-mut);margin-top:2px;">Clients assigned to you</div>
         </div>
-        <a href="/admin/clients.html" class="pm-btn-ghost">View all →</a>
+        <a href="/admin/clients.html" class="pm-btn-ghost">View all â†’</a>
       </div>
       <div class="pm-table-wrap">
         <table class="pm-table" id="recent-clients">
@@ -144,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const now = new Date();
-  document.getElementById('date-line').textContent = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' — your daily workspace.';
+  document.getElementById('date-line').textContent = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' â€” your daily workspace.';
 
   // Stat cards
   const todayStr = now.toISOString().slice(0, 10);

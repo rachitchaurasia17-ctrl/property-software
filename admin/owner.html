@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dealer Command Center — PlotMap</title>
+<title>Dealer Command Center â€” PlotMap</title>
 <link rel="stylesheet" href="/admin/crm-ui.css">
 <script src="/admin/crm-data.js"></script>
 <script src="/admin/core/data-adapter.js"></script>
@@ -14,6 +14,7 @@
 <script src="/admin/core/event-tracker.js"></script>
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
+<script src="/admin/core/supabase-sync.js"></script>
 <script>
 if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
   window.location.href = '/admin/index.html';
@@ -112,7 +113,7 @@ if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
           <div style="font-size:21px;font-weight:800;">Attention needed</div>
           <div style="font-size:13px;color:var(--pm-text-mut);margin-top:2px;">Clients who need follow-up or action.</div>
         </div>
-        <a href="/admin/clients.html" class="pm-btn-ghost">View all clients →</a>
+        <a href="/admin/clients.html" class="pm-btn-ghost">View all clients â†’</a>
       </div>
       <div id="priority-list">
         <!-- JS rendered -->
@@ -188,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const now = new Date();
-  document.getElementById('date-line').textContent = 'Your business at a glance — ' + days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + '.';
+  document.getElementById('date-line').textContent = 'Your business at a glance â€” ' + days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + '.';
 
   // Pulse
   document.getElementById('ai-pulse').textContent = insights.pulseText;
@@ -270,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="pm-avatar md" style="background:var(--pm-emerald);flex:none;">${initials}</div>
         <div class="info">
           <div class="name">${c.name}</div>
-          <div class="meta">${c.interestedArea || '-'} · ${staff ? staff.name : 'Unassigned'}</div>
+          <div class="meta">${c.interestedArea || '-'} Â· ${staff ? staff.name : 'Unassigned'}</div>
         </div>
         <span class="pm-status warn" style="flex:none;">${c.reason || 'Needs attention'}</span>
       </div>`;
@@ -306,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="pm-avatar md" style="background:var(--pm-blue);flex:none;">${initials}</div>
         <div class="info">
           <div class="name">${s.name}</div>
-          <div class="meta">${s.clients} Clients · ${s.visits} Visits · ${s.deals} Deals</div>
+          <div class="meta">${s.clients} Clients Â· ${s.visits} Visits Â· ${s.deals} Deals</div>
         </div>
       </div>`;
     }).join('');

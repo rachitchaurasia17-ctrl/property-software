@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Client Movement — PlotMap</title>
+<title>Client Movement â€” PlotMap</title>
 <link rel="stylesheet" href="/admin/crm-ui.css">
 <script src="/admin/crm-data.js"></script>
 <script src="/admin/core/data-adapter.js"></script>
@@ -14,6 +14,7 @@
 <script src="/admin/core/event-tracker.js"></script>
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
+<script src="/admin/core/supabase-sync.js"></script>
 <script>
 const pmRole = localStorage.getItem('plotmap_admin_role');
 if (pmRole !== 'team' && pmRole !== 'dealer') {
@@ -59,7 +60,7 @@ if (pmRole !== 'team' && pmRole !== 'dealer') {
 
   <!-- Search + Filters -->
   <div class="pm-search" style="margin-bottom:12px;">
-    <span class="icon">○</span>
+    <span class="icon">â—‹</span>
     <input type="text" placeholder="Search clients by name, phone, or area..." id="search-input">
   </div>
 
@@ -190,7 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const initials = c.name ? c.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '??';
       const colors = ['#1F5E47', '#3E6E96', '#9A4A2C', '#A87C3D', '#5F5A78'];
       const color = colors[Math.abs((c.name || '').charCodeAt(0)) % colors.length];
-      const ltv = isDealer ? `<span style="font-family:'Fraunces',serif;font-size:16px;font-weight:600;color:var(--pm-gold);">${c.lifetimeValue ? '₹ ' + Number(c.lifetimeValue).toLocaleString('en-IN') : '-'}</span>` : '';
+      const ltv = isDealer ? `<span style="font-family:'Fraunces',serif;font-size:16px;font-weight:600;color:var(--pm-gold);">${c.lifetimeValue ? 'â‚¹ ' + Number(c.lifetimeValue).toLocaleString('en-IN') : '-'}</span>` : '';
       return `<div class="pm-table-row" style="grid-template-columns:${colTemplate};">
         <div style="display:flex;align-items:center;gap:12px;">
           <div class="pm-avatar sm" style="background:${color};">${initials}</div>
@@ -206,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <span class="pm-status ${statusClass(c.status)}">${c.status}</span>
         ${ltv}
         <select style="font-size:12px;padding:7px 10px;border:1px solid var(--pm-border);border-radius:var(--pm-radius-sm);font-family:inherit;cursor:pointer;background:#fff;" onchange="markStatus('${c.id}', this.value)">
-          <option value="" disabled selected>Update…</option>
+          <option value="" disabled selected>Updateâ€¦</option>
           <option value="New">New</option>
           <option value="Warm">Warm</option>
           <option value="Property Shared">Property Shared</option>

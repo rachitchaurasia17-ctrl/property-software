@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Property Inventory — PlotMap</title>
+<title>Property Inventory â€” PlotMap</title>
 <link rel="stylesheet" href="/admin/crm-ui.css">
 <script src="/admin/crm-data.js"></script>
 <script src="/admin/core/data-adapter.js"></script>
@@ -14,6 +14,7 @@
 <script src="/admin/core/event-tracker.js"></script>
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
+<script src="/admin/core/supabase-sync.js"></script>
 <script>
 const pmRole = localStorage.getItem('plotmap_admin_role');
 if (pmRole !== 'team' && pmRole !== 'dealer') {
@@ -59,7 +60,7 @@ if (pmRole !== 'team' && pmRole !== 'dealer') {
 
   <!-- Search + Filters -->
   <div class="pm-search" style="margin-bottom:12px;">
-    <span class="icon">○</span>
+    <span class="icon">â—‹</span>
     <input type="text" placeholder="Search properties by name, area, or sector..." id="search-input">
   </div>
   <div class="pm-filters" id="status-filters">
@@ -185,9 +186,9 @@ document.addEventListener('DOMContentLoaded', () => {
           ${flags.length ? `<span class="flag">${flags[0]}</span>` : ''}
         </div>
         <div class="body">
-          <div class="area">${p.area || '-'} ${p.sector ? '· ' + p.sector : ''}</div>
+          <div class="area">${p.area || '-'} ${p.sector ? 'Â· ' + p.sector : ''}</div>
           <div class="name">${p.title || 'Unnamed'}</div>
-          <div class="size">${p.type || '-'} · ${p.size || p.plotSize || '-'}</div>
+          <div class="size">${p.type || '-'} Â· ${p.size || p.plotSize || '-'}</div>
           <div class="actions">
             <button onclick="archiveProp('${p.id}')" class="warn">Remove</button>
             ${p.internalStatus === 'Available' ? `<button onclick="CRM.updatePropertyStatus('${p.id}','Sold');location.reload();">Mark Sold</button>` : ''}

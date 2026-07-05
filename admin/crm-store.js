@@ -548,23 +548,66 @@
     };
   }
 
+  /* Presentation-only activity stats. Every count here comes STRICTLY from
+     Client Presentation events (data.presentationEvents) — never from admin
+     browsing, so "hot area" always means "a client actually looked at it". */
+  function computePresentationStats() {
+    const data = getCRM();
+    const events = Array.isArray(data.presentationEvents) ? data.presentationEvents : [];
+    const VIEW_TYPES = new Set(['property_viewed', 'property_selected', 'client_panel_opened']);
+    const OPEN_TYPES = new Set(['map_opened', 'area_viewed', 'presentation_opened']);
+    const SECTOR_TYPES = new Set(['sector_viewed', 'sector_proof_clicked']);
+    const perProperty = {};
+    const perArea = {};
+    events.forEach(e => {
+      const type = e.eventType || e.type || '';
+      const at = Date.parse(e.createdAt) || 0;
+      if (e.area) {
+        const a = perArea[e.area] = perArea[e.area] || { mapOpens: 0, views: 0, shares: 0, sectorOpens: 0, overlayClicks: 0, sessions: {}, lastAt: 0 };
+        if (OPEN_TYPES.has(type)) a.mapOpens += 1;
+        if (VIEW_TYPES.has(type)) a.views += 1;
+        if (type.indexOf('shared') >= 0) a.shares += 1;
+        if (SECTOR_TYPES.has(type)) a.sectorOpens += 1;
+        if (type === 'overlay_selected') a.overlayClicks += 1;
+        if (e.sessionId) a.sessions[e.sessionId] = 1;
+        if (at > a.lastAt) a.lastAt = at;
+      }
+      if (e.propertyId) {
+        const p = perProperty[e.propertyId] = perProperty[e.propertyId] || { views: 0, shares: 0, lastAt: 0 };
+        if (VIEW_TYPES.has(type)) p.views += 1;
+        if (type.indexOf('shared') >= 0) p.shares += 1;
+        if (at > p.lastAt) p.lastAt = at;
+      }
+    });
+    Object.keys(perArea).forEach(k => { perArea[k].sessions = Object.keys(perArea[k].sessions).length; });
+    return { perProperty, perArea, totalEvents: events.length };
+  }
+
   function computeAreaInsights() {
     const data = getCRM();
+    const stats = computePresentationStats();
     const areas = {};
-    data.areas.forEach(a => areas[a] = { interest: 0, views: 0, deals: 0, shares: 0, siteVisits: 0, inventory: 0, mapOpens: 0 });
-    
+    data.areas.forEach(a => areas[a] = { interest: 0, views: 0, deals: 0, shares: 0, siteVisits: 0, inventory: 0, mapOpens: 0, sessions: 0 });
+    // areas that only appear in presentation activity still show up
+    // (skip internal ids from older event formats — display names only)
+    Object.keys(stats.perArea).forEach(a => {
+      if (/^(masterplan|sector)-/.test(a)) return;
+      if (!areas[a]) areas[a] = { interest: 0, views: 0, deals: 0, shares: 0, siteVisits: 0, inventory: 0, mapOpens: 0, sessions: 0 };
+    });
+
     data.clients.forEach(c => {
       if (c.interestedArea && areas[c.interestedArea]) areas[c.interestedArea].interest += 1;
     });
-    
-    data.events.forEach(e => {
-      if (e.area && areas[e.area]) {
-        if (e.type === 'property_viewed') areas[e.area].views += 1;
-        if (e.type.includes('map_opened')) areas[e.area].mapOpens += 1;
-        if (e.type.includes('property_shared')) areas[e.area].shares += 1;
-      }
+
+    // activity comes ONLY from Client Presentation events
+    Object.keys(stats.perArea).forEach(name => {
+      const s = stats.perArea[name];
+      areas[name].views = s.views;
+      areas[name].mapOpens = s.mapOpens;
+      areas[name].shares = s.shares;
+      areas[name].sessions = s.sessions;
     });
-    
+
     data.siteVisits.forEach(sv => {
       if (sv.area && areas[sv.area]) areas[sv.area].siteVisits += 1;
     });
@@ -579,24 +622,29 @@
 
     const enrichedAreas = Object.keys(areas).map(k => {
       const a = areas[k];
+      const activity = a.views + a.mapOpens + a.shares;
       let status = 'Low Activity';
       let gap = 'stable demand, low inventory';
-      if (a.interest > 2) {
-        status = 'High Interest';
+      if (a.interest > 2 || activity > 6) {
+        status = 'Hot';
         gap = a.inventory < 2 ? 'high demand, low inventory' : 'high demand, stable inventory';
-      } else if (a.interest > 0 || a.views > 0) {
+      } else if (a.interest > 0 || activity > 0) {
         status = 'Rising';
       }
+      const activityText = activity
+        ? `Clients opened ${k} ${a.mapOpens} time${a.mapOpens === 1 ? '' : 's'} and viewed ${a.views} propert${a.views === 1 ? 'y' : 'ies'} in presentations.`
+        : `No client presentation activity in ${k} yet.`;
       return {
         name: k,
         ...a,
+        activity,
         status,
         gap,
-        summary: `Based on PlotMap activity, ${k} has ${a.interest} client requirements and ${a.inventory} available properties.`
+        summary: `${activityText} ${a.interest} client requirement${a.interest === 1 ? '' : 's'} · ${a.inventory} available propert${a.inventory === 1 ? 'y' : 'ies'}.`
       };
     });
 
-    return enrichedAreas.sort((a,b) => b.interest - a.interest);
+    return enrichedAreas.sort((a,b) => (b.activity + b.interest * 2) - (a.activity + a.interest * 2));
   }
 
   function computeFinanceTotals() {
@@ -743,7 +791,7 @@
     addSiteVisit, updateSiteVisitStatus,
     addDeal,
     logEvent,
-    computeOwnerInsights, computeAreaInsights, computeFinanceTotals,
+    computeOwnerInsights, computeAreaInsights, computeFinanceTotals, computePresentationStats,
     computeDealerCommandInsights,
     getPropertyReadiness,
     createAccessLink, updateAccessLink, revokeAccessLink, expireAccessLink, extendAccessLink,

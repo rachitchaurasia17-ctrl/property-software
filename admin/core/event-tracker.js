@@ -14,7 +14,8 @@
     'followup_created_from_presentation',
     'map_opened',
     'property_viewed',
-    'property_shared_whatsapp'
+    'property_shared_whatsapp',
+    'overlay_selected'
   ]);
 
   const BLOCKED_KEYS = new Set([

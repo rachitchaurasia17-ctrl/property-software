@@ -3,23 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Map Studio - PlotMap Admin</title>
-<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/admin/crm-ui.css">
+<title>Map Studio — PlotMap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="/admin/crm-data.js"></script>
 <script src="/admin/core/data-adapter.js"></script>
 <script src="/admin/core/sync-queue.js"></script>
-<script src="/admin/core/finance-engine.js"></script>
-<script src="/admin/core/command-engine.js"></script>
-<script src="/admin/core/report-engine.js"></script>
 <script src="/admin/core/event-tracker.js"></script>
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
-<!-- PM.areas and dataset registry -->
 <script src="/app/plotmap/map-registry.js"></script>
-<script src="/app/plotmap/data.js"></script>
-<!-- Include datasets so they register in PM.datasets -->
-<script src="/app/plotmap/datasets/tricity.dataset.js"></script>
+<script src="/app/plotmap/datasets/overlays.js"></script>
+<script src="/admin/core/overlay-store.js"></script>
+<script src="/admin/core/supabase-sync.js"></script>
 <script>
 const pmRole = localStorage.getItem('plotmap_admin_role');
 if (pmRole !== 'team' && pmRole !== 'dealer') {
@@ -29,1333 +26,902 @@ if (pmRole !== 'team' && pmRole !== 'dealer') {
 }
 </script>
 <style>
-/* New styles from Claude Design for Map Studio */
-  body { background:#EAE0CC; font-family:'Hanken Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; -webkit-font-smoothing:antialiased; color:#23211C; margin:0; padding:0; height:100vh; overflow:hidden; }
-  ::selection { background:#CFE2D7; color:#13402F; }
-  ::-webkit-scrollbar { width:9px; height:9px; }
-  ::-webkit-scrollbar-thumb { background:#D8CCB2; border-radius:9px; }
-  ::-webkit-scrollbar-track { background:transparent; }
-  button { font-family:inherit; }
-  .pm-serif { font-family:'Newsreader',serif; }
-  .pm-tab { font-variant-numeric:tabular-nums; font-feature-settings:'tnum'; }
+html,body{margin:0;padding:0;height:100%;background:#F1EBDD;}
+*{box-sizing:border-box;}
+body{font-family:'Instrument Sans',system-ui,sans-serif;color:#23201A;overflow:hidden;}
+button{font-family:inherit;}
+input::placeholder{color:#B9AE94;}
+.serif{font-family:'Instrument Serif',serif;}
+@keyframes flowdash{to{stroke-dashoffset:-70;}}
+@keyframes poplabel{from{opacity:0;transform:translate(-50%,-130%) scale(.94);}to{opacity:1;transform:translate(-50%,-112%) scale(1);}}
+@keyframes ringpulse{0%{transform:translate(-50%,-50%) scale(.55);opacity:.9;}100%{transform:translate(-50%,-50%) scale(1.7);opacity:0;}}
+@keyframes toastin{from{opacity:0;transform:translate(-50%,10px);}to{opacity:1;transform:translate(-50%,0);}}
+@keyframes panelin{from{transform:translateX(30px);opacity:.4;}to{transform:translateX(0);opacity:1;}}
+@keyframes fadein{from{opacity:0;}to{opacity:1;}}
+@keyframes riseup{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
 
-  /* Map tools active state */
-  .tool-btn { cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:8px; background:#FBF6EA; border:1px solid #EBE1CC; border-radius:16px; padding:16px 10px; transition:border-color 0.2s; box-shadow:0 4px 16px rgba(40,28,8,.06); }
-  .tool-btn:hover { border-color:#16356A; box-shadow:0 8px 20px rgba(22,53,106,.1); transform:translateY(-1px); }
-  .tool-btn.active { border-color:#16356A; background:#E8EEF7; }
-  .tool-btn.active .tool-icon-bg { background:#16356A !important; color:#FBF6EA !important; }
-  .tool-btn .tool-icon-bg { width:42px; height:42px; border-radius:12px; background:#EAE0CC; color:#8C8676; display:flex; align-items:center; justify-content:center; font-size:21px; font-weight:800; transition:all 0.2s; }
+.shell{height:100vh;display:flex;flex-direction:column;overflow:hidden;}
 
-  .ms-svg-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-  .ms-svg-overlay.drawing { pointer-events: auto; cursor: crosshair; }
-  .map-view-toggle { display:flex; gap:3px; background:#F4F2EA; border:1px solid #CDE6DA; border-radius:9px; padding:3px; }
-  .map-view-toggle button { border:0; background:transparent; color:#6A6E68; border-radius:7px; padding:5px 9px; font-size:12px; font-weight:800; cursor:pointer; }
-  .map-view-toggle button.active { background:#1F5E47; color:#fff; }
-  .map-view-toggle button:disabled { color:#B8B5AB; cursor:default; }
-  #pm-sync-mini { display:inline-flex; align-items:center; gap:7px; border:1px solid #E7E3D9 !important; background:#FAF8F3 !important; color:#6A6E68 !important; border-radius:999px; padding:7px 12px; font-size:12px; font-weight:800; text-decoration:none; }
-  #pm-sync-mini::before { content:''; width:7px; height:7px; border-radius:50%; background:#2E8B66; box-shadow:0 0 0 4px rgba(46,139,102,.14); }
-  #ui-city, #ui-type, #ui-map { min-height:28px; border:1px solid #E2D7C0 !important; border-radius:8px !important; background:#FBF6EA !important; color:#23211C !important; font-weight:700; outline:none; }
-  #ui-city:focus, #ui-type:focus, #ui-map:focus { border-color:#16356A !important; box-shadow:0 0 0 3px rgba(22,53,106,.10); }
-  #step1-card { flex:1.4 !important; }
-  #ui-city { min-width:120px; }
-  #ui-type { min-width:108px; }
-  #ui-map { min-width:168px; max-width:190px !important; }
-  #step1-card { box-shadow:0 10px 26px rgba(22,53,106,.08); }
-  #canvas-container { box-shadow:0 10px 30px rgba(40,28,8,.12); }
-  #inspector-empty, #inspector-form { box-shadow:-8px 0 24px rgba(40,28,8,.05); border-left:1px solid #E6DCC8; background:#FBF6EA; }
-  .tool-btn { box-shadow:0 1px 2px rgba(20,18,12,.03),0 8px 18px rgba(40,32,15,.035); }
-  .tool-btn:hover { transform:translateY(-1px); box-shadow:0 10px 24px rgba(40,32,15,.07); }
-  .tool-btn:disabled { opacity:.48; cursor:default; transform:none; box-shadow:none; }
-  #ui-btn-draft:hover { background:#F4F2EA !important; }
-  #ui-btn-publish:hover { background:#184E3B !important; }
+/* ---------- top bar ---------- */
+.topbar{height:62px;flex:none;display:flex;align-items:center;gap:14px;padding:0 20px;background:rgba(255,253,247,.92);border-bottom:1px solid rgba(35,32,26,.1);z-index:8;}
+.topbar .brand{display:flex;align-items:baseline;gap:8px;text-decoration:none;color:#23201A;}
+.topbar .brand b{font-family:'Instrument Serif',serif;font-weight:400;font-size:24px;letter-spacing:.2px;}
+.topbar .tag{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#A87F1F;}
+.vdiv{width:1px;height:24px;background:rgba(35,32,26,.12);}
+.mapbtn{display:flex;align-items:center;gap:8px;background:#FFFDF7;border:1px solid rgba(35,32,26,.14);border-radius:10px;padding:7px 12px;font-size:13px;font-weight:600;color:#23201A;cursor:pointer;}
+.mapbtn .sq{width:8px;height:8px;border-radius:2px;background:#A87F1F;display:inline-block;}
+.mapbtn .car{color:#877C68;font-size:11px;}
+.tabs{display:flex;background:#EDE6D6;border-radius:12px;padding:3px;gap:2px;}
+.tabs button{border:none;border-radius:10px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#877C68;}
+.tabs button.on{background:#23201A;color:#F6F1E4;box-shadow:0 2px 6px rgba(35,32,26,.25);}
 
-  /* Hidden UI for compatibility */
-  #legacy-controls { display: none; }
+/* ---------- hub ---------- */
+.hub{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;padding:24px;}
+.hub h1{font-family:'Instrument Serif',serif;font-weight:400;font-size:38px;line-height:1.05;margin:0;text-align:center;}
+.hub .sub{font-size:14px;color:#877C68;margin-top:8px;text-align:center;}
+.hub-cards{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;}
+.hub-card{width:320px;text-align:left;background:#FFFDF7;border:1px solid rgba(35,32,26,.12);border-radius:20px;padding:24px;cursor:pointer;box-shadow:0 16px 40px rgba(50,38,14,.12);transition:transform .2s,border-color .2s;}
+.hub-card:hover{transform:translateY(-4px);}
+.hub-card.gold:hover{border-color:#A87F1F;}
+.hub-card.blue:hover{border-color:#1E5FA8;}
+.hub-card.green:hover{border-color:#157A56;}
+.hub-card .ic{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;}
+.hub-card .t{font-size:20px;font-weight:700;}
+.hub-card .d{font-size:13px;color:#877C68;margin-top:6px;line-height:1.5;}
+.hub-card .go{margin-top:16px;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;}
+
+/* ---------- view header ---------- */
+.vhead{flex:none;display:flex;align-items:center;gap:14px;padding:12px 18px 6px;}
+.vhead .back{display:flex;align-items:center;gap:6px;background:transparent;border:none;font-size:13px;font-weight:600;color:#877C68;cursor:pointer;}
+.vhead .title{font-family:'Instrument Serif',serif;font-size:22px;}
+.vhead .sub{font-size:12.5px;color:#877C68;}
+.vhead .steps{display:flex;align-items:center;gap:6px;margin-left:auto;}
+.vhead .step{font-size:12px;font-weight:700;padding:5px 11px;border-radius:8px;background:transparent;color:#A99C82;}
+.vhead .step.on{background:#23201A;color:#F6F1E4;}
+
+/* ---------- masterplan layout ---------- */
+.mp-body{flex:1;display:flex;gap:12px;padding:6px 16px 16px;min-height:0;}
+.mp-side{flex:none;width:332px;background:#FFFDF7;border:1px solid rgba(35,32,26,.12);border-radius:18px;display:flex;flex-direction:column;box-shadow:0 10px 26px rgba(50,38,14,.1);overflow:hidden;}
+.mp-step{padding:16px 16px 14px;}
+.mp-step + .mp-step{border-top:1px solid rgba(35,32,26,.08);}
+.mp-step .h{display:flex;align-items:center;gap:10px;}
+.mp-step .n{width:26px;height:26px;border-radius:50%;background:#23201A;color:#F6F1E4;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex:none;}
+.mp-step .t{font-size:15.5px;font-weight:700;}
+.mp-groups{display:flex;gap:8px;margin-top:12px;}
+.mp-groups button{flex:1;height:48px;border-radius:13px;font-size:18px;font-weight:800;cursor:pointer;transition:all .15s;background:#FFFDF7;}
+.mp-hint{font-size:11.5px;color:#877C68;margin-top:10px;line-height:1.45;}
+.mp-cats{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px;}
+.mp-cats button{border-radius:9px;padding:7px 12px;font-size:12.5px;font-weight:700;cursor:pointer;border:1px solid rgba(35,32,26,.14);background:#FFFDF7;color:#877C68;transition:all .15s;}
+.mp-cats button.on{border:none;background:#23201A;color:#F6F1E4;}
+.mp-items{flex:1;min-height:0;overflow-y:auto;padding:2px 8px 8px;}
+.mp-item{width:100%;display:flex;align-items:center;gap:10px;border:none;border-radius:11px;padding:11px 10px;cursor:pointer;background:transparent;transition:background .15s;text-align:left;}
+.mp-item:hover{background:#F2EBDA;}
+.mp-item.inG{background:#F5EEDC;}
+.mp-item .dot{width:12px;height:12px;border-radius:3px;display:inline-block;flex:none;}
+.mp-item .nm{flex:1;font-size:14px;font-weight:600;color:#23201A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mp-item .chip{font-size:11px;font-weight:800;border-radius:7px;padding:3px 9px;color:#FFFDF7;flex:none;}
+.mp-item .tick{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#FFFDF7;flex:none;}
+.mp-foot{padding:12px 16px 16px;border-top:1px solid rgba(35,32,26,.08);}
+.btn-publish{width:100%;height:50px;border-radius:13px;border:none;background:#A87F1F;color:#FFFDF7;font-size:15.5px;font-weight:700;cursor:pointer;box-shadow:0 10px 24px rgba(168,127,31,.35);}
+
+/* ---------- canvas ---------- */
+.canvas-wrap{flex:1;position:relative;display:flex;align-items:center;justify-content:center;min-width:0;}
+.canvas{position:relative;height:100%;max-width:100%;border-radius:16px;overflow:hidden;border:1px solid rgba(35,32,26,.14);box-shadow:0 20px 50px rgba(50,38,14,.16);background:#fff;}
+.canvas img.base{position:absolute;inset:0;width:100%;height:100%;display:block;}
+.canvas svg.ovl{position:absolute;inset:0;width:100%;height:100%;display:block;}
+.canvas svg.ovl.draw{cursor:crosshair;}
+.canvas .hintbox{position:absolute;left:14px;bottom:14px;background:rgba(255,253,247,.94);border:1px solid rgba(35,32,26,.12);border-radius:11px;padding:9px 13px;font-size:12px;color:#6E6450;max-width:280px;line-height:1.4;z-index:5;}
+.pinwrap{position:absolute;width:0;height:0;z-index:4;}
+.pinbtn{position:absolute;left:0;top:0;width:34px;height:34px;transform:translate(-50%,-50%);background:transparent;border:none;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;}
+.lblchip{position:absolute;transform:translate(-50%,-50%);z-index:3;border:none;cursor:pointer;background:transparent;padding:0;}
+.lblchip span{display:inline-block;background:rgba(255,253,247,.92);border:1px solid rgba(35,32,26,.16);border-radius:8px;padding:4px 10px;font-weight:700;font-size:12px;color:#3A342A;white-space:nowrap;box-shadow:0 3px 10px rgba(50,38,14,.14);}
+.sellbl{position:absolute;animation:poplabel .4s cubic-bezier(.2,.8,.3,1) both;pointer-events:none;z-index:6;}
+.sellbl .in{display:flex;align-items:center;gap:8px;background:rgba(255,253,247,.97);border:1px solid rgba(35,32,26,.14);border-radius:12px;padding:8px 14px;box-shadow:0 12px 28px rgba(50,38,14,.26);white-space:nowrap;}
+.sellbl .dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none;}
+.sellbl .nm{font-family:'Instrument Serif',serif;font-size:17px;}
+.sellbl .kd{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#877C68;}
+.bubble{position:absolute;top:14px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:#23201A;color:#F6F1E4;border-radius:13px;padding:10px 16px;font-size:13px;font-weight:500;box-shadow:0 14px 34px rgba(35,28,10,.35);animation:fadein .35s ease both;z-index:5;white-space:nowrap;max-width:92%;}
+.bubble .fin{border:none;border-radius:9px;background:#A87F1F;color:#FFFDF7;font-size:12.5px;font-weight:700;padding:6px 12px;cursor:pointer;}
+.bubble .und{border:1px solid rgba(246,241,228,.35);border-radius:9px;background:transparent;color:#F6F1E4;font-size:12px;font-weight:600;padding:5px 10px;cursor:pointer;}
+.bubble .cxl{border:none;background:transparent;color:#B9AE94;font-size:12px;font-weight:600;padding:5px 4px;cursor:pointer;}
+
+/* ---------- sector tools ---------- */
+.sec-body{flex:1;display:flex;gap:12px;padding:6px 16px 16px;min-height:0;}
+.toolrail{flex:none;width:104px;display:flex;flex-direction:column;gap:6px;background:#FFFDF7;border:1px solid rgba(35,32,26,.12);border-radius:16px;padding:9px;align-self:flex-start;box-shadow:0 10px 26px rgba(50,38,14,.1);}
+.toolrail button{width:100%;border:none;border-radius:12px;padding:9px 2px 10px;font-size:10.5px;font-weight:700;cursor:pointer;color:#5E543F;transition:all .2s;background:transparent;}
+.toolrail button.on{background:#F0E7D2;box-shadow:inset 0 0 0 1.5px #A87F1F;color:#23201A;}
+.ti{display:block;margin:4px auto 6px;}
+
+/* ---------- inspector ---------- */
+.inspector{flex:none;width:262px;background:#FFFDF7;border:1px solid rgba(35,32,26,.12);border-radius:16px;padding:16px;align-self:stretch;display:flex;flex-direction:column;gap:12px;box-shadow:0 10px 26px rgba(50,38,14,.1);animation:panelin .3s ease both;overflow-y:auto;}
+.inspector .krow{display:flex;align-items:center;justify-content:space-between;}
+.inspector .kind{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#877C68;}
+.inspector .flabel{font-size:11.5px;font-weight:600;color:#877C68;margin-bottom:5px;}
+.inspector input[type=text]{width:100%;height:40px;border-radius:10px;border:1px solid rgba(35,32,26,.16);background:#FFF;padding:0 12px;font-family:inherit;font-size:14px;color:#23201A;outline:none;}
+.inspector select{width:100%;height:40px;border-radius:10px;border:1px solid rgba(35,32,26,.16);background:#FFF;padding:0 8px;font-family:inherit;font-size:13.5px;color:#23201A;outline:none;}
+.sw{width:36px;height:36px;border-radius:10px;cursor:pointer;}
+.visrow{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid rgba(35,32,26,.08);border-bottom:1px solid rgba(35,32,26,.08);}
+.visrow .t{font-size:13px;font-weight:600;}
+.vtrack{width:44px;height:26px;border-radius:13px;border:none;cursor:pointer;position:relative;transition:background .25s;}
+.vknob{position:absolute;top:3px;width:20px;height:20px;border-radius:50%;background:#FFFDF7;box-shadow:0 1px 4px rgba(20,14,4,.3);transition:left .25s;display:block;}
+.btn-preview{height:42px;border-radius:11px;border:1.5px solid #1E5FA8;background:rgba(30,95,168,.07);color:#1E5FA8;font-size:13.5px;font-weight:700;cursor:pointer;}
+.btn-del{height:34px;border-radius:9px;border:none;background:transparent;font-size:12px;font-weight:600;color:#B4524A;cursor:pointer;}
+.btn-draft{height:40px;border-radius:11px;border:1px solid rgba(35,32,26,.16);background:#FFFDF7;font-size:13px;font-weight:600;color:#23201A;cursor:pointer;}
+.btn-pub{height:44px;border-radius:11px;border:none;background:#A87F1F;color:#FFFDF7;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 8px 20px rgba(168,127,31,.35);}
+.statuschip{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-radius:7px;padding:4px 9px;}
+.statuschip.pub{color:#157A56;background:rgba(21,122,86,.1);border:1px solid rgba(21,122,86,.35);}
+.statuschip.draft{color:#8A6A1B;background:rgba(168,127,31,.1);border:1px solid rgba(168,127,31,.35);}
+
+/* preview side card */
+.prevcard{position:absolute;top:16px;right:16px;bottom:16px;width:240px;background:rgba(255,253,247,.97);border:1px solid rgba(35,32,26,.1);border-radius:16px;box-shadow:0 22px 54px rgba(40,30,10,.24);padding:16px;animation:panelin .38s cubic-bezier(.2,.8,.3,1) both;display:flex;flex-direction:column;z-index:7;}
+
+/* ---------- manage ---------- */
+.mg-body{flex:1;overflow-y:auto;padding:8px 18px 24px;}
+.mg-grid{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;}
+.mg-card{background:#FFFDF7;border:1px solid rgba(35,32,26,.1);border-radius:18px;overflow:hidden;box-shadow:0 10px 28px rgba(50,38,14,.09);display:flex;flex-direction:column;transition:transform .2s,box-shadow .2s;}
+.mg-card:hover{transform:translateY(-3px);box-shadow:0 18px 40px rgba(50,38,14,.14);}
+.mg-thumb{position:relative;height:148px;overflow:hidden;background:#EFE8D8;}
+.mg-thumb .im{width:100%;height:100%;background-size:cover;background-position:center;}
+.mg-chip{position:absolute;top:10px;font-size:10.5px;font-weight:800;letter-spacing:.04em;border-radius:8px;padding:4px 9px;background:rgba(255,253,247,.94);border:1px solid rgba(35,32,26,.12);}
+.mg-name{font-size:17px;font-weight:700;}
+.mg-meta{font-size:12px;color:#877C68;margin-top:4px;line-height:1.5;}
+.mg-acts{display:flex;gap:6px;padding:12px 16px 16px;flex-wrap:wrap;}
+.mg-acts button{height:32px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;padding:0 11px;white-space:nowrap;transition:all .15s;}
+.mg-acts .dark{border:none;background:#23201A;color:#F6F1E4;}
+.mg-acts .ghost{border:1px solid rgba(35,32,26,.16);background:#FFFDF7;color:#23201A;}
+.btn-addprop{height:38px;padding:0 16px;border-radius:11px;border:none;background:#23201A;color:#F6F1E4;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px;}
+
+/* ---------- modals / toast ---------- */
+.modal-veil{position:fixed;inset:0;background:rgba(35,28,16,.45);display:flex;align-items:center;justify-content:center;z-index:20;animation:fadein .25s ease both;}
+.modal{width:400px;background:#FFFDF7;border-radius:20px;padding:26px;box-shadow:0 40px 90px rgba(20,14,4,.4);}
+.modal h2{font-family:'Instrument Serif',serif;font-weight:400;font-size:26px;margin:0;}
+.modal .sub{font-size:13.5px;color:#877C68;margin-top:6px;line-height:1.5;}
+.modal .items{margin-top:16px;border:1px solid rgba(35,32,26,.12);border-radius:13px;padding:6px 4px;}
+.modal .item{display:flex;align-items:center;gap:11px;padding:9px 12px;}
+.modal .btn-main{margin-top:18px;width:100%;height:44px;border-radius:11px;border:none;background:#A87F1F;color:#FFFDF7;font-size:14px;font-weight:700;cursor:pointer;}
+.modal .btn-dark{margin-top:20px;width:100%;height:44px;border-radius:11px;border:none;background:#23201A;color:#F6F1E4;font-size:14px;font-weight:600;cursor:pointer;}
+.modal .btn-ghost{margin-top:8px;width:100%;height:40px;border-radius:11px;border:1px solid rgba(35,32,26,.16);background:transparent;font-size:13px;font-weight:600;color:#23201A;cursor:pointer;}
+.okball{width:46px;height:46px;border-radius:50%;background:rgba(21,122,86,.12);border:2px solid #157A56;color:#157A56;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;margin-bottom:14px;}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#23201A;color:#F6F1E4;border-radius:12px;padding:11px 18px;font-size:13px;font-weight:500;box-shadow:0 16px 40px rgba(20,14,4,.4);z-index:30;animation:toastin .3s ease both;}
+
+/* map picker */
+.picker{width:430px;max-height:70vh;background:#FFFDF7;border-radius:20px;padding:20px;box-shadow:0 40px 90px rgba(20,14,4,.4);display:flex;flex-direction:column;}
+.picker input{height:40px;border-radius:10px;border:1px solid rgba(35,32,26,.16);background:#FFF;padding:0 12px;font-family:inherit;font-size:14px;outline:none;margin:12px 0;}
+.picker .plist{flex:1;min-height:0;overflow-y:auto;}
+.picker .prow{width:100%;display:flex;align-items:center;gap:10px;border:none;border-radius:10px;padding:10px;cursor:pointer;background:transparent;text-align:left;}
+.picker .prow:hover{background:#F2EBDA;}
+.picker .prow .nm{flex:1;font-size:14px;font-weight:600;}
+.picker .prow .ty{font-size:10.5px;color:#A99C82;text-transform:uppercase;letter-spacing:.06em;}
+#pm-sync-mini{display:none;}
 </style>
 </head>
-<body class="pm-shell">
+<body>
+<div class="shell">
 
-<!-- Legacy controls for map selection, hidden visually but manipulated via JS or kept for DOM compat -->
-<div id="legacy-controls">
-  <select id="sel-city"></select>
-  <select id="sel-map-type"></select>
-  <select id="sel-map"></select>
-  <button id="tab-draw"></button>
-  <button id="tab-review"></button>
-  <div id="ms-tools-col"></div>
-  <div id="review-queue-container"></div>
-  <div id="layer-list-container"></div>
+  <!-- top bar -->
+  <div class="topbar">
+    <a class="brand" href="/admin/index.html"><b>PlotMap</b><span class="tag">Studio</span></a>
+    <div class="vdiv"></div>
+    <button class="mapbtn" id="btnMapPick"><span class="sq"></span><span id="mapPickName">Pick a map</span><span class="car">▾</span></button>
+    <div style="flex:1"></div>
+    <div class="tabs">
+      <button id="tabPresent">Client Presentation</button>
+      <button id="tabStudio" class="on">Map Studio</button>
+    </div>
+  </div>
+
+  <div id="viewRoot" style="flex:1;display:flex;flex-direction:column;min-height:0;"></div>
 </div>
 
-<div style="display:flex; flex-direction:column; height:100vh;">
-  <!-- Topbar -->
-  <header class="pm-topbar team-bar" id="topbar" style="background:#16356A; color:#FBF6EA; border-bottom:none; z-index:50;">
-    <a class="brand" href="/" style="color:#FBF6EA;"><div class="brand-icon" style="background:#FBF6EA;"><i style="border-color:#16356A;"></i></div><span class="brand-name">PlotMap</span></a>
-    <nav>
-      <a href="/admin/team.html" style="color:rgba(251,246,234,0.7);">Workspace</a>
-      <a href="/admin/clients.html" style="color:rgba(251,246,234,0.7);">Clients</a>
-      <a href="/admin/properties.html" style="color:rgba(251,246,234,0.7);">Properties</a>
-      <a href="/admin/deals.html" style="color:rgba(251,246,234,0.7);">Deals</a>
-      <a href="/admin/map-studio.html" class="on" style="color:#FBF6EA; border-bottom-color:#E7CE9B;">Map Studio</a>
-    </nav>
-    <div class="sp"></div>
-    <a href="/admin/index.html" style="font-size:13.5px;font-weight:700; color:rgba(251,246,234,0.7);">Switch Role</a>
-  </header>
-
-  <section id="map-canvas" style="flex:1; position:relative; overflow:hidden; background:#EAE0CC; display:flex; flex-direction:column;">
-    <div style="flex:none; padding:22px 30px 16px; max-width:1320px; margin:0 auto; width:100%;">
-      <div class="pm-serif" style="font-size:32px; font-weight:560; letter-spacing:-0.6px; line-height:1.05; color:#1B2A1F;">Map Studio</div>
-      <div style="font-size:16px; color:#5A554A; margin-top:4px; font-weight:550;">Mark your map in 3 easy steps. Big buttons, no rush.</div>
-    </div>
-
-    <!-- 3 Steps -->
-    <div style="flex:none; padding:0 30px 14px; max-width:1320px; margin:0 auto; width:100%;">
-      <div style="display:flex; gap:12px;">
-        <div style="flex:1; display:flex; align-items:center; gap:13px; background:#E8EEF7; border:1px solid #16356A; border-radius:16px; padding:15px 18px;" id="step1-card">
-          <span style="flex:none; width:34px; height:34px; border-radius:50%; background:#16356A; color:#FBF6EA; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:800;">1</span>
-          <div><div style="font-size:16px; font-weight:800; color:#16356A;">Pick your map</div>
-            <div style="font-size:12.5px; color:#16356A; display:flex; gap:6px; margin-top:4px; align-items:center;">
-              <!-- Mini map selectors that proxy the hidden legacy ones -->
-              <select id="ui-city" style="border:1px solid #CDE6DA; border-radius:6px; background:#fff; font-size:12px; padding:2px; max-width:120px;"><option value="">City...</option></select>
-              <select id="ui-type" style="border:1px solid #CDE6DA; border-radius:6px; background:#fff; font-size:12px; padding:2px; max-width:100px;"><option value="">Type...</option><option value="masterplan">Masterplan</option><option value="sector">Sector Map</option></select>
-              <select id="ui-map" style="border:1px solid #CDE6DA; border-radius:6px; background:#fff; font-size:12px; padding:2px; max-width:120px;"><option value="">Map...</option></select>
-              <span class="map-view-toggle" id="ui-map-view">
-                <button type="button" id="ui-view-original" class="active">Original</button>
-                <button type="button" id="ui-view-easy">3D</button>
-              </span>
-            </div>
-          </div>
-        </div>
-        <div style="flex:1; display:flex; align-items:center; gap:13px; background:#FBF6EA; border:1px solid #EBE1CC; border-radius:16px; padding:15px 18px;">
-          <span style="flex:none; width:34px; height:34px; border-radius:50%; background:#EAE0CC; color:#8C8676; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:800;">2</span>
-          <div><div style="font-size:16px; font-weight:800; color:#8C8676;">Mark it</div><div style="font-size:12.5px; color:#8C8676;">Roads, blocks, plots</div></div>
-        </div>
-        <div style="flex:1; display:flex; align-items:center; gap:13px; background:#FBF6EA; border:1px solid #EBE1CC; border-radius:16px; padding:15px 18px;">
-          <span style="flex:none; width:34px; height:34px; border-radius:50%; background:#EAE0CC; color:#8C8676; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:800;">3</span>
-          <div><div style="font-size:16px; font-weight:800; color:#8C8676;">Publish</div><div style="font-size:12.5px; color:#8C8676;">Send safe markings</div></div>
-        </div>
-      </div>
-    </div>
-
-    <div style="flex:1; display:flex; gap:18px; padding:0 30px 24px; max-width:1320px; margin:0 auto; width:100%; min-height:0;">
-      <!-- big toolbar -->
-      <div style="flex:none; width:150px; display:flex; flex-direction:column; gap:10px;">
-        <button class="tool-btn ms-tool-btn" id="btn-draw-road" data-tool="road" onclick="startDrawing('road')">
-          <span class="tool-icon-bg">—</span>
-          <span style="font-size:13.5px; font-weight:700; color:#2B2A25;">Road</span>
-        </button>
-        <button class="tool-btn ms-tool-btn" id="btn-draw-block" data-tool="block" onclick="startDrawing('block')">
-          <span class="tool-icon-bg">⬚</span>
-          <span style="font-size:13.5px; font-weight:700; color:#2B2A25;">Block</span>
-        </button>
-        <button class="tool-btn ms-tool-btn" id="btn-draw-sector" data-tool="sectorTag" onclick="startDrawing('sectorTag')">
-          <span class="tool-icon-bg">Ⓑ</span>
-          <span style="font-size:13.5px; font-weight:700; color:#2B2A25;">Sector</span>
-        </button>
-        <button class="tool-btn ms-tool-btn" id="btn-draw-plot" data-tool="plot" onclick="startDrawing('block')" style="display:none;">
-          <span class="tool-icon-bg">⌖</span>
-          <span style="font-size:13.5px; font-weight:700; color:#2B2A25;">Plot</span>
-        </button>
-      </div>
-
-      <!-- canvas -->
-      <div style="flex:1; position:relative; background:#EAE0CC; border:1px solid #D8CDB4; border-radius:20px; overflow:hidden;" id="canvas-container">
-        
-        <div id="no-map-msg" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-weight:600; color:#9A9D96; font-size:16px;">
-          Please select a map to begin.
-        </div>
-
-        <div id="canvas-inner" style="position:absolute; left:50%; top:50%; display:none; transform-origin:center center;">
-          <div style="position:absolute; inset:0; background-image:linear-gradient(rgba(110,108,90,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(110,108,90,0.06) 1px,transparent 1px); background-size:44px 44px; pointer-events:none; z-index: -1;"></div>
-          <img id="canvas-img" src="" style="display:block; max-width:none; object-fit:contain;" />
-          <svg class="ms-svg-overlay" id="svg-overlay" preserveAspectRatio="none">
-            <g id="rendered-layers"></g>
-            <g id="active-drawing"></g>
-          </svg>
-        </div>
-        
-        <!-- drawing instruction overlay -->
-        <div id="instructions" style="position:absolute; left:50%; bottom:22px; transform:translateX(-50%); display:none; align-items:center; gap:13px; background:#16356A; border-radius:16px; padding:15px 22px; box-shadow:0 14px 32px rgba(6,14,32,.28); z-index:10;">
-          <span style="width:10px; height:10px; border-radius:50%; background:#60A5FA;"></span>
-          <span style="font-size:16px; color:#FBF6EA; font-weight:700;" id="instr-text">Tap along the road, then double-tap to finish.</span>
-        </div>
-        
-        <div class="ms-coords" id="coords" style="display:none; position:absolute; left:20px; bottom:20px; z-index:10; background: rgba(31, 94, 71, 0.9); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;"></div>
-        
-        <div class="ms-canvas-bar" id="canvas-controls" style="display:none; position:absolute; right:20px; bottom:20px; z-index:10; display:flex; gap:8px;">
-            <button onclick="zoomCanvas(1.2)" style="width:36px; height:36px; border:1px solid #E7E3D9; background:#fff; border-radius:10px; cursor:pointer;">+</button>
-            <button onclick="zoomCanvas(0.8)" style="width:36px; height:36px; border:1px solid #E7E3D9; background:#fff; border-radius:10px; cursor:pointer;">-</button>
-            <button onclick="undoPoint()" style="width:36px; height:36px; border:1px solid #E7E3D9; background:#fff; border-radius:10px; cursor:pointer;">↩</button>
-            <button id="drawing-actions" onclick="finishDrawing()" style="height:36px; padding:0 14px; border:none; background:#1F5E47; color:#fff; font-weight:700; border-radius:10px; cursor:pointer; display:none;">Finish</button>
-        </div>
-      </div>
-
-      <!-- inspector side panel -->
-      <div id="inspector-empty" style="flex:none; width:280px; padding:24px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
-          <div style="font-size:24px; margin-bottom:12px;">📌</div>
-          <div style="color:#8C8676; font-size:14px; font-weight:600;">Select a layer to edit or draw something new.</div>
-      </div>
-
-      <div id="inspector-form" style="display:none; flex:none; width:330px; padding:24px; flex-direction:column; background:#FBF6EA; border-left:1px solid #E6DCC8; box-shadow:-8px 0 24px rgba(40,28,8,.05);">
-        <form id="drawing-form" style="display:flex; flex-direction:column; height:100%; margin:0;">
-          <input type="hidden" id="f-id">
-          <input type="hidden" id="f-kind">
-          
-          <!-- Default hidden legacy fields so JS doesn't break -->
-          <div style="display:none;">
-            <div id="grp-sectorCode"><select id="f-sectorCode"><option value=""></option></select></div>
-            <div id="grp-sectorTagGroup"><select id="f-sectorTagGroup"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="General">General</option></select></div>
-            <select id="f-status"><option value="Draft">Draft</option><option value="Published">Published</option></select>
-            <div id="grp-checklist"></div>
-            <div id="publish-warning"></div>
-            <input type="checkbox" id="chk-nameClear" checked><input type="checkbox" id="chk-correctMap" checked><input type="checkbox" id="chk-geometryChecked" checked><input type="checkbox" id="chk-visibilityChecked" checked><input type="checkbox" id="chk-linkedMapChecked" checked>
-            <textarea id="f-notes"></textarea>
-            <button id="btn-save"></button>
-            <button type="button" id="btn-delete"></button>
-            <button type="button" id="btn-export-current"></button>
-            <select id="f-visibility"><option value="public">public</option><option value="internal">internal</option></select>
-          </div>
-
-          <div class="pm-serif" style="font-size:28px; font-weight:560; margin-bottom:16px; letter-spacing:-.5px; line-height:1.06;" id="inspector-title">Name this road</div>
-          
-          <input type="text" id="f-title" placeholder="e.g. Airport Road Link" style="background:#fff; border:1px solid #EFE5D1; border-radius:14px; padding:15px; font-size:16px; font-weight:600; width:100%; box-sizing:border-box; color:#23211C; box-shadow:0 5px 14px rgba(22,53,106,.05);">
-          
-          <div style="font-size:12px; font-weight:700; color:#A89F89; text-transform:uppercase; letter-spacing:1px; margin:24px 0 11px;">Pick a colour group</div>
-          <div style="display:flex; gap:9px;" id="ui-color-group">
-            <div class="cg-btn cg-active" data-val="A" style="flex:1; text-align:center; border:1px solid #16356A; background:#E8EEF7; border-radius:13px; padding:13px 0; font-size:16px; font-weight:800; color:#16356A; cursor:pointer;">A</div>
-            <div class="cg-btn" data-val="B" style="flex:1; text-align:center; border:1px solid #EBE1CC; background:#fff; border-radius:13px; padding:13px 0; font-size:16px; font-weight:800; color:#8C8676; cursor:pointer;">B</div>
-            <div class="cg-btn" data-val="C" style="flex:1; text-align:center; border:1px solid #EBE1CC; background:#fff; border-radius:13px; padding:13px 0; font-size:16px; font-weight:800; color:#8C8676; cursor:pointer;">C</div>
-            <div class="cg-btn" data-val="D" style="flex:1; text-align:center; border:1px solid #EBE1CC; background:#fff; border-radius:13px; padding:13px 0; font-size:16px; font-weight:800; color:#8C8676; cursor:pointer;">D</div>
-          </div>
-          
-          <label style="display:flex; align-items:center; gap:10px; background:#E8EEF7; border:1px solid #D7E1F0; border-radius:13px; padding:12px 14px; margin-top:20px; cursor:pointer;">
-            <input type="checkbox" id="ui-safe-marking" checked style="width:20px; height:20px;">
-            <span style="font-size:13.5px; color:#2E4A78; font-weight:650;">Only safe markings go to clients</span>
-          </label>
-
-          <details style="margin-top:16px; font-size:13px; color:#7C7565; cursor:pointer;">
-            <summary style="font-weight:700; padding:8px 0; outline:none;">Advanced Details</summary>
-            <div style="padding-top:8px; display:flex; flex-direction:column; gap:10px; cursor:default;">
-              <div id="grp-roadType">Road Type: <select id="f-roadType" style="width:100%; padding:6px; border-radius:6px; border:1px solid #EBE1CC; margin-top:4px;"><option value="Main Road">Main Road</option><option value="Internal Road">Internal Road</option></select></div>
-              <div id="grp-blockType">Block Type: <select id="f-blockType" style="width:100%; padding:6px; border-radius:6px; border:1px solid #EBE1CC; margin-top:4px;"><option value="Residential Block">Residential Block</option><option value="Commercial Block">Commercial Block</option></select></div>
-              <div id="grp-parentSector">Parent Sector: <select id="f-parentSector" style="width:100%; padding:6px; border-radius:6px; border:1px solid #EBE1CC; margin-top:4px;"><option value="">None</option></select></div>
-              <div id="grp-linkedMap">Linked Map: <select id="f-linkedMap" style="width:100%; padding:6px; border-radius:6px; border:1px solid #EBE1CC; margin-top:4px;"><option value="">None</option></select></div>
-            </div>
-          </details>
-
-          <div style="margin-top:auto; display:flex; flex-direction:column; gap:11px; padding-top:20px;">
-            <button type="button" id="ui-btn-draft" style="cursor:pointer; border:1px solid #E2D7C0; background:#fff; color:#23211C; font-weight:680; font-size:14px; padding:15px; border-radius:13px; transition:background 0.2s;" style-hover="border-color:#16356A;">Save for later</button>
-            <button type="button" id="ui-btn-publish" style="cursor:pointer; border:0; background:#16356A; color:#FBF6EA; font-weight:730; font-size:14.5px; padding:16px; border-radius:13px; box-shadow:0 8px 20px rgba(22,53,106,.26); transition:background 0.2s;">Publish to client map</button>
-            <button type="button" id="ui-btn-del" style="cursor:pointer; border:0; background:transparent; color:#EF4444; font-weight:700; font-size:14px; padding:8px; display:none;">Delete Marking</button>
-          </div>
-        </form>
-      </div>
-
-    </div>
-  </section>
-</div>
+<div id="modalRoot"></div>
+<div id="toastRoot"></div>
 
 <script>
-document.addEventListener('DOMContentLoaded', async () => {
-  const crm = window.CRM;
-  let activeKind = null; // 'road', 'block', 'sectorTag'
-  let activePoints = [];
-  let selectedId = null;
-  let canvasScale = 1;
-  let manifestData = null;
-  const registryData = window.PM_MAP_REGISTRY || null;
-
-  // View Mode
-  let currentMode = 'draw'; // 'draw' or 'review'
-
-  // Map Selection State
-  let currentCity = '';
-  let currentMapType = '';
-  let currentMapId = '';
-  let currentMapView = 'original';
-
-  const overlay = document.getElementById('svg-overlay');
-  const activeDrawingGroup = document.getElementById('active-drawing');
-  const renderedLayersGroup = document.getElementById('rendered-layers');
-  const instr = document.getElementById('instructions');
-  const canvasInner = document.getElementById('canvas-inner');
-  const canvasImg = document.getElementById('canvas-img');
-  const noMapMsg = document.getElementById('no-map-msg');
-  const canvasControls = document.getElementById('canvas-controls');
-  const coordsLabel = document.getElementById('coords');
-
-  const selCity = document.getElementById('sel-city');
-  const selMapType = document.getElementById('sel-map-type');
-  const selMap = document.getElementById('sel-map');
-  const viewOriginalBtn = document.getElementById('ui-view-original');
-  const viewEasyBtn = document.getElementById('ui-view-easy');
-
-  const registryMaps = () => registryData && Array.isArray(registryData.maps)
-    ? registryData.maps.filter(m => m && m.status === 'active')
-    : [];
-  const registryMapById = (id) => registryMaps().find(m => m.id === id) || (registryData && registryData.byId && registryData.byId[id]) || null;
-  const registryMapsByType = (type) => registryMaps().filter(m => m.type === (type === 'block' ? 'sector' : type));
-  const selectableRegistryMapsByType = (type) => registryMapsByType(type).filter(map => map.hasOriginalMap);
-  const mapAsset = (map, preference = 'original') => {
-    if (!map) return null;
-    const src = preference === 'original'
-      ? (map.originalMapSrc || map.easyMapSrc)
-      : (map.easyMapSrc || map.originalMapSrc);
-    return src || null;
+(function () {
+  'use strict';
+  const Store = window.PMOverlayStore;
+  const COLORS = { gold: '#A87F1F', blue: '#1E5FA8', emerald: '#157A56', bronze: '#B06A2C', ink: '#23201A' };
+  const GROUPS = {
+    A: { name: 'Connectivity', desc: 'Main roads & links', color: '#1E5FA8' },
+    B: { name: 'Residential', desc: 'Zones, blocks & plots', color: '#A87F1F' },
+    C: { name: 'Commercial & Civic', desc: 'Belts & landmarks', color: '#157A56' },
+    D: { name: 'Growth Corridor', desc: 'Expansion side', color: '#B06A2C' }
   };
-  const mapAvailabilityLabel = (map) => {
+  const KIND_LABEL = { road: 'Road', sector: 'Sector', block: 'Block', landmark: 'Landmark', pin: 'Property', commercial: 'Commercial', label: 'Label', plot: 'Plot', boundary: 'Boundary' };
+  const GLOW = { '#1E5FA8': '#1FC8FF', '#157A56': '#2CEAA6', '#B06A2C': '#F5A84E', '#A87F1F': '#FFD97A', '#23201A': '#FFD97A' };
+
+  const registry = () => (window.PM_MAP_REGISTRY && window.PM_MAP_REGISTRY.maps) || [];
+  const mapById = id => registry().find(m => m.id === id) || null;
+  const masterplans = () => registry().filter(m => m.type === 'masterplan' && m.status === 'active');
+  const sectorMaps = () => registry().filter(m => m.type === 'sector' && m.status === 'active');
+
+  const S = {
+    view: 'hub',                 // hub | masterplan | sector | manage
+    mapId: 'masterplan-new-chandigarh-masterplan',
+    sectorMapId: 'sector-sector-28-chandigarh',
+    mGroup: null, mSel: null, mpCat: 'Roads',
+    tool: 'road', pts: [], active: null, secStep: 'mark',
+    publish: null, pubDone: false, confirm: null, picker: null,
+    toastMsg: '', toastTimer: null
+  };
+
+  /* ================= helpers ================= */
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  function rgba(hex, a) { const n = parseInt(hex.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; }
+  function lighten(hex, amt) { const n = parseInt(hex.slice(1), 16); let r = n >> 16, g = (n >> 8) & 255, b = n & 255; r = Math.round(r + (255 - r) * amt); g = Math.round(g + (255 - g) * amt); b = Math.round(b + (255 - b) * amt); return 'rgb(' + r + ',' + g + ',' + b + ')'; }
+  function darken(hex, amt) { const n = parseInt(hex.slice(1), 16); const r = n >> 16, g = (n >> 8) & 255, b = n & 255; return 'rgb(' + Math.round(r * (1 - amt)) + ',' + Math.round(g * (1 - amt)) + ',' + Math.round(b * (1 - amt)) + ')'; }
+  function itemHex(it) { return COLORS[it.color] || COLORS[Store.KIND_COLOR[it.kind]] || COLORS.gold; }
+  function centroidOf(it, vb) {
+    if (it.at) return [it.at[0], it.at[1] - 14];
+    if (Array.isArray(it.pts) && it.pts.length) {
+      const pts = it.kind === 'plot' ? Store.rectPts(it.pts) : it.pts;
+      return [pts.reduce((a, p) => a + p[0], 0) / pts.length, pts.reduce((a, p) => a + p[1], 0) / pts.length];
+    }
+    if (it.d) {
+      const nums = [...it.d.matchAll(/-?\d+(?:\.\d+)?/g)].map(m => +m[0]);
+      let sx = 0, sy = 0, n = 0;
+      for (let i = 0; i + 1 < nums.length; i += 2) { sx += nums[i]; sy += nums[i + 1]; n++; }
+      return n ? [sx / n, sy / n] : [vb[2] / 2, vb[3] / 2];
+    }
+    return [vb[2] / 2, vb[3] / 2];
+  }
+  function toast(msg) {
+    clearTimeout(S.toastTimer);
+    S.toastMsg = msg;
+    renderToast();
+    S.toastTimer = setTimeout(() => { S.toastMsg = ''; renderToast(); }, 2400);
+  }
+  function renderToast() {
+    document.getElementById('toastRoot').innerHTML = S.toastMsg ? '<div class="toast">' + esc(S.toastMsg) + '</div>' : '';
+  }
+
+  function currentMap() { return mapById(S.view === 'sector' ? S.sectorMapId : S.mapId); }
+  function mapImageSrc(map, mode) {
     if (!map) return '';
-    if (map.hasEasyMap && map.hasOriginalMap) return '3D + Original';
-    return map.hasEasyMap ? '3D only' : 'Original only';
-  };
-  const overlayCountFor = (mapId) => {
-    const data = crm.getCRM();
-    const drawings = Array.isArray(data.mapDrawings) ? data.mapDrawings : [];
-    return drawings.filter(d => d.mapId === mapId).length;
-  };
-
-  function updateMapViewButtons(map) {
-    const entry = map || registryMapById(currentMapId);
-    if (!viewOriginalBtn || !viewEasyBtn) return;
-    if (entry && currentMapView === 'easy' && !entry.hasEasyMap) currentMapView = 'original';
-    viewOriginalBtn.classList.toggle('active', currentMapView !== 'easy');
-    viewEasyBtn.classList.toggle('active', currentMapView === 'easy');
-    viewOriginalBtn.disabled = !entry || !entry.hasOriginalMap;
-    viewEasyBtn.disabled = !entry || !entry.hasEasyMap;
-    viewEasyBtn.title = entry && entry.hasEasyMap ? 'Switch to 3D / Easy map' : 'No 3D / Easy map paired yet';
+    if (mode === 'easy') return map.easyMapSrc || map.originalMapSrc || '';
+    return map.originalMapSrc || map.easyMapSrc || '';
+  }
+  function sectorMode(map) { return map && map.hasEasyMap ? 'easy' : 'original'; }
+  function mapDims(map, mode) {
+    const d = mode === 'easy' ? (map.easyDimensions || map.dimensions) : (map.originalDimensions || map.dimensions);
+    return d || { width: 1448, height: 1086 };
   }
 
-  function applyCanvasTransform() {
-    canvasInner.style.transform = `translate(-50%, -50%) scale(${canvasScale})`;
-  }
-
-  function fitCanvas() {
-    const w = canvasImg.naturalWidth || 1200;
-    const h = canvasImg.naturalHeight || 800;
-    const box = document.getElementById('canvas-container');
-    const cw = Math.max(1, (box && box.clientWidth) || w);
-    const ch = Math.max(1, (box && box.clientHeight) || h);
-    canvasScale = Math.max(0.05, Math.min((cw - 48) / w, (ch - 48) / h));
-    applyCanvasTransform();
-  }
-
-  canvasImg.addEventListener('load', () => {
-    const w = canvasImg.naturalWidth || 1200;
-    const h = canvasImg.naturalHeight || 800;
-    canvasInner.style.width = `${w}px`;
-    canvasInner.style.height = `${h}px`;
-    canvasImg.style.width = `${w}px`;
-    canvasImg.style.height = `${h}px`;
-    fitCanvas();
-    renderAll();
-  });
-  window.addEventListener('resize', () => {
-    if (currentMapId && canvasInner.style.display !== 'none') fitCanvas();
-  });
-
-  // Load legacy manifest only as a fallback. The folder registry is the active source.
-  if (!registryData) {
-    try {
-      const res = await fetch('/app/plotmap/map-assets.manifest.json');
-      manifestData = await res.json();
-    } catch (e) {
-      console.error("Failed to load legacy map manifest", e);
-    }
-  }
-  populateLinkedMapDropdown();
-  updateMapViewButtons(null);
-
-  // --- Mode Switching ---
-  window.switchMode = function(mode) {
-    if (activePoints.length > 0) {
-      if(!confirm("You have an unsaved drawing. Discard it?")) return;
-      resetDrawingState();
-    }
-    
-    currentMode = mode;
-    
-    document.getElementById('tab-draw').classList.toggle('active', mode === 'draw');
-    document.getElementById('tab-review').classList.toggle('active', mode === 'review');
-    
-    if (mode === 'draw') {
-      document.getElementById('ms-tools-col').style.display = 'flex';
-      document.getElementById('map-canvas').style.display = 'flex';
-      document.getElementById('review-queue-container').style.display = 'none';
-      hideInspector();
-      if (currentMapId) renderAll();
-    } else {
-      document.getElementById('ms-tools-col').style.display = 'none';
-      document.getElementById('map-canvas').style.display = 'none';
-      document.getElementById('review-queue-container').style.display = 'block';
-      hideInspector();
-      renderReviewQueue();
-    }
-  };
-
-  // --- Map Selection Logic ---
-
-  // Populate Step 1: Map areas from the new folder registry.
-  if (registryData) {
-    const areas = Array.from(new Set(registryMaps().filter(map => map.hasOriginalMap).map(map => map.area || 'Other'))).sort((a, b) => a.localeCompare(b));
-    areas.forEach(area => {
-      const opt = document.createElement('option');
-      opt.value = area;
-      opt.textContent = area;
-      selCity.appendChild(opt);
+  /* ================= premium overlay renderer =================
+     Same visual language as the design handoff: dim mask cutouts,
+     glass roads with white-blue core + flow pulses, extruded solid
+     blocks with glossy top face, ring pins, label chips. */
+  function renderOverlaySvg(items, opts) {
+    const vb = String(opts.viewBox).split(/\s+/).map(Number);
+    const strong = opts.strong || new Set(), soft = opts.soft || new Set();
+    const any = strong.size > 0 || soft.size > 0;
+    const dim = 0.46;
+    let defs = '<defs>';
+    ['#A87F1F', '#1E5FA8', '#157A56', '#B06A2C'].forEach((c, i) => {
+      defs += '<linearGradient id="grad' + i + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + lighten(c, .5) + '" stop-opacity=".55"/><stop offset="1" stop-color="' + c + '" stop-opacity=".78"/></linearGradient>';
     });
-  } else if (window.PM && window.PM.areas) {
-    window.PM.areas.forEach(area => {
-      const opt = document.createElement('option');
-      opt.value = area.id;
-      opt.textContent = area.name + (area.live ? '' : ' (Coming Soon)');
-      selCity.appendChild(opt);
-    });
-  }
-  selMapType.innerHTML = '<option value="">Select Type...</option><option value="masterplan">Masterplan</option><option value="sector">Sector Map</option>';
-  currentCity = selCity.value || '';
-  selMapType.disabled = !currentCity;
-  selMap.disabled = true;
+    defs += '</defs>';
+    let maskCuts = '', under = '', mid = '', top = '', hits = '';
 
-  selCity.addEventListener('change', (e) => {
-    if (activePoints.length > 0) {
-      if(!confirm("You have an unsaved drawing. Discard it and switch cities?")) {
-        selCity.value = currentCity;
-        return;
-      }
-      resetDrawingState();
-    }
-    currentCity = e.target.value;
-    currentMapView = 'original';
-    updateMapViewButtons(null);
-    selMapType.disabled = !currentCity;
-    selMapType.value = '';
-    selMap.disabled = true;
-    selMap.innerHTML = '<option value="">Select Map...</option>';
-    clearMap();
-  });
+    items.forEach(it => {
+      const col = itemHex(it);
+      const isStrong = strong.has(it.id), isSoft = soft.has(it.id);
+      if (it.kind === 'pin' || it.kind === 'label') return;   // DOM layer
+      const paths = it.paths && it.paths.length ? it.paths : (it.d ? [it.d] : []);
+      if (!paths.length) return;
+      const isLine = it.kind === 'road' || it.kind === 'boundary';
 
-  selMapType.addEventListener('change', (e) => {
-    if (activePoints.length > 0) {
-      if(!confirm("You have an unsaved drawing. Discard it and switch map types?")) {
-        selMapType.value = currentMapType;
-        return;
-      }
-      resetDrawingState();
-    }
-    currentMapType = e.target.value;
-    currentMapView = 'original';
-    updateMapViewButtons(null);
-    selMap.disabled = !currentMapType;
-    selMap.innerHTML = '<option value="">Select Map...</option>';
-    
-    if (currentMapType) {
-      populateMapDropdown();
-    } else {
-      clearMap();
-    }
-  });
+      paths.forEach((d, pi) => {
+        // hit target (always)
+        hits += isLine
+          ? '<path d="' + d + '" fill="none" stroke="rgba(0,0,0,0)" stroke-width="22" style="cursor:pointer;pointer-events:stroke" data-hit="' + esc(it.id) + '"/>'
+          : '<path d="' + d + '" fill="rgba(0,0,0,0)" stroke="rgba(0,0,0,0)" style="cursor:pointer" data-hit="' + esc(it.id) + '"/>';
 
-  selMap.addEventListener('change', (e) => {
-    if (activePoints.length > 0) {
-      if(!confirm("You have an unsaved drawing. Discard it and switch maps?")) {
-        selMap.value = currentMapId;
-        return;
-      }
-      resetDrawingState();
-    }
-    currentMapId = e.target.value;
-    currentMapView = 'original';
-    loadMap();
-  });
-
-  viewOriginalBtn.addEventListener('click', () => {
-    if (!currentMapId || currentMapView === 'original') return;
-    currentMapView = 'original';
-    loadMap();
-  });
-
-  viewEasyBtn.addEventListener('click', () => {
-    const entry = registryMapById(currentMapId);
-    if (!entry || !entry.hasEasyMap || currentMapView === 'easy') return;
-    currentMapView = 'easy';
-    loadMap();
-  });
-
-  function populateMapDropdown() {
-    selMap.innerHTML = '<option value="">Select Map...</option>';
-    if (!currentCity || !currentMapType) return;
-
-    if (registryData) {
-      const maps = selectableRegistryMapsByType(currentMapType).filter(map => (map.area || 'Other') === currentCity);
-      maps.forEach(map => {
-        const count = overlayCountFor(map.id);
-        const opt = document.createElement('option');
-        opt.value = map.id;
-        opt.textContent = `${map.title} · ${mapAvailabilityLabel(map)}${count ? ` · ${count} overlay${count === 1 ? '' : 's'}` : ''}`;
-        selMap.appendChild(opt);
-      });
-    } else if (currentMapType === 'masterplan') {
-      // Find the masterplan dataset for this city
-      const area = window.PM.areas.find(a => a.id === currentCity);
-      if (area && area.dataset) {
-        const ds = window.PM.datasets[area.dataset];
-        if (ds) {
-          selMap.innerHTML += `<option value="${area.dataset}">${ds.name || 'Masterplan'}</option>`;
+        if (isStrong && isLine) {
+          const glow = GLOW[col] || '#FFD97A';
+          maskCuts += '<path d="' + d + '" fill="none" stroke="black" stroke-width="46" stroke-linecap="round" stroke-linejoin="round"/>';
+          under += '<path d="' + d + '" fill="none" stroke="rgba(0,24,48,.55)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" transform="translate(0,5)" style="filter:blur(6px)"/>';
+          mid += '<path d="' + d + '" fill="none" stroke="' + rgba(glow, .72) + '" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 8px ' + rgba(glow, .9) + ') drop-shadow(0 0 18px ' + rgba(col, .65) + ')"/>';
+          mid += '<path d="' + d + '" fill="none" stroke="rgba(235,255,255,.98)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 4px rgba(255,255,255,.95)) drop-shadow(0 0 14px ' + rgba(glow, .95) + ')"/>';
+          mid += '<path d="' + d + '" fill="none" stroke="#FFFFFF" stroke-width="4.4" stroke-linecap="round" stroke-dasharray="2 32" style="pointer-events:none;filter:drop-shadow(0 0 5px rgba(255,255,255,1)) drop-shadow(0 0 12px ' + rgba(glow, 1) + ');animation:flowdash 1.15s linear infinite"/>';
+        } else if (isStrong) {
+          const isBlockish = it.kind === 'block' || it.kind === 'plot';
+          const lift = isBlockish ? 18 : 10, steps = 5;
+          const topFace = lighten(col, isBlockish ? .34 : .44), topEdge = lighten(col, .74);
+          maskCuts += '<path d="' + d + '" fill="black"/><path d="' + d + '" fill="black" transform="translate(0,' + (-lift) + ')"/>';
+          under += '<path d="' + d + '" fill="rgba(22,15,4,.5)" transform="translate(0,' + (lift + 5) + ')" style="filter:blur(9px)"/>';
+          for (let k = 0; k <= steps; k++) {
+            const t = k / steps;
+            mid += '<path d="' + d + '" fill="' + darken(col, 0.62 - 0.46 * t) + '" transform="translate(0,' + (-lift * t).toFixed(1) + ')"/>';
+          }
+          const gi = { '#A87F1F': 0, '#1E5FA8': 1, '#157A56': 2, '#B06A2C': 3 }[col] || 0;
+          top += '<path d="' + d + '" fill="' + topFace + '" stroke="' + topEdge + '" stroke-width="2" stroke-linejoin="round" transform="translate(0,' + (-lift) + ')" style="filter:drop-shadow(0 3px 3px rgba(26,18,6,.34))"/>';
+          top += '<path d="' + d + '" fill="url(#grad' + gi + ')" transform="translate(0,' + (-lift) + ')" style="mix-blend-mode:screen;opacity:.55"/>';
+          top += '<path d="' + d + '" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1" stroke-linejoin="round" transform="translate(0,' + (-lift - 1) + ')"/>';
+        } else if (isSoft) {
+          if (isLine) {
+            maskCuts += '<path d="' + d + '" fill="none" stroke="black" stroke-width="22" stroke-linecap="round"/>';
+            under += '<path d="' + d + '" fill="none" stroke="' + rgba(col, .5) + '" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>';
+          } else {
+            maskCuts += '<path d="' + d + '" fill="black"/>';
+            under += '<path d="' + d + '" fill="' + rgba(col, .11) + '" stroke="' + rgba(col, .72) + '" stroke-width="2.4" stroke-linejoin="round"/>';
+          }
+        } else if (opts.showIdle) {
+          // studio idle state: quiet outline so the team can see what exists
+          under += isLine
+            ? '<path d="' + d + '" fill="none" stroke="' + rgba(col, opts.idleStrongLines ? .55 : .35) + '" stroke-width="' + (it.seed ? 3 : 4) + '" stroke-linecap="round" stroke-linejoin="round"' + (it.status === 'draft' ? ' stroke-dasharray="8 6"' : '') + '/>'
+            : '<path d="' + d + '" fill="' + rgba(col, .08) + '" stroke="' + rgba(col, .55) + '" stroke-width="2"' + (it.status === 'draft' ? ' stroke-dasharray="8 6"' : '') + ' stroke-linejoin="round"/>';
         }
-      }
-    } else if (manifestData && manifestData.entries) {
-      // Find sector or block maps for this city
-      const entries = manifestData.entries.filter(e => 
-        e.mapType === currentMapType && 
-        (e.city.toLowerCase() === currentCity.toLowerCase() || e.area.toLowerCase() === currentCity.toLowerCase())
-      );
-      
-      entries.forEach(e => {
-        selMap.innerHTML += `<option value="${e.id}">${e.displayName || e.id}</option>`;
       });
+    });
+
+    let dimLayer = '';
+    if (any) {
+      dimLayer = '<g style="pointer-events:none"><mask id="dimmaskS"><rect x="-40" y="-40" width="' + (vb[2] + 80) + '" height="' + (vb[3] + 80) + '" fill="white"/>' + maskCuts + (opts.maskCircles || '') + '</mask>'
+        + '<rect x="-40" y="-40" width="' + (vb[2] + 80) + '" height="' + (vb[3] + 80) + '" fill="#241C10" opacity="' + dim + '" mask="url(#dimmaskS)" style="transition:opacity .5s ease"/></g>';
     }
+    return defs + dimLayer + '<g style="pointer-events:none">' + under + mid + top + '</g>'
+      + (opts.inProgress || '')
+      + '<g><rect x="0" y="0" width="' + vb[2] + '" height="' + vb[3] + '" fill="rgba(0,0,0,0)" data-hit=""/>' + hits + '</g>';
   }
 
-  function loadMap() {
-    if (!currentMapId) {
-      clearMap();
-      return;
-    }
-
-    let imgUrl = null;
-
-    if (registryData) {
-      const entry = registryMapById(currentMapId);
-      if (entry && currentMapView === 'easy' && !entry.hasEasyMap) currentMapView = 'original';
-      updateMapViewButtons(entry);
-      imgUrl = mapAsset(entry, currentMapView);
-    } else if (currentMapType === 'masterplan') {
-      const area = window.PM.areas.find(a => a.id === currentCity);
-      if (area && area.dataset) {
-        const ds = window.PM.datasets[area.dataset];
-        if (ds && ds.assets && ds.assets.original) {
-          imgUrl = ds.assets.original;
-        }
-      }
-    } else if (manifestData) {
-      const entry = manifestData.entries.find(e => e.id === currentMapId);
-      if (entry) {
-        // Prefer best processed, fallback to original
-        imgUrl = entry.bestProcessedPath || entry.originalPath;
-      }
-    }
-
-    if (imgUrl) {
-      canvasImg.src = imgUrl;
-      noMapMsg.style.display = 'none';
-      canvasInner.style.display = 'block';
-      applyCanvasTransform();
-      canvasControls.style.display = 'flex';
-      coordsLabel.style.display = 'block';
-      enableDrawingTools();
-      renderAll();
+  function pinHtml(it, vb, opts) {
+    const strong = opts.strong && opts.strong.has(it.id);
+    const faded = opts.anySel && !strong;
+    const l = (it.at[0] / vb[2] * 100).toFixed(3) + '%', t = (it.at[1] / vb[3] * 100).toFixed(3) + '%';
+    const col = itemHex(it);
+    let dot;
+    if (strong) {
+      dot = '<span style="display:block;width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:radial-gradient(circle at 50% 50%, #FFFFFF 0 5px, rgba(255,255,255,0) 5.5px), linear-gradient(145deg,#57D7FF,#0077E6 60%,#004EA8);border:3px solid #FFFFFF;box-shadow:0 0 10px rgba(0,190,255,.9), 0 12px 22px rgba(0,0,0,.35)"></span>';
     } else {
-      noMapMsg.textContent = "No map image available yet for this area. Add the map asset before drawing.";
-      noMapMsg.style.display = 'block';
-      canvasInner.style.display = 'none';
-      canvasControls.style.display = 'none';
-      coordsLabel.style.display = 'none';
-      disableDrawingTools();
-      document.getElementById('layer-list-container').innerHTML = '';
-      document.getElementById('btn-export-current').disabled = true;
+      dot = '<span style="display:block;width:13px;height:13px;border-radius:50%;background:' + col + ';border:3px solid #FFFDF7;box-shadow:0 2px 8px rgba(20,14,4,.4)"></span>';
     }
+    return '<div class="pinwrap" style="left:' + l + ';top:' + t + ';opacity:' + (faded ? .35 : 1) + '">'
+      + (strong ? '<span style="position:absolute;left:0;top:0;width:40px;height:40px;border:2px solid ' + col + ';border-radius:50%;animation:ringpulse 1.7s ease-out infinite;pointer-events:none;transform:translate(-50%,-50%)"></span>' : '')
+      + '<button class="pinbtn" data-hit="' + esc(it.id) + '" title="' + esc(it.name || 'Pin') + '"' + (strong ? ' style="transform:translate(-50%,-72%)"' : '') + '>' + dot + '</button></div>';
   }
 
-  function clearMap() {
-    currentMapId = '';
-    currentMapView = 'original';
-    updateMapViewButtons(null);
-    noMapMsg.textContent = "Please select a map to begin.";
-    noMapMsg.style.display = 'block';
-    canvasInner.style.display = 'none';
-    canvasControls.style.display = 'none';
-    coordsLabel.style.display = 'none';
-    disableDrawingTools();
-    document.getElementById('layer-list-container').innerHTML = '';
-    document.getElementById('btn-export-current').disabled = true;
-    hideInspector();
+  function labelHtml(it, vb, opts) {
+    const faded = opts.anySel && !(opts.strong && opts.strong.has(it.id));
+    const l = (it.at[0] / vb[2] * 100).toFixed(3) + '%', t = (it.at[1] / vb[3] * 100).toFixed(3) + '%';
+    return '<button class="lblchip" data-hit="' + esc(it.id) + '" style="left:' + l + ';top:' + t + ';opacity:' + (faded ? .3 : 1) + '"><span>' + esc(it.name || 'Label') + '</span></button>';
   }
 
-  function enableDrawingTools() {
-    document.getElementById('btn-draw-road').disabled = false;
-    document.getElementById('btn-draw-block').disabled = false;
-    document.getElementById('btn-draw-sector').disabled = false;
-    document.getElementById('btn-export-current').disabled = false;
-  }
-  function disableDrawingTools() {
-    document.getElementById('btn-draw-road').disabled = true;
-    document.getElementById('btn-draw-block').disabled = true;
-    document.getElementById('btn-draw-sector').disabled = true;
+  function selLabelHtml(it, vb) {
+    if (!it || it.kind === 'label') return '';
+    const c = centroidOf(it, vb);
+    const l = (c[0] / vb[2] * 100).toFixed(3) + '%', t = (c[1] / vb[3] * 100).toFixed(3) + '%';
+    return '<div class="sellbl" style="left:' + l + ';top:' + t + '"><div class="in"><span class="dot" style="background:' + itemHex(it) + '"></span><span class="nm">' + esc(it.name || 'Untitled') + '</span><span class="kd">' + esc(KIND_LABEL[it.kind] || it.kind) + '</span></div></div>';
   }
 
-  // --- Render Layer List & Map SVG ---
-  function renderAll() {
-    if (!currentMapId) return;
+  /* ================= views ================= */
+  const root = () => document.getElementById('viewRoot');
 
-    const data = crm.getCRM();
-    const drawings = data.mapDrawings || [];
-    
-    // Filter by current map
-    const mapDrawings = drawings.filter(d => d.mapId === currentMapId);
-
-    // Render Layer List
-    const listHtml = { road: '', sectorTag: '', block: '' };
-    let counts = { road: 0, sectorTag: 0, block: 0 };
-
-    renderedLayersGroup.innerHTML = '';
-
-    mapDrawings.forEach(d => {
-      // Legacy data migration support: if a drawing was kind 'sector' before we renamed it to 'sectorTag'
-      if (d.kind === 'sector') d.kind = 'sectorTag';
-      
-      // Layer List
-      if (listHtml[d.kind] !== undefined) {
-        counts[d.kind]++;
-        const visClass = d.visibility === 'public' ? 'public' : '';
-        const visLabel = d.visibility === 'public' ? 'Visible' : 'Hidden';
-        listHtml[d.kind] += `
-          <div class="layer-item ${selectedId === d.id ? 'selected' : ''}" onclick="selectItem('${d.id}')">
-            <div class="layer-item-name">${d.title}</div>
-            <div class="layer-vis ${visClass}">${visLabel}</div>
-          </div>
-        `;
-      }
-
-      // Map SVG
-      if (d.points && d.points.length > 0) {
-        const pStr = d.points.map(p => `${p.x},${p.y}`).join(' ');
-        const el = document.createElementNS("http://www.w3.org/2000/svg", d.kind === 'road' ? "polyline" : "polygon");
-        el.setAttribute("points", pStr);
-        el.setAttribute("fill", d.kind === 'road' ? "none" : (d.kind === 'sectorTag' ? "rgba(234, 179, 8, 0.2)" : "rgba(59, 130, 246, 0.2)"));
-        el.setAttribute("stroke", d.kind === 'road' ? "#B45309" : (d.kind === 'sectorTag' ? "#CA8A04" : "#2563EB"));
-        el.setAttribute("stroke-width", d.kind === 'road' ? "0.4" : "0.2");
-        if (selectedId === d.id) {
-          el.setAttribute("stroke-width", d.kind === 'road' ? "0.6" : "0.4");
-          el.setAttribute("stroke", "#EF4444");
-        }
-        el.style.cursor = 'pointer';
-        el.onclick = (e) => {
-          if(!activeKind) { e.stopPropagation(); selectItem(d.id); }
-        };
-        el.setAttribute("vector-effect", "non-scaling-stroke"); 
-        
-        renderedLayersGroup.appendChild(el);
-      }
-    });
-
-    overlay.setAttribute("viewBox", "0 0 100 100");
-
-    document.getElementById('layer-list-container').innerHTML = `
-      ${counts.road > 0 ? `<div class="layer-group"><div class="layer-group-title">Roads</div>${listHtml.road}</div>` : ''}
-      ${counts.sectorTag > 0 ? `<div class="layer-group"><div class="layer-group-title">Sector Tags (Masterplan)</div>${listHtml.sectorTag}</div>` : ''}
-      ${counts.block > 0 ? `<div class="layer-group"><div class="layer-group-title">Blocks / Pockets</div>${listHtml.block}</div>` : ''}
-      ${counts.road===0 && counts.sectorTag===0 && counts.block===0 ? '<div style="color:var(--pm-text-mut); font-size:13px;">No items drawn yet.</div>' : ''}
-    `;
-
-    // Populate Parent Sector dropdown for blocks
-    const pSec = document.getElementById('f-parentSector');
-    pSec.innerHTML = '<option value="">None / Independent</option>';
-    mapDrawings.filter(d => d.kind === 'sectorTag' || d.kind === 'block').forEach(s => {
-      pSec.innerHTML += `<option value="${s.id}">${s.title}</option>`;
-    });
+  function render() {
+    document.getElementById('mapPickName').textContent = (currentMap() && (currentMap().title + (currentMap().type === 'masterplan' ? ' · Masterplan' : ' · Sector'))) || 'Pick a map';
+    if (S.view === 'hub') renderHub();
+    else if (S.view === 'masterplan') renderMasterplan();
+    else if (S.view === 'sector') renderSector();
+    else if (S.view === 'manage') renderManage();
+    renderModals();
   }
 
-  function populateLinkedMapDropdown() {
-    const lMap = document.getElementById('f-linkedMap');
-    lMap.innerHTML = '<option value="">None</option>';
-    if (registryData) {
-      selectableRegistryMapsByType('sector').forEach(e => {
-        lMap.innerHTML += `<option value="${e.id}">${e.title} (${mapAvailabilityLabel(e)})</option>`;
-      });
-    } else if (manifestData && manifestData.entries) {
-      manifestData.entries.filter(e => e.mapType === 'sector').forEach(e => {
-        lMap.innerHTML += `<option value="${e.id}">${e.displayName}</option>`;
-      });
-    }
+  /* ---------- HUB ---------- */
+  function renderHub() {
+    root().innerHTML =
+      '<div class="hub">'
+      + '<div><h1>What do you want to publish?</h1><div class="sub">Pick a map, mark or choose what to show, then publish it to Client Presentation.</div></div>'
+      + '<div class="hub-cards">'
+      + '<button class="hub-card gold" id="hubMaster"><div class="ic" style="background:rgba(168,127,31,.12)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="2" stroke="#A87F1F" stroke-width="1.8"/><path d="M9 4v16M15 8v16M3 9h18M3 14h18" stroke="#A87F1F" stroke-width="1.4"/></svg></div>'
+      + '<div class="t">Publish Masterplan</div><div class="d">Big city map. Choose from saved roads, blocks, sectors &amp; landmarks and sort them into A / B / C / D groups.</div>'
+      + '<div class="go" style="color:#A87F1F">Start <span style="font-size:15px">→</span></div></button>'
+      + '<button class="hub-card blue" id="hubSector"><div class="ic" style="background:rgba(30,95,168,.1)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M4 20l3.5-9L13 8l2-4 5 12" stroke="#1E5FA8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="15" cy="4" r="2" fill="#1E5FA8"/></svg></div>'
+      + '<div class="t">Publish Sector Map</div><div class="d">Detailed proof map. Mark roads, plots, pockets, pins &amp; labels by tapping — like a simple property version of tracing.</div>'
+      + '<div class="go" style="color:#1E5FA8">Start <span style="font-size:15px">→</span></div></button>'
+      + '<button class="hub-card green" id="hubManage" style="background:rgba(255,253,247,.7);box-shadow:none"><div class="ic" style="background:rgba(21,122,86,.1)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M5 7h14M5 12h14M5 17h9" stroke="#157A56" stroke-width="1.8" stroke-linecap="round"/><circle cx="19" cy="17" r="2.4" stroke="#157A56" stroke-width="1.6"/></svg></div>'
+      + '<div class="t">Manage Published Maps</div><div class="d">See everything that is currently live for clients. Hide, edit groups, or unpublish an item.</div>'
+      + '<div class="go" style="color:#157A56">Open <span style="font-size:15px">→</span></div></button>'
+      + '</div></div>';
+    document.getElementById('hubMaster').onclick = () => { S.view = 'masterplan'; S.mSel = null; S.mGroup = null; render(); };
+    document.getElementById('hubSector').onclick = () => { S.view = 'sector'; S.secStep = 'mark'; S.tool = 'road'; S.active = null; S.pts = []; render(); };
+    document.getElementById('hubManage').onclick = () => { S.view = 'manage'; render(); };
   }
 
-  // --- Drawing Logic ---
-  window.startDrawing = function(kind) {
-    if (!currentMapId) return;
-
-    if (activePoints.length > 0) {
-      if(!confirm("Unsaved drawing exists. Discard it?")) return;
-    }
-
-    if (kind === 'sectorTag' && currentMapType !== 'masterplan') {
-      if(!confirm("Sector tags are usually for masterplans. Continue?")) return;
-    }
-    
-    activeKind = kind;
-    activePoints = [];
-    selectedId = null;
-    
-    document.querySelectorAll('.ms-tool-btn[data-tool]').forEach(b => {
-      b.classList.toggle('active', b.getAttribute('data-tool') === kind);
-    });
-
-    document.getElementById('drawing-actions').style.display = 'block';
-    overlay.classList.add('drawing');
-    
-    if (kind === 'road') instr.textContent = "Tap along the road. Tap Finish when done.";
-    if (kind === 'sectorTag') instr.textContent = "Use this only on masterplans. Tap around a sector boundary, then link it.";
-    if (kind === 'block') instr.textContent = "Tap around the boundary. Tap Finish when done.";
-    instr.style.display = 'block';
-
-    hideInspector();
-    renderAll();
-    drawActivePoints();
-  };
-
-  window.cancelDrawing = function() {
-    if (activePoints.length > 0) {
-      if(!confirm("Cancel drawing?")) return;
-    }
-    resetDrawingState();
-  };
-
-  window.undoPoint = function() {
-    if (activePoints.length > 0) {
-      activePoints.pop();
-      drawActivePoints();
-    }
-  };
-
-  window.finishDrawing = function() {
-    const minPoints = activeKind === 'road' ? 2 : 3;
-    if (activePoints.length < minPoints) {
-      alert(`Need at least ${minPoints} points to finish a ${activeKind}.`);
-      return;
-    }
-    
-    // Open Inspector as new
-    openInspectorAsNew(activeKind, activePoints);
-    
-    // Soft reset drawing state, but wait for save
-    activeKind = null;
-    overlay.classList.remove('drawing');
-    document.getElementById('drawing-actions').style.display = 'none';
-    instr.style.display = 'none';
-    document.querySelectorAll('.ms-tool-btn[data-tool]').forEach(b => b.classList.remove('active'));
-    activePoints = []; 
-    drawActivePoints();
-  };
-
-  function resetDrawingState() {
-    activeKind = null;
-    activePoints = [];
-    overlay.classList.remove('drawing');
-    document.getElementById('drawing-actions').style.display = 'none';
-    instr.style.display = 'none';
-    document.querySelectorAll('.ms-tool-btn[data-tool]').forEach(b => b.classList.remove('active'));
-    drawActivePoints();
-  }
-
-  // --- Canvas Interaction ---
-  overlay.addEventListener('click', (e) => {
-    if (!activeKind) return;
-    
-    const rect = overlay.getBoundingClientRect();
-    const xPct = Number(((e.clientX - rect.left) / rect.width * 100).toFixed(2));
-    const yPct = Number(((e.clientY - rect.top) / rect.height * 100).toFixed(2));
-    
-    activePoints.push({ x: xPct, y: yPct });
-    drawActivePoints();
-  });
-
-  overlay.addEventListener('mousemove', (e) => {
-    const rect = overlay.getBoundingClientRect();
-    const xPct = ((e.clientX - rect.left) / rect.width * 100).toFixed(2);
-    const yPct = ((e.clientY - rect.top) / rect.height * 100).toFixed(2);
-    coordsLabel.textContent = `X: ${xPct}%  Y: ${yPct}%`;
-  });
-
-  function drawActivePoints() {
-    activeDrawingGroup.innerHTML = '';
-    if (activePoints.length === 0) return;
-
-    const pStr = activePoints.map(p => `${p.x},${p.y}`).join(' ');
-    
-    const line = document.createElementNS("http://www.w3.org/2000/svg", activeKind === 'road' ? "polyline" : "polygon");
-    line.setAttribute("points", pStr);
-    line.setAttribute("fill", activeKind === 'road' ? "none" : "rgba(239, 68, 68, 0.2)");
-    line.setAttribute("stroke", "#EF4444");
-    line.setAttribute("stroke-width", "0.4");
-    line.setAttribute("vector-effect", "non-scaling-stroke");
-    activeDrawingGroup.appendChild(line);
-
-    // Draw dots
-    activePoints.forEach(p => {
-      const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      dot.setAttribute("cx", p.x);
-      dot.setAttribute("cy", p.y);
-      dot.setAttribute("r", "0.4");
-      dot.setAttribute("fill", "#fff");
-      dot.setAttribute("stroke", "#EF4444");
-      dot.setAttribute("stroke-width", "0.1");
-      dot.setAttribute("vector-effect", "non-scaling-stroke");
-      activeDrawingGroup.appendChild(dot);
-    });
-  }
-
-  // --- Inspector ---
-  let tempPointsForSave = [];
-
-  function hideInspector() {
-    document.getElementById('inspector-empty').style.display = 'block';
-    document.getElementById('inspector-form').style.display = 'none';
-    document.getElementById('inspector-title').textContent = 'Inspector';
-    document.getElementById('btn-delete').style.display = 'none';
-    selectedId = null;
-    tempPointsForSave = [];
-  }
-
-  function openInspectorAsNew(kind, points) {
-    document.getElementById('inspector-empty').style.display = 'none';
-    document.getElementById('inspector-form').style.display = 'block';
-    
-    let titleKind = kind;
-    if(kind === 'sectorTag') titleKind = 'Sector Tag';
-    document.getElementById('inspector-title').textContent = `Save New ${titleKind.charAt(0).toUpperCase() + titleKind.slice(1)}`;
-    
-    document.getElementById('btn-delete').style.display = 'none';
-    
-    document.getElementById('grp-checklist').style.display = 'none';
-    document.getElementById('f-id').value = '';
-    document.getElementById('f-kind').value = kind;
-    document.getElementById('f-title').value = '';
-    document.getElementById('f-visibility').value = 'public';
-    document.getElementById('f-status').value = 'Draft';
-    document.getElementById('f-notes').value = '';
-
-    document.getElementById('chk-nameClear').checked = false;
-    document.getElementById('chk-correctMap').checked = false;
-    document.getElementById('chk-geometryChecked').checked = false;
-    document.getElementById('chk-visibilityChecked').checked = false;
-    document.getElementById('chk-linkedMapChecked').checked = false;
-
-    document.getElementById('grp-roadType').style.display = kind === 'road' ? 'block' : 'none';
-    
-    document.getElementById('grp-blockType').style.display = kind === 'block' ? 'block' : 'none';
-    document.getElementById('grp-parentSector').style.display = kind === 'block' ? 'block' : 'none';
-    
-    document.getElementById('grp-sectorCode').style.display = kind === 'sectorTag' ? 'block' : 'none';
-    document.getElementById('grp-sectorTagGroup').style.display = kind === 'sectorTag' ? 'block' : 'none';
-    document.getElementById('grp-linkedMap').style.display = kind === 'sectorTag' ? 'block' : 'none';
-    
-    // Set defaults
-    if(kind === 'road') document.getElementById('f-roadType').selectedIndex = 0;
-    if(kind === 'block') document.getElementById('f-blockType').selectedIndex = 0;
-    if(kind === 'sectorTag') {
-      document.getElementById('f-sectorTagGroup').value = 'General';
-      document.getElementById('f-linkedMap').value = '';
-      document.getElementById('f-sectorCode').value = '';
-    }
-
-    tempPointsForSave = [...points];
-  }
-
-  window.selectItem = function(id) {
-    if (activeKind) {
-      alert('Please finish or cancel your current drawing first.');
-      return;
-    }
-    
-    selectedId = id;
-    renderAll(); // highlights it
-
-    const data = crm.getCRM();
-    const item = (data.mapDrawings || []).find(d => d.id === id);
-    if(!item) return;
-
-    document.getElementById('inspector-empty').style.display = 'none';
-    document.getElementById('inspector-form').style.display = 'block';
-    document.getElementById('inspector-title').textContent = `Edit ${item.title}`;
-    
-    document.getElementById('btn-delete').style.display = 'block';
-    
-    document.getElementById('grp-checklist').style.display = 'block';
-
-    document.getElementById('f-id').value = item.id;
-    document.getElementById('f-kind').value = item.kind;
-    document.getElementById('f-title').value = item.title || '';
-    document.getElementById('f-visibility').value = item.visibility || 'public';
-    document.getElementById('f-status').value = item.status || 'Draft';
-    document.getElementById('f-notes').value = item.notes || '';
-
-    const chk = item.qualityChecklist || {};
-    document.getElementById('chk-nameClear').checked = !!chk.nameClear;
-    document.getElementById('chk-correctMap').checked = !!chk.correctMap;
-    document.getElementById('chk-geometryChecked').checked = !!chk.geometryChecked;
-    document.getElementById('chk-visibilityChecked').checked = !!chk.visibilityChecked;
-    document.getElementById('chk-linkedMapChecked').checked = !!chk.linkedMapChecked;
-
-    document.getElementById('grp-roadType').style.display = item.kind === 'road' ? 'block' : 'none';
-    document.getElementById('grp-blockType').style.display = item.kind === 'block' ? 'block' : 'none';
-    document.getElementById('grp-parentSector').style.display = item.kind === 'block' ? 'block' : 'none';
-    document.getElementById('grp-sectorCode').style.display = item.kind === 'sectorTag' ? 'block' : 'none';
-    document.getElementById('grp-sectorTagGroup').style.display = item.kind === 'sectorTag' ? 'block' : 'none';
-    document.getElementById('grp-linkedMap').style.display = item.kind === 'sectorTag' ? 'block' : 'none';
-
-    if(item.kind === 'road') document.getElementById('f-roadType').value = item.type || 'Internal Road';
-    if(item.kind === 'block') {
-      document.getElementById('f-blockType').value = item.type || 'Residential Block';
-      document.getElementById('f-parentSector').value = item.parentSectorId || '';
-    }
-    if(item.kind === 'sectorTag') {
-      document.getElementById('f-sectorTagGroup').value = item.group || 'General';
-      document.getElementById('f-linkedMap').value = item.linkedSectorMapId || '';
-      document.getElementById('f-sectorCode').value = item.sectorCode || '';
-    }
-
-    tempPointsForSave = item.points || [];
-  };
-
-  // --- Form Submit & Publish Rules ---
-  const selStatus = document.getElementById('f-status');
-  selStatus.addEventListener('change', () => {
-    checkPublishSafety();
-  });
-  
-  function checkPublishSafety() {
-    const status = selStatus.value;
-    const btn = document.getElementById('btn-save');
-    const warning = document.getElementById('publish-warning');
-    
-    if (status === 'Published') {
-      const vis = document.getElementById('f-visibility').value;
-      const title = document.getElementById('f-title').value.trim();
-      const nameOk = document.getElementById('chk-nameClear').checked;
-      const mapOk = document.getElementById('chk-correctMap').checked;
-      const geoOk = document.getElementById('chk-geometryChecked').checked;
-      const visOk = document.getElementById('chk-visibilityChecked').checked;
-      
-      const mostlyComplete = nameOk && mapOk && geoOk && visOk;
-      // We will also check city and mapId in the submit handler
-      if (vis !== 'public' || !title || !mostlyComplete) {
-        btn.disabled = true;
-        warning.style.display = 'block';
-        return false;
-      }
-    }
-    btn.disabled = false;
-    warning.style.display = 'none';
-    return true;
-  }
-
-  // Bind change events to re-check
-  document.getElementById('f-visibility').addEventListener('change', checkPublishSafety);
-  document.getElementById('f-title').addEventListener('input', checkPublishSafety);
-  document.getElementById('chk-nameClear').addEventListener('change', checkPublishSafety);
-  document.getElementById('chk-correctMap').addEventListener('change', checkPublishSafety);
-  document.getElementById('chk-geometryChecked').addEventListener('change', checkPublishSafety);
-  document.getElementById('chk-visibilityChecked').addEventListener('change', checkPublishSafety);
-
-  document.getElementById('drawing-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    if (currentMode === 'draw' && (!currentCity || !currentMapType || !currentMapId)) {
-      alert("No map selected to save against.");
-      return;
-    }
-    
-    if (!checkPublishSafety()) return;
-
-    const data = crm.getCRM();
-    if (!data.mapDrawings) data.mapDrawings = [];
-
-    const id = document.getElementById('f-id').value;
-    const kind = document.getElementById('f-kind').value;
-    
-    let type = '';
-    let parentId = '';
-    let group = '';
-    let linkedSectorMapId = '';
-    let sectorCode = '';
-
-    if(kind === 'road') type = document.getElementById('f-roadType').value;
-    if(kind === 'block') {
-      type = document.getElementById('f-blockType').value;
-      parentId = document.getElementById('f-parentSector').value;
-    }
-    if(kind === 'sectorTag') {
-      group = document.getElementById('f-sectorTagGroup').value;
-      linkedSectorMapId = document.getElementById('f-linkedMap').value;
-      sectorCode = document.getElementById('f-sectorCode').value;
-    }
-
-    const payload = {
-      kind,
-      title: document.getElementById('f-title').value,
-      type,
-      parentSectorId: parentId,
-      group,
-      linkedSectorMapId,
-      sectorCode,
-      visibility: document.getElementById('f-visibility').value,
-      status: document.getElementById('f-status').value,
-      clientVisible: document.getElementById('f-visibility').value === 'public',
-      notes: document.getElementById('f-notes').value,
-      qualityChecklist: {
-        nameClear: document.getElementById('chk-nameClear').checked,
-        correctMap: document.getElementById('chk-correctMap').checked,
-        geometryChecked: document.getElementById('chk-geometryChecked').checked,
-        visibilityChecked: document.getElementById('chk-visibilityChecked').checked,
-        linkedMapChecked: document.getElementById('chk-linkedMapChecked').checked
-      },
-      updatedAt: new Date().toISOString()
+  /* ---------- MASTERPLAN ---------- */
+  function mpCats(items) {
+    return {
+      'Roads': items.filter(x => x.kind === 'road' || x.kind === 'boundary'),
+      'Sectors': items.filter(x => x.kind === 'sector'),
+      'Blocks': items.filter(x => x.kind === 'block' || x.kind === 'plot'),
+      'Places': items.filter(x => x.kind === 'landmark' || x.kind === 'commercial'),
+      'Pins': items.filter(x => x.kind === 'pin')
     };
-
-    if (id) {
-      const idx = data.mapDrawings.findIndex(d => d.id === id);
-      if (idx !== -1) {
-        data.mapDrawings[idx] = { ...data.mapDrawings[idx], ...payload };
-        // Don't overwrite map context if editing from review queue without map loaded
-        if (tempPointsForSave && tempPointsForSave.length > 0) {
-           data.mapDrawings[idx].points = tempPointsForSave;
-        }
-      }
-    } else {
-      payload.id = 'draw-' + Math.random().toString(36).substr(2, 9);
-      payload.city = currentCity;
-      payload.mapType = currentMapType;
-      payload.mapId = currentMapId;
-      payload.points = tempPointsForSave;
-      payload.createdAt = new Date().toISOString();
-      data.mapDrawings.push(payload);
-    }
-
-    crm.saveCRM(data);
-    hideInspector();
-    
-    if (currentMode === 'review') {
-      renderReviewQueue();
-    } else {
-      renderAll();
-    }
-  });
-
-  // --- Delete ---
-  document.getElementById('btn-delete').addEventListener('click', () => {
-    const id = document.getElementById('f-id').value;
-    if(!id) return;
-    if(!confirm("Are you sure you want to delete this drawing?")) return;
-    
-    const data = crm.getCRM();
-    data.mapDrawings = (data.mapDrawings || []).filter(d => d.id !== id);
-    crm.saveCRM(data);
-    hideInspector();
-    if (currentMode === 'review') renderReviewQueue();
-    else renderAll();
-  });
-
-  // --- Zoom ---
-  window.zoomCanvas = function(factor) {
-    if (factor === 'reset') {
-      fitCanvas();
-      return;
-    } else {
-      canvasScale = Math.max(0.05, Math.min(3, canvasScale * factor));
-    }
-    applyCanvasTransform();
-  };
-
-  // --- Review Queue Rendering ---
-  function renderReviewQueue() {
-    const data = crm.getCRM();
-    const drawings = data.mapDrawings || [];
-    const container = document.getElementById('review-queue-content');
-    
-    const groups = {
-      'Review Needed': [],
-      'Draft': [],
-      'Verified': [],
-      'Published': [],
-      'Hidden': []
-    };
-    
-    // Fallback if missing
-    drawings.forEach(d => {
-      const st = d.status || 'Draft';
-      if(groups[st]) groups[st].push(d);
-      else groups['Draft'].push(d);
-    });
-
-    let html = '';
-    ['Review Needed', 'Draft', 'Verified', 'Published', 'Hidden'].forEach(st => {
-      const list = groups[st];
-      if (list.length === 0) return;
-      
-      const statClass = st.split(' ')[0];
-      
-      html += `<div class="rq-group">
-        <h3>${st} (${list.length})</h3>
-        <table class="rq-table">
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Kind</th>
-              <th>City / Map</th>
-              <th>Vis</th>
-              <th>Status</th>
-              <th>Points</th>
-              <th style="width:200px;">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-      `;
-      
-      list.forEach(d => {
-        let kindStr = d.kind;
-        if(d.kind === 'sectorTag') kindStr = 'Sector Tag';
-        
-        let visStr = d.visibility === 'public' ? 'Client' : 'Internal';
-        
-        html += `
-          <tr>
-            <td><strong>${d.title || '(Untitled)'}</strong></td>
-            <td>${kindStr}</td>
-            <td>${d.city} <span style="color:#aaa;">/</span> ${d.mapId}</td>
-            <td>${visStr}</td>
-            <td><span class="rq-status ${statClass}">${st}</span></td>
-            <td>${(d.points||[]).length}</td>
-            <td>
-              <button class="rq-btn" onclick="reviewEdit('${d.id}')">Edit</button>
-              ${st !== 'Review Needed' ? `<button class="rq-btn" onclick="updateStatus('${d.id}', 'Review Needed')">Request Rev</button>` : ''}
-              ${st !== 'Verified' && st !== 'Published' ? `<button class="rq-btn" onclick="updateStatus('${d.id}', 'Verified')">Verify</button>` : ''}
-              ${st !== 'Hidden' ? `<button class="rq-btn" onclick="updateStatus('${d.id}', 'Hidden')">Hide</button>` : ''}
-            </td>
-          </tr>
-        `;
-      });
-      html += `</tbody></table></div>`;
-    });
-    
-    // Specialized Masterplan Sector Tag View
-    const sectorTags = drawings.filter(d => d.kind === 'sectorTag' || d.kind === 'sector');
-    if (sectorTags.length > 0) {
-      html += `<div class="rq-group" style="margin-top:40px; border-top:2px solid var(--pm-border); padding-top:24px;">
-        <h3>Masterplan Sector Tags</h3>
-        <table class="rq-table">
-          <thead>
-            <tr>
-              <th>Sector Name</th>
-              <th>Group</th>
-              <th>Linked Map ID</th>
-              <th>Status</th>
-              <th>Vis</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-      `;
-      sectorTags.forEach(d => {
-        html += `
-          <tr>
-            <td><strong>${d.title || '(Untitled)'}</strong></td>
-            <td>${d.group || '-'}</td>
-            <td>${d.linkedSectorMapId || '-'}</td>
-            <td><span class="rq-status ${d.status ? d.status.split(' ')[0] : 'Draft'}">${d.status || 'Draft'}</span></td>
-            <td>${d.visibility === 'public' ? 'Client' : 'Internal'}</td>
-            <td><button class="rq-btn" onclick="reviewEdit('${d.id}')">Edit</button></td>
-          </tr>
-        `;
-      });
-      html += `</tbody></table></div>`;
-    }
-
-    if(html === '') {
-      html = '<div style="color:var(--pm-text-mut);">No drawings found. Switch to Draw mode to create one.</div>';
-    }
-    container.innerHTML = html;
   }
 
-  window.reviewEdit = function(id) {
-    selectItem(id);
-  };
+  function renderMasterplan() {
+    const map = mapById(S.mapId);
+    if (!map) { S.view = 'hub'; render(); return; }
+    const items = Store.list(S.mapId).filter(it => !it.deleted);
+    const vb = String(Store.viewBoxFor(S.mapId, 'original')).split(/\s+/).map(Number);
+    const dims = mapDims(map, 'original');
+    const g = S.mGroup;
+    const cats = mpCats(items);
+    const cur = cats[S.mpCat] ? S.mpCat : 'Roads';
 
-  window.updateStatus = function(id, newStatus) {
-    const data = crm.getCRM();
-    const d = (data.mapDrawings || []).find(x => x.id === id);
-    if(d) {
-      d.status = newStatus;
-      d.updatedAt = new Date().toISOString();
-      crm.saveCRM(data);
-      renderReviewQueue();
+    // selection context
+    const strong = new Set(), soft = new Set();
+    if (g) items.forEach(it => { if (it.group === g && it.clientVisible !== false) strong.add(it.id); });
+    else if (S.mSel) {
+      const sel = items.find(x => x.id === S.mSel);
+      if (sel) { strong.add(sel.id); (sel.rel || []).forEach(r => soft.add(r)); }
     }
+    const anySel = strong.size > 0;
+    const selItem = !g && S.mSel ? items.find(x => x.id === S.mSel) : null;
+
+    const stepIdx = g ? 1 : 0;
+    const steps = ['1 · Pick group', '2 · Tap items', '3 · Publish'].map((n, i) =>
+      '<span class="step' + (i === stepIdx ? ' on' : '') + '">' + n + '</span>').join('');
+
+    const groupBtns = ['A', 'B', 'C', 'D'].map(k => {
+      const gr = GROUPS[k], on = g === k;
+      const st = on ? 'border:none;background:' + gr.color + ';color:#FFFDF7;box-shadow:0 8px 20px ' + rgba(gr.color, .42)
+        : 'border:1.5px solid ' + rgba(gr.color, .45) + ';color:' + gr.color;
+      return '<button data-grp="' + k + '" style="' + st + '" title="' + esc(gr.name + ' — ' + gr.desc) + '">' + k + '</button>';
+    }).join('');
+
+    const catBtns = Object.keys(cats).map(k =>
+      '<button data-cat="' + k + '" class="' + (cur === k ? 'on' : '') + '">' + k + '</button>').join('');
+
+    const itemRows = cats[cur].map(it => {
+      const inG = g && it.group === g;
+      const chip = inG
+        ? '<span class="tick" style="background:' + GROUPS[g].color + '">✓</span>'
+        : (it.group && GROUPS[it.group] ? '<span class="chip" style="background:' + GROUPS[it.group].color + '">' + it.group + '</span>' : '');
+      return '<button class="mp-item' + (inG ? ' inG' : '') + '" data-pick="' + esc(it.id) + '">'
+        + '<span class="dot" style="background:' + itemHex(it) + ';border-radius:' + (it.kind === 'pin' ? '50%' : '3px') + '"></span>'
+        + '<span class="nm">' + esc(it.name || 'Untitled') + '</span>' + chip + '</button>';
+    }).join('') || '<div style="padding:16px;font-size:12.5px;color:#A99C82">Nothing here yet — draw items in Publish Sector Map, or pick another category.</div>';
+
+    const hint = g
+      ? 'Group ' + g + ' is glowing. Tap roads, sectors or blocks — on the map or in the list — to add or remove them.'
+      : 'Pick A, B, C or D on the left, then tap items. Or tap any single item to see it alone.';
+
+    const pinsAndLabels = items.filter(it => (it.kind === 'pin' || it.kind === 'label') && it.at)
+      .map(it => it.kind === 'pin' ? pinHtml(it, vb, { strong, anySel }) : labelHtml(it, vb, { strong, anySel })).join('');
+
+    root().innerHTML =
+      '<div style="flex:1;display:flex;flex-direction:column;min-height:0">'
+      + '<div class="vhead"><button class="back" id="backHub">← Studio</button><div class="vdiv"></div>'
+      + '<div class="title">Publish Masterplan</div><span class="sub">' + esc(map.title) + '</span>'
+      + '<div class="steps">' + steps + '</div></div>'
+      + '<div class="mp-body">'
+      + '<div class="mp-side">'
+      +   '<div class="mp-step"><div class="h"><span class="n">1</span><span class="t">Pick a client group</span></div>'
+      +   '<div class="mp-groups">' + groupBtns + '</div>'
+      +   '<div class="mp-hint">' + (g ? '“' + esc(GROUPS[g].name) + '” — everything you tap now joins Group ' + g + '. Tap again to remove.' : 'Example: A = the best roads and blocks you always show first.') + '</div></div>'
+      +   '<div class="mp-step" style="padding-bottom:10px"><div class="h"><span class="n">2</span><span class="t">Tap items to add them</span></div>'
+      +   '<div class="mp-cats">' + catBtns + '</div></div>'
+      +   '<div class="mp-items">' + itemRows + '</div>'
+      +   '<div class="mp-foot"><button class="btn-publish" id="mpPublish">Publish to clients</button></div>'
+      + '</div>'
+      + '<div class="canvas-wrap"><div class="canvas" style="aspect-ratio:' + dims.width + '/' + dims.height + '">'
+      +   '<img class="base" src="' + esc(mapImageSrc(map, 'original')) + '" alt="' + esc(map.title) + '">'
+      +   '<svg class="ovl" viewBox="0 0 ' + vb[2] + ' ' + vb[3] + '" preserveAspectRatio="none">' + renderOverlaySvg(items, { viewBox: '0 0 ' + vb[2] + ' ' + vb[3], strong, soft, showIdle: !anySel }) + '</svg>'
+      +   pinsAndLabels
+      +   (selItem ? selLabelHtml(selItem, vb) : '')
+      +   '<div class="hintbox">' + esc(hint) + '</div>'
+      + '</div></div>'
+      + '</div></div>';
+
+    document.getElementById('backHub').onclick = () => { S.view = 'hub'; S.mSel = null; S.mGroup = null; render(); };
+    root().querySelectorAll('[data-grp]').forEach(b => b.onclick = () => { S.mGroup = S.mGroup === b.dataset.grp ? null : b.dataset.grp; S.mSel = null; render(); });
+    root().querySelectorAll('[data-cat]').forEach(b => b.onclick = () => { S.mpCat = b.dataset.cat; render(); });
+    root().querySelectorAll('[data-pick]').forEach(b => b.onclick = () => mpPick(b.dataset.pick));
+    root().querySelectorAll('[data-hit]').forEach(el => el.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = el.dataset.hit;
+      if (!id) { S.mSel = null; render(); return; }
+      mpPick(id);
+    }));
+    document.getElementById('mpPublish').onclick = () => { S.publish = { type: 'groups' }; S.pubDone = false; renderModals(); };
+  }
+
+  function mpPick(id) {
+    if (S.mGroup) {
+      const it = Store.list(S.mapId).find(x => x.id === id);
+      const cur = it ? it.group : null;
+      Store.setGroup(S.mapId, id, cur === S.mGroup ? null : S.mGroup);
+      S.mSel = null;
+      render();
+      return;
+    }
+    S.mSel = S.mSel === id ? null : id;
+    render();
+  }
+
+  /* ---------- SECTOR (drawing) ---------- */
+  const TOOL_COL = { road: '#1E5FA8', plot: '#A87F1F', block: '#A87F1F', pin: '#A87F1F', label: '#23201A' };
+  const TOOLS = [
+    ['select', 'Move / Edit', '<span class="ti" style="width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:15px solid currentColor;transform:rotate(-28deg);color:#5E543F"></span>'],
+    ['road', 'Road', '<span class="ti" style="width:26px;height:5px;border-radius:3px;background:#1E5FA8;transform:rotate(-32deg);margin-top:9px;margin-bottom:10px"></span>'],
+    ['plot', 'Plot / House', '<span class="ti" style="width:18px;height:13px;border:3px solid #A87F1F;border-radius:2px"></span>'],
+    ['block', 'Pocket', '<span class="ti" style="width:17px;height:17px;border:3px solid #A87F1F;border-radius:4px;margin-top:3px;margin-bottom:5px"></span>'],
+    ['pin', 'Pin', '<span class="ti" style="width:13px;height:13px;border-radius:50%;background:#A87F1F;box-shadow:0 0 0 3.5px rgba(168,127,31,.25);margin-top:5px;margin-bottom:7px"></span>'],
+    ['label', 'Label', '<span class="ti" style="width:20px;height:14px;border:2.5px solid #23201A;border-radius:4px"></span>']
+  ];
+  const BUBBLE_TEXT = {
+    select: 'Tap any marked item to change or publish it.',
+    road: 'Tap along the road, point by point. Then press Finish.',
+    plot: 'Tap two opposite corners of the plot or house.',
+    block: 'Tap around the area. Close the shape to finish.',
+    pin: 'Tap the exact property spot on the map.',
+    label: 'Tap where the label should sit, then type it.'
   };
 
-  // --- Export JSON ---
-  window.exportJSON = function(mode) {
-    const data = crm.getCRM();
-    const drawings = data.mapDrawings || [];
-    
-    let exportData = {};
-    let safeDrawings = [];
+  function draftPathD(kind, pts) { return Store.pathFromPts(kind, kind === 'plot' ? Store.rectPts(pts) : pts); }
 
-    if (mode === 'current-drafts' || mode === 'current-published') {
-      if (!currentMapId) return;
-      let filtered = drawings.filter(d => d.mapId === currentMapId);
-      
-      if (mode === 'current-published') {
-        filtered = filtered.filter(d => d.status === 'Published' && d.clientVisible === true && (d.visibility === 'public' || d.visibility === 'client-visible'));
-      }
+  function renderSector() {
+    const map = mapById(S.sectorMapId);
+    if (!map) { S.view = 'hub'; render(); return; }
+    const mode = sectorMode(map);
+    const vbStr = Store.viewBoxFor(S.sectorMapId, mode);
+    const vb = String(vbStr).split(/\s+/).map(Number);
+    const dims = mapDims(map, mode);
+    const items = Store.customItems(S.sectorMapId);
+    const active = items.find(x => x.id === S.active) || null;
+    const isPreview = S.secStep === 'preview' && active;
 
-      exportData = {
-        city: currentCity,
-        mapType: currentMapType,
-        mapId: currentMapId,
-        roads: filtered.filter(d => d.kind === 'road'),
-        blocks: filtered.filter(d => d.kind === 'block'),
-        sectorTags: filtered.filter(d => d.kind === 'sectorTag'),
-        exportedAt: new Date().toISOString()
-      };
-    } else if (mode === 'all-published') {
-      safeDrawings = drawings.filter(d => d.status === 'Published' && d.clientVisible === true && (d.visibility === 'public' || d.visibility === 'client-visible'));
-      // Strip internal stuff
-      const cleanDrawings = safeDrawings.map(d => ({
-        id: d.id, kind: d.kind, title: d.title, city: d.city, mapType: d.mapType, mapId: d.mapId,
-        group: d.group, linkedSectorMapId: d.linkedSectorMapId, type: d.type, points: d.points
-      }));
-      exportData = {
-        version: 1,
-        exportType: "published-client-safe",
-        exportedAt: new Date().toISOString(),
-        drawings: cleanDrawings
+    const stepIdx = S.secStep === 'preview' ? 1 : 0;
+    const steps = ['1 · Mark', '2 · Preview', '3 · Publish'].map((n, i) =>
+      '<span class="step' + (i === stepIdx ? ' on' : '') + '">' + n + '</span>').join('');
+
+    const toolBtns = TOOLS.map(t =>
+      '<button data-tool="' + t[0] + '" class="' + (S.tool === t[0] ? 'on' : '') + '">' + t[2] + t[1] + '</button>').join('');
+
+    // draft rendering
+    const strong = new Set(), soft = new Set();
+    if (isPreview) strong.add(active.id);
+    let inProgress = '';
+    if (S.pts.length) {
+      const col = TOOL_COL[S.tool] || '#A87F1F';
+      const d = draftPathD(S.tool === 'plot' && S.pts.length < 2 ? 'road' : S.tool, S.pts);
+      inProgress = '<path d="' + d + '" fill="' + ((S.tool === 'road') ? 'none' : rgba(col, .08)) + '" stroke="' + col + '" stroke-width="3.5" stroke-dasharray="7 6" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none"/>'
+        + S.pts.map(p => '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="5" fill="#FFFDF7" stroke="' + col + '" stroke-width="3" style="pointer-events:none"/>').join('');
+    }
+
+    // idle drafts: outline style with selected emphasis
+    const svgItems = items.filter(it => it.kind !== 'pin' && it.kind !== 'label');
+    let idleSvg = '';
+    svgItems.forEach(it => {
+      if (isPreview && it.id === active.id) return;
+      const col = itemHex(it);
+      const isAct = !isPreview && S.active === it.id;
+      const isLine = it.kind === 'road' || it.kind === 'boundary';
+      const d = it.d || '';
+      if (!d) return;
+      idleSvg += '<path d="' + d + '" fill="' + (isLine ? 'none' : rgba(col, .1)) + '" stroke="' + (isAct ? col : rgba(col, .85)) + '" stroke-width="' + (isLine ? 6 : 3) + '" stroke-linecap="round" stroke-linejoin="round" data-hit="' + esc(it.id) + '" style="cursor:pointer;transition:all .3s ease' + (isAct ? ';filter:drop-shadow(0 0 5px ' + rgba(col, .5) + ')' : '') + '"' + (it.status === 'published' ? '' : ' stroke-dasharray="' + (isAct ? 'none' : '8 6') + '"') + '/>';
+    });
+
+    // preview premium render for the active item
+    let prevSvg = '';
+    if (isPreview && active.kind !== 'pin' && active.kind !== 'label') {
+      prevSvg = renderOverlaySvg([active], { viewBox: vbStr, strong, soft, showIdle: false });
+    }
+
+    const pinsAndLabels = items.filter(it => (it.kind === 'pin' || it.kind === 'label') && it.at).map(it => {
+      if (it.kind === 'label') return labelHtml(it, vb, { strong, anySel: false });
+      return pinHtml(it, vb, { strong: isPreview ? strong : new Set(S.active && S.active === it.id ? [it.id] : []), anySel: false });
+    }).join('');
+
+    const bubble = (S.secStep === 'mark')
+      ? '<div class="bubble">' + esc(BUBBLE_TEXT[S.tool] || '')
+        + (canFinish() ? '<button class="fin" id="doFinish">' + ((S.tool === 'road') ? 'Finish' : 'Close shape') + '</button>' : '')
+        + (S.pts.length ? '<button class="und" id="doUndo">Undo</button><button class="cxl" id="doCancel">Cancel</button>' : '')
+        + '</div>'
+      : '';
+
+    const prevCard = isPreview
+      ? selLabelHtml(active, vb)
+        + '<div class="prevcard"><span class="statuschip ' + (active.status === 'published' ? 'pub' : 'draft') + '" style="align-self:flex-start">' + esc(KIND_LABEL[active.kind] || active.kind) + '</span>'
+        + '<div class="serif" style="font-size:21px;margin-top:10px">' + esc(active.name || 'Untitled') + '</div>'
+        + '<div style="font-size:12px;color:#877C68;margin-top:4px">Exactly what the client will see on tap</div>'
+        + '<div style="flex:1"></div>'
+        + '<button id="backToEdit" style="height:40px;border-radius:11px;border:none;background:#23201A;color:#F6F1E4;font-size:13px;font-weight:600;cursor:pointer">← Back to editing</button></div>'
+      : '';
+
+    root().innerHTML =
+      '<div style="flex:1;display:flex;flex-direction:column;min-height:0">'
+      + '<div class="vhead"><button class="back" id="backHub">← Studio</button><div class="vdiv"></div>'
+      + '<div class="title">Publish Sector Map</div><span class="sub">' + esc(map.title) + '</span>'
+      + '<div class="steps">' + steps + '</div></div>'
+      + '<div class="sec-body">'
+      + '<div class="toolrail">' + toolBtns + '</div>'
+      + '<div class="canvas-wrap"><div class="canvas" style="aspect-ratio:' + dims.width + '/' + dims.height + '">'
+      +   '<img class="base" src="' + esc(mapImageSrc(map, mode)) + '" alt="' + esc(map.title) + '">'
+      +   '<svg class="ovl' + ((S.tool !== 'select' && S.secStep === 'mark') ? ' draw' : '') + '" id="secCanvas" viewBox="0 0 ' + vb[2] + ' ' + vb[3] + '" preserveAspectRatio="none">' + prevSvg + idleSvg + inProgress + '</svg>'
+      +   pinsAndLabels + bubble + prevCard
+      + '</div></div>'
+      + renderInspector(active, isPreview)
+      + '</div></div>';
+
+    document.getElementById('backHub').onclick = () => { S.view = 'hub'; S.active = null; S.pts = []; S.secStep = 'mark'; render(); };
+    root().querySelectorAll('[data-tool]').forEach(b => b.onclick = () => { S.tool = b.dataset.tool; S.pts = []; if (b.dataset.tool !== 'select') S.active = null; S.secStep = 'mark'; render(); });
+    const canvas = document.getElementById('secCanvas');
+    canvas.addEventListener('click', canvasClick);
+    root().querySelectorAll('[data-hit]').forEach(el => el.addEventListener('click', e => {
+      if (S.tool !== 'select' && S.secStep === 'mark') return;   // drawing takes priority
+      e.stopPropagation();
+      const id = el.dataset ? el.dataset.hit : '';
+      if (id) { S.active = id; S.tool = 'select'; S.secStep = 'mark'; render(); }
+    }));
+    const fin = document.getElementById('doFinish'); if (fin) fin.onclick = finishDraft;
+    const und = document.getElementById('doUndo'); if (und) und.onclick = () => { S.pts.pop(); render(); };
+    const cxl = document.getElementById('doCancel'); if (cxl) cxl.onclick = () => { S.pts = []; render(); };
+    const bte = document.getElementById('backToEdit'); if (bte) bte.onclick = () => { S.secStep = 'mark'; render(); };
+    wireInspector(active);
+  }
+
+  function canFinish() {
+    return (S.tool === 'road' && S.pts.length >= 2) || (S.tool === 'block' && S.pts.length >= 3);
+  }
+
+  function canvasClick(e) {
+    if (S.secStep !== 'mark') return;
+    if (S.tool === 'select') return;
+    e.stopPropagation();
+    const r = e.currentTarget.getBoundingClientRect();
+    const vb = String(Store.viewBoxFor(S.sectorMapId, sectorMode(mapById(S.sectorMapId)))).split(/\s+/).map(Number);
+    const x = (e.clientX - r.left) / r.width * vb[2], y = (e.clientY - r.top) / r.height * vb[3];
+    if (S.tool === 'pin') { makeItem('pin', { at: [x, y] }); return; }
+    if (S.tool === 'label') { makeItem('label', { at: [x, y] }); return; }
+    if (S.tool === 'plot') {
+      const pts = S.pts.concat([[x, y]]);
+      if (pts.length >= 2) { makeItem('plot', { pts }); return; }
+      S.pts = pts; render(); return;
+    }
+    if (S.tool === 'block' && S.pts.length >= 3) {
+      const f = S.pts[0];
+      if (Math.hypot(x - f[0], y - f[1]) < 18) { finishDraft(); return; }
+    }
+    S.pts.push([x, y]);
+    render();
+  }
+
+  function finishDraft() {
+    const need = S.tool === 'road' ? 2 : 3;
+    if (S.pts.length < need) return;
+    makeItem(S.tool, { pts: S.pts.slice() });
+  }
+
+  function makeItem(kind, extra) {
+    const map = mapById(S.sectorMapId);
+    const item = Store.upsert(Object.assign({
+      mapId: S.sectorMapId, kind, name: '',
+      mode: sectorMode(map),
+      color: kind === 'road' ? 'blue' : kind === 'label' ? 'ink' : 'gold',
+      status: 'draft', clientVisible: true
+    }, extra));
+    S.pts = []; S.active = item.id; S.tool = 'select';
+    render();
+    const inp = document.getElementById('inspName');
+    if (inp) inp.focus();
+  }
+
+  /* ---------- inspector ---------- */
+  function renderInspector(active, isPreview) {
+    if (!active || isPreview) return '';
+    const isLabel = active.kind === 'label';
+    const isPin = active.kind === 'pin';
+    const crm = window.CRM ? window.CRM.getCRM() : null;
+    const props = crm ? (crm.properties || []).filter(p => !/archived/i.test(p.internalStatus || '')) : [];
+    const sw = c => '<button class="sw" data-col="' + c + '" title="' + c + '" style="background:' + COLORS[c] + ';border:2.5px solid ' + (active.color === c ? '#23201A' : 'rgba(35,32,26,.08)') + (active.color === c ? ';box-shadow:0 0 0 2px #FFFDF7 inset' : '') + '"></button>';
+    const vis = active.clientVisible !== false;
+    return '<div class="inspector">'
+      + '<div class="krow"><span class="kind">' + esc(KIND_LABEL[active.kind] || active.kind) + '</span>'
+      + '<span class="statuschip ' + (active.status === 'published' ? 'pub' : 'draft') + '">' + (active.status === 'published' ? 'Published' : 'Draft') + '</span></div>'
+      + '<div><div class="flabel">' + (isLabel ? 'Label text' : 'Name') + '</div>'
+      + '<input type="text" id="inspName" value="' + esc(active.name || '') + '" placeholder="' + (isLabel ? 'e.g. 66B, Block C, PR-7' : active.kind === 'road' ? 'e.g. Airport Road' : isPin ? 'e.g. Plot 118' : 'e.g. Block B') + '"></div>'
+      + (!isLabel ? '<div><div class="flabel">Colour group</div><div style="display:flex;gap:8px">' + sw('gold') + sw('blue') + sw('emerald') + '</div></div>' : '')
+      + (isPin && props.length ? '<div><div class="flabel">Link property (optional)</div><select id="inspProp"><option value="">— none —</option>'
+        + props.map(p => '<option value="' + esc(p.id) + '"' + (active.propertyId === p.id ? ' selected' : '') + '>' + esc(p.title || p.name || p.propertyCode || p.id) + '</option>').join('') + '</select></div>' : '')
+      + '<div class="visrow"><span class="t">Client visible</span><button class="vtrack" id="inspVis" style="background:' + (vis ? '#157A56' : '#D9D0BC') + '"><span class="vknob" style="left:' + (vis ? '21px' : '3px') + '"></span></button></div>'
+      + '<button class="btn-preview" id="inspPreview">▶ Preview Client Click</button>'
+      + '<div style="flex:1"></div>'
+      + '<button class="btn-del" id="inspDelete">Delete item</button>'
+      + '<button class="btn-draft" id="inspDraft">Save Draft</button>'
+      + '<button class="btn-pub" id="inspPublish">Publish</button>'
+      + '</div>';
+  }
+
+  function wireInspector(active) {
+    if (!active) return;
+    const name = document.getElementById('inspName');
+    if (name) name.addEventListener('change', () => { Store.upsert({ id: active.id, name: name.value }); render(); });
+    if (name) name.addEventListener('input', () => { active.name = name.value; });
+    root().querySelectorAll('.sw').forEach(b => b.onclick = () => { Store.upsert({ id: active.id, color: b.dataset.col }); render(); });
+    const prop = document.getElementById('inspProp');
+    if (prop) prop.addEventListener('change', () => { Store.upsert({ id: active.id, propertyId: prop.value || null }); toast(prop.value ? 'Property linked to this pin' : 'Property unlinked'); });
+    const vis = document.getElementById('inspVis');
+    if (vis) vis.onclick = () => { Store.setVisibility(S.sectorMapId, active.id, !(active.clientVisible !== false)); render(); };
+    const prev = document.getElementById('inspPreview');
+    if (prev) prev.onclick = () => { commitName(active); S.secStep = 'preview'; render(); };
+    const del = document.getElementById('inspDelete');
+    if (del) del.onclick = () => { Store.remove(active.id); S.active = null; toast('Deleted'); render(); };
+    const draft = document.getElementById('inspDraft');
+    if (draft) draft.onclick = () => { commitName(active); Store.upsert({ id: active.id, status: 'draft' }); toast('Saved as draft — only your team can see it'); render(); };
+    const pub = document.getElementById('inspPublish');
+    if (pub) pub.onclick = () => { commitName(active); S.publish = { type: 'item', id: active.id }; S.pubDone = false; renderModals(); };
+  }
+
+  function commitName(active) {
+    const name = document.getElementById('inspName');
+    if (name && name.value !== undefined) Store.upsert({ id: active.id, name: name.value });
+  }
+
+  /* ---------- MANAGE ---------- */
+  function renderManage() {
+    const cards = [];
+    const seen = new Set();
+    const pushMap = (map, isMaster) => {
+      if (!map || seen.has(map.id)) return;
+      seen.add(map.id);
+      const items = Store.list(map.id).filter(it => !it.deleted);
+      const pub = items.filter(it => it.status === 'published' && it.clientVisible !== false);
+      const roads = pub.filter(i => i.kind === 'road').length;
+      const blocks = pub.filter(i => ['sector', 'block', 'plot', 'landmark', 'commercial'].includes(i.kind)).length;
+      const pins = pub.filter(i => i.kind === 'pin').length;
+      const custom = Store.customItems(map.id);
+      const drafts = custom.filter(i => i.status !== 'published').length;
+      cards.push({
+        map, isMaster,
+        live: pub.length > 0,
+        drafts,
+        img: mapImageSrc(map, isMaster ? 'original' : sectorMode(map)),
+        meta: roads + ' roads · ' + blocks + ' blocks & sectors · ' + pins + ' pins' + (drafts ? ' · ' + drafts + ' draft' + (drafts > 1 ? 's' : '') : '')
+      });
+    };
+    pushMap(mapById(S.mapId), true);
+    pushMap(mapById(S.sectorMapId), false);
+    // every other map with content
+    registry().forEach(m => {
+      if (Store.customItems(m.id).length || (window.PLOTMAP_OVERLAYS || {})[m.id]) pushMap(m, m.type === 'masterplan');
+    });
+
+    root().innerHTML =
+      '<div style="flex:1;display:flex;flex-direction:column;min-height:0">'
+      + '<div class="vhead"><button class="back" id="backHub">← Studio</button><div class="vdiv"></div>'
+      + '<div class="title">Manage Published Maps</div><span class="sub">All maps your clients can see — masterplan and sector maps</span>'
+      + '<div style="flex:1"></div><button class="btn-addprop" id="mgAddProp">+ Add Property</button></div>'
+      + '<div class="mg-body"><div class="mg-grid">'
+      + cards.map((c, i) =>
+        '<div class="mg-card">'
+        + '<div class="mg-thumb"><div class="im" style="background-image:url(&quot;' + esc(c.img) + '&quot;)"></div>'
+        + '<span class="mg-chip" style="left:10px;color:#23201A">' + (c.isMaster ? 'Masterplan' : 'Sector Map') + '</span>'
+        + '<span class="mg-chip" style="right:10px;color:' + (c.live ? '#157A56' : '#8A6A1B') + '">' + (c.live ? 'Live' : 'Draft') + '</span></div>'
+        + '<div style="padding:14px 16px 4px"><div class="mg-name">' + esc(c.map.title) + '</div><div class="mg-meta">' + esc(c.meta) + '</div></div>'
+        + '<div class="mg-acts">'
+        + '<button class="dark" data-edit="' + i + '">Edit Map</button>'
+        + '<button class="ghost" data-addp="' + i + '">+ Property</button>'
+        + '<button class="ghost" data-view="' + i + '">Client View</button>'
+        + '</div></div>').join('')
+      + '</div></div></div>';
+
+    document.getElementById('backHub').onclick = () => { S.view = 'hub'; render(); };
+    document.getElementById('mgAddProp').onclick = () => { S.view = 'sector'; S.tool = 'pin'; S.active = null; S.pts = []; S.secStep = 'mark'; render(); toast('Tap the map to place a new property pin'); };
+    root().querySelectorAll('[data-edit]').forEach(b => b.onclick = () => {
+      const c = cards[+b.dataset.edit];
+      if (c.isMaster) { S.mapId = c.map.id; S.view = 'masterplan'; S.mSel = null; S.mGroup = null; }
+      else { S.sectorMapId = c.map.id; S.view = 'sector'; S.tool = 'select'; S.active = null; S.pts = []; S.secStep = 'mark'; }
+      render();
+    });
+    root().querySelectorAll('[data-addp]').forEach(b => b.onclick = () => {
+      const c = cards[+b.dataset.addp];
+      S.sectorMapId = c.isMaster ? S.sectorMapId : c.map.id;
+      S.view = 'sector'; S.tool = 'pin'; S.active = null; S.pts = []; S.secStep = 'mark';
+      render();
+      toast('Tap the map where the property is');
+    });
+    root().querySelectorAll('[data-view]').forEach(b => b.onclick = () => { window.open('/app/plotmap/', '_blank'); });
+  }
+
+  /* ---------- publish / confirm modals ---------- */
+  function renderModals() {
+    const rootEl = document.getElementById('modalRoot');
+    if (S.picker) { rootEl.innerHTML = pickerHtml(); wirePicker(); return; }
+    if (!S.publish && !S.confirm) { rootEl.innerHTML = ''; return; }
+    if (S.confirm) {
+      rootEl.innerHTML = '<div class="modal-veil"><div class="modal">'
+        + '<h2>' + esc(S.confirm.title) + '</h2><div class="sub">' + esc(S.confirm.body) + '</div>'
+        + '<button class="btn-main" id="cfYes" style="background:' + (S.confirm.danger ? '#B4524A' : '#23201A') + '">' + esc(S.confirm.yes) + '</button>'
+        + '<button class="btn-ghost" id="cfNo">Keep it live</button></div></div>';
+      document.getElementById('cfYes').onclick = () => { const fn = S.confirm.onYes; S.confirm = null; if (fn) fn(); render(); };
+      document.getElementById('cfNo').onclick = () => { S.confirm = null; renderModals(); };
+      return;
+    }
+    const pub = S.publish;
+    if (S.pubDone) {
+      rootEl.innerHTML = '<div class="modal-veil"><div class="modal">'
+        + '<div class="okball">✓</div><h2>Published</h2>'
+        + '<div class="sub">' + esc(pub.doneMsg || 'Now live in Client Presentation.') + '</div>'
+        + '<button class="btn-dark" id="pubOpen">Open in Client Presentation</button>'
+        + '<button class="btn-ghost" id="pubStay">Keep working</button></div></div>';
+      document.getElementById('pubOpen').onclick = () => { window.open('/app/plotmap/', '_blank'); S.publish = null; S.pubDone = false; renderModals(); };
+      document.getElementById('pubStay').onclick = () => { S.publish = null; S.pubDone = false; render(); };
+      return;
+    }
+    let title, itemsHtml, onConfirm;
+    if (pub.type === 'groups') {
+      const items = Store.list(S.mapId).filter(it => !it.deleted && it.group);
+      title = 'Publish A / B / C / D groups?';
+      itemsHtml = ['A', 'B', 'C', 'D'].map(k => {
+        const n = items.filter(it => it.group === k).length;
+        return '<div class="item"><span style="width:14px;height:14px;border-radius:4px;background:' + GROUPS[k].color + ';display:inline-block;flex:none"></span>'
+          + '<div style="flex:1"><div style="font-size:14px;font-weight:700">Group ' + k + ' · ' + esc(GROUPS[k].name) + '</div><div style="font-size:11.5px;color:#877C68">' + n + ' items</div></div></div>';
+      }).join('');
+      onConfirm = () => {
+        // ensure every grouped custom item is published
+        Store.customItems(S.mapId).forEach(it => { if (it.group && it.status !== 'published') Store.upsert({ id: it.id, status: 'published' }); });
+        pub.doneMsg = 'Your A/B/C/D highlight groups are now live. In Client Presentation, tapping A, B, C or D highlights that group.';
+        S.pubDone = true; renderModals();
       };
     } else {
-      // mode === 'all'
-      exportData = {
-        version: 1,
-        exportType: "internal-backup-all",
-        drawings: drawings,
-        exportedAt: new Date().toISOString()
+      const it = Store.get(pub.id);
+      title = 'Publish to Client Presentation?';
+      itemsHtml = it ? '<div class="item"><span style="width:14px;height:14px;border-radius:' + (it.kind === 'pin' ? '50%' : '4px') + ';background:' + itemHex(it) + ';display:inline-block;flex:none"></span>'
+        + '<div style="flex:1"><div style="font-size:14px;font-weight:700">' + esc(it.name || 'Untitled ' + (KIND_LABEL[it.kind] || '')) + '</div>'
+        + '<div style="font-size:11.5px;color:#877C68">' + esc(KIND_LABEL[it.kind] || it.kind) + ' · Client visible</div></div></div>' : '';
+      onConfirm = () => {
+        Store.upsert({ id: pub.id, status: 'published', clientVisible: true });
+        pub.doneMsg = '“' + ((it && it.name) || 'Item') + '” is now live on the map in Client Presentation.';
+        S.pubDone = true; renderModals();
       };
     }
+    rootEl.innerHTML = '<div class="modal-veil"><div class="modal">'
+      + '<h2>' + esc(title) + '</h2><div class="sub">Clients will be able to see this on the map.</div>'
+      + '<div class="items">' + itemsHtml + '</div>'
+      + '<button class="btn-main" id="pubGo">Publish now</button>'
+      + '<button class="btn-ghost" id="pubBack">Back</button></div></div>';
+    document.getElementById('pubGo').onclick = onConfirm;
+    document.getElementById('pubBack').onclick = () => { S.publish = null; renderModals(); };
+  }
 
-    const jsonStr = JSON.stringify(exportData, null, 2);
-    
-    const blob = new Blob([jsonStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `plotmap_export_${mode}_${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-});
-</script>
-<script>
-// --- Claude Design UI Wiring ---
-document.addEventListener('DOMContentLoaded', () => {
-  // Sync legacy dropdowns to UI dropdowns
-  const syncSelects = (legacyId, uiId) => {
-    const legacy = document.getElementById(legacyId);
-    const ui = document.getElementById(uiId);
-    if (!legacy || !ui) return;
-    
-    // UI -> Legacy
-    ui.addEventListener('change', () => {
-      legacy.value = ui.value;
-      legacy.dispatchEvent(new Event('change'));
-    });
-    
-    // Legacy -> UI (Options and Disabled state)
-    const syncFromLegacy = () => {
-      ui.innerHTML = legacy.innerHTML;
-      ui.disabled = legacy.disabled;
-      ui.value = legacy.value;
-    };
-    syncFromLegacy();
-    const observer = new MutationObserver(syncFromLegacy);
-    observer.observe(legacy, { childList: true, attributes: true, subtree: true });
-  };
-  
-  syncSelects('sel-city', 'ui-city');
-  syncSelects('sel-map-type', 'ui-type');
-  syncSelects('sel-map', 'ui-map');
-
-  // Sync Color Groups
-  const cgBtns = document.querySelectorAll('.cg-btn');
-  const fTagGroup = document.getElementById('f-sectorTagGroup');
-  cgBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      cgBtns.forEach(b => {
-        b.classList.remove('cg-active');
-        b.style.background = 'transparent';
-        b.style.border = '1px solid #E0DCD2';
-        b.style.color = '#9A9D96';
-      });
-      btn.classList.add('cg-active');
-      btn.style.background = '#E7F0EB';
-      btn.style.border = '1.5px solid #1F5E47';
-      btn.style.color = '#1F5E47';
-      if(fTagGroup) fTagGroup.value = btn.dataset.val;
-    });
-  });
-
-  // Checkbox Visibility
-  const chkSafe = document.getElementById('ui-safe-marking');
-  const fVis = document.getElementById('f-visibility');
-  if(chkSafe && fVis) {
-    chkSafe.addEventListener('change', () => {
-      fVis.value = chkSafe.checked ? 'public' : 'internal';
+  /* ---------- map picker ---------- */
+  function pickerHtml() {
+    const forSector = S.view === 'sector';
+    const maps = (forSector ? sectorMaps() : (S.view === 'masterplan' ? masterplans() : registry().filter(m => m.status === 'active')));
+    const q = (S.picker.q || '').toLowerCase();
+    const rows = maps.filter(m => !q || (m.title + ' ' + m.area).toLowerCase().includes(q)).slice(0, 60)
+      .map(m => '<button class="prow" data-mid="' + esc(m.id) + '"><span class="sq" style="width:8px;height:8px;border-radius:2px;background:' + (m.type === 'masterplan' ? '#A87F1F' : '#1E5FA8') + ';display:inline-block"></span>'
+        + '<span class="nm">' + esc(m.title) + '</span><span class="ty">' + esc(m.area || m.type) + '</span></button>').join('');
+    return '<div class="modal-veil" id="pickerVeil"><div class="picker">'
+      + '<h2 class="serif" style="font-size:24px;margin:0">Pick a map</h2>'
+      + '<input id="pickerQ" placeholder="Search maps…" value="' + esc(S.picker.q || '') + '">'
+      + '<div class="plist">' + (rows || '<div style="padding:14px;color:#A99C82;font-size:13px">No maps found.</div>') + '</div>'
+      + '</div></div>';
+  }
+  function wirePicker() {
+    const q = document.getElementById('pickerQ');
+    q.focus();
+    q.setSelectionRange(q.value.length, q.value.length);
+    q.addEventListener('input', () => { S.picker.q = q.value; renderModals(); });
+    document.getElementById('pickerVeil').addEventListener('click', e => { if (e.target.id === 'pickerVeil') { S.picker = null; renderModals(); } });
+    document.querySelectorAll('.prow').forEach(b => b.onclick = () => {
+      const m = mapById(b.dataset.mid);
+      if (!m) return;
+      if (m.type === 'masterplan') { S.mapId = m.id; if (S.view !== 'manage') S.view = 'masterplan'; }
+      else { S.sectorMapId = m.id; if (S.view !== 'manage') S.view = 'sector'; }
+      S.picker = null; S.mSel = null; S.mGroup = null; S.active = null; S.pts = [];
+      render();
     });
   }
 
-  // Action Buttons
-  const fStatus = document.getElementById('f-status');
-  const btnSave = document.getElementById('btn-save');
-  const btnDel = document.getElementById('btn-delete');
-  
-  document.getElementById('ui-btn-draft')?.addEventListener('click', () => {
-    if(fStatus) fStatus.value = 'Draft';
-    if(btnSave) btnSave.click();
-  });
-  document.getElementById('ui-btn-publish')?.addEventListener('click', () => {
-    if(fStatus) fStatus.value = 'Published';
-    if(btnSave) btnSave.click();
-  });
-  document.getElementById('ui-btn-del')?.addEventListener('click', () => {
-    if(btnDel) btnDel.click();
-  });
-
-  // Sync back to UI when inspector opens/updates
-  const form = document.getElementById('inspector-form');
-  if(form) {
-    const titleObserver = new MutationObserver(() => {
-      // If f-visibility changes, update chkSafe
-      if(fVis && chkSafe) chkSafe.checked = (fVis.value === 'public');
-      
-      // Update color group buttons
-      const val = fTagGroup ? (fTagGroup.value || 'A') : 'A';
-      cgBtns.forEach(b => {
-        b.classList.remove('cg-active');
-        b.style.background = 'transparent';
-        b.style.border = '1px solid #E0DCD2';
-        b.style.color = '#9A9D96';
-        if(b.dataset.val === val) {
-          b.classList.add('cg-active');
-          b.style.background = '#E7F0EB';
-          b.style.border = '1.5px solid #1F5E47';
-          b.style.color = '#1F5E47';
-        }
-      });
-
-      // Show delete button if editing
-      const fId = document.getElementById('f-id');
-      const uiDel = document.getElementById('ui-btn-del');
-      if(uiDel && fId) {
-        uiDel.style.display = form.style.display !== 'none' && fId.value ? 'block' : 'none';
-      }
-    });
-    titleObserver.observe(form, { attributes: true, attributeFilter: ['style', 'class'] });
-  }
-});
+  /* ---------- boot ---------- */
+  document.getElementById('btnMapPick').onclick = () => { S.picker = { q: '' }; renderModals(); };
+  document.getElementById('tabPresent').onclick = () => { window.open('/app/plotmap/', '_blank'); };
+  document.getElementById('tabStudio').onclick = () => { S.view = 'hub'; render(); };
+  if (Store) Store.subscribe(() => { /* remote updates: refresh quietly when idle */ });
+  render();
+})();
 </script>
 </body>
 </html>

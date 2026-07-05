@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Area Intelligence — PlotMap</title>
+<title>Area Intelligence Ã¢â‚¬â€ PlotMap</title>
 <link rel="stylesheet" href="/admin/crm-ui.css">
 <script src="/admin/crm-data.js"></script>
 <script src="/admin/core/data-adapter.js"></script>
@@ -14,6 +14,7 @@
 <script src="/admin/core/event-tracker.js"></script>
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
+<script src="/admin/core/supabase-sync.js"></script>
 <script>
 if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
   window.location.href = '/admin/index.html';
@@ -98,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
   } else {
     pgrid.innerHTML = areaData.map(a => {
       let cls = 'neutral';
-      if (a.status === 'High Interest') cls = 'warm';
+      if (a.status === 'Hot' || a.status === 'High Interest') cls = 'warm';
       else if (a.status === 'Rising') cls = 'info';
       else if (a.status === 'Low Activity') cls = 'neutral';
 

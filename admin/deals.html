@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Deals — PlotMap</title>
+<title>Deals â€” PlotMap</title>
 <link rel="stylesheet" href="/admin/crm-ui.css">
 <script src="/admin/crm-data.js"></script>
 <script src="/admin/core/data-adapter.js"></script>
@@ -14,6 +14,7 @@
 <script src="/admin/core/event-tracker.js"></script>
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
+<script src="/admin/core/supabase-sync.js"></script>
 <script>
 if (localStorage.getItem('plotmap_admin_role') !== 'team') {
   window.location.href = '/admin/index.html';
@@ -53,9 +54,9 @@ if (localStorage.getItem('plotmap_admin_role') !== 'team') {
         <div class="fld"><label>Client</label><select id="d-client" required><option value="">Select client...</option></select></div>
         <div class="fld"><label>Deal Type</label><select id="d-type"><option>sale</option><option>purchase</option><option>rental</option></select></div>
         <div class="fld"><label>Area</label><input type="text" id="d-area" placeholder="e.g. Aerocity"></div>
-        <div class="fld"><label>Deal Value (₹)</label><input type="number" id="d-val" required placeholder="0"></div>
-        <div class="fld"><label>Commission (₹)</label><input type="number" id="d-comm" required placeholder="0"></div>
-        <div class="fld"><label>Received (₹)</label><input type="number" id="d-rec" value="0" placeholder="0"></div>
+        <div class="fld"><label>Deal Value (â‚¹)</label><input type="number" id="d-val" required placeholder="0"></div>
+        <div class="fld"><label>Commission (â‚¹)</label><input type="number" id="d-comm" required placeholder="0"></div>
+        <div class="fld"><label>Received (â‚¹)</label><input type="number" id="d-rec" value="0" placeholder="0"></div>
       </div>
       <div style="margin-top:16px;display:flex;gap:10px;">
         <button type="submit" class="pm-btn pm-btn-primary">Save Deal</button>
