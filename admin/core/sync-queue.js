@@ -1,6 +1,8 @@
 // Lightweight sync queue. This is not full offline sync yet.
 (function() {
   const FALLBACK_KEY = 'plotmap_sync_queue_v1';
+  const RETRY_BASE_MS = 15000;
+  const RETRY_MAX_MS = 5 * 60 * 1000;
 
   function adapter() {
     return window.PMDataAdapter || null;
@@ -32,7 +34,7 @@
       if (!Array.isArray(data.syncQueue)) data.syncQueue = [];
       const result = mutator(data.syncQueue, data);
       data.syncMeta = Object.assign({ lastSyncedAt: null, offlineGraceHours: 24 }, data.syncMeta || {}, {
-        pendingCount: data.syncQueue.filter(item => item.status === 'pending').length,
+        pendingCount: data.syncQueue.filter(item => item.status === 'pending' || item.status === 'retrying' || item.status === 'syncing').length,
         failedCount: data.syncQueue.filter(item => item.status === 'failed').length
       });
       adapter().saveData(data);
@@ -57,7 +59,8 @@
         createdAt: nowIso(),
         status: 'pending',
         retryCount: 0,
-        lastError: ''
+        lastError: '',
+        nextRetryAt: null
       }, action || {});
       queue.push(item);
       return item;
@@ -65,7 +68,22 @@
   }
 
   function getPendingSyncActions() {
-    return withQueue(queue => queue.filter(item => item.status === 'pending'));
+    return withQueue(queue => queue.filter(item => {
+      if (item.status === 'pending' || item.status === 'retrying') return true;
+      if (item.status !== 'failed') return false;
+      const nextRetryAt = item.nextRetryAt ? Date.parse(item.nextRetryAt) : 0;
+      return !nextRetryAt || nextRetryAt <= Date.now();
+    }));
+  }
+
+  function markSyncActionSyncing(id) {
+    return withQueue(queue => {
+      const item = queue.find(entry => entry.id === id);
+      if (!item) return null;
+      item.status = 'syncing';
+      item.lastError = '';
+      return item;
+    });
   }
 
   function markSyncActionSynced(id) {
@@ -74,9 +92,15 @@
       if (!item) return null;
       item.status = 'synced';
       item.syncedAt = nowIso();
+      item.nextRetryAt = null;
       if (data) data.syncMeta = Object.assign({}, data.syncMeta || {}, { lastSyncedAt: item.syncedAt });
       return item;
     });
+  }
+
+  function nextRetryIso(retryCount) {
+    const delay = Math.min(RETRY_MAX_MS, RETRY_BASE_MS * Math.max(1, Math.pow(2, Math.max(0, Number(retryCount || 0) - 1))));
+    return new Date(Date.now() + delay).toISOString();
   }
 
   function markSyncActionFailed(id, error) {
@@ -86,6 +110,40 @@
       item.status = 'failed';
       item.retryCount = Number(item.retryCount || 0) + 1;
       item.lastError = String(error || 'Sync failed').slice(0, 300);
+      item.nextRetryAt = nextRetryIso(item.retryCount);
+      return item;
+    });
+  }
+
+  function markSyncActionRetrying(id) {
+    return withQueue(queue => {
+      const item = queue.find(entry => entry.id === id);
+      if (!item) return null;
+      item.status = 'retrying';
+      return item;
+    });
+  }
+
+  function retryFailedSyncActions() {
+    return withQueue(queue => {
+      let count = 0;
+      queue.forEach(item => {
+        if (item.status !== 'failed') return;
+        const nextRetryAt = item.nextRetryAt ? Date.parse(item.nextRetryAt) : 0;
+        if (nextRetryAt && nextRetryAt > Date.now()) return;
+        item.status = 'retrying';
+        count += 1;
+      });
+      return count;
+    });
+  }
+
+  function retrySyncAction(id) {
+    return withQueue(queue => {
+      const item = queue.find(entry => entry.id === id);
+      if (!item) return null;
+      item.status = 'retrying';
+      item.nextRetryAt = null;
       return item;
     });
   }
@@ -95,8 +153,10 @@
       const meta = data && data.syncMeta ? data.syncMeta : {};
       return {
         lastSyncedAt: meta.lastSyncedAt || null,
-        pendingCount: queue.filter(item => item.status === 'pending').length,
+        pendingCount: queue.filter(item => item.status === 'pending' || item.status === 'retrying' || item.status === 'syncing').length,
         failedCount: queue.filter(item => item.status === 'failed').length,
+        syncingCount: queue.filter(item => item.status === 'syncing').length,
+        retryingCount: queue.filter(item => item.status === 'retrying').length,
         offlineGraceHours: Number(meta.offlineGraceHours || 24)
       };
     });
@@ -104,6 +164,8 @@
 
   function renderStatusText(status) {
     if (status.failedCount > 0) return `Sync failed: ${status.failedCount}`;
+    if (status.syncingCount > 0) return `Syncing: ${status.syncingCount}`;
+    if (status.retryingCount > 0) return `Retrying: ${status.retryingCount}`;
     if (status.pendingCount > 0) return `Pending sync: ${status.pendingCount}`;
     return 'Synced';
   }
@@ -119,11 +181,24 @@
       badge.style.background = '#f7f5ef';
       badge.style.color = '#5f6b7a';
       badge.style.borderColor = 'var(--pm-border)';
+      badge.style.cursor = 'pointer';
       const refresh = () => {
         const status = getSyncStatus();
         badge.textContent = renderStatusText(status);
-        badge.title = status.lastSyncedAt ? `Last synced ${new Date(status.lastSyncedAt).toLocaleString()}` : 'Local-first sync queue';
+        badge.title = status.failedCount > 0
+          ? 'Click to retry failed sync items'
+          : status.lastSyncedAt ? `Last synced ${new Date(status.lastSyncedAt).toLocaleString()}` : 'Local-first sync queue';
       };
+      badge.addEventListener('click', () => {
+        const status = getSyncStatus();
+        if (status.failedCount > 0) {
+          retryFailedSyncActions();
+          if (window.PMSupaSync && typeof window.PMSupaSync.requestDrain === 'function') {
+            window.PMSupaSync.requestDrain();
+          }
+          refresh();
+        }
+      });
       refresh();
       const spacer = bar.querySelector('.sp');
       if (spacer) bar.insertBefore(badge, spacer);
@@ -138,8 +213,12 @@
   window.PMSyncQueue = {
     enqueueSyncAction,
     getPendingSyncActions,
+    markSyncActionSyncing,
     markSyncActionSynced,
     markSyncActionFailed,
+    markSyncActionRetrying,
+    retryFailedSyncActions,
+    retrySyncAction,
     getSyncStatus,
     mountSyncStatus
   };

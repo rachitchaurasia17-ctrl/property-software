@@ -18,7 +18,13 @@
   }
 
   function firstDealerId(data) {
-    return (data.dealers && data.dealers[0] && data.dealers[0].id) || DEFAULT_DEALER_ID;
+    return localStorage.getItem('plotmap_dealer_id') || (data.dealers && data.dealers[0] && data.dealers[0].id) || DEFAULT_DEALER_ID;
+  }
+
+  function isLocalDev() {
+    if (window.PMAuth && typeof window.PMAuth.isLocalDev === 'function') return window.PMAuth.isLocalDev();
+    const host = String(location.hostname || '').toLowerCase();
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host.endsWith('.local');
   }
 
   function ensureCollections(data) {
@@ -34,7 +40,7 @@
     data = data || {};
     ensureCollections(data);
     const createdAt = nowIso();
-    if (!data.dealers.length) {
+    if (!data.dealers.length && isLocalDev()) {
       data.dealers.push({
         id: DEFAULT_DEALER_ID,
         name: 'Demo Dealer',
@@ -49,7 +55,7 @@
         updatedAt: createdAt
       });
     }
-    if (!data.users.length) {
+    if (!data.users.length && data.dealers.length && isLocalDev()) {
       data.users.push({
         id: DEFAULT_OWNER_ID,
         dealerId: firstDealerId(data),
@@ -64,7 +70,7 @@
         updatedAt: createdAt
       });
     }
-    if (!data.accessLinks.length) {
+    if (!data.accessLinks.length && data.dealers.length && data.users.length && isLocalDev()) {
       data.accessLinks.push({
         id: 'link-demo-owner',
         dealerId: firstDealerId(data),
@@ -178,7 +184,7 @@
   function getCRM() {
     let data = loadCRM();
     if (!data) {
-      data = JSON.parse(JSON.stringify(window.CRM_DEMO || {}));
+      data = isLocalDev() ? JSON.parse(JSON.stringify(window.CRM_DEMO || {})) : {};
     }
     data = ensureFoundationData(data);
     saveCRM(data);

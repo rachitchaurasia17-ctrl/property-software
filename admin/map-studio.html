@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
 <title>Map Studio — PlotMap</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,6 +12,7 @@
 <script src="/admin/core/data-adapter.js"></script>
 <script src="/admin/core/sync-queue.js"></script>
 <script src="/admin/core/event-tracker.js"></script>
+<script src="/admin/core/auth.js"></script>
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
 <script src="/app/plotmap/map-registry.js"></script>
@@ -18,12 +20,7 @@
 <script src="/admin/core/overlay-store.js"></script>
 <script src="/admin/core/supabase-sync.js"></script>
 <script>
-const pmRole = localStorage.getItem('plotmap_admin_role');
-if (pmRole !== 'team' && pmRole !== 'dealer') {
-  window.location.href = '/admin/index.html';
-} else if (window.PMAccess) {
-  window.PMAccess.guardPage({ roleRequired: pmRole === 'dealer' ? 'owner' : 'team' });
-}
+if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
 </script>
 <style>
 html,body{margin:0;padding:0;height:100%;background:#F1EBDD;}
@@ -713,7 +710,12 @@ input::placeholder{color:#B9AE94;}
     const isLabel = active.kind === 'label';
     const isPin = active.kind === 'pin';
     const crm = window.CRM ? window.CRM.getCRM() : null;
-    const props = crm ? (crm.properties || []).filter(p => !/archived/i.test(p.internalStatus || '')) : [];
+    const props = crm ? (crm.properties || []).filter(p => {
+      const status = String(p.internalStatus || '').toLowerCase();
+      if (/archived|internal|hold|sold|hidden/.test(status)) return false;
+      if (p.clientVisible === false) return false;
+      return true;
+    }) : [];
     const sw = c => '<button class="sw" data-col="' + c + '" title="' + c + '" style="background:' + COLORS[c] + ';border:2.5px solid ' + (active.color === c ? '#23201A' : 'rgba(35,32,26,.08)') + (active.color === c ? ';box-shadow:0 0 0 2px #FFFDF7 inset' : '') + '"></button>';
     const vis = active.clientVisible !== false;
     return '<div class="inspector">'

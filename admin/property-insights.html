@@ -3,8 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
 <title>Property Insights — PlotMap</title>
 <link rel="stylesheet" href="/admin/crm-ui.css">
+<script src="/admin/core/auth.js"></script>
 <script src="/admin/crm-data.js"></script>
 <script src="/admin/core/data-adapter.js"></script>
 <script src="/admin/core/sync-queue.js"></script>
@@ -16,11 +18,7 @@
 <script src="/admin/crm-store.js"></script>
 <script src="/admin/core/supabase-sync.js"></script>
 <script>
-if (localStorage.getItem('plotmap_admin_role') !== 'dealer') {
-  window.location.href = '/admin/index.html';
-} else if (window.PMAccess) {
-  window.PMAccess.guardPage({ roleRequired: 'owner' });
-}
+if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
 </script>
 </head>
 <body class="pm-shell">

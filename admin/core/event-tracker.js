@@ -48,11 +48,13 @@
   function trackPresentationEvent(eventType, payload) {
     try {
       if (!PRESENTATION_EVENTS.has(eventType)) return null;
+      if (!/^\/app\/plotmap\/?$/i.test(location.pathname || '')) return null;
       const data = adapter() ? adapter().getData() : (window.CRM && window.CRM.getCRM && window.CRM.getCRM());
       if (!data) return null;
       const dealer = adapter() ? adapter().getCurrentDealer(data) : (data.dealers && data.dealers[0]);
       const user = adapter() ? adapter().getCurrentUser(data) : (data.users && data.users[0]);
       const safePayload = sanitizePayload(payload || {});
+      const metadata = Object.assign({ source: 'client_presentation' }, safePayload.metadata || {});
       const event = {
         id: adapter() ? adapter().generateId('pevt') : `pevt-${Math.random().toString(36).slice(2, 11)}`,
         dealerId: safePayload.dealerId || (dealer && dealer.id) || null,
@@ -63,7 +65,7 @@
         propertyId: safePayload.propertyId || null,
         area: safePayload.area || null,
         sector: safePayload.sector || null,
-        metadata: safePayload.metadata || {},
+        metadata,
         createdAt: new Date().toISOString(),
         syncStatus: 'pending'
       };
@@ -73,19 +75,6 @@
       }
       if (!Array.isArray(data.presentationEvents)) data.presentationEvents = [];
       data.presentationEvents.push(event);
-      if (!Array.isArray(data.events)) data.events = [];
-      data.events.push({
-        id: event.id.replace('pevt', 'evt'),
-        type: eventType,
-        timestamp: Date.now(),
-        staffId: event.userId,
-        clientId: event.clientId,
-        propertyId: event.propertyId,
-        area: event.area,
-        mapId: safePayload.mapId || null,
-        metadata: event.metadata,
-        demo: false
-      });
       if (adapter()) adapter().saveData(data);
       else if (window.CRM && window.CRM.saveCRM) window.CRM.saveCRM(data);
       if (window.PMSyncQueue) {

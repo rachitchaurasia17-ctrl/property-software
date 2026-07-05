@@ -15,8 +15,11 @@
     '/admin/followups.html',
     '/admin/site-visits.html',
     '/admin/deals.html',
-    '/admin/map-studio.html'
+    '/admin/map-studio.html',
+    '/admin/maps.html',
+    '/admin/editor.html'
   ];
+  let pageGuardPromise = null;
 
   function normalizeRole(role) {
     if (role === 'dealer') return 'owner';
@@ -101,17 +104,46 @@
   }
 
   function guardPage(options) {
-    const result = canAccessRoute(options || {});
-    if (!result.ok) {
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', renderBlockedScreen);
-      } else {
-        renderBlockedScreen();
-      }
-      return result;
+    if (!/^\/admin\//i.test(location.pathname || '')) {
+      return canAccessRoute(options || {});
     }
-    if (navigator.onLine && result.user) recordAccessCheck(result.user.id);
-    return result;
+    if (pageGuardPromise) return pageGuardPromise;
+    const routeOptions = options || {};
+    const root = document.documentElement;
+    root.style.visibility = 'hidden';
+    pageGuardPromise = (async () => {
+      const roleRequired = normalizeRole(routeOptions.roleRequired || getRouteRequirement(routeOptions.route));
+      if (!window.PMAuth) {
+        renderBlockedScreen();
+        return { ok: false, reason: 'missing_auth_runtime', roleRequired };
+      }
+      const authResult = await window.PMAuth.requireProfile(roleRequired);
+      if (!authResult.ok) {
+        await window.PMAuth.signOut().catch(() => {});
+        if (/\/admin\/access-expired\.html$/i.test(location.pathname)) {
+          renderBlockedScreen();
+          return authResult;
+        }
+        window.location.replace(window.PMAuth.buildLoginRedirect(location.pathname + location.search + location.hash, authResult.reason));
+        return authResult;
+      }
+      window.PMAuth.applyLegacyRole(authResult.profile);
+      const data = window.PMDataAdapter ? window.PMDataAdapter.getData() : null;
+      const result = canAccessRoute(Object.assign({}, routeOptions, {
+        data,
+        roleRequired,
+        dealer: data && window.PMDataAdapter ? window.PMDataAdapter.getCurrentDealer(data) : null,
+        user: data && window.PMDataAdapter ? window.PMDataAdapter.getCurrentUser(data) : null
+      }));
+      if (!result.ok) {
+        renderBlockedScreen();
+        return result;
+      }
+      if (navigator.onLine && result.user) recordAccessCheck(result.user.id);
+      root.style.visibility = '';
+      return result;
+    })();
+    return pageGuardPromise;
   }
 
   function createAccessLink(input) {
@@ -194,6 +226,9 @@
   }
 
   function consumeAccessLinkFromUrl(options) {
+    if (!window.PMAuth || !window.PMAuth.isLocalDev()) {
+      return null;
+    }
     if (!window.PMDataAdapter) return null;
     const params = new URLSearchParams(location.search || '');
     const token = params.get('access') || params.get('token');

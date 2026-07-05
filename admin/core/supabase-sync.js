@@ -12,6 +12,7 @@
   const PULL_STAMP_KEY = 'plotmap_supa_pull_v1';
   const DRAIN_INTERVAL_MS = 20000;
   const DEBOUNCE_MS = 2500;
+  const CLIENT_SAFE_PROPERTIES_VIEW = 'client_safe_properties';
   const CRM_ENTITY_TYPES = new Set([
     'clients', 'properties', 'deals', 'followups', 'siteVisits',
     'events', 'staff', 'dealers', 'users', 'accessLinks', 'reports', 'pins', 'mapDrawings', 'overlayMeta'
@@ -35,19 +36,37 @@
   let draining = false;
   let debounceTimer = null;
 
-  function headers(extra) {
+  function isAdminRoute() {
+    return /^\/admin\//i.test(location.pathname || '');
+  }
+
+  async function authToken() {
+    if (!window.PMAuth || typeof window.PMAuth.getAccessToken !== 'function') return null;
+    try {
+      return await window.PMAuth.getAccessToken();
+    } catch (err) {
+      return null;
+    }
+  }
+
+  async function headers(extra) {
+    const token = await authToken();
     return Object.assign({
       apikey: SUPABASE_KEY,
-      Authorization: 'Bearer ' + SUPABASE_KEY,
+      Authorization: 'Bearer ' + (token || SUPABASE_KEY),
       'Content-Type': 'application/json'
     }, extra || {});
   }
 
   async function rest(path, options) {
-    const res = await fetch(REST + path, Object.assign({ headers: headers(options && options.prefer ? { Prefer: options.prefer } : {}) }, options));
+    const hdrs = await headers(options && options.prefer ? { Prefer: options.prefer } : {});
+    const res = await fetch(REST + path, Object.assign({ headers: hdrs }, options));
     if (res.status === 404) {
       rememberMissing(path.split('?')[0]);
       return { missing: true };
+    }
+    if (res.status === 401 || res.status === 403) {
+      return { forbidden: true, status: res.status };
     }
     if (!res.ok) throw new Error('supabase ' + res.status + ' on ' + path.split('?')[0]);
     if (res.status === 204) return { ok: true };
@@ -64,6 +83,7 @@
   function rowFor(item) {
     const p = item.payload || {};
     if (item.entityType === 'presentationEvents') {
+      const metadata = Object.assign({}, p.metadata || {}, { source: 'client_presentation' });
       return {
         id: p.id || item.entityId,
         dealer_id: p.dealerId || item.dealerId || 'dealer-demo',
@@ -74,7 +94,7 @@
         map_id: (p.metadata && p.metadata.mapId) || p.mapId || null,
         property_id: p.propertyId || null,
         client_id: p.clientId || null,
-        metadata: p.metadata || {},
+        metadata,
         created_at: p.createdAt || new Date().toISOString()
       };
     }
@@ -121,12 +141,16 @@
         items.forEach(it => byId.set(rowFor(it).id, it));
         const rows = [...byId.values()].map(rowFor);
         try {
+          items.forEach(it => window.PMSyncQueue.markSyncActionSyncing(it.id));
           const result = await rest(table, {
             method: 'POST',
             body: JSON.stringify(rows),
             prefer: 'resolution=merge-duplicates,return=minimal'
           });
-          if (result.missing) continue;             // table absent — keep queued
+          if (result.missing || result.forbidden) {
+            items.forEach(it => window.PMSyncQueue.markSyncActionRetrying(it.id));
+            continue;
+          }
           items.forEach(it => window.PMSyncQueue.markSyncActionSynced(it.id));
         } catch (err) {
           items.forEach(it => window.PMSyncQueue.markSyncActionFailed(it.id, err.message));
@@ -163,38 +187,57 @@
   }
 
   async function pullCrmRecords() {
-    if (unavailable.has('crm_records') || !window.CRM) return;
+    if (!window.CRM) return;
     const since = pullStamps().crm_records || '1970-01-01T00:00:00Z';
-    const result = await rest('crm_records?select=*&updated_at=gt.' + encodeURIComponent(since) + '&order=updated_at.asc&limit=500', { method: 'GET' });
-    if (result.missing || !result.data || !result.data.length) return;
+    const table = isAdminRoute() ? 'crm_records' : CLIENT_SAFE_PROPERTIES_VIEW;
+    if (unavailable.has(table)) return;
+    const path = isAdminRoute()
+      ? 'crm_records?select=*&updated_at=gt.' + encodeURIComponent(since) + '&order=updated_at.asc&limit=500'
+      : CLIENT_SAFE_PROPERTIES_VIEW + '?select=*&updated_at=gt.' + encodeURIComponent(since) + '&order=updated_at.asc&limit=500';
+    const result = await rest(path, { method: 'GET' });
+    if (result.missing || result.forbidden || !result.data || !result.data.length) return;
     const data = window.CRM.getCRM();
     let latest = since;
     result.data.forEach(row => {
       if (row.updated_at > latest) latest = row.updated_at;
-      if (row.entity_type === 'overlayMeta') {
-        if (window.PMOverlayStore && row.payload) {
-          window.PMOverlayStore.mergeRemoteSeedOverrides(row.payload.mapId, row.payload.overrides);
+      if (isAdminRoute()) {
+        if (row.entity_type === 'overlayMeta') {
+          if (window.PMOverlayStore && row.payload) {
+            window.PMOverlayStore.mergeRemoteSeedOverrides(row.payload.mapId, row.payload.overrides);
+          }
+          return;
         }
+        const bucket = data[row.entity_type];
+        if (!Array.isArray(bucket)) return;
+        if (row.deleted) {
+          const i = bucket.findIndex(x => x.id === row.id);
+          if (i >= 0) bucket.splice(i, 1);
+          return;
+        }
+        mergeById(bucket, [Object.assign({}, row.payload, { id: row.id, syncStatus: 'synced' })], true);
         return;
       }
-      const bucket = data[row.entity_type];
-      if (!Array.isArray(bucket)) return;
-      if (row.deleted) {
-        const i = bucket.findIndex(x => x.id === row.id);
-        if (i >= 0) bucket.splice(i, 1);
-        return;
-      }
-      mergeById(bucket, [Object.assign({}, row.payload, { id: row.id, syncStatus: 'synced' })], true);
+      if (!Array.isArray(data.properties)) data.properties = [];
+      mergeById(data.properties, [Object.assign({}, row, {
+        id: row.id,
+        plotNumber: row.plot_number || '',
+        block: row.block || '',
+        blockId: row.block_id || row.blockId || '',
+        roadWidth: row.road_width || '',
+        propertyType: row.property_type || '',
+        internalStatus: row.internal_status || 'Available',
+        syncStatus: 'synced'
+      })], true);
     });
     window.CRM.saveCRM(data);
     setPullStamp('crm_records', latest);
   }
 
   async function pullPresentationEvents() {
-    if (unavailable.has('presentation_events') || !window.CRM) return;
+    if (unavailable.has('presentation_events') || !window.CRM || !isAdminRoute()) return;
     const since = pullStamps().presentation_events || '1970-01-01T00:00:00Z';
     const result = await rest('presentation_events?select=*&created_at=gt.' + encodeURIComponent(since) + '&order=created_at.asc&limit=1000', { method: 'GET' });
-    if (result.missing || !result.data || !result.data.length) return;
+    if (result.missing || result.forbidden || !result.data || !result.data.length) return;
     const data = window.CRM.getCRM();
     if (!Array.isArray(data.presentationEvents)) data.presentationEvents = [];
     const seen = new Set(data.presentationEvents.map(e => e.id));
@@ -224,7 +267,7 @@
     if (unavailable.has('map_overlays') || !window.PMOverlayStore) return;
     const since = pullStamps().map_overlays || '1970-01-01T00:00:00Z';
     const result = await rest('map_overlays?select=*&updated_at=gt.' + encodeURIComponent(since) + '&order=updated_at.asc&limit=500', { method: 'GET' });
-    if (result.missing || !result.data || !result.data.length) return;
+    if (result.missing || result.forbidden || !result.data || !result.data.length) return;
     let latest = since;
     const rows = result.data.map(row => {
       if (row.updated_at > latest) latest = row.updated_at;
@@ -247,6 +290,9 @@
 
   function requestDrain() {
     clearTimeout(debounceTimer);
+    if (window.PMSyncQueue && typeof window.PMSyncQueue.retryFailedSyncActions === 'function') {
+      window.PMSyncQueue.retryFailedSyncActions();
+    }
     debounceTimer = setTimeout(drain, DEBOUNCE_MS);
   }
 

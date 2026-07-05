@@ -21,6 +21,12 @@
     return JSON.parse(JSON.stringify(value || {}));
   }
 
+  function isLocalDev() {
+    if (window.PMAuth && typeof window.PMAuth.isLocalDev === 'function') return window.PMAuth.isLocalDev();
+    const host = String(location.hostname || '').toLowerCase();
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host.endsWith('.local');
+  }
+
   function readLocal() {
     try {
       const raw = localStorage.getItem(STORE_KEY);
@@ -46,10 +52,10 @@
   }
 
   function ensureFoundationData(input) {
-    const data = input || clone(window.CRM_DEMO || {});
+    const data = input || (isLocalDev() ? clone(window.CRM_DEMO || {}) : {});
     COLLECTIONS.forEach(key => ensureArray(data, key));
 
-    if (!data.dealers.length) {
+    if (!data.dealers.length && isLocalDev()) {
       const createdAt = nowIso();
       data.dealers.push({
         id: DEFAULT_DEALER_ID,
@@ -66,7 +72,7 @@
       });
     }
 
-    if (!data.users.length) {
+    if (!data.users.length && data.dealers.length && isLocalDev()) {
       const createdAt = nowIso();
       data.users.push({
         id: DEFAULT_USER_ID,
@@ -96,7 +102,7 @@
       });
     }
 
-    if (!data.accessLinks.length) {
+    if (!data.accessLinks.length && data.dealers.length && data.users.length && isLocalDev()) {
       const createdAt = nowIso();
       data.accessLinks.push({
         id: 'link-demo-owner',
@@ -168,7 +174,7 @@
   function getCurrentDealer(data) {
     const source = data || getData();
     const selected = localStorage.getItem('plotmap_dealer_id');
-    return source.dealers.find(d => d.id === selected) || source.dealers[0] || null;
+    return source.dealers.find(d => d.id === selected) || source.dealers[0] || (selected ? { id: selected } : null);
   }
 
   function getCurrentUser(data) {

@@ -3,8 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
 <title>PlotMap Admin — Maps & Pins</title>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="/admin/core/auth.js"></script>
+<script src="/admin/crm-data.js"></script>
+<script src="/admin/core/data-adapter.js"></script>
+<script src="/admin/core/sync-queue.js"></script>
+<script src="/admin/core/access-control.js"></script>
+<script>
+if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
+</script>
 <style>
   *{box-sizing:border-box;}
   body{margin:0;font-family:'Hanken Grotesk',system-ui,sans-serif;background:#F4EFE6;color:#23211C;}

@@ -3,8 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
 <title>Client Movement â€” PlotMap</title>
 <link rel="stylesheet" href="/admin/crm-ui.css">
+<script src="/admin/core/auth.js"></script>
 <script src="/admin/crm-data.js"></script>
 <script src="/admin/core/data-adapter.js"></script>
 <script src="/admin/core/sync-queue.js"></script>
@@ -16,12 +18,7 @@
 <script src="/admin/crm-store.js"></script>
 <script src="/admin/core/supabase-sync.js"></script>
 <script>
-const pmRole = localStorage.getItem('plotmap_admin_role');
-if (pmRole !== 'team' && pmRole !== 'dealer') {
-  window.location.href = '/admin/index.html';
-} else if (window.PMAccess) {
-  window.PMAccess.guardPage({ roleRequired: pmRole === 'dealer' ? 'owner' : 'team' });
-}
+if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
 </script>
 </head>
 <body class="pm-shell">
