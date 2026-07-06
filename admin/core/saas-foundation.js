@@ -1,21 +1,25 @@
 (function () {
-  const TEAM_SCOPES = [
-    'presentation.view',
-    'properties.manage',
-    'mapstudio.manage',
-    'clients.view',
-    'deals.view',
-    'exports.manage',
-    'audit.view'
+  // Role/scope model lives in PMAccess (admin pages always load
+  // access-control.js before this file); these are last-resort fallbacks.
+  const FALLBACK_TEAM_SCOPES = [
+    'presentation.view', 'properties.manage', 'mapstudio.manage', 'mapstudio.publish',
+    'clients.view', 'deals.view', 'exports.manage', 'audit.view'
   ];
-  const OWNER_SCOPES = TEAM_SCOPES.concat([
-    'dealerSettings.manage',
-    'team.manage',
-    'billing.manage'
+  const FALLBACK_OWNER_SCOPES = FALLBACK_TEAM_SCOPES.concat([
+    'insights.view', 'dealerSettings.manage', 'team.manage', 'billing.manage'
   ]);
+  // Assignable team roles (owner is implicit; 'team' is the legacy generic role)
+  const TEAM_ROLES = [
+    { id: 'manager', label: 'Manager' },
+    { id: 'map_editor', label: 'Map Editor' },
+    { id: 'property_editor', label: 'Property Editor' },
+    { id: 'viewer', label: 'Viewer' },
+    { id: 'team', label: 'Team (legacy, full team access)' }
+  ];
   const EXPORT_COLLECTIONS = [
     'dealerSettings', 'users', 'staff', 'areas', 'clients',
-    'properties', 'followups', 'siteVisits', 'deals', 'shareLinks', 'auditLogs'
+    'properties', 'followups', 'siteVisits', 'deals', 'shareLinks', 'auditLogs',
+    'presentationEvents', 'pins', 'mapDrawings'
   ];
 
   function adapter() {
@@ -162,22 +166,73 @@
       dealerId,
       brandName: (dealer && (dealer.businessName || dealer.name)) || 'PlotMap',
       brandTagline: 'Premium Real Estate Map Studio',
+      logoUrl: '',
       accentColor: '#1F5E47',
       supportEmail: (dealer && dealer.email) || '',
       supportPhone: (dealer && dealer.phone) || '',
+      whatsappNumber: (dealer && dealer.phone) || '',
       billingEmail: (dealer && dealer.email) || '',
+      defaultCity: '',
+      defaultMapId: '',
+      presentationTitle: '',
+      presentationTagline: '',
+      shareMessage: 'Here is our property map — tap to explore available plots.',
       shareBaseUrl: location.origin + '/app/plotmap/',
       photoBucket: 'property-photos',
       photoFolder: 'dealers/' + sanitizeSegment(dealerId) + '/properties',
       storageEnabled: false,
       subscriptionStatus: (dealer && dealer.status) || 'trial',
+      accountStatus: 'active',
       planCode: 'founding',
+      trialStart: (dealer && dealer.trialStart) || nowIso(),
+      trialEnd: (dealer && dealer.trialEnd) || null,
       seatLimit: 5,
       seatCount: Number(teamCount || 1),
+      maxMaps: 10,
+      maxProperties: 500,
+      maxTeamMembers: 5,
       updatedAt: nowIso(),
       createdAt: nowIso(),
       syncStatus: 'pending'
     };
+  }
+
+  // Billing/subscription readiness — no payment integration, just honest
+  // plan state + limits so expired/limit behavior exists before payments do.
+  function getPlanState() {
+    const settings = getDealerSettings();
+    const now = Date.now();
+    const trialEnd = settings.trialEnd ? Date.parse(settings.trialEnd) : 0;
+    const trialExpired = settings.subscriptionStatus === 'trial' && trialEnd && trialEnd < now;
+    return {
+      planCode: settings.planCode || 'founding',
+      subscriptionStatus: settings.subscriptionStatus || 'trial',
+      accountStatus: settings.accountStatus || 'active',
+      trialStart: settings.trialStart || null,
+      trialEnd: settings.trialEnd || null,
+      trialExpired,
+      active: (settings.accountStatus || 'active') === 'active' && !trialExpired,
+      seatLimit: Number(settings.seatLimit || 5),
+      maxMaps: Number(settings.maxMaps || 10),
+      maxProperties: Number(settings.maxProperties || 500),
+      maxTeamMembers: Number(settings.maxTeamMembers || settings.seatLimit || 5)
+    };
+  }
+
+  // Soft limit check used by add-flows: returns { ok, message }.
+  function checkPlanLimit(kind, currentCount) {
+    const plan = getPlanState();
+    const limit = kind === 'properties' ? plan.maxProperties
+      : kind === 'maps' ? plan.maxMaps
+      : kind === 'team' ? plan.maxTeamMembers
+      : 0;
+    if (!plan.active) {
+      return { ok: false, message: 'This account is ' + (plan.trialExpired ? 'past its trial end' : plan.accountStatus) + '. Contact your PlotMap provider.' };
+    }
+    if (limit && Number(currentCount || 0) >= limit) {
+      return { ok: false, message: 'Plan limit reached for ' + kind + ' (' + limit + ').' };
+    }
+    return { ok: true, message: '' };
   }
 
   function getDealerSettings() {
@@ -222,22 +277,19 @@
   }
 
   function permissionCatalog() {
-    return [
-      { id: 'presentation.view', label: 'Client Presentation' },
-      { id: 'properties.manage', label: 'Properties' },
-      { id: 'mapstudio.manage', label: 'Map Studio' },
-      { id: 'clients.view', label: 'Client Movement' },
-      { id: 'deals.view', label: 'Deals' },
-      { id: 'exports.manage', label: 'Backup & Export' },
-      { id: 'audit.view', label: 'Audit Logs' },
-      { id: 'dealerSettings.manage', label: 'Dealer Settings' },
-      { id: 'team.manage', label: 'Team Management' },
-      { id: 'billing.manage', label: 'Billing Readiness' }
-    ];
+    if (window.PMAccess && Array.isArray(window.PMAccess.SCOPE_CATALOG)) {
+      return window.PMAccess.SCOPE_CATALOG.slice();
+    }
+    return FALLBACK_OWNER_SCOPES.map(id => ({ id, label: id }));
   }
 
   function defaultPermissions(role) {
-    return (role === 'owner' ? OWNER_SCOPES : TEAM_SCOPES).slice();
+    if (window.PMAccess && window.PMAccess.ROLE_SCOPES) {
+      const preset = window.PMAccess.ROLE_SCOPES[role === 'dealer' ? 'owner' : role];
+      if (preset) return preset.slice();
+      return window.PMAccess.ROLE_SCOPES.viewer.slice();
+    }
+    return (role === 'owner' ? FALLBACK_OWNER_SCOPES : FALLBACK_TEAM_SCOPES).slice();
   }
 
   function normalizePermissions(role, list) {
@@ -246,15 +298,19 @@
     return [...new Set(source.filter(item => allowed.has(item)))];
   }
 
+  function isTeamRole(role) {
+    return role === 'owner' || TEAM_ROLES.some(item => item.id === role);
+  }
+
   function listTeamMembers() {
     const data = readData();
     return scopedRows(data, 'users')
-      .filter(item => item && ['owner', 'team'].includes(item.role))
+      .filter(item => item && isTeamRole(item.role))
       .map(item => Object.assign({}, item, {
         permissions: normalizePermissions(item.role, item.permissions)
       }))
       .sort((a, b) => {
-        if (a.role !== b.role) return a.role === 'owner' ? -1 : 1;
+        if (a.role !== b.role) return a.role === 'owner' ? -1 : (b.role === 'owner' ? 1 : String(a.role).localeCompare(String(b.role)));
         return String(a.name || '').localeCompare(String(b.name || ''));
       });
   }
@@ -265,15 +321,25 @@
     const dealerId = currentDealerId(data);
     const now = nowIso();
     const existing = input && input.id ? data.users.find(item => item && item.id === input.id && (!item.dealerId || item.dealerId === dealerId)) : null;
+    const requestedRole = input && input.role && isTeamRole(input.role) ? input.role : null;
+    const role = requestedRole || (existing && existing.role) || 'team';
+    // plan limit: adding a NEW active member beyond max_team_members is blocked
+    if (!existing) {
+      const limits = getPlanState();
+      const activeCount = listTeamMembers().filter(item => item.status === 'active').length;
+      if (limits.maxTeamMembers && activeCount >= limits.maxTeamMembers) {
+        throw new Error('Team member limit reached (' + limits.maxTeamMembers + '). Adjust the plan in owner settings first.');
+      }
+    }
     const member = Object.assign({}, existing || {}, {
       id: existing && existing.id ? existing.id : generateId('user'),
       dealerId,
-      role: input && input.role === 'owner' ? 'owner' : 'team',
+      role: role === 'owner' && !(existing && existing.role === 'owner') ? 'team' : role,
       name: String((input && input.name) || '').trim() || (existing && existing.name) || 'Team Member',
-      email: String((input && input.email) || '').trim(),
-      phone: String((input && input.phone) || '').trim(),
+      email: String((input && input.email) || '').trim() || (existing && existing.email) || '',
+      phone: String((input && input.phone) || '').trim() || (existing && existing.phone) || '',
       status: String((input && input.status) || (existing && existing.status) || 'active'),
-      permissions: normalizePermissions(input && input.role ? input.role : (existing && existing.role) || 'team', input && input.permissions),
+      permissions: normalizePermissions(role, input && input.permissions),
       lastAccessCheck: existing && existing.lastAccessCheck ? existing.lastAccessCheck : now,
       lastLogin: existing && existing.lastLogin ? existing.lastLogin : now,
       updatedAt: now,
@@ -288,17 +354,43 @@
     saveData(data);
     enqueue('users', member.id, existing ? 'update' : 'create', member, dealerId);
     saveDealerSettings({ seatCount: Math.max(settings.seatCount || 0, seatCount) });
-    audit(existing ? 'team_member_updated' : 'team_member_added', { entityType: 'users', entityId: member.id, role: member.role });
+    audit(existing ? 'team_member_updated' : 'team_member_added', { entityType: 'users', entityId: member.id, role: member.role, permissions: member.permissions });
     return member;
   }
 
   function setTeamMemberStatus(id, status) {
-    return saveTeamMember({ id, status });
+    const member = saveTeamMember({ id, status });
+    audit('team_member_status_changed', { entityType: 'users', entityId: id, status });
+    return member;
   }
 
+  function cachedAuthProfile() {
+    try {
+      const raw = localStorage.getItem('plotmap_supabase_profile_v1');
+      return raw ? JSON.parse(raw) : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  // Effective permission check for the person using this browser.
+  // Source of truth: the authenticated Supabase profile (role + permissions
+  // column, post-migration). Local team-member records are a fallback for
+  // pre-migration/local-dev only — never treat localStorage as security.
   function currentUserCan(scope) {
+    if (!scope) return true;
+    const profile = cachedAuthProfile();
+    if (profile && profile.role) {
+      if (window.PMAccess && typeof window.PMAccess.hasScope === 'function') {
+        return window.PMAccess.hasScope(profile, scope);
+      }
+      const role = profile.role === 'dealer' ? 'owner' : profile.role;
+      if (role === 'owner') return true;
+      return normalizePermissions(role, profile.permissions).includes(scope);
+    }
     const user = currentUser(readData());
     if (!user) return false;
+    if (user.role === 'owner') return true;
     return normalizePermissions(user.role, user.permissions).includes(scope);
   }
 
@@ -322,11 +414,23 @@
     return photos.slice(0, 8);
   }
 
+  function shareSlug() {
+    try {
+      const bytes = new Uint8Array(12);
+      crypto.getRandomValues(bytes);
+      return [...bytes].map(b => 'abcdefghjkmnpqrstuvwxyz23456789'[b % 31]).join('');
+    } catch (err) {
+      return Math.random().toString(36).slice(2, 11) + Math.random().toString(36).slice(2, 5);
+    }
+  }
+
   function buildPresentationShareUrl(input) {
     const dealerId = currentDealerId(readData());
     const settings = getDealerSettings();
     const url = new URL(settings.shareBaseUrl || (location.origin + '/app/plotmap/'));
     if (dealerId) url.searchParams.set('dealer', dealerId);
+    if (input && input.slug) url.searchParams.set('share', input.slug);
+    if (input && input.mapId) url.searchParams.set('map', input.mapId);
     if (input && input.propertyId) url.searchParams.set('property', input.propertyId);
     if (input && input.view) url.searchParams.set('view', input.view);
     if (input && input.area) url.searchParams.set('area', input.area);
@@ -337,14 +441,19 @@
     const data = readData();
     ensureArray(data, 'shareLinks');
     const dealerId = currentDealerId(data);
+    const slug = shareSlug();
+    const expiresAt = input && input.expiresAt ? new Date(input.expiresAt).toISOString() : null;
     const record = {
       id: generateId('share'),
       dealerId,
+      slug,
       label: String((input && input.label) || 'Client presentation').trim() || 'Client presentation',
       targetType: (input && input.targetType) || 'presentation',
       targetId: (input && input.targetId) || null,
-      url: buildPresentationShareUrl(input || {}),
+      mapId: (input && input.mapId) || null,
+      url: buildPresentationShareUrl(Object.assign({}, input || {}, { slug })),
       status: 'active',
+      expiresAt,
       createdAt: nowIso(),
       updatedAt: nowIso(),
       syncStatus: 'pending'
@@ -352,7 +461,29 @@
     data.shareLinks.push(record);
     saveData(data);
     enqueue('shareLinks', record.id, 'create', record, dealerId);
-    audit('share_link_created', { entityType: 'shareLinks', entityId: record.id, targetType: record.targetType, targetId: record.targetId });
+    audit('share_link_created', { entityType: 'shareLinks', entityId: record.id, targetType: record.targetType, targetId: record.targetId, slug });
+    return record;
+  }
+
+  function listShareLinks() {
+    const data = readData();
+    return scopedRows(data, 'shareLinks')
+      .slice()
+      .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  }
+
+  function setShareLinkStatus(id, status) {
+    const data = readData();
+    ensureArray(data, 'shareLinks');
+    const record = data.shareLinks.find(item => item && item.id === id);
+    if (!record) return null;
+    record.status = status === 'active' ? 'active' : 'disabled';
+    record.revokedAt = record.status === 'disabled' ? nowIso() : null;
+    record.updatedAt = nowIso();
+    record.syncStatus = 'pending';
+    saveData(data);
+    enqueue('shareLinks', record.id, 'update', record, record.dealerId);
+    audit(record.status === 'active' ? 'share_link_enabled' : 'share_link_disabled', { entityType: 'shareLinks', entityId: record.id, slug: record.slug || null });
     return record;
   }
 
@@ -376,11 +507,54 @@
     return scoped;
   }
 
-  function importSnapshot(raw) {
-    const payload = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    if (!payload || typeof payload !== 'object' || !payload.collections) {
-      throw new Error('Invalid PlotMap backup file');
+  // Validate a backup payload WITHOUT applying it. Returns a dry-run summary
+  // the UI must show before calling importSnapshot — no silent overwrites.
+  function validateSnapshot(raw) {
+    let payload;
+    try {
+      payload = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    } catch (err) {
+      return { ok: false, errors: ['File is not valid JSON.'], summary: [] };
     }
+    if (!payload || typeof payload !== 'object' || !payload.collections || typeof payload.collections !== 'object') {
+      return { ok: false, errors: ['Not a PlotMap backup file (missing collections).'], summary: [] };
+    }
+    const data = readData();
+    const errors = [];
+    const summary = [];
+    Object.keys(payload.collections).forEach(key => {
+      if (!EXPORT_COLLECTIONS.includes(key)) {
+        errors.push('Unknown collection "' + key + '" will be skipped.');
+        return;
+      }
+      const incoming = payload.collections[key];
+      if (!Array.isArray(incoming)) {
+        errors.push('Collection "' + key + '" is not a list and will be skipped.');
+        return;
+      }
+      const existingIds = new Set((Array.isArray(data[key]) ? data[key] : []).map(item => item && item.id));
+      let overwrites = 0;
+      let fresh = 0;
+      let invalid = 0;
+      incoming.forEach(item => {
+        if (!item || typeof item !== 'object' || !item.id) { invalid += 1; return; }
+        if (existingIds.has(item.id)) overwrites += 1;
+        else fresh += 1;
+      });
+      summary.push({ collection: key, incoming: incoming.length, adds: fresh, overwrites, invalid });
+    });
+    const hasRows = summary.some(row => row.adds + row.overwrites > 0);
+    if (!hasRows) errors.push('Backup contains no importable rows.');
+    return { ok: hasRows, payload, errors, summary };
+  }
+
+  function importSnapshot(raw, options) {
+    const check = validateSnapshot(raw);
+    if (!check.ok) {
+      throw new Error('Invalid PlotMap backup file: ' + (check.errors[0] || 'no importable rows'));
+    }
+    if (options && options.dryRun) return check;
+    const payload = check.payload;
     const data = readData();
     const dealerId = currentDealerId(data);
     Object.keys(payload.collections).forEach(key => {
@@ -388,7 +562,7 @@
       ensureArray(data, key);
       const incoming = Array.isArray(payload.collections[key]) ? payload.collections[key] : [];
       incoming.forEach(item => {
-        if (!item || typeof item !== 'object') return;
+        if (!item || typeof item !== 'object' || !item.id) return;
         const copy = Object.assign({}, item, {
           dealerId,
           updatedAt: nowIso(),
@@ -402,17 +576,18 @@
     });
     saveData(data);
     audit('dealer_snapshot_imported', { entityType: 'dealer', entityId: dealerId, collections: Object.keys(payload.collections) });
-    return true;
+    return check;
   }
 
   window.PMFoundation = {
-    TEAM_SCOPES,
-    OWNER_SCOPES,
+    TEAM_ROLES,
     permissionCatalog,
     defaultPermissions,
     normalizePermissions,
     getDealerSettings,
     saveDealerSettings,
+    getPlanState,
+    checkPlanLimit,
     listTeamMembers,
     saveTeamMember,
     setTeamMemberStatus,
@@ -422,7 +597,10 @@
     hydratePropertyPhotos,
     buildPresentationShareUrl,
     createShareLink,
+    listShareLinks,
+    setShareLinkStatus,
     exportSnapshot,
+    validateSnapshot,
     importSnapshot,
     audit,
     listRecentAudit,

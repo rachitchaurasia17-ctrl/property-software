@@ -1,4 +1,8 @@
-// Access, role, trial, and offline grace helpers.
+// Access, role, permission-scope, trial, and offline grace helpers.
+// This file is the single source of truth for the PlotMap role model:
+// every admin page loads it, and PMFoundation/PMNav read the presets
+// from here. Real security is Supabase RLS; this layer keeps the UI
+// honest (blocked pages, hidden nav, guarded actions).
 (function() {
   const OFFLINE_GRACE_HOURS = 24;
   const OWNER_ROUTES = [
@@ -13,6 +17,46 @@
     '/admin/deals.html',
     '/admin/map-studio.html'
   ];
+
+  // Permission scopes. profiles.permissions (Supabase, post-migration) or the
+  // local team-member record hold an array of these; empty array = role preset.
+  const SCOPE_CATALOG = [
+    { id: 'presentation.view', label: 'Client Presentation' },
+    { id: 'properties.manage', label: 'Properties (add / edit / archive)' },
+    { id: 'mapstudio.manage', label: 'Map Studio (draw / edit)' },
+    { id: 'mapstudio.publish', label: 'Publish maps to clients' },
+    { id: 'clients.view', label: 'Client Movement' },
+    { id: 'deals.view', label: 'Deals' },
+    { id: 'insights.view', label: 'Area Intelligence & Property Insights' },
+    { id: 'exports.manage', label: 'Backup & Export' },
+    { id: 'audit.view', label: 'Audit Logs' },
+    { id: 'dealerSettings.manage', label: 'Dealer Settings' },
+    { id: 'team.manage', label: 'Team Management' },
+    { id: 'billing.manage', label: 'Billing Readiness' }
+  ];
+  const ALL_SCOPES = SCOPE_CATALOG.map(s => s.id);
+  const ROLE_SCOPES = {
+    owner: ALL_SCOPES.slice(),
+    manager: ['presentation.view', 'properties.manage', 'mapstudio.manage', 'mapstudio.publish',
+      'clients.view', 'deals.view', 'insights.view', 'exports.manage', 'audit.view', 'team.manage'],
+    // legacy generic role — matches pre-role-model team behavior
+    team: ['presentation.view', 'properties.manage', 'mapstudio.manage', 'mapstudio.publish',
+      'clients.view', 'deals.view', 'exports.manage', 'audit.view'],
+    map_editor: ['presentation.view', 'mapstudio.manage', 'mapstudio.publish'],
+    property_editor: ['presentation.view', 'properties.manage'],
+    viewer: ['presentation.view']
+  };
+
+  // Route → scope needed to open it. owner.html stays owner-only.
+  const ROUTE_SCOPES = {
+    '/admin/map-studio.html': 'mapstudio.manage',
+    '/admin/properties.html': 'properties.manage',
+    '/admin/clients.html': 'clients.view',
+    '/admin/deals.html': 'deals.view',
+    '/admin/area-intelligence.html': 'insights.view',
+    '/admin/property-insights.html': 'insights.view'
+  };
+
   let pageGuardPromise = null;
 
   function normalizeRole(role) {
@@ -22,7 +66,33 @@
   }
 
   function roleRank(role) {
-    return ({ viewer: 1, team: 2, owner: 3 })[normalizeRole(role)] || 0;
+    return ({
+      viewer: 1, team: 2, manager: 2, map_editor: 2, property_editor: 2, owner: 3
+    })[normalizeRole(role)] || 0;
+  }
+
+  // Effective scopes for a Supabase profile or a local team-member record.
+  // Owner always has everything; explicit permissions arrays win over presets.
+  function resolveScopes(subject) {
+    const role = normalizeRole(subject && subject.role);
+    if (role === 'owner') return ALL_SCOPES.slice();
+    const explicit = subject && Array.isArray(subject.permissions) ? subject.permissions : null;
+    const allowed = new Set(ALL_SCOPES);
+    if (explicit && explicit.length) {
+      return [...new Set(explicit.filter(s => allowed.has(s)))];
+    }
+    return (ROLE_SCOPES[role] || ROLE_SCOPES.viewer).slice();
+  }
+
+  function hasScope(subject, scope) {
+    if (!scope) return true;
+    return resolveScopes(subject).includes(scope);
+  }
+
+  function scopeForRoute(route) {
+    const cleanRoute = String(route || location.pathname).toLowerCase();
+    const key = Object.keys(ROUTE_SCOPES).find(path => cleanRoute.endsWith(path));
+    return key ? ROUTE_SCOPES[key] : null;
   }
 
   function getRouteRequirement(route) {
@@ -53,7 +123,7 @@
 
   function isUserAllowed(user, now, graceHours) {
     if (!user) return { ok: false, reason: 'missing_user' };
-    if (['blocked', 'expired', 'removed'].includes(user.status)) return { ok: false, reason: user.status };
+    if (['blocked', 'disabled', 'expired', 'removed'].includes(user.status)) return { ok: false, reason: user.status };
     if (!navigator.onLine && !hasRecentAccessCheck(user, now, graceHours)) {
       return { ok: false, reason: 'offline_access_check_expired' };
     }
@@ -97,6 +167,42 @@
     return user;
   }
 
+  // Where to send a signed-in user who is not allowed on this page.
+  // Never signs them out — being blocked from one page is not a broken session.
+  function deniedHomeFor(profile) {
+    const role = normalizeRole(profile && profile.role);
+    if (role === 'owner') return '/admin/owner.html';
+    if (roleRank(role) >= 2) return '/admin/team.html';
+    return '/app/plotmap/';
+  }
+
+  function redirectDenied(profile, reason) {
+    const home = deniedHomeFor(profile);
+    const here = String(location.pathname || '').toLowerCase();
+    if (here.endsWith(home.toLowerCase())) {
+      // already on the safest page we could send them to — show it
+      document.documentElement.style.visibility = '';
+      return;
+    }
+    const target = home.indexOf('/admin/') === 0 ? home + '?denied=' + encodeURIComponent(reason || 'page') : home;
+    window.location.replace(target);
+  }
+
+  // Audit the first guarded page load of a browser session as a login.
+  function auditLoginOnce(profile) {
+    try {
+      if (sessionStorage.getItem('plotmap_login_audited')) return;
+      sessionStorage.setItem('plotmap_login_audited', '1');
+      if (window.PMFoundation && typeof window.PMFoundation.audit === 'function') {
+        window.PMFoundation.audit('login', {
+          entityType: 'profiles',
+          entityId: (profile && profile.id) || null,
+          role: normalizeRole(profile && profile.role)
+        });
+      }
+    } catch (err) {}
+  }
+
   function guardPage(options) {
     if (!/^\/admin\//i.test(location.pathname || '')) {
       return canAccessRoute(options || {});
@@ -111,7 +217,9 @@
         renderBlockedScreen();
         return { ok: false, reason: 'missing_auth_runtime', roleRequired };
       }
-      const authResult = await window.PMAuth.requireProfile(roleRequired);
+      // Session + active-profile check first (no role yet — role/scope denials
+      // must NOT sign the user out, only redirect them to a page they can use).
+      const authResult = await window.PMAuth.requireProfile(null);
       if (!authResult.ok) {
         await window.PMAuth.signOut().catch(() => {});
         if (/\/admin\/access-expired\.html$/i.test(location.pathname)) {
@@ -121,11 +229,36 @@
         window.location.replace(window.PMAuth.buildLoginRedirect(location.pathname + location.search + location.hash, authResult.reason));
         return authResult;
       }
+      const profile = authResult.profile;
+      // 1) owner-only pages stay owner-only
+      const routeIsOwnerOnly = /\/admin\/owner\.html$/i.test(routeOptions.route || location.pathname);
+      if (routeIsOwnerOnly && normalizeRole(profile.role) !== 'owner') {
+        redirectDenied(profile, 'owner_only');
+        return { ok: false, reason: 'role_not_allowed', profile };
+      }
+      // 2) minimum rank for the admin shell (viewers use the client presentation)
+      if (roleRank(profile.role) < 2) {
+        redirectDenied(profile, 'viewer');
+        return { ok: false, reason: 'role_not_allowed', profile };
+      }
+      // 3) per-page permission scope (owner passes everything).
+      //    Insights pages accept owner OR a granted insights.view scope, so the
+      //    legacy roleRequired:'owner' hint is only enforced for owner.html.
+      const requiredScope = scopeForRoute(routeOptions.route);
+      if (requiredScope && !hasScope(profile, requiredScope)) {
+        redirectDenied(profile, requiredScope);
+        return { ok: false, reason: 'scope_not_allowed', profile, requiredScope };
+      }
       window.PMAuth.applyLegacyRole(authResult.profile);
+      auditLoginOnce(profile);
       const data = window.PMDataAdapter ? window.PMDataAdapter.getData() : null;
+      // The Supabase profile already passed the role/scope gates above; the
+      // local check below only validates dealer trial/status + offline grace,
+      // so require plain staff rank here (legacy roleRequired hints like
+      // 'owner' on insights pages would wrongly block scope-granted teams).
       const result = canAccessRoute(Object.assign({}, routeOptions, {
         data,
-        roleRequired,
+        roleRequired: routeIsOwnerOnly ? 'owner' : 'team',
         dealer: data && window.PMDataAdapter ? window.PMDataAdapter.getCurrentDealer(data) : null,
         user: data && window.PMDataAdapter ? window.PMDataAdapter.getCurrentUser(data) : null
       }));
@@ -276,6 +409,11 @@
 
   window.PMAccess = {
     OFFLINE_GRACE_HOURS,
+    SCOPE_CATALOG,
+    ROLE_SCOPES,
+    resolveScopes,
+    hasScope,
+    scopeForRoute,
     getRouteRequirement,
     canAccessRoute,
     guardPage,

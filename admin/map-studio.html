@@ -862,6 +862,16 @@ input::placeholder{color:#B9AE94;}
       return;
     }
     const pub = S.publish;
+    // Publishing is a separate permission from drawing: members with Map
+    // Studio access but no publish scope can save drafts only.
+    if (window.PMFoundation && !window.PMFoundation.currentUserCan('mapstudio.publish')) {
+      rootEl.innerHTML = '<div class="modal-veil"><div class="modal">'
+        + '<h2>Saved as draft</h2>'
+        + '<div class="sub">Your work is saved, but your account does not have permission to publish to Client Presentation. Ask the owner to publish it or to grant you publish access.</div>'
+        + '<button class="btn-ghost" id="pubNoPermClose">Okay</button></div></div>';
+      document.getElementById('pubNoPermClose').onclick = () => { S.publish = null; renderModals(); };
+      return;
+    }
     if (S.pubDone) {
       rootEl.innerHTML = '<div class="modal-veil"><div class="modal">'
         + '<div class="okball">✓</div><h2>Published</h2>'

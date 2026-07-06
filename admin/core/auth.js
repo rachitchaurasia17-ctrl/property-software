@@ -52,18 +52,21 @@
     return role || 'viewer';
   }
 
+  const TEAM_RANK_ROLES = ['team', 'manager', 'map_editor', 'property_editor'];
+
   function adminRoleFromProfile(profile) {
     const role = normalizeRole(profile && profile.role);
     if (role === 'owner') return 'dealer';
-    if (role === 'team') return 'team';
+    if (TEAM_RANK_ROLES.includes(role)) return 'team';
     return 'viewer';
   }
 
   function routeForRole(role) {
     const normalized = normalizeRole(role);
     if (normalized === 'owner') return '/admin/owner.html';
-    if (normalized === 'team') return '/admin/team.html';
-    return '/admin/index.html';
+    if (TEAM_RANK_ROLES.includes(normalized)) return '/admin/team.html';
+    // viewer profiles land on the client presentation, not the admin shell
+    return '/app/plotmap/';
   }
 
   function readSession() {
@@ -167,11 +170,16 @@
     if (!active || !active.access_token) return null;
     const user = active.user || await getUser(active);
     if (!user || !user.id) return null;
-    const url = SUPABASE_URL + '/rest/v1/profiles?select=id,email,role,dealer_id,status&id=eq.' + encodeURIComponent(user.id) + '&limit=1';
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: sessionHeaders(active.access_token)
-    });
+    // permissions/display_name exist only after the SaaS foundation migration;
+    // fall back to the base column set so login keeps working pre-migration.
+    const baseSelect = 'id,email,role,dealer_id,status';
+    const fullSelect = baseSelect + ',permissions,display_name';
+    const fetchWith = (select) => fetch(
+      SUPABASE_URL + '/rest/v1/profiles?select=' + select + '&id=eq.' + encodeURIComponent(user.id) + '&limit=1',
+      { method: 'GET', headers: sessionHeaders(active.access_token) }
+    );
+    let res = await fetchWith(fullSelect);
+    if (!res.ok) res = await fetchWith(baseSelect);
     if (!res.ok) return null;
     const rows = await res.json().catch(() => []);
     const profile = rows && rows[0] ? rows[0] : null;
@@ -211,7 +219,9 @@
   }
 
   function roleRank(role) {
-    return ({ viewer: 1, team: 2, owner: 3 })[normalizeRole(role)] || 0;
+    return ({
+      viewer: 1, team: 2, manager: 2, map_editor: 2, property_editor: 2, owner: 3
+    })[normalizeRole(role)] || 0;
   }
 
   async function requireProfile(requiredRole) {

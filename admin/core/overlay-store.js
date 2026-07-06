@@ -160,7 +160,10 @@
     save(store);
     enqueue(item);
     if (input && (Object.prototype.hasOwnProperty.call(input, 'status') || Object.prototype.hasOwnProperty.call(input, 'clientVisible') || Object.prototype.hasOwnProperty.call(input, 'propertyId'))) {
-      audit('overlay_updated', { entityType: 'overlays', entityId: item.id, kind: item.kind, mapId: item.mapId, status: item.status, clientVisible: item.clientVisible !== false, propertyId: item.propertyId || null });
+      const action = input.status === 'published' ? 'overlay_published'
+        : input.clientVisible === false ? 'overlay_hidden'
+        : 'overlay_updated';
+      audit(action, { entityType: 'overlays', entityId: item.id, kind: item.kind, mapId: item.mapId, status: item.status, clientVisible: item.clientVisible !== false, propertyId: item.propertyId || null });
     }
     return item;
   }

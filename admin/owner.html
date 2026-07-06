@@ -105,41 +105,82 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
   </div>
 
   <div style="margin-bottom:18px;">
-    <div style="font-size:20px;font-weight:800;margin-bottom:14px;">SaaS foundation</div>
+    <div style="font-size:20px;font-weight:800;margin-bottom:14px;">Business settings</div>
     <div class="pm-grid cols-3" style="align-items:start;">
       <div class="pm-card">
         <div class="pm-card-h">Dealer settings</div>
-        <div class="pm-card-sub">Branding, contact, billing, and storage defaults</div>
-        <form class="pm-form" id="dealer-settings-form" style="margin-top:14px;">
-          <div class="fld"><label>Brand name</label><input id="dealer-brand-name" type="text" placeholder="PlotMap Realty"></div>
+        <div class="pm-card-sub">Branding and contact shown across the workspace and presentation</div>
+        <div id="dealer-settings-sync" style="font-size:12px;color:var(--pm-text-mut);margin-top:8px;"></div>
+        <form class="pm-form" id="dealer-settings-form" style="margin-top:12px;">
+          <div class="fld"><label>Business name</label><input id="dealer-brand-name" type="text" placeholder="PlotMap Realty"></div>
+          <div class="fld"><label>Logo image link (optional)</label><input id="dealer-logo-url" type="url" placeholder="https://…/logo.png"></div>
+          <div class="fld"><label>Phone number</label><input id="dealer-support-phone" type="text" placeholder="+91..."></div>
+          <div class="fld"><label>WhatsApp number</label><input id="dealer-whatsapp" type="text" placeholder="+91..."></div>
           <div class="fld"><label>Support email</label><input id="dealer-support-email" type="email" placeholder="team@example.com"></div>
-          <div class="fld"><label>Support phone</label><input id="dealer-support-phone" type="text" placeholder="+91..."></div>
           <div class="fld"><label>Billing email</label><input id="dealer-billing-email" type="email" placeholder="billing@example.com"></div>
+          <div class="fld"><label>Default city</label><input id="dealer-default-city" type="text" placeholder="e.g. New Chandigarh"></div>
+          <div class="fld"><label>Default map</label><select id="dealer-default-map"><option value="">— first live map —</option></select></div>
+          <div class="fld"><label>Client presentation title</label><input id="dealer-presentation-title" type="text" maxlength="60" placeholder="e.g. Our Property Portfolio"></div>
+          <div class="fld"><label>Client presentation tagline</label><input id="dealer-presentation-tagline" type="text" maxlength="90" placeholder="Shown under the title"></div>
+          <div class="fld"><label>Default share message</label><input id="dealer-share-message" type="text" maxlength="200" placeholder="Sent with WhatsApp shares"></div>
           <div class="fld"><label>Storage bucket</label><input id="dealer-photo-bucket" type="text" placeholder="property-photos"></div>
-          <div class="fld"><label>Subscription status</label><input id="dealer-plan-status" type="text" placeholder="trial"></div>
           <button class="pm-btn pm-btn-primary full" type="submit">Save settings</button>
+          <div id="dealer-settings-saved" style="font-size:12.5px;color:var(--pm-emerald);margin-top:8px;"></div>
         </form>
       </div>
       <div class="pm-card">
-        <div class="pm-card-h">Team and billing</div>
-        <div class="pm-card-sub">Seats, permissions, and current readiness</div>
+        <div class="pm-card-h">Plan &amp; billing readiness</div>
+        <div class="pm-card-sub">Subscription scaffold — no payments yet, honest limits now</div>
+        <div id="dealer-plan-summary" style="display:grid;gap:10px;margin-top:14px;"></div>
+        <form class="pm-form" id="dealer-plan-form" style="margin-top:14px;">
+          <div class="fld"><label>Subscription status</label>
+            <select id="dealer-plan-status">
+              <option value="trial">Trial</option>
+              <option value="active">Active</option>
+              <option value="past_due">Past due</option>
+              <option value="expired">Expired</option>
+            </select>
+          </div>
+          <div class="fld"><label>Account status</label>
+            <select id="dealer-account-status">
+              <option value="active">Active</option>
+              <option value="suspended">Suspended</option>
+            </select>
+          </div>
+          <div class="fld"><label>Trial end date</label><input id="dealer-trial-end" type="date"></div>
+          <button class="pm-btn pm-btn-secondary full" type="submit">Update plan state</button>
+        </form>
         <div id="dealer-team-summary" style="display:grid;gap:10px;margin-top:14px;"></div>
         <a class="pm-btn pm-btn-secondary full" href="/admin/team.html" style="margin-top:14px;">Open team workspace</a>
       </div>
       <div class="pm-card">
-        <div class="pm-card-h">Backup and sharing</div>
-        <div class="pm-card-sub">Export, import, and safe client-share scaffold</div>
-        <div class="fld" style="margin-top:14px;">
-          <label>Client presentation share link</label>
-          <input id="dealer-share-url" type="text" readonly>
-        </div>
-        <div style="display:grid;gap:10px;margin-top:10px;">
-          <button class="pm-btn pm-btn-secondary full" type="button" id="dealer-copy-share">Copy share link</button>
-          <button class="pm-btn pm-btn-secondary full" type="button" id="dealer-export-data">Export dealer backup</button>
+        <div class="pm-card-h">Backup &amp; recovery</div>
+        <div class="pm-card-sub">Export everything; imports are validated and confirmed first</div>
+        <div style="display:grid;gap:10px;margin-top:14px;">
+          <button class="pm-btn pm-btn-secondary full" type="button" id="dealer-export-data">Export dealer backup (JSON)</button>
           <button class="pm-btn pm-btn-secondary full" type="button" id="dealer-import-data">Import dealer backup</button>
           <input id="dealer-import-file" type="file" accept="application/json" style="display:none;">
+          <div id="dealer-backup-status" style="font-size:12.5px;color:var(--pm-text-mut);"></div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div class="pm-card-xl" style="margin-bottom:18px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
+      <div>
+        <div class="pm-card-h">Client share links</div>
+        <div class="pm-card-sub">Safe links that open only the public Client Presentation — no admin data, ever</div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <select id="share-map-select" style="height:40px;border:1px solid var(--pm-border);border-radius:10px;padding:0 10px;font-size:13.5px;background:#fff;"><option value="">Whole presentation</option></select>
+        <input id="share-expiry" type="date" title="Optional expiry" style="height:40px;border:1px solid var(--pm-border);border-radius:10px;padding:0 10px;font-size:13.5px;background:#fff;">
+        <button class="pm-btn pm-btn-primary" type="button" id="share-create">Create share link</button>
+      </div>
+    </div>
+    <div id="share-links-list"></div>
+    <div style="font-size:12.5px;color:var(--pm-text-mut);margin-top:10px;">
+      Disable a link and it stops resolving once the SaaS foundation migration is live. Until then, disabling is recorded and queued — the link still opens the public presentation (which never contains internal data).
     </div>
   </div>
 
@@ -331,22 +372,58 @@ document.addEventListener('DOMContentLoaded', () => {
   // ---- SaaS foundation ----
   if (window.PMFoundation) {
     let settings = window.PMFoundation.getDealerSettings();
-    document.getElementById('dealer-brand-name').value = settings.brandName || '';
-    document.getElementById('dealer-support-email').value = settings.supportEmail || '';
-    document.getElementById('dealer-support-phone').value = settings.supportPhone || '';
-    document.getElementById('dealer-billing-email').value = settings.billingEmail || '';
-    document.getElementById('dealer-photo-bucket').value = settings.photoBucket || 'property-photos';
-    document.getElementById('dealer-plan-status').value = settings.subscriptionStatus || 'trial';
-    document.getElementById('dealer-share-url').value = window.PMFoundation.buildPresentationShareUrl({ view: 'map' });
+    const setVal = (id, value) => { const el = document.getElementById(id); if (el) el.value = value == null ? '' : value; };
+    const fillSettingsForm = () => {
+      setVal('dealer-brand-name', settings.brandName);
+      setVal('dealer-logo-url', settings.logoUrl);
+      setVal('dealer-support-email', settings.supportEmail);
+      setVal('dealer-support-phone', settings.supportPhone);
+      setVal('dealer-whatsapp', settings.whatsappNumber);
+      setVal('dealer-billing-email', settings.billingEmail);
+      setVal('dealer-default-city', settings.defaultCity);
+      setVal('dealer-default-map', settings.defaultMapId);
+      setVal('dealer-presentation-title', settings.presentationTitle);
+      setVal('dealer-presentation-tagline', settings.presentationTagline);
+      setVal('dealer-share-message', settings.shareMessage);
+      setVal('dealer-photo-bucket', settings.photoBucket || 'property-photos');
+      setVal('dealer-plan-status', settings.subscriptionStatus || 'trial');
+      setVal('dealer-account-status', settings.accountStatus || 'active');
+      setVal('dealer-trial-end', settings.trialEnd ? String(settings.trialEnd).slice(0, 10) : '');
+    };
+    fillSettingsForm();
+
+    // honest local-vs-synced indicator
+    const renderSettingsSync = () => {
+      const el = document.getElementById('dealer-settings-sync');
+      if (!el) return;
+      // only claim "synced" when the pull loop confirmed it — anything else is local
+      el.innerHTML = settings.syncStatus === 'synced'
+        ? '<span style="color:var(--pm-emerald);font-weight:700;">Synced to the cloud.</span>'
+        : '<span style="color:#8A6224;font-weight:700;">Saved on this device — waiting to sync to the cloud.</span>';
+    };
+    renderSettingsSync();
+
+    // fill map selects from the registry (loads deferred)
+    const fillMapSelects = () => {
+      const reg = window.PM_MAP_REGISTRY;
+      if (!reg || !Array.isArray(reg.maps)) { setTimeout(fillMapSelects, 400); return; }
+      const live = reg.maps.filter(m => m && m.status === 'active');
+      const opts = live.map(m => `<option value="${esc(m.id)}">${esc(m.displayName || m.title || m.id)}</option>`).join('');
+      const defSel = document.getElementById('dealer-default-map');
+      if (defSel) { defSel.innerHTML = '<option value="">— first live map —</option>' + opts; defSel.value = settings.defaultMapId || ''; }
+      const shareSel = document.getElementById('share-map-select');
+      if (shareSel) shareSel.innerHTML = '<option value="">Whole presentation</option>' + opts;
+    };
+    fillMapSelects();
 
     const teamSummary = document.getElementById('dealer-team-summary');
     const renderTeamSummary = () => {
       const teamRows = window.PMFoundation.listTeamMembers();
       settings = window.PMFoundation.getDealerSettings();
       teamSummary.innerHTML = [
-        { label: 'Active seats', value: teamRows.filter(item => item.status !== 'removed').length + ' / ' + (settings.seatLimit || 5) },
+        { label: 'Active seats', value: teamRows.filter(item => item.status === 'active').length + ' / ' + (settings.maxTeamMembers || settings.seatLimit || 5) },
         { label: 'Owners', value: teamRows.filter(item => item.role === 'owner').length },
-        { label: 'Team members', value: teamRows.filter(item => item.role === 'team').length },
+        { label: 'Team members', value: teamRows.filter(item => item.role !== 'owner').length },
         { label: 'Storage path', value: settings.photoFolder || 'dealers/' }
       ].map(row => `
         <div style="display:flex;justify-content:space-between;gap:12px;font-size:14px;border-top:1px solid var(--pm-border-subtle);padding-top:10px;">
@@ -357,49 +434,158 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     renderTeamSummary();
 
+    const renderPlanSummary = () => {
+      const plan = window.PMFoundation.getPlanState();
+      const props = (data.properties || []).filter(p => p.internalStatus !== 'Archived').length;
+      const stateColor = plan.active ? 'var(--pm-emerald)' : '#b0532c';
+      const stateLabel = plan.active ? (plan.subscriptionStatus === 'trial' ? 'Trial active' : 'Active') : (plan.trialExpired ? 'Trial expired' : plan.accountStatus);
+      document.getElementById('dealer-plan-summary').innerHTML = [
+        { label: 'Plan', value: plan.planCode },
+        { label: 'State', value: stateLabel, color: stateColor },
+        { label: 'Trial ends', value: plan.trialEnd ? new Date(plan.trialEnd).toLocaleDateString() : '—' },
+        { label: 'Properties used', value: props + ' / ' + plan.maxProperties },
+        { label: 'Map limit', value: String(plan.maxMaps) }
+      ].map(row => `
+        <div style="display:flex;justify-content:space-between;gap:12px;font-size:14px;border-top:1px solid var(--pm-border-subtle);padding-top:10px;">
+          <span style="color:var(--pm-text-sec);font-weight:600;">${esc(row.label)}</span>
+          <strong style="text-align:right;color:${row.color || 'inherit'};">${esc(row.value)}</strong>
+        </div>
+      `).join('');
+    };
+    renderPlanSummary();
+
     document.getElementById('dealer-settings-form').addEventListener('submit', (event) => {
       event.preventDefault();
-      const next = window.PMFoundation.saveDealerSettings({
+      settings = window.PMFoundation.saveDealerSettings({
         brandName: document.getElementById('dealer-brand-name').value.trim(),
+        logoUrl: document.getElementById('dealer-logo-url').value.trim(),
         supportEmail: document.getElementById('dealer-support-email').value.trim(),
         supportPhone: document.getElementById('dealer-support-phone').value.trim(),
+        whatsappNumber: document.getElementById('dealer-whatsapp').value.trim(),
         billingEmail: document.getElementById('dealer-billing-email').value.trim(),
-        photoBucket: document.getElementById('dealer-photo-bucket').value.trim() || 'property-photos',
-        subscriptionStatus: document.getElementById('dealer-plan-status').value.trim() || 'trial'
+        defaultCity: document.getElementById('dealer-default-city').value.trim(),
+        defaultMapId: document.getElementById('dealer-default-map').value,
+        presentationTitle: document.getElementById('dealer-presentation-title').value.trim(),
+        presentationTagline: document.getElementById('dealer-presentation-tagline').value.trim(),
+        shareMessage: document.getElementById('dealer-share-message').value.trim(),
+        photoBucket: document.getElementById('dealer-photo-bucket').value.trim() || 'property-photos'
       });
-      settings = next;
-      document.getElementById('dealer-share-url').value = window.PMFoundation.buildPresentationShareUrl({ view: 'map' });
+      document.getElementById('dealer-settings-saved').textContent = 'Saved. Presentation branding updates on this device immediately; other devices update after sync.';
+      renderSettingsSync();
       renderTeamSummary();
     });
 
-    document.getElementById('dealer-copy-share').addEventListener('click', async () => {
-      const record = window.PMFoundation.createShareLink({ label: 'Client presentation', targetType: 'presentation', view: 'map' });
-      document.getElementById('dealer-share-url').value = record.url;
-      await window.PMFoundation.copyText(record.url).catch(() => {});
+    document.getElementById('dealer-plan-form').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const trialEndRaw = document.getElementById('dealer-trial-end').value;
+      settings = window.PMFoundation.saveDealerSettings({
+        subscriptionStatus: document.getElementById('dealer-plan-status').value,
+        accountStatus: document.getElementById('dealer-account-status').value,
+        trialEnd: trialEndRaw ? new Date(trialEndRaw + 'T23:59:59').toISOString() : settings.trialEnd
+      });
+      renderPlanSummary();
+      renderSettingsSync();
     });
 
+    // ---- share links ----
+    const renderShareLinks = () => {
+      const rows = window.PMFoundation.listShareLinks();
+      const listEl = document.getElementById('share-links-list');
+      if (!rows.length) {
+        listEl.innerHTML = '<div class="pm-empty"><div class="title">No share links yet</div><div class="desc">Create a link above and send it to a client on WhatsApp — it opens only the public presentation.</div></div>';
+        return;
+      }
+      listEl.innerHTML = rows.slice(0, 12).map(row => {
+        const expired = row.expiresAt && Date.parse(row.expiresAt) < Date.now();
+        const state = row.status !== 'active' ? { label: 'Disabled', color: '#b0532c' }
+          : expired ? { label: 'Expired', color: '#8A6224' }
+          : { label: 'Active', color: 'var(--pm-emerald)' };
+        return `<div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-top:1px solid var(--pm-border-subtle);flex-wrap:wrap;">
+          <div style="flex:1;min-width:220px;">
+            <div style="font-size:14px;font-weight:700;">${esc(row.label)} <span style="font-size:12px;font-weight:700;color:${state.color};">· ${state.label}</span></div>
+            <div style="font-size:12px;color:var(--pm-text-mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:520px;">${esc(row.url)}</div>
+            <div style="font-size:12px;color:var(--pm-text-mut);">${row.mapId ? 'Map-specific' : 'Whole presentation'}${row.expiresAt ? ' · expires ' + esc(new Date(row.expiresAt).toLocaleDateString()) : ''} · created ${esc(new Date(row.createdAt).toLocaleDateString())}</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="pm-btn pm-btn-secondary sm" type="button" data-copy-share="${esc(row.id)}">Copy</button>
+            <a class="pm-btn pm-btn-secondary sm" href="${esc(row.url)}" target="_blank" rel="noopener">Open</a>
+            <button class="pm-btn pm-btn-secondary sm" type="button" data-toggle-share="${esc(row.id)}">${row.status === 'active' ? 'Disable' : 'Enable'}</button>
+          </div>
+        </div>`;
+      }).join('');
+      listEl.querySelectorAll('[data-copy-share]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const row = window.PMFoundation.listShareLinks().find(item => item.id === btn.getAttribute('data-copy-share'));
+          if (row) await window.PMFoundation.copyText(row.url).catch(() => {});
+          btn.textContent = 'Copied';
+          setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+        });
+      });
+      listEl.querySelectorAll('[data-toggle-share]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const row = window.PMFoundation.listShareLinks().find(item => item.id === btn.getAttribute('data-toggle-share'));
+          if (row) window.PMFoundation.setShareLinkStatus(row.id, row.status === 'active' ? 'disabled' : 'active');
+          renderShareLinks();
+        });
+      });
+    };
+    renderShareLinks();
+
+    document.getElementById('share-create').addEventListener('click', () => {
+      const mapId = document.getElementById('share-map-select').value || null;
+      const expiryRaw = document.getElementById('share-expiry').value;
+      window.PMFoundation.createShareLink({
+        label: mapId ? 'Map share link' : 'Client presentation',
+        targetType: 'presentation',
+        mapId,
+        view: 'map',
+        expiresAt: expiryRaw ? new Date(expiryRaw + 'T23:59:59').toISOString() : null
+      });
+      renderShareLinks();
+    });
+
+    // ---- backup: export + validated import ----
     document.getElementById('dealer-export-data').addEventListener('click', () => {
       const payload = window.PMFoundation.exportSnapshot();
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'plotmap-' + (payload.dealer && payload.dealer.slug ? payload.dealer.slug : 'dealer') + '-backup.json';
+      link.download = 'plotmap-' + (payload.dealer && payload.dealer.slug ? payload.dealer.slug : 'dealer') + '-backup-' + new Date().toISOString().slice(0, 10) + '.json';
       document.body.appendChild(link);
       link.click();
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
+      document.getElementById('dealer-backup-status').textContent = 'Backup exported ' + new Date().toLocaleString() + '.';
     });
 
     document.getElementById('dealer-import-data').addEventListener('click', () => {
       document.getElementById('dealer-import-file').click();
     });
     document.getElementById('dealer-import-file').addEventListener('change', async (event) => {
+      const statusEl = document.getElementById('dealer-backup-status');
       const file = event.target.files && event.target.files[0];
+      event.target.value = '';
       if (!file) return;
       const text = await file.text();
-      window.PMFoundation.importSnapshot(text);
-      window.location.reload();
+      // dry-run first — never overwrite silently
+      const check = window.PMFoundation.validateSnapshot(text);
+      if (!check.ok) {
+        statusEl.textContent = 'Import blocked: ' + (check.errors[0] || 'invalid backup file');
+        return;
+      }
+      const lines = check.summary
+        .filter(row => row.adds + row.overwrites > 0)
+        .map(row => row.collection + ': ' + row.adds + ' new, ' + row.overwrites + ' will be overwritten');
+      const proceed = confirm('Import this backup?\n\n' + lines.join('\n') + '\n\nExisting records with the same id will be overwritten. This cannot be undone (export a fresh backup first if unsure).');
+      if (!proceed) { statusEl.textContent = 'Import cancelled — nothing was changed.'; return; }
+      try {
+        window.PMFoundation.importSnapshot(text);
+        statusEl.textContent = 'Import applied. Reloading…';
+        setTimeout(() => window.location.reload(), 600);
+      } catch (err) {
+        statusEl.textContent = 'Import failed: ' + (err.message || 'unknown error');
+      }
     });
 
     const auditFeed = document.getElementById('audit-feed');

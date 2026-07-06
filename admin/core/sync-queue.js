@@ -199,7 +199,11 @@
   }
 
   function renderStatusText(status) {
-    if (status.failedCount > 0) return `Sync failed: ${status.failedCount}`;
+    if (!navigator.onLine) {
+      const waiting = status.pendingCount + status.failedCount;
+      return waiting > 0 ? `Offline · ${waiting} waiting` : 'Offline';
+    }
+    if (status.failedCount > 0) return `Sync failed: ${status.failedCount} — tap to retry`;
     if (status.syncingCount > 0) return `Syncing: ${status.syncingCount}`;
     if (status.retryingCount > 0) return `Retrying: ${status.retryingCount}`;
     if (status.pendingCount > 0) return `Pending sync: ${status.pendingCount}`;
@@ -221,25 +225,28 @@
       const refresh = () => {
         const status = getSyncStatus();
         badge.textContent = renderStatusText(status);
-        badge.title = status.failedCount > 0
-          ? 'Click to retry failed sync items'
-          : status.lastSyncedAt ? `Last synced ${new Date(status.lastSyncedAt).toLocaleString()}` : 'Local-first sync queue';
+        badge.style.color = !navigator.onLine ? '#8A6224' : (status.failedCount > 0 ? '#b0532c' : '#5f6b7a');
+        badge.title = !navigator.onLine
+          ? 'Offline — changes are stored on this device and sync when back online. Tap to retry now.'
+          : status.failedCount > 0
+            ? 'Click to retry failed sync items'
+            : status.lastSyncedAt ? `Last synced ${new Date(status.lastSyncedAt).toLocaleString()} — tap to sync now` : 'Local-first sync queue — tap to sync now';
       };
+      // Manual "sync now": always retries failed items and requests a drain.
       badge.addEventListener('click', () => {
-        const status = getSyncStatus();
-        if (status.failedCount > 0) {
-          retryFailedSyncActions();
-          if (window.PMSupaSync && typeof window.PMSupaSync.requestDrain === 'function') {
-            window.PMSupaSync.requestDrain();
-          }
-          refresh();
+        retryFailedSyncActions();
+        if (window.PMSupaSync && typeof window.PMSupaSync.requestDrain === 'function') {
+          window.PMSupaSync.requestDrain();
         }
+        refresh();
       });
       refresh();
       const spacer = bar.querySelector('.sp');
       if (spacer) bar.insertBefore(badge, spacer);
       else bar.appendChild(badge);
       window.addEventListener('storage', refresh);
+      window.addEventListener('online', refresh);
+      window.addEventListener('offline', refresh);
       setInterval(refresh, 5000);
     };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);

@@ -239,6 +239,85 @@
       return localStorage.getItem('plotmap_dealer_id') || '';
     }
   })();
+  /* --- Dealer branding (client-safe subset of dealer settings) ---
+     Reads the local store only; whitelisted display fields — never contact
+     lists, billing, team, plan, or any internal settings. */
+  const dealerBranding = (() => {
+    const out = { brandName: '', tagline: '', presentationTitle: '', presentationTagline: '', shareMessage: '' };
+    try {
+      const raw = localStorage.getItem('plotmap_crm_v1');
+      if (!raw) return out;
+      const data = JSON.parse(raw);
+      const rows = Array.isArray(data && data.dealerSettings) ? data.dealerSettings : [];
+      const row = rows.find(s => s && (!clientDealerId || !s.dealerId || s.dealerId === clientDealerId)) || null;
+      if (!row) return out;
+      out.brandName = String(row.brandName || '').slice(0, 60);
+      out.tagline = String(row.brandTagline || '').slice(0, 90);
+      out.presentationTitle = String(row.presentationTitle || '').slice(0, 60);
+      out.presentationTagline = String(row.presentationTagline || '').slice(0, 90);
+      out.shareMessage = String(row.shareMessage || '').slice(0, 200);
+      return out;
+    } catch (e) { return out; }
+  })();
+  const brandDisplayName = () => dealerBranding.brandName || 'PlotMap';
+
+  /* --- Share-link context ---
+     ?share=<slug> marks a session as opened from a dealer share link. The
+     slug is logged with presentation events; when the SaaS foundation
+     migration is live, the plotmap_resolve_share_link RPC also validates
+     active/expiry state server-side. Fallback (RPC missing / offline):
+     the link simply opens the normal public presentation, which never
+     contains internal data. */
+  const shareContext = { slug: null, checked: false, inactive: false };
+  try {
+    const params = new URLSearchParams(location.search || '');
+    shareContext.slug = params.get('share') || null;
+  } catch (e) {}
+  function resolveShareLink() {
+    if (!shareContext.slug || shareContext.checked || !navigator.onLine) return;
+    shareContext.checked = true;
+    const supaUrl = (window.PMSupaSync && window.PMSupaSync.url) || null;
+    const supaKey = (window.PMSupaSync && window.PMSupaSync.key) || null;
+    if (!supaUrl || !supaKey) return;
+    fetch(supaUrl + '/rest/v1/rpc/plotmap_resolve_share_link', {
+      method: 'POST',
+      headers: { apikey: supaKey, Authorization: 'Bearer ' + supaKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ share_slug: shareContext.slug })
+    }).then(res => (res.ok ? res.json() : null)).then(rows => {
+      if (!Array.isArray(rows)) return; // RPC missing (migration not applied) — keep fallback behavior
+      const row = rows[0];
+      if (!row) {
+        shareContext.inactive = true;
+        const note = document.createElement('div');
+        note.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#23201A;color:#FFFDF7;padding:10px 18px;border-radius:999px;font-size:13.5px;z-index:9999;box-shadow:0 10px 24px rgba(0,0,0,.25);';
+        note.textContent = 'This share link is no longer active — showing the general presentation.';
+        document.body.appendChild(note);
+        setTimeout(() => note.remove(), 6000);
+        return;
+      }
+      if (row.dealer_id) { try { localStorage.setItem('plotmap_dealer_id', row.dealer_id); } catch (e) {} }
+    }).catch(() => {});
+  }
+  setTimeout(resolveShareLink, 800);
+
+  /* --- Offline-lite indicator ---
+     Everything the presentation shows is cached locally (localStorage +
+     previously loaded assets), so it stays usable when internet drops. */
+  function renderOfflineBadge() {
+    let badge = document.getElementById('pm-offline-badge');
+    if (navigator.onLine) { if (badge) badge.remove(); return; }
+    if (badge) return;
+    badge = document.createElement('div');
+    badge.id = 'pm-offline-badge';
+    badge.style.cssText = 'position:fixed;top:10px;right:10px;background:#8A6224;color:#FFFDF7;padding:6px 14px;border-radius:999px;font-size:12.5px;font-weight:700;z-index:9999;box-shadow:0 6px 16px rgba(0,0,0,.2);';
+    badge.textContent = 'Offline — showing saved maps';
+    document.body.appendChild(badge);
+  }
+  window.addEventListener('online', renderOfflineBadge);
+  window.addEventListener('offline', renderOfflineBadge);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderOfflineBadge);
+  else renderOfflineBadge();
+
   /* Dealer-added properties (CRM store) shown to clients. Client-safe fields
      only — no price, no sold, no internal status ever reaches this shape. */
   const crmClientProperties = () => {
@@ -1051,7 +1130,10 @@
     root.innerHTML = planHTML(); bindPlan(); bindMap(); buildMap();
     if (!presentationOpenTracked) {
       presentationOpenTracked = true;
-      window.logEvent('presentation_opened', { area: state.areaId || null });
+      window.logEvent('presentation_opened', {
+        area: state.areaId || null,
+        metadata: shareContext.slug ? { shareSlug: shareContext.slug } : {}
+      });
     }
   }
   function resetPlan(extra) { return Object.assign({ section: 'master', mapMode: 'original', sectorMapMode: 'original', showProps: false, activeCats: new Set(), displayCatId: null, selectedIds: new Set(), previewIdx: 0, itemOpen: false, propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, activePinId: null, areaMenuOpen: false, filters: emptyFilters(), secQ: '', secArea: 'all', drawerOpen: false }, extra || {}); }
@@ -1062,9 +1144,9 @@
       <div class="as-top"><span><i></i>Tricity - Live</span><span>Powered by <b>PlotMap</b></span></div>
       <div class="as-in">
         <div class="as-mark"><span class="logo"><i></i></span></div>
-        <div class="as-overline">For your client</div>
-        <div class="as-hero">Client Presentation</div>
-        <div class="as-sub">Walk a buyer through any property, sector and location on a beautiful live map.</div>
+        <div class="as-overline">${esc(dealerBranding.brandName ? dealerBranding.brandName : 'For your client')}</div>
+        <div class="as-hero">${esc(dealerBranding.presentationTitle || 'Client Presentation')}</div>
+        <div class="as-sub">${esc(dealerBranding.presentationTagline || 'Walk a buyer through any property, sector and location on a beautiful live map.')}</div>
       </div>
       <div class="as-grid">${PM.areas.map(a => `<button class="as-tile ${a.live ? '' : 'soon'}" data-area="${a.id}" ${a.live ? '' : 'disabled'}>
         <div><div style="display:flex;align-items:baseline;gap:9px"><span class="as-name">${esc(a.name)}</span>${a.sub ? `<span style="font-size:12.5px;color:#9C957F;font-weight:600">${esc(a.sub)}</span>` : ''}</div>
@@ -1079,7 +1161,7 @@
     const split = state.section === 'master' || (state.section === 'props' && state.propView === 'sector');
     return `<div style="flex:1; display:flex; flex-direction:column; min-width:0; position:relative;">
       <div class="topbar">
-        <div class="brand"><span class="logo"><i></i></span><span class="brand-name">PlotMap</span></div>
+        <div class="brand"><span class="logo"><i></i></span><span class="brand-name">${esc(brandDisplayName())}</span></div>
         <button class="area-switch" id="areaToggle"><span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.1"><span class="cur">${esc(area().name)}</span><span class="lab">View all maps</span></span><span class="caret">▾</span></button>
         <div class="divider"></div>
         <div style="display:flex;gap:3px"><button class="tab ${state.section === 'master' ? 'on' : ''}" id="tabMaster">Masterplan</button><button class="tab ${state.section === 'props' && state.propView !== 'sector' ? 'on' : ''}" id="tabProps">Properties</button><button class="tab ${state.section === 'sectors' ? 'on' : ''}" id="tabSectors">Sector Maps</button></div>

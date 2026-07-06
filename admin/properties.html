@@ -392,7 +392,13 @@ document.addEventListener('DOMContentLoaded', () => {
       clientVisible: document.getElementById('p-visible').checked
     };
     if (editingId) crm.updateProperty(editingId, fields);
-    else crm.addProperty(fields);
+    else {
+      if (window.PMFoundation) {
+        const limit = window.PMFoundation.checkPlanLimit('properties', liveProps().length);
+        if (!limit.ok) { alert(limit.message); return; }
+      }
+      crm.addProperty(fields);
+    }
     closeForm();
     renderProps();
   });

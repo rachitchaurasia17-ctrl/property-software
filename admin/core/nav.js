@@ -15,17 +15,38 @@
     { key: 'property-insights', label: 'Property Insights', href: '/admin/property-insights.html' }
   ];
 
-  // Team members see the workspace subset (owner-only analytics pages are
-  // guarded server-side by role anyway; keeping them out of nav avoids
-  // dead-end clicks).
+  // Team members see the workspace subset filtered by their permission
+  // scopes (PMAccess.resolveScopes on the cached Supabase profile). Pages
+  // are also guarded by PMAccess.guardPage — hiding nav is UX, not security.
   const TEAM_NAV = [
     { key: 'dashboard', label: 'Workspace', href: '/admin/team.html' },
-    { key: 'presentation', label: 'Client Presentation', href: '/app/plotmap/' },
-    { key: 'map-studio', label: 'Map Studio', href: '/admin/map-studio.html' },
-    { key: 'properties', label: 'Properties', href: '/admin/properties.html' },
-    { key: 'deals', label: 'Deals', href: '/admin/deals.html' },
-    { key: 'client-movement', label: 'Client Movement', href: '/admin/clients.html' }
+    { key: 'presentation', label: 'Client Presentation', href: '/app/plotmap/', scope: 'presentation.view' },
+    { key: 'map-studio', label: 'Map Studio', href: '/admin/map-studio.html', scope: 'mapstudio.manage' },
+    { key: 'properties', label: 'Properties', href: '/admin/properties.html', scope: 'properties.manage' },
+    { key: 'deals', label: 'Deals', href: '/admin/deals.html', scope: 'deals.view' },
+    { key: 'client-movement', label: 'Client Movement', href: '/admin/clients.html', scope: 'clients.view' },
+    { key: 'area-intelligence', label: 'Area Intelligence', href: '/admin/area-intelligence.html', scope: 'insights.view', optIn: true },
+    { key: 'property-insights', label: 'Property Insights', href: '/admin/property-insights.html', scope: 'insights.view', optIn: true }
   ];
+
+  function cachedProfile() {
+    try {
+      const raw = localStorage.getItem('plotmap_supabase_profile_v1');
+      return raw ? JSON.parse(raw) : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function teamNavItems() {
+    const profile = cachedProfile();
+    if (!profile || !window.PMAccess || typeof window.PMAccess.resolveScopes !== 'function') {
+      // no profile context yet — show the classic subset without opt-in pages
+      return TEAM_NAV.filter(item => !item.optIn);
+    }
+    const scopes = new Set(window.PMAccess.resolveScopes(profile));
+    return TEAM_NAV.filter(item => !item.scope || scopes.has(item.scope));
+  }
 
   function esc(value) {
     return String(value || '').replace(/[&<>"']/g, c => ({
@@ -40,7 +61,7 @@
   }
 
   function navFor(role) {
-    return role === 'team' ? TEAM_NAV : DEALER_NAV;
+    return role === 'team' ? teamNavItems() : DEALER_NAV;
   }
 
   function render(active) {

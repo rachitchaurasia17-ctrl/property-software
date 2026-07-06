@@ -58,27 +58,34 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
       <div>
         <div class="pm-card-h">Team access</div>
-        <div class="pm-card-sub">Permissions scaffold and seat visibility for the current dealer</div>
+        <div class="pm-card-sub">Roles, permissions, and status for everyone who signs in through Dealer Login</div>
       </div>
       <button class="pm-btn pm-btn-secondary" type="button" id="team-add-member">Add team member</button>
     </div>
+    <div id="team-manage-note" style="display:none;font-size:13px;color:var(--pm-text-mut);margin-bottom:10px;">You can see the team here, but only the owner (or a member with Team Management permission) can change it.</div>
     <div id="team-members-list"></div>
     <form class="pm-form" id="team-member-form" style="display:none;margin-top:16px;">
       <input type="hidden" id="team-member-id" value="">
       <div class="pm-grid cols-3">
         <div class="fld"><label>Name</label><input id="team-member-name" type="text" placeholder="Team Member"></div>
-        <div class="fld"><label>Email</label><input id="team-member-email" type="email" placeholder="member@example.com"></div>
-        <div class="fld"><label>Status</label><select id="team-member-status"><option value="active">Active</option><option value="blocked">Blocked</option><option value="removed">Removed</option></select></div>
+        <div class="fld"><label>Email (must match their login email)</label><input id="team-member-email" type="email" placeholder="member@example.com"></div>
+        <div class="fld"><label>Role</label><select id="team-member-role"></select></div>
+        <div class="fld"><label>Status</label><select id="team-member-status"><option value="active">Active</option><option value="blocked">Blocked</option><option value="disabled">Disabled</option><option value="removed">Removed</option></select></div>
       </div>
       <div class="fld" style="margin-top:12px;">
-        <label>Permissions</label>
+        <label>Permissions <span style="font-weight:400;color:var(--pm-text-mut);">(pre-filled from the role — adjust freely)</span></label>
         <div id="team-permission-grid" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;"></div>
       </div>
+      <div id="team-allowed-pages" style="font-size:12.5px;color:var(--pm-text-mut);margin-top:10px;"></div>
+      <div id="team-form-error" style="font-size:13px;color:#b0532c;margin-top:10px;"></div>
       <div style="display:flex;gap:10px;margin-top:14px;">
         <button class="pm-btn pm-btn-primary" type="submit">Save member</button>
         <button class="pm-btn pm-btn-secondary" type="button" id="team-member-cancel">Cancel</button>
       </div>
     </form>
+    <div style="font-size:12.5px;color:var(--pm-text-mut);margin-top:14px;">
+      Team members sign in through the same Dealer Login. Their live permissions come from their PlotMap account profile once the SaaS foundation migration is applied; until then this list controls what the app shows on this device and is queued for sync.
+    </div>
   </div>
 
   <!-- Recent client movement -->
@@ -97,6 +104,18 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   window.PMNav.render('dashboard');
+
+  // Friendly notice when another admin page bounced the user here.
+  try {
+    const denied = new URLSearchParams(location.search).get('denied');
+    if (denied) {
+      const note = document.createElement('div');
+      note.style.cssText = 'background:#FBF3E4;border:1px solid #E8D9BE;border-radius:14px;padding:12px 16px;font-size:13.5px;color:#8A6224;margin-bottom:16px;';
+      note.textContent = 'That page is not part of your access yet. Ask the owner if you need it — this is your workspace.';
+      const main = document.querySelector('.pm-main');
+      if (main) main.insertBefore(note, main.firstChild);
+    }
+  } catch (err) {}
 
   const crm = window.CRM;
   const data = crm.getScopedCRM ? crm.getScopedCRM() : crm.getCRM();
@@ -167,8 +186,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (window.PMFoundation) {
+    const canManage = window.PMFoundation.currentUserCan('team.manage');
     const permGrid = document.getElementById('team-permission-grid');
     const permCatalog = window.PMFoundation.permissionCatalog();
+    const roleSelect = document.getElementById('team-member-role');
+    const ROLE_LABELS = {};
+    roleSelect.innerHTML = window.PMFoundation.TEAM_ROLES.map(role => {
+      ROLE_LABELS[role.id] = role.label;
+      return `<option value="${esc(role.id)}">${esc(role.label)}</option>`;
+    }).join('');
+    ROLE_LABELS.owner = 'Owner';
     permGrid.innerHTML = permCatalog.map(item => `
       <label style="display:inline-flex;align-items:center;gap:8px;border:1px solid var(--pm-border);border-radius:999px;padding:8px 12px;font-size:13px;cursor:pointer;background:#fff;">
         <input type="checkbox" value="${esc(item.id)}">
@@ -176,63 +203,125 @@ document.addEventListener('DOMContentLoaded', () => {
       </label>
     `).join('');
 
+    // Pages a scope set unlocks — mirrors PMAccess.ROUTE_SCOPES so the owner
+    // can see exactly what a member will be able to open.
+    const PAGE_SCOPES = [
+      { label: 'Client Presentation', scope: 'presentation.view' },
+      { label: 'Map Studio', scope: 'mapstudio.manage' },
+      { label: 'Properties', scope: 'properties.manage' },
+      { label: 'Deals', scope: 'deals.view' },
+      { label: 'Client Movement', scope: 'clients.view' },
+      { label: 'Area Intelligence + Property Insights', scope: 'insights.view' }
+    ];
+    const allowedPagesText = (scopes) => {
+      const set = new Set(scopes || []);
+      const pages = PAGE_SCOPES.filter(p => set.has(p.scope)).map(p => p.label);
+      return pages.length ? 'Can open: Workspace, ' + pages.join(', ') : 'Can open: Workspace only';
+    };
+    const selectedScopes = () => [...permGrid.querySelectorAll('input[type="checkbox"]:checked')].map(box => box.value);
+    const refreshAllowedPages = () => {
+      document.getElementById('team-allowed-pages').textContent = allowedPagesText(selectedScopes());
+    };
+    permGrid.addEventListener('change', refreshAllowedPages);
+    roleSelect.addEventListener('change', () => {
+      const preset = new Set(window.PMFoundation.defaultPermissions(roleSelect.value));
+      permGrid.querySelectorAll('input[type="checkbox"]').forEach(box => { box.checked = preset.has(box.value); });
+      refreshAllowedPages();
+    });
+
     const form = document.getElementById('team-member-form');
     const toggleForm = (member) => {
       document.getElementById('team-member-id').value = member ? member.id : '';
       document.getElementById('team-member-name').value = member ? (member.name || '') : '';
       document.getElementById('team-member-email').value = member ? (member.email || '') : '';
       document.getElementById('team-member-status').value = member ? (member.status || 'active') : 'active';
-      const selected = new Set(member ? (member.permissions || []) : window.PMFoundation.defaultPermissions('team'));
+      roleSelect.value = member && member.role !== 'owner' ? (member.role || 'team') : 'team';
+      const selected = new Set(member ? (member.permissions || []) : window.PMFoundation.defaultPermissions(roleSelect.value));
       permGrid.querySelectorAll('input[type="checkbox"]').forEach(box => {
         box.checked = selected.has(box.value);
       });
+      document.getElementById('team-form-error').textContent = '';
+      refreshAllowedPages();
       form.style.display = 'block';
     };
 
+    const STATUS_COLORS = { active: 'var(--pm-emerald)', blocked: '#b0532c', disabled: '#b0532c', removed: 'var(--pm-text-mut)' };
     const renderMembers = () => {
       const list = window.PMFoundation.listTeamMembers();
       document.getElementById('team-members-list').innerHTML = list.length ? list.map(member => `
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px 0;border-top:1px solid var(--pm-border-subtle);">
           <div style="min-width:0;">
             <div style="font-size:14.5px;font-weight:700;">${esc(member.name || member.email || member.id)}</div>
-            <div style="font-size:12px;color:var(--pm-text-mut);">${esc(member.role)} · ${esc(member.status || 'active')}</div>
+            <div style="font-size:12px;color:var(--pm-text-mut);">
+              ${esc(ROLE_LABELS[member.role] || member.role)} ·
+              <span style="color:${STATUS_COLORS[member.status] || 'var(--pm-text-mut)'};font-weight:700;">${esc(member.status || 'active')}</span>
+              ${member.email ? ' · ' + esc(member.email) : ''}
+            </div>
+            <div style="font-size:12px;color:var(--pm-text-mut);margin-top:4px;">${esc(allowedPagesText(member.role === 'owner' ? permCatalog.map(p => p.id) : member.permissions))}</div>
             <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
-              ${(member.permissions || []).slice(0, 5).map(scope => `<span class="pm-chip" style="padding:6px 10px;">${esc(scope)}</span>`).join('')}
+              ${(member.role === 'owner' ? ['All permissions'] : (member.permissions || [])).slice(0, 6).map(scope => `<span class="pm-chip" style="padding:6px 10px;">${esc(scope)}</span>`).join('')}
             </div>
           </div>
+          ${canManage && member.role !== 'owner' ? `
           <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
-            ${member.role === 'team' ? `<button class="pm-btn pm-btn-secondary sm" type="button" data-edit-member="${esc(member.id)}">Edit</button>` : ''}
-            ${member.role === 'team' && member.status !== 'removed' ? `<button class="pm-btn pm-btn-secondary sm" type="button" data-remove-member="${esc(member.id)}">Remove</button>` : ''}
-          </div>
+            <button class="pm-btn pm-btn-secondary sm" type="button" data-edit-member="${esc(member.id)}">Edit</button>
+            ${member.status === 'active' ? `<button class="pm-btn pm-btn-secondary sm" type="button" data-disable-member="${esc(member.id)}">Disable</button>` : ''}
+            ${member.status !== 'active' && member.status !== 'removed' ? `<button class="pm-btn pm-btn-secondary sm" type="button" data-enable-member="${esc(member.id)}">Re-activate</button>` : ''}
+            ${member.status !== 'removed' ? `<button class="pm-btn pm-btn-secondary sm" type="button" data-remove-member="${esc(member.id)}">Remove</button>` : ''}
+          </div>` : ''}
         </div>
-      `).join('') : '<div class="pm-empty"><div class="title">No team members yet</div><div class="desc">Use the access scaffold here to add the first team member.</div></div>';
+      `).join('') : '<div class="pm-empty"><div class="title">No team members yet</div><div class="desc">Add the first team member — they sign in through the same Dealer Login.</div></div>';
       document.querySelectorAll('[data-edit-member]').forEach(btn => {
         btn.addEventListener('click', () => {
           const member = window.PMFoundation.listTeamMembers().find(item => item.id === btn.getAttribute('data-edit-member'));
           toggleForm(member);
         });
       });
+      document.querySelectorAll('[data-disable-member]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          window.PMFoundation.setTeamMemberStatus(btn.getAttribute('data-disable-member'), 'disabled');
+          renderMembers();
+        });
+      });
+      document.querySelectorAll('[data-enable-member]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          window.PMFoundation.setTeamMemberStatus(btn.getAttribute('data-enable-member'), 'active');
+          renderMembers();
+        });
+      });
       document.querySelectorAll('[data-remove-member]').forEach(btn => {
         btn.addEventListener('click', () => {
+          if (!confirm('Remove this team member? They keep their history but lose workspace access.')) return;
           window.PMFoundation.setTeamMemberStatus(btn.getAttribute('data-remove-member'), 'removed');
           renderMembers();
         });
       });
     };
 
+    if (!canManage) {
+      document.getElementById('team-add-member').style.display = 'none';
+      document.getElementById('team-manage-note').style.display = 'block';
+    }
     document.getElementById('team-add-member').addEventListener('click', () => toggleForm(null));
     document.getElementById('team-member-cancel').addEventListener('click', () => { form.style.display = 'none'; });
     form.addEventListener('submit', (event) => {
       event.preventDefault();
-      const permissions = [...permGrid.querySelectorAll('input[type="checkbox"]:checked')].map(box => box.value);
-      window.PMFoundation.saveTeamMember({
-        id: document.getElementById('team-member-id').value || null,
-        name: document.getElementById('team-member-name').value.trim(),
-        email: document.getElementById('team-member-email').value.trim(),
-        status: document.getElementById('team-member-status').value,
-        role: 'team',
-        permissions
-      });
+      if (!canManage) return;
+      const errorEl = document.getElementById('team-form-error');
+      errorEl.textContent = '';
+      try {
+        window.PMFoundation.saveTeamMember({
+          id: document.getElementById('team-member-id').value || null,
+          name: document.getElementById('team-member-name').value.trim(),
+          email: document.getElementById('team-member-email').value.trim(),
+          status: document.getElementById('team-member-status').value,
+          role: roleSelect.value,
+          permissions: selectedScopes()
+        });
+      } catch (err) {
+        errorEl.textContent = err.message || 'Could not save this team member.';
+        return;
+      }
       form.style.display = 'none';
       renderMembers();
     });
