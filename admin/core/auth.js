@@ -225,7 +225,7 @@
     const params = new URLSearchParams();
     if (next) params.set('next', next);
     if (reason) params.set('reason', reason);
-    return '/admin/index.html' + (params.toString() ? '?' + params.toString() : '');
+    return '/' + (params.toString() ? '?' + params.toString() : '');
   }
 
   function applyLegacyRole(profile) {

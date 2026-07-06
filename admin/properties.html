@@ -87,9 +87,13 @@ document.addEventListener('DOMContentLoaded', () => {
       <a class="brand" href="/"><div class="brand-icon"><i></i></div><span class="brand-name">PlotMap</span></a>
       <nav>
         <a href="/admin/owner.html">Dashboard</a>
-        <a href="/admin/property-insights.html">Property Insights</a>
-        <a href="/admin/clients.html">Clients</a>
+        <a href="/app/plotmap/">Client Presentation</a>
+        <a href="/admin/map-studio.html">Map Studio</a>
+        <a href="/admin/properties.html" class="on">Properties</a>
         <a href="/admin/area-intelligence.html">Area Intelligence</a>
+        <a href="/admin/deals.html">Deals</a>
+        <a href="/admin/clients.html">Client Movement</a>
+        <a href="/admin/property-insights.html">Property Insights</a>
       </nav>
       <div class="sp"></div>
       <div class="role-chip">
@@ -108,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <a href="/admin/map-studio.html">Map Studio</a>
       </nav>
       <div class="sp"></div>
-      <a href="/admin/index.html" style="font-size:13.5px;font-weight:700;">Switch Role</a>`;
+      <a href="/" style="font-size:13.5px;font-weight:700;">Home</a>`;
   }
 
   const props = data.properties.filter(p => p.internalStatus !== 'Archived');
