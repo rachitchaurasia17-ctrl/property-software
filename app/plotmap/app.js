@@ -229,15 +229,25 @@
   const zoneById = (id) => mapZones().find(z => z.id === id);
   const pinById = (id) => mapPins().find(p => p.id === id);
   const mapProperties = () => (DS.properties || []).filter(p => p && p.clientVisible !== false && areaMatchesActive(p.area) && p.id && p.plotNumber && p.blockId && blockById(p.blockId));
+  const clientDealerId = (() => {
+    try {
+      const params = new URLSearchParams(location.search || '');
+      const dealerId = params.get('dealerId') || params.get('dealer');
+      if (dealerId) localStorage.setItem('plotmap_dealer_id', dealerId);
+      return dealerId || localStorage.getItem('plotmap_dealer_id') || '';
+    } catch (e) {
+      return localStorage.getItem('plotmap_dealer_id') || '';
+    }
+  })();
   /* Dealer-added properties (CRM store) shown to clients. Client-safe fields
      only — no price, no sold, no internal status ever reaches this shape. */
   const crmClientProperties = () => {
     try {
       if (!window.CRM || typeof window.CRM.getCRM !== 'function') return [];
-      const data = window.CRM.getCRM();
+      const data = window.CRM.getScopedCRM ? window.CRM.getScopedCRM() : window.CRM.getCRM();
       const blockLookup = new Map(mapBlocks().map(b => [String(b.name || '').toLowerCase(), b.id]));
       return (data.properties || [])
-        .filter(p => p && p.id && p.clientVisible !== false && !/archived|internal|hold|sold|hidden/i.test(p.internalStatus || '') && areaMatchesActive(p.area))
+        .filter(p => p && p.id && p.clientVisible !== false && (!clientDealerId || !p.dealerId || p.dealerId === clientDealerId) && !/archived|internal|hold|sold|hidden/i.test(p.internalStatus || '') && areaMatchesActive(p.area))
         .map(p => ({
           id: p.id,
           title: p.title || p.name || '',
@@ -283,8 +293,10 @@
   const safeCrmPropertyById = (id) => {
     try {
       if (!window.CRM || typeof window.CRM.getCRM !== 'function') return null;
-      return (window.CRM.getCRM().properties || []).find(p =>
+      const data = window.CRM.getScopedCRM ? window.CRM.getScopedCRM() : window.CRM.getCRM();
+      return (data.properties || []).find(p =>
         p && p.id === id &&
+        (!clientDealerId || !p.dealerId || p.dealerId === clientDealerId) &&
         p.clientVisible !== false &&
         !/archived|internal|hold|sold|hidden/i.test(p.internalStatus || '')
       ) || null;

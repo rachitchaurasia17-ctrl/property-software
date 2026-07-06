@@ -12,6 +12,7 @@
 <script src="/admin/core/sync-queue.js"></script>
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
+<script src="/admin/core/saas-foundation.js"></script>
 <script src="/admin/core/supabase-sync.js"></script>
 <script src="/admin/core/nav.js"></script>
 <script>
@@ -53,6 +54,33 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
     </div>
   </div>
 
+  <div class="pm-card-xl" style="margin-bottom:18px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
+      <div>
+        <div class="pm-card-h">Team access</div>
+        <div class="pm-card-sub">Permissions scaffold and seat visibility for the current dealer</div>
+      </div>
+      <button class="pm-btn pm-btn-secondary" type="button" id="team-add-member">Add team member</button>
+    </div>
+    <div id="team-members-list"></div>
+    <form class="pm-form" id="team-member-form" style="display:none;margin-top:16px;">
+      <input type="hidden" id="team-member-id" value="">
+      <div class="pm-grid cols-3">
+        <div class="fld"><label>Name</label><input id="team-member-name" type="text" placeholder="Team Member"></div>
+        <div class="fld"><label>Email</label><input id="team-member-email" type="email" placeholder="member@example.com"></div>
+        <div class="fld"><label>Status</label><select id="team-member-status"><option value="active">Active</option><option value="blocked">Blocked</option><option value="removed">Removed</option></select></div>
+      </div>
+      <div class="fld" style="margin-top:12px;">
+        <label>Permissions</label>
+        <div id="team-permission-grid" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;"></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <button class="pm-btn pm-btn-primary" type="submit">Save member</button>
+        <button class="pm-btn pm-btn-secondary" type="button" id="team-member-cancel">Cancel</button>
+      </div>
+    </form>
+  </div>
+
   <!-- Recent client movement -->
   <div class="pm-card-xl">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
@@ -71,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.PMNav.render('dashboard');
 
   const crm = window.CRM;
-  const data = crm.getCRM();
+  const data = crm.getScopedCRM ? crm.getScopedCRM() : crm.getCRM();
   const events = Array.isArray(data.presentationEvents) ? data.presentationEvents : [];
   const propById = Object.fromEntries((data.properties || []).map(p => [p.id, p]));
 
@@ -136,6 +164,79 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>`;
     }).join('');
+  }
+
+  if (window.PMFoundation) {
+    const permGrid = document.getElementById('team-permission-grid');
+    const permCatalog = window.PMFoundation.permissionCatalog();
+    permGrid.innerHTML = permCatalog.map(item => `
+      <label style="display:inline-flex;align-items:center;gap:8px;border:1px solid var(--pm-border);border-radius:999px;padding:8px 12px;font-size:13px;cursor:pointer;background:#fff;">
+        <input type="checkbox" value="${esc(item.id)}">
+        ${esc(item.label)}
+      </label>
+    `).join('');
+
+    const form = document.getElementById('team-member-form');
+    const toggleForm = (member) => {
+      document.getElementById('team-member-id').value = member ? member.id : '';
+      document.getElementById('team-member-name').value = member ? (member.name || '') : '';
+      document.getElementById('team-member-email').value = member ? (member.email || '') : '';
+      document.getElementById('team-member-status').value = member ? (member.status || 'active') : 'active';
+      const selected = new Set(member ? (member.permissions || []) : window.PMFoundation.defaultPermissions('team'));
+      permGrid.querySelectorAll('input[type="checkbox"]').forEach(box => {
+        box.checked = selected.has(box.value);
+      });
+      form.style.display = 'block';
+    };
+
+    const renderMembers = () => {
+      const list = window.PMFoundation.listTeamMembers();
+      document.getElementById('team-members-list').innerHTML = list.length ? list.map(member => `
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px 0;border-top:1px solid var(--pm-border-subtle);">
+          <div style="min-width:0;">
+            <div style="font-size:14.5px;font-weight:700;">${esc(member.name || member.email || member.id)}</div>
+            <div style="font-size:12px;color:var(--pm-text-mut);">${esc(member.role)} · ${esc(member.status || 'active')}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+              ${(member.permissions || []).slice(0, 5).map(scope => `<span class="pm-chip" style="padding:6px 10px;">${esc(scope)}</span>`).join('')}
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+            ${member.role === 'team' ? `<button class="pm-btn pm-btn-secondary sm" type="button" data-edit-member="${esc(member.id)}">Edit</button>` : ''}
+            ${member.role === 'team' && member.status !== 'removed' ? `<button class="pm-btn pm-btn-secondary sm" type="button" data-remove-member="${esc(member.id)}">Remove</button>` : ''}
+          </div>
+        </div>
+      `).join('') : '<div class="pm-empty"><div class="title">No team members yet</div><div class="desc">Use the access scaffold here to add the first team member.</div></div>';
+      document.querySelectorAll('[data-edit-member]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const member = window.PMFoundation.listTeamMembers().find(item => item.id === btn.getAttribute('data-edit-member'));
+          toggleForm(member);
+        });
+      });
+      document.querySelectorAll('[data-remove-member]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          window.PMFoundation.setTeamMemberStatus(btn.getAttribute('data-remove-member'), 'removed');
+          renderMembers();
+        });
+      });
+    };
+
+    document.getElementById('team-add-member').addEventListener('click', () => toggleForm(null));
+    document.getElementById('team-member-cancel').addEventListener('click', () => { form.style.display = 'none'; });
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const permissions = [...permGrid.querySelectorAll('input[type="checkbox"]:checked')].map(box => box.value);
+      window.PMFoundation.saveTeamMember({
+        id: document.getElementById('team-member-id').value || null,
+        name: document.getElementById('team-member-name').value.trim(),
+        email: document.getElementById('team-member-email').value.trim(),
+        status: document.getElementById('team-member-status').value,
+        role: 'team',
+        permissions
+      });
+      form.style.display = 'none';
+      renderMembers();
+    });
+    renderMembers();
   }
 });
 </script>

@@ -129,3 +129,13 @@ All original map files remain untouched.
 - Mapped Client Login to `/app/plotmap/`, Dealer Login to `/admin/owner.html`, and Team Login to `/admin/team.html`.
 - Kept dealer/team role selection outside the client map route by setting `plotmap_admin_role` only from the root gateway before opening existing admin pages.
 - Updated the local dev server so `/` serves the root landing page while `/app/plotmap/` remains the clean client-facing map product.
+
+## SaaS Foundation Scaffold
+
+- Tightened dealer scoping in the local data adapter, CRM store, overlay store, client property bridge, and Supabase pull queries.
+- Added `admin/core/saas-foundation.js` for dealer settings, team permissions, audit logs, backup export/import, share-link generation, and property photo storage-path scaffolding.
+- Added owner-page cards for dealer settings, billing/storage defaults, client-share scaffold, export/import, and recent audit visibility.
+- Added team-page scaffolding for team-member status and permission scopes.
+- Added property-page storage hints and dealer-aware share-link generation.
+- Added incremental Supabase migration scaffold at `supabase/migrations/20260706_saas_foundation_scaffold.sql`.
+- Added `docs/SAAS_FOUNDATION_QA.md` for post-change verification.

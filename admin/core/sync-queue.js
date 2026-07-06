@@ -3,6 +3,7 @@
   const FALLBACK_KEY = 'plotmap_sync_queue_v1';
   const RETRY_BASE_MS = 15000;
   const RETRY_MAX_MS = 5 * 60 * 1000;
+  const SYNCED_RETENTION_MS = 12 * 60 * 60 * 1000;
 
   function adapter() {
     return window.PMDataAdapter || null;
@@ -10,6 +11,17 @@
 
   function nowIso() {
     return (adapter() && adapter().nowIso()) || new Date().toISOString();
+  }
+
+  function currentDealerId(data) {
+    if (adapter() && typeof adapter().getCurrentDealerId === 'function') {
+      return adapter().getCurrentDealerId(data) || null;
+    }
+    try {
+      return localStorage.getItem('plotmap_dealer_id') || null;
+    } catch (err) {
+      return null;
+    }
   }
 
   function generateId() {
@@ -51,7 +63,7 @@
     return withQueue(queue => {
       const item = Object.assign({
         id: generateId(),
-        dealerId: null,
+        dealerId: currentDealerId(),
         entityType: '',
         entityId: '',
         actionType: '',
@@ -76,6 +88,22 @@
     }));
   }
 
+  function pruneSyncedSyncActions() {
+    return withQueue(queue => {
+      const cutoff = Date.now() - SYNCED_RETENTION_MS;
+      let removed = 0;
+      for (let i = queue.length - 1; i >= 0; i -= 1) {
+        const item = queue[i];
+        if (!item || item.status !== 'synced') continue;
+        const syncedAt = item.syncedAt ? Date.parse(item.syncedAt) : 0;
+        if (!syncedAt || syncedAt > cutoff) continue;
+        queue.splice(i, 1);
+        removed += 1;
+      }
+      return removed;
+    });
+  }
+
   function markSyncActionSyncing(id) {
     return withQueue(queue => {
       const item = queue.find(entry => entry.id === id);
@@ -94,6 +122,14 @@
       item.syncedAt = nowIso();
       item.nextRetryAt = null;
       if (data) data.syncMeta = Object.assign({}, data.syncMeta || {}, { lastSyncedAt: item.syncedAt });
+      const cutoff = Date.now() - SYNCED_RETENTION_MS;
+      for (let i = queue.length - 1; i >= 0; i -= 1) {
+        const row = queue[i];
+        if (!row || row.status !== 'synced') continue;
+        const syncedAt = row.syncedAt ? Date.parse(row.syncedAt) : 0;
+        if (!syncedAt || syncedAt > cutoff) continue;
+        queue.splice(i, 1);
+      }
       return item;
     });
   }
@@ -220,8 +256,15 @@
     retryFailedSyncActions,
     retrySyncAction,
     getSyncStatus,
+    pruneSyncedSyncActions,
     mountSyncStatus
   };
 
   mountSyncStatus();
+  window.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      pruneSyncedSyncActions();
+      retryFailedSyncActions();
+    }
+  });
 })();

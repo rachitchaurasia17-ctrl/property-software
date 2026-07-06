@@ -13,6 +13,7 @@
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
 <script src="/admin/core/overlay-store.js"></script>
+<script src="/admin/core/saas-foundation.js"></script>
 <script src="/admin/core/supabase-sync.js"></script>
 <script src="/admin/core/nav.js"></script>
 <script src="/app/plotmap/map-registry.js" defer></script>
@@ -102,12 +103,61 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
       </a>
     </div>
   </div>
+
+  <div style="margin-bottom:18px;">
+    <div style="font-size:20px;font-weight:800;margin-bottom:14px;">SaaS foundation</div>
+    <div class="pm-grid cols-3" style="align-items:start;">
+      <div class="pm-card">
+        <div class="pm-card-h">Dealer settings</div>
+        <div class="pm-card-sub">Branding, contact, billing, and storage defaults</div>
+        <form class="pm-form" id="dealer-settings-form" style="margin-top:14px;">
+          <div class="fld"><label>Brand name</label><input id="dealer-brand-name" type="text" placeholder="PlotMap Realty"></div>
+          <div class="fld"><label>Support email</label><input id="dealer-support-email" type="email" placeholder="team@example.com"></div>
+          <div class="fld"><label>Support phone</label><input id="dealer-support-phone" type="text" placeholder="+91..."></div>
+          <div class="fld"><label>Billing email</label><input id="dealer-billing-email" type="email" placeholder="billing@example.com"></div>
+          <div class="fld"><label>Storage bucket</label><input id="dealer-photo-bucket" type="text" placeholder="property-photos"></div>
+          <div class="fld"><label>Subscription status</label><input id="dealer-plan-status" type="text" placeholder="trial"></div>
+          <button class="pm-btn pm-btn-primary full" type="submit">Save settings</button>
+        </form>
+      </div>
+      <div class="pm-card">
+        <div class="pm-card-h">Team and billing</div>
+        <div class="pm-card-sub">Seats, permissions, and current readiness</div>
+        <div id="dealer-team-summary" style="display:grid;gap:10px;margin-top:14px;"></div>
+        <a class="pm-btn pm-btn-secondary full" href="/admin/team.html" style="margin-top:14px;">Open team workspace</a>
+      </div>
+      <div class="pm-card">
+        <div class="pm-card-h">Backup and sharing</div>
+        <div class="pm-card-sub">Export, import, and safe client-share scaffold</div>
+        <div class="fld" style="margin-top:14px;">
+          <label>Client presentation share link</label>
+          <input id="dealer-share-url" type="text" readonly>
+        </div>
+        <div style="display:grid;gap:10px;margin-top:10px;">
+          <button class="pm-btn pm-btn-secondary full" type="button" id="dealer-copy-share">Copy share link</button>
+          <button class="pm-btn pm-btn-secondary full" type="button" id="dealer-export-data">Export dealer backup</button>
+          <button class="pm-btn pm-btn-secondary full" type="button" id="dealer-import-data">Import dealer backup</button>
+          <input id="dealer-import-file" type="file" accept="application/json" style="display:none;">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pm-card-xl">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <div>
+        <div class="pm-card-h">Recent audit activity</div>
+        <div class="pm-card-sub">Important owner and team actions for this dealer</div>
+      </div>
+    </div>
+    <div id="audit-feed"></div>
+  </div>
 </main>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const crm = window.CRM;
-  const data = crm.getCRM();
+  const data = crm.getScopedCRM ? crm.getScopedCRM() : crm.getCRM();
   const stats = crm.computePresentationStats();
   const events = Array.isArray(data.presentationEvents) ? data.presentationEvents : [];
 
@@ -277,6 +327,94 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
     <div style="font-size:12.5px;color:var(--pm-text-mut);margin-top:8px;">${navigator.onLine ? 'Online — syncing with Supabase in the background.' : 'Offline — changes are stored on this device and sync when back online.'}</div>
   `;
+
+  // ---- SaaS foundation ----
+  if (window.PMFoundation) {
+    let settings = window.PMFoundation.getDealerSettings();
+    document.getElementById('dealer-brand-name').value = settings.brandName || '';
+    document.getElementById('dealer-support-email').value = settings.supportEmail || '';
+    document.getElementById('dealer-support-phone').value = settings.supportPhone || '';
+    document.getElementById('dealer-billing-email').value = settings.billingEmail || '';
+    document.getElementById('dealer-photo-bucket').value = settings.photoBucket || 'property-photos';
+    document.getElementById('dealer-plan-status').value = settings.subscriptionStatus || 'trial';
+    document.getElementById('dealer-share-url').value = window.PMFoundation.buildPresentationShareUrl({ view: 'map' });
+
+    const teamSummary = document.getElementById('dealer-team-summary');
+    const renderTeamSummary = () => {
+      const teamRows = window.PMFoundation.listTeamMembers();
+      settings = window.PMFoundation.getDealerSettings();
+      teamSummary.innerHTML = [
+        { label: 'Active seats', value: teamRows.filter(item => item.status !== 'removed').length + ' / ' + (settings.seatLimit || 5) },
+        { label: 'Owners', value: teamRows.filter(item => item.role === 'owner').length },
+        { label: 'Team members', value: teamRows.filter(item => item.role === 'team').length },
+        { label: 'Storage path', value: settings.photoFolder || 'dealers/' }
+      ].map(row => `
+        <div style="display:flex;justify-content:space-between;gap:12px;font-size:14px;border-top:1px solid var(--pm-border-subtle);padding-top:10px;">
+          <span style="color:var(--pm-text-sec);font-weight:600;">${esc(row.label)}</span>
+          <strong style="text-align:right;">${esc(row.value)}</strong>
+        </div>
+      `).join('');
+    };
+    renderTeamSummary();
+
+    document.getElementById('dealer-settings-form').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const next = window.PMFoundation.saveDealerSettings({
+        brandName: document.getElementById('dealer-brand-name').value.trim(),
+        supportEmail: document.getElementById('dealer-support-email').value.trim(),
+        supportPhone: document.getElementById('dealer-support-phone').value.trim(),
+        billingEmail: document.getElementById('dealer-billing-email').value.trim(),
+        photoBucket: document.getElementById('dealer-photo-bucket').value.trim() || 'property-photos',
+        subscriptionStatus: document.getElementById('dealer-plan-status').value.trim() || 'trial'
+      });
+      settings = next;
+      document.getElementById('dealer-share-url').value = window.PMFoundation.buildPresentationShareUrl({ view: 'map' });
+      renderTeamSummary();
+    });
+
+    document.getElementById('dealer-copy-share').addEventListener('click', async () => {
+      const record = window.PMFoundation.createShareLink({ label: 'Client presentation', targetType: 'presentation', view: 'map' });
+      document.getElementById('dealer-share-url').value = record.url;
+      await window.PMFoundation.copyText(record.url).catch(() => {});
+    });
+
+    document.getElementById('dealer-export-data').addEventListener('click', () => {
+      const payload = window.PMFoundation.exportSnapshot();
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'plotmap-' + (payload.dealer && payload.dealer.slug ? payload.dealer.slug : 'dealer') + '-backup.json';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+
+    document.getElementById('dealer-import-data').addEventListener('click', () => {
+      document.getElementById('dealer-import-file').click();
+    });
+    document.getElementById('dealer-import-file').addEventListener('change', async (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const text = await file.text();
+      window.PMFoundation.importSnapshot(text);
+      window.location.reload();
+    });
+
+    const auditFeed = document.getElementById('audit-feed');
+    const auditRows = window.PMFoundation.listRecentAudit(8);
+    auditFeed.innerHTML = auditRows.length ? auditRows.map(row => `
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:11px 0;border-top:1px solid var(--pm-border-subtle);">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--pm-blue);margin-top:6px;flex:none;"></div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:700;">${esc(String(row.actionType || '').replace(/_/g, ' '))}</div>
+          <div style="font-size:12px;color:var(--pm-text-mut);">${esc((row.metadata && (row.metadata.entityType || row.metadata.targetType)) || row.entityType || 'Admin action')}</div>
+        </div>
+        <span style="font-size:12px;color:var(--pm-text-mut);font-weight:600;white-space:nowrap;">${esc(new Date(row.createdAt).toLocaleDateString([], { day: 'numeric', month: 'short' }))}</span>
+      </div>
+    `).join('') : '<div class="pm-empty"><div class="title">No audit entries yet</div><div class="desc">Important admin actions will appear here as the owner workspace is used.</div></div>';
+  }
 });
 </script>
 </body>

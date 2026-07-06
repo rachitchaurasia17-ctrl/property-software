@@ -6,8 +6,13 @@
   const FOUNDATION_COLLECTIONS = [
     'dealers', 'users', 'accessLinks', 'staff', 'areas', 'clients', 'properties',
     'followups', 'siteVisits', 'deals', 'events', 'presentationEvents', 'reports',
-    'pins', 'mapDrawings', 'syncQueue'
+    'pins', 'mapDrawings', 'syncQueue', 'dealerSettings', 'shareLinks', 'auditLogs'
   ];
+  const DEALER_SCOPED_COLLECTIONS = new Set([
+    'users', 'accessLinks', 'staff', 'areas', 'clients', 'properties', 'followups',
+    'siteVisits', 'deals', 'events', 'presentationEvents', 'reports', 'pins',
+    'mapDrawings', 'dealerSettings', 'shareLinks', 'auditLogs'
+  ]);
 
   function generateId(prefix) {
     return prefix + '-' + Math.random().toString(36).substr(2, 9);
@@ -17,8 +22,56 @@
     return new Date().toISOString();
   }
 
+  function readSearchParams() {
+    try {
+      return new URLSearchParams(location.search || '');
+    } catch (err) {
+      return new URLSearchParams();
+    }
+  }
+
+  function sanitizeKey(value) {
+    return String(value || '').trim().toLowerCase();
+  }
+
+  function dealerFromQuery(data) {
+    const params = readSearchParams();
+    const explicitId = params.get('dealerId') || params.get('dealer');
+    const explicitSlug = params.get('dealerSlug');
+    const dealers = Array.isArray(data && data.dealers) ? data.dealers : [];
+    if (explicitId) return dealers.find(item => item && item.id === explicitId) || null;
+    if (explicitSlug) {
+      const slugKey = sanitizeKey(explicitSlug);
+      return dealers.find(item => sanitizeKey(item && item.slug) === slugKey) || null;
+    }
+    return null;
+  }
+
+  function dealerMatches(item, dealerId) {
+    if (!dealerId || !item || typeof item !== 'object') return true;
+    if (!Object.prototype.hasOwnProperty.call(item, 'dealerId')) return true;
+    return !item.dealerId || item.dealerId === dealerId;
+  }
+
+  function scopedArray(data, key, dealerId) {
+    const rows = Array.isArray(data && data[key]) ? data[key] : [];
+    if (!DEALER_SCOPED_COLLECTIONS.has(key) || !dealerId) return rows;
+    return rows.filter(item => dealerMatches(item, dealerId));
+  }
+
   function firstDealerId(data) {
-    return localStorage.getItem('plotmap_dealer_id') || (data.dealers && data.dealers[0] && data.dealers[0].id) || DEFAULT_DEALER_ID;
+    const queryDealer = dealerFromQuery(data);
+    const selected = localStorage.getItem('plotmap_dealer_id');
+    const dealers = Array.isArray(data && data.dealers) ? data.dealers : [];
+    const dealer = queryDealer ||
+      dealers.find(item => item && item.id === selected) ||
+      dealers[0] ||
+      null;
+    if (dealer && dealer.id) {
+      try { localStorage.setItem('plotmap_dealer_id', dealer.id); } catch (err) {}
+      return dealer.id;
+    }
+    return selected || DEFAULT_DEALER_ID;
   }
 
   function isLocalDev() {
@@ -147,6 +200,25 @@
       item.updatedAt = item.updatedAt || item.createdAt;
       item.syncStatus = item.syncStatus || 'synced';
     });
+    data.dealerSettings.forEach(item => {
+      item.dealerId = item.dealerId || dealerId;
+      item.createdAt = item.createdAt || nowIso();
+      item.updatedAt = item.updatedAt || item.createdAt;
+      item.syncStatus = item.syncStatus || 'synced';
+    });
+    data.shareLinks.forEach(item => {
+      item.dealerId = item.dealerId || dealerId;
+      item.status = item.status || 'active';
+      item.createdAt = item.createdAt || nowIso();
+      item.updatedAt = item.updatedAt || item.createdAt;
+      item.syncStatus = item.syncStatus || 'synced';
+    });
+    data.auditLogs.forEach(item => {
+      item.dealerId = item.dealerId || dealerId;
+      item.createdAt = item.createdAt || nowIso();
+      item.updatedAt = item.updatedAt || item.createdAt;
+      item.syncStatus = item.syncStatus || 'synced';
+    });
   }
 
   function enqueueChange(data, entityType, entityId, actionType, payload) {
@@ -163,6 +235,12 @@
     });
     if (window.PMSupaSync && typeof window.PMSupaSync.requestDrain === 'function') {
       window.PMSupaSync.requestDrain();
+    }
+  }
+
+  function auditAction(actionType, meta) {
+    if (window.PMFoundation && typeof window.PMFoundation.audit === 'function') {
+      try { window.PMFoundation.audit(actionType, meta || {}); } catch (err) {}
     }
   }
 
@@ -194,6 +272,20 @@
     return data;
   }
 
+  function getScopedCRM() {
+    const data = JSON.parse(JSON.stringify(getCRM()));
+    const dealerId = firstDealerId(data);
+    FOUNDATION_COLLECTIONS.forEach(key => {
+      if (!DEALER_SCOPED_COLLECTIONS.has(key)) return;
+      data[key] = scopedArray(data, key, dealerId);
+    });
+    return data;
+  }
+
+  function findOwnedRecord(list, id, dealerId) {
+    return (Array.isArray(list) ? list : []).find(item => item && item.id === id && dealerMatches(item, dealerId)) || null;
+  }
+
   function resetCRMToDemo() {
     const data = ensureFoundationData(JSON.parse(JSON.stringify(window.CRM_DEMO || {})));
     saveCRM(data);
@@ -213,7 +305,7 @@
 
   function updateClientStatus(clientId, status) {
     const data = getCRM();
-    const client = data.clients.find(c => c.id === clientId);
+    const client = findOwnedRecord(data.clients, clientId, firstDealerId(data));
     if (client) {
       client.status = status;
       client.lastActivityAt = Date.now();
@@ -233,23 +325,25 @@
     enqueueChange(data, 'properties', newProp.id, 'create', newProp);
     saveCRM(data);
     logEvent('property_added', { propertyId: newProp.id }, null);
+    auditAction('property_added', { entityType: 'properties', entityId: newProp.id, area: newProp.area, internalStatus: newProp.internalStatus });
     return newProp;
   }
 
   function updateProperty(propertyId, changes) {
     const data = getCRM();
-    const prop = data.properties.find(p => p.id === propertyId);
+    const prop = findOwnedRecord(data.properties, propertyId, firstDealerId(data));
     if (!prop) return null;
     Object.assign(prop, changes || {}, { updatedAt: nowIso(), syncStatus: 'pending' });
     enqueueChange(data, 'properties', propertyId, 'update', prop);
     saveCRM(data);
     logEvent('property_updated', { propertyId }, null);
+    auditAction('property_updated', { entityType: 'properties', entityId: propertyId, fields: Object.keys(changes || {}) });
     return prop;
   }
 
   function archiveProperty(propertyId) {
     const data = getCRM();
-    const prop = data.properties.find(p => p.id === propertyId);
+    const prop = findOwnedRecord(data.properties, propertyId, firstDealerId(data));
     if (prop) {
       prop.internalStatus = 'Archived';
       prop.updatedAt = nowIso();
@@ -257,6 +351,7 @@
       enqueueChange(data, 'properties', propertyId, 'archive', { internalStatus: 'Archived' });
       saveCRM(data);
       logEvent('property_archived', { propertyId }, null);
+      auditAction('property_archived', { entityType: 'properties', entityId: propertyId });
     }
   }
 
@@ -273,7 +368,7 @@
 
   function updateFollowupStatus(followupId, status) {
     const data = getCRM();
-    const fw = data.followups.find(f => f.id === followupId);
+    const fw = findOwnedRecord(data.followups, followupId, firstDealerId(data));
     if (fw) {
       fw.status = status;
       fw.updatedAt = nowIso();
@@ -298,7 +393,7 @@
 
   function updateSiteVisitStatus(siteVisitId, status) {
     const data = getCRM();
-    const sv = data.siteVisits.find(s => s.id === siteVisitId);
+    const sv = findOwnedRecord(data.siteVisits, siteVisitId, firstDealerId(data));
     if (sv) {
       sv.status = status;
       sv.updatedAt = nowIso();
@@ -389,16 +484,18 @@
     data.accessLinks.push(link);
     enqueueChange(data, 'accessLinks', link.id, 'create', link);
     saveCRM(data);
+    auditAction('access_link_created', { entityType: 'accessLinks', entityId: link.id, roleAllowed: link.roleAllowed });
     return link;
   }
 
   function updateAccessLink(id, changes) {
     const data = getCRM();
-    const link = data.accessLinks.find(item => item.id === id);
+    const link = findOwnedRecord(data.accessLinks, id, firstDealerId(data));
     if (!link) return null;
     Object.assign(link, changes || {}, { updatedAt: nowIso() });
     enqueueChange(data, 'accessLinks', id, 'update', changes || {});
     saveCRM(data);
+    auditAction('access_link_updated', { entityType: 'accessLinks', entityId: id, fields: Object.keys(changes || {}) });
     return link;
   }
 
@@ -426,12 +523,13 @@
 
   function updateUserStatus(userId, status) {
     const data = getCRM();
-    const user = data.users.find(item => item.id === userId);
+    const user = findOwnedRecord(data.users, userId, firstDealerId(data));
     if (!user) return null;
     user.status = status || 'active';
     user.updatedAt = nowIso();
     enqueueChange(data, 'users', userId, 'status_update', { status: user.status });
     saveCRM(data);
+    auditAction('user_status_updated', { entityType: 'users', entityId: userId, status: user.status });
     return user;
   }
 
@@ -460,6 +558,7 @@
     dealer.updatedAt = nowIso();
     enqueueChange(data, 'dealers', dealer.id, 'extend_trial', { trialEnd: dealer.trialEnd });
     saveCRM(data);
+    auditAction('dealer_trial_extended', { entityType: 'dealers', entityId: dealer.id, trialEnd: dealer.trialEnd });
     return dealer;
   }
 
@@ -492,7 +591,7 @@
   // --- Insight Computations ---
 
   function computeOwnerInsights() {
-    const data = getCRM();
+    const data = getScopedCRM();
     const now = Date.now();
     const oneDay = 86400000;
     
@@ -572,7 +671,7 @@
      Client Presentation events (data.presentationEvents) — never from admin
      browsing, so "hot area" always means "a client actually looked at it". */
   function computePresentationStats() {
-    const data = getCRM();
+    const data = getScopedCRM();
     const events = Array.isArray(data.presentationEvents) ? data.presentationEvents : [];
     const VIEW_TYPES = new Set(['property_viewed', 'property_selected', 'client_panel_opened']);
     const OPEN_TYPES = new Set(['map_opened', 'area_viewed', 'presentation_opened']);
@@ -604,7 +703,7 @@
   }
 
   function computeAreaInsights() {
-    const data = getCRM();
+    const data = getScopedCRM();
     const stats = computePresentationStats();
     const areas = {};
     data.areas.forEach(a => areas[a] = { interest: 0, views: 0, deals: 0, shares: 0, siteVisits: 0, inventory: 0, mapOpens: 0, sessions: 0 });
@@ -668,7 +767,7 @@
   }
 
   function computeFinanceTotals() {
-    const data = getCRM();
+    const data = getScopedCRM();
     if (window.PMFinanceEngine && typeof window.PMFinanceEngine.computeFinanceSummary === 'function') {
       const summary = window.PMFinanceEngine.computeFinanceSummary(data);
       return {
@@ -750,7 +849,7 @@
 
   function getPublishedClientMapDrawings(mapId) {
     try {
-      const data = loadCRM();
+      const data = getScopedCRM();
       const drawings = data && Array.isArray(data.mapDrawings) ? data.mapDrawings : [];
       const safeVisibility = new Set(['client-visible', 'public']);
       const safeKinds = new Set(['road', 'block', 'sectorTag']);
@@ -804,7 +903,7 @@
   }
 
   window.CRM = {
-    loadCRM, saveCRM, getCRM, resetCRMToDemo,
+    loadCRM, saveCRM, getCRM, getScopedCRM, resetCRMToDemo,
     addClient, updateClientStatus,
     addProperty, updateProperty, archiveProperty,
     addFollowup, updateFollowupStatus,

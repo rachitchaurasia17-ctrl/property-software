@@ -6,8 +6,13 @@
   const COLLECTIONS = [
     'dealers', 'users', 'accessLinks', 'staff', 'areas', 'clients', 'properties',
     'followups', 'siteVisits', 'deals', 'events', 'presentationEvents', 'reports',
-    'pins', 'mapDrawings', 'syncQueue'
+    'pins', 'mapDrawings', 'syncQueue', 'dealerSettings', 'shareLinks', 'auditLogs'
   ];
+  const DEALER_SCOPED_COLLECTIONS = new Set([
+    'users', 'accessLinks', 'staff', 'areas', 'clients', 'properties', 'followups',
+    'siteVisits', 'deals', 'events', 'presentationEvents', 'reports', 'pins',
+    'mapDrawings', 'dealerSettings', 'shareLinks', 'auditLogs'
+  ]);
 
   function nowIso() {
     return new Date().toISOString();
@@ -49,6 +54,59 @@
 
   function ensureArray(data, key) {
     if (!Array.isArray(data[key])) data[key] = [];
+  }
+
+  function readSearchParams() {
+    try {
+      return new URLSearchParams(location.search || '');
+    } catch (err) {
+      return new URLSearchParams();
+    }
+  }
+
+  function sanitizeKey(value) {
+    return String(value || '').trim().toLowerCase();
+  }
+
+  function getDealerSelection(data) {
+    const params = readSearchParams();
+    const explicitId = params.get('dealerId') || params.get('dealer');
+    const explicitSlug = params.get('dealerSlug');
+    const selected = localStorage.getItem('plotmap_dealer_id');
+    const dealers = Array.isArray(data && data.dealers) ? data.dealers : [];
+    if (explicitId) {
+      return dealers.find(item => item && item.id === explicitId) || null;
+    }
+    if (explicitSlug) {
+      const slugKey = sanitizeKey(explicitSlug);
+      return dealers.find(item => sanitizeKey(item && item.slug) === slugKey) || null;
+    }
+    if (selected) {
+      return dealers.find(item => item && item.id === selected) || null;
+    }
+    return dealers[0] || null;
+  }
+
+  function syncDealerSelection(data) {
+    const dealer = getDealerSelection(data);
+    if (!dealer || !dealer.id) return dealer;
+    try { localStorage.setItem('plotmap_dealer_id', dealer.id); } catch (err) {}
+    return dealer;
+  }
+
+  function isDealerScopedEntity(entityType) {
+    return DEALER_SCOPED_COLLECTIONS.has(entityType);
+  }
+
+  function belongsToDealer(item, dealerId) {
+    if (!dealerId || !item || typeof item !== 'object') return true;
+    if (!Object.prototype.hasOwnProperty.call(item, 'dealerId')) return true;
+    return !item.dealerId || item.dealerId === dealerId;
+  }
+
+  function scopedRecords(entityType, list, dealerId) {
+    if (!isDealerScopedEntity(entityType) || !dealerId) return Array.isArray(list) ? list : [];
+    return (Array.isArray(list) ? list : []).filter(item => belongsToDealer(item, dealerId));
   }
 
   function ensureFoundationData(input) {
@@ -134,6 +192,7 @@
 
   function getData() {
     const data = ensureFoundationData(readLocal());
+    syncDealerSelection(data);
     writeLocal(data);
     return data;
   }
@@ -142,20 +201,27 @@
     return writeLocal(ensureFoundationData(data || {}));
   }
 
-  function list(entityType) {
+  function list(entityType, options) {
     const data = getData();
-    return Array.isArray(data[entityType]) ? data[entityType] : [];
+    const rows = Array.isArray(data[entityType]) ? data[entityType] : [];
+    if (options && options.scoped) {
+      return scopedRecords(entityType, rows, (options && options.dealerId) || getCurrentDealerId(data));
+    }
+    return rows;
   }
 
-  function findById(entityType, id) {
-    return list(entityType).find(item => item && item.id === id) || null;
+  function findById(entityType, id, options) {
+    return list(entityType, options).find(item => item && item.id === id) || null;
   }
 
-  function upsert(entityType, record) {
+  function upsert(entityType, record, options) {
     const data = getData();
     ensureArray(data, entityType);
     const item = Object.assign({}, record || {});
     if (!item.id) item.id = generateId(entityType.slice(0, 3));
+    if (isDealerScopedEntity(entityType)) {
+      item.dealerId = item.dealerId || (options && options.dealerId) || getCurrentDealerId(data) || DEFAULT_DEALER_ID;
+    }
     item.updatedAt = nowIso();
     if (!item.createdAt) item.createdAt = item.updatedAt;
     const idx = data[entityType].findIndex(existing => existing.id === item.id);
@@ -165,42 +231,63 @@
     return item;
   }
 
-  function patch(entityType, id, changes) {
-    const current = findById(entityType, id);
+  function patch(entityType, id, changes, options) {
+    const current = findById(entityType, id, options);
     if (!current) return null;
-    return upsert(entityType, Object.assign({}, current, changes || {}));
+    return upsert(entityType, Object.assign({}, current, changes || {}), options);
   }
 
   function getCurrentDealer(data) {
     const source = data || getData();
-    const selected = localStorage.getItem('plotmap_dealer_id');
-    return source.dealers.find(d => d.id === selected) || source.dealers[0] || (selected ? { id: selected } : null);
+    return syncDealerSelection(source) || null;
+  }
+
+  function getCurrentDealerId(data) {
+    const dealer = getCurrentDealer(data);
+    return dealer && dealer.id ? dealer.id : null;
   }
 
   function getCurrentUser(data) {
     const source = data || getData();
     const selected = localStorage.getItem('plotmap_user_id');
     const role = localStorage.getItem('plotmap_admin_role');
-    return source.users.find(u => u.id === selected) ||
-      source.users.find(u => role === 'dealer' ? u.role === 'owner' : u.role === role) ||
+    const dealerId = getCurrentDealerId(source);
+    return source.users.find(u => u.id === selected && belongsToDealer(u, dealerId)) ||
+      source.users.find(u => belongsToDealer(u, dealerId) && (role === 'dealer' ? u.role === 'owner' : u.role === role)) ||
+      source.users.find(u => belongsToDealer(u, dealerId)) ||
       source.users[0] ||
       null;
+  }
+
+  function getScopedData(input, dealerId) {
+    const source = ensureFoundationData(clone(input || getData()));
+    const activeDealerId = dealerId || getCurrentDealerId(source);
+    COLLECTIONS.forEach(key => {
+      if (!isDealerScopedEntity(key)) return;
+      source[key] = scopedRecords(key, source[key], activeDealerId);
+    });
+    return source;
   }
 
   window.PMDataAdapter = {
     STORE_KEY,
     DEFAULT_DEALER_ID,
     DEFAULT_USER_ID,
+    DEALER_SCOPED_COLLECTIONS,
     nowIso,
     generateId,
     ensureFoundationData,
     getData,
+    getScopedData,
     saveData,
     list,
     findById,
     upsert,
     patch,
     getCurrentDealer,
+    getCurrentDealerId,
+    isDealerScopedEntity,
+    belongsToDealer,
     getCurrentUser
   };
 })();

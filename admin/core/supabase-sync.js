@@ -15,7 +15,8 @@
   const CLIENT_SAFE_PROPERTIES_VIEW = 'client_safe_properties';
   const CRM_ENTITY_TYPES = new Set([
     'clients', 'properties', 'deals', 'followups', 'siteVisits',
-    'events', 'staff', 'dealers', 'users', 'accessLinks', 'reports', 'pins', 'mapDrawings', 'overlayMeta'
+    'events', 'staff', 'dealers', 'users', 'accessLinks', 'reports', 'pins', 'mapDrawings',
+    'overlayMeta', 'dealerSettings', 'shareLinks', 'auditLogs'
   ]);
 
   // tables confirmed missing — cached across pages for 10 min so every
@@ -38,6 +39,31 @@
 
   function isAdminRoute() {
     return /^\/admin\//i.test(location.pathname || '');
+  }
+
+  function resolveCurrentDealerId() {
+    try {
+      const params = new URLSearchParams(location.search || '');
+      const explicit = params.get('dealerId') || params.get('dealer');
+      if (explicit) {
+        localStorage.setItem('plotmap_dealer_id', explicit);
+        return explicit;
+      }
+    } catch (err) {}
+    if (window.PMDataAdapter && typeof window.PMDataAdapter.getCurrentDealerId === 'function') {
+      const id = window.PMDataAdapter.getCurrentDealerId();
+      if (id) return id;
+    }
+    try {
+      const stored = localStorage.getItem('plotmap_dealer_id');
+      if (stored) return stored;
+    } catch (err) {}
+    if (window.CRM && typeof window.CRM.getScopedCRM === 'function') {
+      const data = window.CRM.getScopedCRM();
+      const dealer = data && Array.isArray(data.dealers) ? data.dealers[0] : null;
+      if (dealer && dealer.id) return dealer.id;
+    }
+    return 'dealer-demo';
   }
 
   async function authToken() {
@@ -85,11 +111,12 @@
 
   function rowFor(item) {
     const p = item.payload || {};
+    const dealerId = p.dealerId || item.dealerId || resolveCurrentDealerId();
     if (item.entityType === 'presentationEvents') {
       const metadata = Object.assign({}, p.metadata || {}, { source: 'client_presentation' });
       return {
         id: p.id || item.entityId,
-        dealer_id: p.dealerId || item.dealerId || 'dealer-demo',
+        dealer_id: dealerId,
         session_id: p.sessionId || '',
         event_type: p.eventType || 'unknown',
         area: p.area || null,
@@ -104,7 +131,7 @@
     if (item.entityType === 'overlays') {
       return {
         id: p.id || item.entityId,
-        dealer_id: p.dealerId || item.dealerId || 'dealer-demo',
+        dealer_id: dealerId,
         map_id: p.mapId || '',
         kind: p.kind || 'block',
         payload: p,
@@ -116,7 +143,7 @@
     }
     return {
       id: item.entityId,
-      dealer_id: item.dealerId || 'dealer-demo',
+      dealer_id: dealerId,
       entity_type: item.entityType,
       payload: p,
       deleted: item.actionType === 'delete' || item.actionType === 'archive' ? !!p.deleted : false,
@@ -130,9 +157,11 @@
     try {
       const pending = window.PMSyncQueue.getPendingSyncActions() || [];
       if (!pending.length) return;
+      const activeDealerId = resolveCurrentDealerId();
       // group by target table for batched upserts
       const groups = {};
       pending.forEach(item => {
+        if (activeDealerId && item && item.dealerId && item.dealerId !== activeDealerId) return;
         const table = tableFor(item.entityType);
         if (!table || unavailable.has(table)) return;
         (groups[table] = groups[table] || []).push(item);
@@ -221,11 +250,12 @@
   async function pullCrmRecords() {
     if (!window.CRM) return;
     const since = pullStamps().crm_records || '1970-01-01T00:00:00Z';
+    const dealerId = resolveCurrentDealerId();
     const table = isAdminRoute() ? 'crm_records' : CLIENT_SAFE_PROPERTIES_VIEW;
     if (unavailable.has(table)) return;
     const path = isAdminRoute()
-      ? 'crm_records?select=*&updated_at=gt.' + encodeURIComponent(since) + '&order=updated_at.asc&limit=500'
-      : CLIENT_SAFE_PROPERTIES_VIEW + '?select=*&updated_at=gt.' + encodeURIComponent(since) + '&order=updated_at.asc&limit=500';
+      ? 'crm_records?select=*&dealer_id=eq.' + encodeURIComponent(dealerId) + '&updated_at=gt.' + encodeURIComponent(since) + '&order=updated_at.asc&limit=500'
+      : CLIENT_SAFE_PROPERTIES_VIEW + '?select=*&dealer_id=eq.' + encodeURIComponent(dealerId) + '&updated_at=gt.' + encodeURIComponent(since) + '&order=updated_at.asc&limit=500';
     const result = await rest(path, { method: 'GET' });
     if (result.missing || result.forbidden || !result.data || !result.data.length) return;
     const data = window.CRM.getCRM();
@@ -268,7 +298,8 @@
   async function pullPresentationEvents() {
     if (unavailable.has('presentation_events') || !window.CRM || !isAdminRoute()) return;
     const since = pullStamps().presentation_events || '1970-01-01T00:00:00Z';
-    const result = await rest('presentation_events?select=*&created_at=gt.' + encodeURIComponent(since) + '&order=created_at.asc&limit=1000', { method: 'GET' });
+    const dealerId = resolveCurrentDealerId();
+    const result = await rest('presentation_events?select=*&dealer_id=eq.' + encodeURIComponent(dealerId) + '&created_at=gt.' + encodeURIComponent(since) + '&order=created_at.asc&limit=1000', { method: 'GET' });
     if (result.missing || result.forbidden || !result.data || !result.data.length) return;
     const data = window.CRM.getCRM();
     if (!Array.isArray(data.presentationEvents)) data.presentationEvents = [];
@@ -298,7 +329,8 @@
   async function pullOverlays() {
     if (unavailable.has('map_overlays') || !window.PMOverlayStore) return;
     const since = pullStamps().map_overlays || '1970-01-01T00:00:00Z';
-    const result = await rest('map_overlays?select=*&updated_at=gt.' + encodeURIComponent(since) + '&order=updated_at.asc&limit=500', { method: 'GET' });
+    const dealerId = resolveCurrentDealerId();
+    const result = await rest('map_overlays?select=*&dealer_id=eq.' + encodeURIComponent(dealerId) + '&updated_at=gt.' + encodeURIComponent(since) + '&order=updated_at.asc&limit=500', { method: 'GET' });
     if (result.missing || result.forbidden || !result.data || !result.data.length) return;
     let latest = since;
     const rows = result.data.map(row => {

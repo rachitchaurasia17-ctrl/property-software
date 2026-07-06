@@ -12,6 +12,13 @@
 
   function nowIso() { return new Date().toISOString(); }
   function generateId() { return 'ovl-' + Math.random().toString(36).slice(2, 11); }
+  function currentDealerId() {
+    if (window.PMDataAdapter && typeof window.PMDataAdapter.getCurrentDealerId === 'function') {
+      return window.PMDataAdapter.getCurrentDealerId() || 'dealer-demo';
+    }
+    try { return localStorage.getItem('plotmap_dealer_id') || 'dealer-demo'; } catch (e) {}
+    return 'dealer-demo';
+  }
 
   function load() {
     try {
@@ -34,15 +41,23 @@
   function enqueue(item) {
     if (window.PMSyncQueue) {
       window.PMSyncQueue.enqueueSyncAction({
+        dealerId: item.dealerId || currentDealerId(),
         entityType: 'overlays', entityId: item.id, actionType: item.deleted ? 'delete' : 'upsert', payload: item
       });
     }
     if (window.PMSupaSync) window.PMSupaSync.requestDrain();
   }
 
+  function audit(actionType, meta) {
+    if (window.PMFoundation && typeof window.PMFoundation.audit === 'function') {
+      try { window.PMFoundation.audit(actionType, meta || {}); } catch (e) {}
+    }
+  }
+
   function enqueueSeedOverrides(mapId, overrides) {
     if (window.PMSyncQueue) {
       window.PMSyncQueue.enqueueSyncAction({
+        dealerId: currentDealerId(),
         entityType: 'overlayMeta', entityId: 'ovlmeta-' + mapId, actionType: 'upsert',
         payload: { mapId, overrides }
       });
@@ -116,7 +131,8 @@
   }
 
   function customItems(mapId) {
-    return load().items.filter(it => !it.deleted && (!mapId || it.mapId === mapId));
+    const dealerId = currentDealerId();
+    return load().items.filter(it => !it.deleted && (!it.dealerId || it.dealerId === dealerId) && (!mapId || it.mapId === mapId));
   }
 
   function list(mapId) {
@@ -131,17 +147,21 @@
     const store = load();
     const now = nowIso();
     let item = store.items.find(it => it.id === input.id);
-    if (item) Object.assign(item, input, { updatedAt: now });
+    if (item) Object.assign(item, input, { dealerId: item.dealerId || currentDealerId(), updatedAt: now });
     else {
       item = Object.assign({
         id: generateId(), kind: 'block', name: '', color: KIND_COLOR[input.kind] || 'gold',
-        status: 'draft', clientVisible: true, deleted: false, createdAt: now
+        status: 'draft', clientVisible: true, deleted: false, createdAt: now,
+        dealerId: currentDealerId()
       }, input, { updatedAt: now });
       store.items.push(item);
     }
     if (Array.isArray(item.pts) && !item.at) item.d = pathFromPts(item.kind, item.kind === 'plot' ? rectPts(item.pts) : item.pts);
     save(store);
     enqueue(item);
+    if (input && (Object.prototype.hasOwnProperty.call(input, 'status') || Object.prototype.hasOwnProperty.call(input, 'clientVisible') || Object.prototype.hasOwnProperty.call(input, 'propertyId'))) {
+      audit('overlay_updated', { entityType: 'overlays', entityId: item.id, kind: item.kind, mapId: item.mapId, status: item.status, clientVisible: item.clientVisible !== false, propertyId: item.propertyId || null });
+    }
     return item;
   }
 
@@ -160,6 +180,7 @@
     item.updatedAt = nowIso();
     save(store);
     enqueue(item);
+    audit('overlay_deleted', { entityType: 'overlays', entityId: item.id, kind: item.kind, mapId: item.mapId });
     return item;
   }
 
