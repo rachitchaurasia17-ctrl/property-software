@@ -395,6 +395,12 @@
 <script>
   let nextTarget = '';
 
+  // Only allow same-origin path redirects ("/admin/...") — never
+  // absolute URLs or protocol-relative ("//host") values.
+  function safeNext(value) {
+    return /^\/(?!\/)/.test(String(value || '')) ? value : '';
+  }
+
   function openAuth() {
     document.getElementById('auth-shell').style.display = 'block';
     document.getElementById('auth-email').focus();
@@ -409,7 +415,7 @@
 
   document.addEventListener('DOMContentLoaded', async () => {
     const params = new URLSearchParams(window.location.search);
-    nextTarget = params.get('next') || '';
+    nextTarget = safeNext(params.get('next'));
     if (params.get('reason') === 'role_not_allowed') {
       document.getElementById('auth-status').textContent = 'Your account does not have access to that workspace.';
       openAuth();

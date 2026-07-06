@@ -68,6 +68,9 @@
     if (res.status === 401 || res.status === 403) {
       return { forbidden: true, status: res.status };
     }
+    if (res.status === 409) {
+      return { conflict: true };
+    }
     if (!res.ok) throw new Error('supabase ' + res.status + ' on ' + path.split('?')[0]);
     if (res.status === 204) return { ok: true };
     return { ok: true, data: await res.json().catch(() => null) };
@@ -142,12 +145,41 @@
         const rows = [...byId.values()].map(rowFor);
         try {
           items.forEach(it => window.PMSyncQueue.markSyncActionSyncing(it.id));
+          // presentation_events is append-only for anon (RLS allows INSERT
+          // only, no SELECT/UPDATE) — any ON CONFLICT resolution is rejected
+          // by RLS, so it must be a plain insert.
+          const appendOnly = table === 'presentation_events';
           const result = await rest(table, {
             method: 'POST',
             body: JSON.stringify(rows),
-            prefer: 'resolution=merge-duplicates,return=minimal'
+            prefer: appendOnly
+              ? 'return=minimal'
+              : 'resolution=merge-duplicates,return=minimal'
           });
-          if (result.missing || result.forbidden) {
+          if (result.conflict && appendOnly) {
+            // A duplicate id (response lost on a prior attempt) aborts the
+            // whole batch — replay per row so fresh rows still land; a
+            // per-row 409 means that row is already there, i.e. synced.
+            const rowOutcome = new Map();
+            for (const [rowId, it] of byId) {
+              try {
+                const single = await rest(table, {
+                  method: 'POST',
+                  body: JSON.stringify([rowFor(it)]),
+                  prefer: 'return=minimal'
+                });
+                rowOutcome.set(rowId, !!(single.ok || single.conflict));
+              } catch (err) {
+                rowOutcome.set(rowId, false);
+              }
+            }
+            items.forEach(it => {
+              if (rowOutcome.get(rowFor(it).id)) window.PMSyncQueue.markSyncActionSynced(it.id);
+              else window.PMSyncQueue.markSyncActionRetrying(it.id);
+            });
+            continue;
+          }
+          if (result.missing || result.forbidden || result.conflict) {
             items.forEach(it => window.PMSyncQueue.markSyncActionRetrying(it.id));
             continue;
           }
