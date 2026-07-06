@@ -217,6 +217,7 @@ input::placeholder{color:#B9AE94;}
 (function () {
   'use strict';
   const Store = window.PMOverlayStore;
+  const QUERY = new URLSearchParams(window.location.search || '');
   const COLORS = { gold: '#A87F1F', blue: '#1E5FA8', emerald: '#157A56', bronze: '#B06A2C', ink: '#23201A' };
   const GROUPS = {
     A: { name: 'Connectivity', desc: 'Main roads & links', color: '#1E5FA8' },
@@ -239,11 +240,16 @@ input::placeholder{color:#B9AE94;}
     mGroup: null, mSel: null, mpCat: 'Roads',
     tool: 'road', pts: [], active: null, secStep: 'mark',
     publish: null, pubDone: false, confirm: null, picker: null,
-    toastMsg: '', toastTimer: null
+    toastMsg: '', toastTimer: null,
+    pendingPropertyId: null
   };
 
   /* ================= helpers ================= */
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  function propertyById(id) {
+    const crm = window.CRM ? window.CRM.getCRM() : null;
+    return crm && Array.isArray(crm.properties) ? crm.properties.find(p => p.id === id) || null : null;
+  }
   function rgba(hex, a) { const n = parseInt(hex.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; }
   function lighten(hex, amt) { const n = parseInt(hex.slice(1), 16); let r = n >> 16, g = (n >> 8) & 255, b = n & 255; r = Math.round(r + (255 - r) * amt); g = Math.round(g + (255 - g) * amt); b = Math.round(b + (255 - b) * amt); return 'rgb(' + r + ',' + g + ',' + b + ')'; }
   function darken(hex, amt) { const n = parseInt(hex.slice(1), 16); const r = n >> 16, g = (n >> 8) & 255, b = n & 255; return 'rgb(' + Math.round(r * (1 - amt)) + ',' + Math.round(g * (1 - amt)) + ',' + Math.round(b * (1 - amt)) + ')'; }
@@ -692,12 +698,26 @@ input::placeholder{color:#B9AE94;}
 
   function makeItem(kind, extra) {
     const map = mapById(S.sectorMapId);
+    const pendingProp = kind === 'pin' && S.pendingPropertyId ? propertyById(S.pendingPropertyId) : null;
     const item = Store.upsert(Object.assign({
       mapId: S.sectorMapId, kind, name: '',
       mode: sectorMode(map),
       color: kind === 'road' ? 'blue' : kind === 'label' ? 'ink' : 'gold',
       status: 'draft', clientVisible: true
-    }, extra));
+    }, pendingProp ? {
+      propertyId: pendingProp.id,
+      name: pendingProp.title || pendingProp.name || pendingProp.propertyCode || pendingProp.id
+    } : {}, extra));
+    if (pendingProp) {
+      S.pendingPropertyId = null;
+      toast('Property linked. Review the pin details, then publish when ready.');
+      try {
+        const clean = new URL(window.location.href);
+        clean.searchParams.delete('property');
+        clean.searchParams.delete('tool');
+        window.history.replaceState({}, '', clean.toString());
+      } catch (e) {}
+    }
     S.pts = []; S.active = item.id; S.tool = 'select';
     render();
     const inp = document.getElementById('inspName');
@@ -922,7 +942,39 @@ input::placeholder{color:#B9AE94;}
   document.getElementById('tabPresent').onclick = () => { window.location.href = '/app/plotmap/'; };
   document.getElementById('tabStudio').onclick = () => { S.view = 'hub'; render(); };
   if (Store) Store.subscribe(() => { /* remote updates: refresh quietly when idle */ });
+  (function applyQueryBootstrap() {
+    const mapId = QUERY.get('map');
+    const tool = QUERY.get('tool');
+    const propertyId = QUERY.get('property');
+    const chosenMap = mapId ? mapById(mapId) : null;
+    if (chosenMap && chosenMap.type === 'sector') {
+      S.sectorMapId = chosenMap.id;
+      S.view = 'sector';
+      S.tool = tool === 'pin' ? 'pin' : 'select';
+    } else if (chosenMap && chosenMap.type === 'masterplan') {
+      S.mapId = chosenMap.id;
+      S.view = 'masterplan';
+    }
+    if (propertyId && propertyById(propertyId)) {
+      S.pendingPropertyId = propertyId;
+      if (S.view !== 'sector') {
+        const prop = propertyById(propertyId);
+        const sectorMatch = prop && registry().find(m => m.type === 'sector' && (m.id === prop.sectorMapId || String(m.area || '').toLowerCase() === String(prop.area || '').toLowerCase()));
+        if (sectorMatch) {
+          S.sectorMapId = sectorMatch.id;
+          S.view = 'sector';
+          S.tool = 'pin';
+        }
+      }
+    }
+  })();
   render();
+  if (S.pendingPropertyId) {
+    const pendingProp = propertyById(S.pendingPropertyId);
+    if (pendingProp) {
+      setTimeout(() => toast('Tap the map to place ' + (pendingProp.title || 'this property') + '.'), 120);
+    }
+  }
 })();
 </script>
 </body>

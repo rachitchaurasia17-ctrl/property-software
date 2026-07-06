@@ -161,6 +161,9 @@
       status: 'pending',
       retryCount: 0
     });
+    if (window.PMSupaSync && typeof window.PMSupaSync.requestDrain === 'function') {
+      window.PMSupaSync.requestDrain();
+    }
   }
 
   function loadCRM() {
@@ -231,6 +234,17 @@
     saveCRM(data);
     logEvent('property_added', { propertyId: newProp.id }, null);
     return newProp;
+  }
+
+  function updateProperty(propertyId, changes) {
+    const data = getCRM();
+    const prop = data.properties.find(p => p.id === propertyId);
+    if (!prop) return null;
+    Object.assign(prop, changes || {}, { updatedAt: nowIso(), syncStatus: 'pending' });
+    enqueueChange(data, 'properties', propertyId, 'update', prop);
+    saveCRM(data);
+    logEvent('property_updated', { propertyId }, null);
+    return prop;
   }
 
   function archiveProperty(propertyId) {
@@ -792,7 +806,7 @@
   window.CRM = {
     loadCRM, saveCRM, getCRM, resetCRMToDemo,
     addClient, updateClientStatus,
-    addProperty, archiveProperty,
+    addProperty, updateProperty, archiveProperty,
     addFollowup, updateFollowupStatus,
     addSiteVisit, updateSiteVisitStatus,
     addDeal,

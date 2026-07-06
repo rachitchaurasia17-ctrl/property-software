@@ -15,6 +15,7 @@
 <script src="/admin/core/report-engine.js"></script>
 <script src="/admin/core/event-tracker.js"></script>
 <script src="/admin/core/access-control.js"></script>
+<script src="/admin/core/overlay-store.js"></script>
 <script src="/admin/crm-store.js"></script>
 <script src="/admin/core/supabase-sync.js"></script>
 <script src="/admin/core/nav.js"></script>
@@ -84,6 +85,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const crm = window.CRM;
   const data = crm.getCRM();
   const props = data.properties || [];
+  const pinForProperty = (id) => {
+    if (!window.PMOverlayStore) return null;
+    return window.PMOverlayStore.customItems().find(it => it && it.kind === 'pin' && it.propertyId === id && !it.deleted) || null;
+  };
 
   const available = props.filter(p => p.internalStatus === 'Available');
   const onHold = props.filter(p => p.internalStatus === 'On Hold');
@@ -135,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const issues = [];
   props.forEach(p => {
     if (!p.photos || p.photos.length === 0) issues.push({ title: p.title || p.name || 'Unnamed', issue: 'No photos', icon: '📷' });
-    if (!p.mapPinId) issues.push({ title: p.title || p.name || 'Unnamed', issue: 'Map pin missing', icon: '📌' });
+    if (!pinForProperty(p.id)) issues.push({ title: p.title || p.name || 'Unnamed', issue: 'Map pin missing', icon: '📌' });
   });
   if (issues.length === 0) {
     issuesEl.innerHTML = '<div class="pm-empty"><div class="title">All good</div><div class="desc">No inventory issues found.</div></div>';

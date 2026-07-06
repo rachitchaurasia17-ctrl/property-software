@@ -114,7 +114,7 @@
   const supabaseUrl = (window.env && window.env.VITE_SUPABASE_URL) || 'https://czmkfmkmgqlienmdihul.supabase.co';
   const supabaseKey = (window.env && window.env.VITE_SUPABASE_ANON_KEY) || 'sb_publishable_DGqcs0JaDVgzImUGGgg_FQ_Q_SkgnhX';
   if (!supabaseUrl || !supabaseKey) {
-    console.warn('PlotMap Auth [Dev Warning]: Supabase URL or Anon Key is missing. Check your environment configuration (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY).');
+    console.warn('PlotMap Auth [Dev Warning]: Supabase URL or Anon Key is not configured. Check your environment configuration (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY).');
   }
   const supabase = window.supabase ? window.supabase.createClient(supabaseUrl, supabaseKey) : null;
 
@@ -129,6 +129,14 @@
     secQ: '', secArea: 'all',
     lightbox: null, present: false, drawerOpen: false
   };
+  const bootLink = (() => {
+    try {
+      const params = new URLSearchParams(window.location.search || '');
+      return { propertyId: params.get('property') || null, view: params.get('view') || 'detail' };
+    } catch (e) {
+      return { propertyId: null, view: 'detail' };
+    }
+  })();
 
   /* --- Lightweight CRM Tracking --- */
   let presentationOpenTracked = false;
@@ -205,7 +213,10 @@
   const areaMatchesActive = (itemArea) => {
     const m = activeMasterMap();
     if (!m) return true;
-    return String(itemArea || '').toLowerCase() === String(m.area || '').toLowerCase();
+    const itemKey = String(itemArea || '').trim().toLowerCase();
+    const mapKey = String(m.area || '').trim().toLowerCase();
+    if (!itemKey || !mapKey) return itemKey === mapKey;
+    return itemKey === mapKey || mapKey.includes(itemKey) || itemKey.includes(mapKey);
   };
   const activeCategories = () => PM.categoriesFor(DS).filter(c => !HIDDEN_CATEGORY_IDS.has(c.id));
   const catById = (id) => activeCategories().find(c => c.id === id) || PM.categoryById(id);
@@ -224,19 +235,24 @@
     try {
       if (!window.CRM || typeof window.CRM.getCRM !== 'function') return [];
       const data = window.CRM.getCRM();
+      const blockLookup = new Map(mapBlocks().map(b => [String(b.name || '').toLowerCase(), b.id]));
       return (data.properties || [])
-        .filter(p => p && p.id && !/archived|internal|hold|sold/i.test(p.internalStatus || '') && areaMatchesActive(p.area))
+        .filter(p => p && p.id && p.clientVisible !== false && !/archived|internal|hold|sold|hidden/i.test(p.internalStatus || '') && areaMatchesActive(p.area))
         .map(p => ({
           id: p.id,
+          title: p.title || p.name || '',
           size: p.plotSize || p.size || 'Plot',
           block: p.block || p.sector || '',
           plotNumber: p.plotNumber || p.propertyCode || '—',
           area: p.area || '',
           plotType: p.propertyType || p.type || 'Plot',
           roadFacing: p.facing || p.roadFacing || '',
+          description: p.description || '',
+          photos: Array.isArray(p.photos) ? p.photos.filter(src => /^https?:\/\//i.test(String(src || ''))).slice(0, 8) : [],
           near: [],
           availability: 'Available',
-          blockId: null,
+          blockId: blockLookup.get(String(p.block || p.sector || '').toLowerCase()) || null,
+          masterMapId: p.masterMapId || null,
           sectorMapId: p.sectorMapId || null,
           fromCRM: true
         }));
@@ -245,6 +261,37 @@
   const allClientProperties = () => mapProperties().concat(crmClientProperties());
   const propById = (id) => allClientProperties().find(p => p.id === id);
   const propsInBlock = (blockId) => mapProperties().filter(p => p.blockId === blockId);
+  const propertyTitle = (p) => {
+    if (!p) return '';
+    return p.title || (p.plotNumber ? `Plot ${p.plotNumber}` : '') || p.name || 'Property';
+  };
+  const propertyGallery = (p, limit) => {
+    if (p && Array.isArray(p.photos) && p.photos.length) {
+      return p.photos.slice(0, limit || 8).map(src => ({ src, grad: PM.grads.property[hash((p.id || src)) % PM.grads.property.length] }));
+    }
+    return photosFor('property', (p && p.id) || 'x', limit || 4);
+  };
+  const areaIdForName = (value) => {
+    const key = String(value || '').trim().toLowerCase();
+    if (!key) return null;
+    const match = PM.areas.find(a => [a.id, a.name, a.focusArea].some(v => {
+      const areaKey = String(v || '').trim().toLowerCase();
+      return areaKey === key || areaKey.includes(key) || key.includes(areaKey);
+    }));
+    return match ? match.id : null;
+  };
+  const safeCrmPropertyById = (id) => {
+    try {
+      if (!window.CRM || typeof window.CRM.getCRM !== 'function') return null;
+      return (window.CRM.getCRM().properties || []).find(p =>
+        p && p.id === id &&
+        p.clientVisible !== false &&
+        !/archived|internal|hold|sold|hidden/i.test(p.internalStatus || '')
+      ) || null;
+    } catch (e) {
+      return null;
+    }
+  };
 
   /* --- CRM Map Drawings --- */
   let CRM_DRAWINGS = [];
@@ -1289,29 +1336,38 @@
   function cardHTML(p) {
     const g = PM.grads.property[hash(p.id) % PM.grads.property.length]; const near = p.near.map(n => driverName(n))[0];
     const sectorAction = hasSectorMap(p) ? `<button class="btn-primary" style="flex:1;height:48px;font-size:14px" data-sector="${p.id}">View on Sector Map</button>` : '';
+    const title = p.title ? `<div style="font-size:18px;font-weight:760;color:#1F1B15;line-height:1.15;margin-top:10px">${esc(p.title)}</div>` : '';
+    const desc = p.description ? `<div style="font-size:13px;color:#6B6456;font-weight:560;line-height:1.45;margin-top:8px">${esc(p.description)}</div>` : '';
+    const hero = Array.isArray(p.photos) && p.photos[0]
+      ? `<img src="${esc(p.photos[0])}" alt="${esc(p.title || ('Plot ' + p.plotNumber))}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">`
+      : `<span class="ph-fill" style="background:${g};position:absolute;inset:0"></span><span class="ph-tex" style="position:absolute;inset:0"></span><span class="ph-cam"></span><span class="ph-soon" style="position:absolute;left:0;right:0;bottom:13px;text-align:center;color:rgba(255,255,255,.8);font-size:11px;font-weight:650">Photo coming soon</span>`;
     return `<div class="pcard">
-      <div class="ph-wrap" data-details-prop="${p.id}"><span class="ph-fill" style="background:${g};position:absolute;inset:0"></span><span class="ph-tex" style="position:absolute;inset:0"></span><span class="ph-cam"></span><span class="ph-soon" style="position:absolute;left:0;right:0;bottom:13px;text-align:center;color:rgba(255,255,255,.8);font-size:11px;font-weight:650">Photo coming soon</span>
+      <div class="ph-wrap" data-details-prop="${p.id}">${hero}
         <span class="av-badge"><span style="width:7px;height:7px;border-radius:50%;background:#1C8A57"></span>Available</span>${near ? `<span class="near-badge">◆ ${esc(near)}</span>` : ''}</div>
       <div class="cbody"><div class="size-xl">${esc(p.size)}</div>
+        ${title}
         <div style="font-size:16px;font-weight:700;color:#2E2A22;margin-top:9px">${esc(p.block)} · Plot ${esc(p.plotNumber)}</div>
         <div style="font-size:13.5px;color:#7C7565;font-weight:580;margin-top:5px">${esc(p.area)} · ${esc(p.plotType)} · ${esc(p.roadFacing)}</div>
+        ${desc}
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:11px">${p.near.map(n => `<span class="near-mini">◆ ${esc(driverName(n))}</span>`).join('')}</div>
         <div style="display:flex;gap:9px;margin-top:15px">${sectorAction}<button class="btn-ghost" style="padding:0 16px;height:48px;font-size:14px" data-details-prop="${p.id}">Details</button></div></div></div>`;
   }
   function detailHTML() {
     const p = propById(state.selectedId); if (!p) return browseHTML();
-    const ph = photosFor('property', p.id, 4);
+    const ph = propertyGallery(p, 8);
     const meta = [['Plot type', p.plotType], ['Road facing', p.roadFacing], ['Block / pocket', p.block], ['Sector / area', p.area], ['Plot number', p.plotNumber], ['Availability', p.availability]];
     const sectorAction = hasSectorMap(p) ? `<button class="btn-primary" style="flex:1;height:56px;font-size:16px" data-sector="${p.id}">View on Sector Map</button>` : '';
     return `<div class="full-in" style="max-width:1040px;padding-top:0;animation:riseIn .22s ease">
       <div class="detail-head"><button class="backlink" id="backBrowse" style="font-size:14px;padding:8px 0">‹ Back to properties</button></div>
       <div style="display:grid;grid-template-columns:1.12fr 1fr;gap:30px;margin-top:8px;align-items:start">
-        <div>${photo(ph[0].grad, 332, `data-lb="0"`)}<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px">${ph.slice(1, 4).map((x, i) => photo(x.grad, 84, `data-lb="${i + 1}"`)).join('')}</div></div>
+        <div>${lightboxPhoto(ph[0], 332, 0)}<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px">${ph.slice(1, 4).map((x, i) => lightboxPhoto(x, 84, i + 1)).join('')}</div></div>
         <div>
           <div class="avail-chip"><span style="width:7px;height:7px;border-radius:50%;background:#1C8A57"></span>Available</div>
+          ${p.title ? `<div style="font-size:18px;font-weight:760;color:#6B6456;letter-spacing:.02em;text-transform:uppercase;margin-top:14px">${esc(p.title)}</div>` : ''}
           <div style="font-size:52px;font-weight:800;letter-spacing:-2px;line-height:.96;margin-top:14px">${esc(p.size)}</div>
           <div style="font-size:21px;font-weight:730;letter-spacing:-.5px;color:#2E2A22;margin-top:8px">${esc(p.block)} · Plot ${esc(p.plotNumber)}</div>
           <div class="meta-box">${meta.map(([k, v]) => `<div class="meta-row"><span class="k">${k}</span><span class="v">${esc(v)}</span></div>`).join('')}</div>
+          ${p.description ? `<div style="font-size:14px;color:#5A5447;line-height:1.6;margin-top:16px">${esc(p.description)}</div>` : ''}
           <div class="rel-h">Nearby landmarks &amp; value drivers</div>
           <div style="display:flex;flex-wrap:wrap;gap:8px">${p.near.map(n => `<span class="driver-chip">◆ ${esc(driverName(n))}</span>`).join('')}</div>
           <div style="display:flex;gap:11px;margin-top:24px">${sectorAction}<button class="btn-ghost" style="flex:1;height:56px;font-size:15px;color:#16356A" data-areacontext="${p.id}">Show Area Context</button></div>
@@ -1608,6 +1664,121 @@
     else { photos = photosFor('property', state.selectedId || 'x', 4); name = ''; }
     state.lightbox = { photos, index: idx || 0, name: name || '' }; render();
   }
+  /* Property flow overrides: real CRM photos, safe deep-links, and defensive
+     sector proof rendering for dealer-added properties without legacy coords. */
+  function lightboxHTML() {
+    const lb = state.lightbox; const ph = lb.photos[lb.index];
+    const media = ph && ph.src
+      ? `<img src="${esc(ph.src)}" alt="${esc(lb.name || 'Property photo')}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">`
+      : `<span class="ph-fill" style="background:${ph.grad};position:absolute;inset:0"></span><span class="ph-tex" style="position:absolute;inset:0"></span><span class="ph-cam" style="position:absolute;top:46%;left:50%"></span>`;
+    return `<div class="lightbox" id="lbScrim"><div style="width:100%;max-width:760px" id="lbInner">
+      <div class="lb-img">${media}
+        <div class="lb-cap">${esc(lb.name)}${ph && ph.src ? '' : ' Â· Photo coming soon'}</div>
+        ${lb.photos.length > 1 ? '<button class="lb-nav" style="left:14px" id="lbPrev">â€¹</button><button class="lb-nav" style="right:14px" id="lbNext">â€º</button>' : ''}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px"><span style="color:rgba(255,255,255,.6);font-size:13px;font-weight:600">${lb.index + 1} / ${lb.photos.length}</span>
+        <button class="lb-close" id="lbClose">Close Ã—</button></div></div></div>`;
+  }
+  function lightboxPhoto(photo, height, index) {
+    const hasSrc = photo && photo.src;
+    const body = hasSrc
+      ? `<img src="${esc(photo.src)}" alt="Property photo" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">`
+      : `<span class="ph-fill" style="background:${photo.grad};position:absolute;inset:0"></span><span class="ph-tex" style="position:absolute;inset:0"></span><span class="ph-cam"></span>${index === 0 ? '<span class="ph-soon" style="position:absolute;left:0;right:0;bottom:13px;text-align:center;color:rgba(255,255,255,.8);font-size:11px;font-weight:650">Photo coming soon</span>' : ''}`;
+    return `<button class="photo" type="button" data-lb="${index}" style="height:${height}px">${body}</button>`;
+  }
+  function previewHTML() {
+    const p = propById(state.previewId); if (!p) return '';
+    const g = PM.grads.property[hash(p.id) % PM.grads.property.length];
+    const hero = Array.isArray(p.photos) && p.photos[0]
+      ? `<img src="${esc(p.photos[0])}" alt="${esc(propertyTitle(p))}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">`
+      : `<span class="ph-fill" style="background:${g};position:absolute;inset:0"></span><span class="ph-tex" style="position:absolute;inset:0"></span><span class="ph-soon" style="position:absolute;left:0;right:0;bottom:10px;text-align:center;color:rgba(255,255,255,.8);font-size:11px;font-weight:650">Photo coming soon</span>`;
+    const sectorAction = hasSectorMap(p) ? `<button class="btn-ghost" style="padding:0 14px;height:44px;font-size:13px" data-sector="${p.id}">On Sector Map</button>` : '';
+    return `<div class="preview">
+      <div class="pv-ph">${hero}</div>
+      <div class="pbody">
+        <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:22px;font-weight:800;letter-spacing:-.5px">${esc(p.size)}</span><span class="tagchip">Plot ${esc(p.plotNumber)}</span></div>
+        <div style="font-size:13px;color:#7C7565;font-weight:600;margin-top:6px">${esc(p.block)} Â· ${esc(p.plotType)} Â· ${esc(p.roadFacing)}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">${p.near.map(n => `<span class="near-mini">â—† ${esc(driverName(n))}</span>`).join('')}</div>
+        <div style="display:flex;gap:8px;margin-top:14px"><button class="btn-primary" style="flex:1;height:44px;font-size:13.5px" data-details-prop="${p.id}">View Details</button>${sectorAction}</div>
+        <button class="linklike" id="closePreview">Close</button></div></div>`;
+  }
+  function renderProof() {
+    const g = layer() && layer().querySelector('#proofG'); if (!g) return;
+    const p = propById(state.selectedId);
+    if (!p || !Array.isArray(p.plotAt) || p.plotAt.length < 2) { g.innerHTML = ''; requestAnimationFrame(fit); return; }
+    const x = p.plotAt[0] / 100 * LW, y = p.plotAt[1] / 100 * LH;
+    g.innerHTML = `<div class="plot-hi" style="left:${x}px;top:${y}px"></div><div class="plot-dot" style="left:${x}px;top:${y}px"></div><div class="plot-lbl" style="left:${x}px;top:${y}px">Plot ${esc(p.plotNumber)}</div>`;
+  }
+  function openDetail(id) {
+    window.logEvent('client_panel_opened', { area: state.areaId || null, propertyId: id, metadata: { source: 'property_detail' } });
+    window.logEvent('property_viewed', { area: state.areaId || null, propertyId: id, metadata: { source: 'property_detail' } });
+    Object.assign(state, { section: 'props', propView: 'detail', selectedId: id, previewId: null });
+    render();
+  }
+  function showAreaContext(id) {
+    const p = propById(id);
+    window.logEvent('original_proof_clicked', { area: state.areaId || null, propertyId: id });
+    Object.assign(state, { section: 'master', mapMode: premiumMasterMode(), showProps: true, selectedId: id, selectedIds: new Set([id]), itemOpen: false, previewId: id, drawerOpen: true });
+    builtSig = '';
+    render();
+    if (p) {
+      const b = blockById(p.blockId);
+      if (b && hasGeo(b)) {
+        const bd = pathBounds(GEO.paths[b.svgId]);
+        const [cx, cy] = geoToLayer((bd.minX + bd.maxX) / 2, (bd.minY + bd.maxY) / 2);
+        setTimeout(() => focusBox(cx, cy, Math.max(bd.maxX - bd.minX, 300), Math.max(bd.maxY - bd.minY, 300), 1.8), 80);
+      } else if (b) {
+        setTimeout(() => focusBox(b.x + b.w / 2, b.y + b.h / 2, b.w, b.h, 1.7), 80);
+      }
+    }
+  }
+  function openLightbox(idx) {
+    let photos, name;
+    if (state.section === 'props' && state.propView === 'detail') {
+      const p = propById(state.selectedId);
+      photos = propertyGallery(p, 8);
+      name = propertyTitle(p);
+    } else if (state.selectedIds.size === 1) {
+      const id = Array.from(state.selectedIds)[0];
+      const p = propById(id);
+      const it = itemObj(id);
+      if (p) {
+        photos = propertyGallery(p, 8);
+        name = propertyTitle(p);
+      } else {
+        photos = photosFor(itemKindOf(id) === 'line' ? 'line' : (itemCategory(id) || 'pin'), photoKeyOf(id, itemKindOf(id)), 4);
+        name = it ? it.name : '';
+      }
+    } else {
+      photos = photosFor('property', state.selectedId || 'x', 4);
+      name = '';
+    }
+    state.lightbox = { photos, index: idx || 0, name: name || '' };
+    render();
+  }
+  async function applyBootPropertyLink() {
+    if (!bootLink.propertyId) return;
+    const raw = safeCrmPropertyById(bootLink.propertyId);
+    const targetAreaId = areaIdForName((raw && raw.area) || null) || state.areaId;
+    if (state.areaId !== targetAreaId || state.space !== 'plan') {
+      Object.assign(state, resetPlan({ space: 'plan', areaId: targetAreaId }));
+      await useDataset(targetAreaId);
+      render();
+    } else if (state.space !== 'plan') {
+      state.space = 'plan';
+      render();
+    }
+    const target = propById(bootLink.propertyId);
+    if (!target) return;
+    if (bootLink.view === 'map') {
+      showAreaContext(target.id);
+      return;
+    }
+    if (bootLink.view === 'sector' && hasSectorMap(target)) {
+      openSector(target.id);
+      return;
+    }
+    openDetail(target.id);
+  }
   function toast(msg) { let t = el('toast'); if (!t) { t = document.createElement('div'); t.id = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.style.opacity = '1'; clearTimeout(t._h); t._h = setTimeout(() => t.style.opacity = '0', 1900); }
 
   window.addEventListener('resize', () => { if (state.space === 'plan') fit(); });
@@ -1636,4 +1807,5 @@
   }
   
   render();
+  await applyBootPropertyLink();
 })();

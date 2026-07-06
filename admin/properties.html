@@ -12,8 +12,10 @@
 <script src="/admin/core/sync-queue.js"></script>
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
+<script src="/admin/core/overlay-store.js"></script>
 <script src="/admin/core/supabase-sync.js"></script>
 <script src="/admin/core/nav.js"></script>
+<script src="/app/plotmap/map-registry.js" defer></script>
 <script>
 if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
 </script>
@@ -28,24 +30,34 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
       <h1>Property Inventory</h1>
       <div class="sub" id="prop-count">All listed properties.</div>
     </div>
-    <button class="pm-btn pm-btn-primary" onclick="document.getElementById('add-prop').style.display = document.getElementById('add-prop').style.display === 'none' ? 'block' : 'none'">+ Add Property</button>
+    <button class="pm-btn pm-btn-primary" id="btn-toggle-add">+ Add Property</button>
   </div>
 
-  <!-- Add property form -->
+  <!-- Add / Edit property form -->
   <div class="pm-card-xl" id="add-prop" style="display:none;margin-bottom:18px;">
-    <div class="pm-card-h">Add New Property</div>
+    <div class="pm-card-h" id="form-title">Add New Property</div>
     <form class="pm-form" id="add-prop-form">
+      <input type="hidden" id="p-editing" value="">
       <div class="pm-grid cols-3">
         <div class="fld"><label>Title</label><input type="text" id="p-title" required placeholder="Property name"></div>
-        <div class="fld"><label>Area</label><input type="text" id="p-area" required placeholder="e.g. Aerocity"></div>
+        <div class="fld"><label>Area (masterplan)</label><input type="text" id="p-area" required placeholder="e.g. Aerocity" list="area-options"><datalist id="area-options"></datalist></div>
         <div class="fld"><label>Sector / Block</label><input type="text" id="p-sector" placeholder="e.g. Sector 82"></div>
+        <div class="fld"><label>Plot Number</label><input type="text" id="p-plot" placeholder="e.g. 128"></div>
         <div class="fld"><label>Type</label><select id="p-type"><option>Plot</option><option>Flat</option><option>Floor</option><option>SCO</option><option>Villa</option><option>Booth</option><option>Other</option></select></div>
         <div class="fld"><label>Size</label><input type="text" id="p-size" placeholder="e.g. 200 sq.yd."></div>
+        <div class="fld"><label>Facing</label><input type="text" id="p-facing" placeholder="e.g. Park facing"></div>
         <div class="fld"><label>Status</label><select id="p-status"><option>Available</option><option>On Hold</option><option>Internal Only</option></select></div>
+        <div class="fld"><label>Detailed Map</label><select id="p-sectormap"><option value="">— none —</option></select></div>
+        <div class="fld" style="grid-column:1/-1;"><label>Short Description (shown to clients)</label><input type="text" id="p-desc" maxlength="240" placeholder="e.g. Corner plot near main market"></div>
+        <div class="fld" style="grid-column:1/-1;"><label>Photo links (comma separated, optional)</label><input type="text" id="p-photos" placeholder="https://…jpg, https://…jpg"></div>
       </div>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:14px;cursor:pointer;">
+        <input type="checkbox" id="p-visible" checked>
+        Show this property to clients in the presentation
+      </label>
       <div style="margin-top:16px;display:flex;gap:10px;">
-        <button type="submit" class="pm-btn pm-btn-primary">Save Property</button>
-        <button type="button" class="pm-btn pm-btn-secondary" onclick="document.getElementById('add-prop').style.display='none'">Cancel</button>
+        <button type="submit" class="pm-btn pm-btn-primary" id="form-submit">Save Property</button>
+        <button type="button" class="pm-btn pm-btn-secondary" id="form-cancel">Cancel</button>
       </div>
     </form>
   </div>
@@ -53,7 +65,7 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
   <!-- Search + Filters -->
   <div class="pm-search" style="margin-bottom:12px;">
     <span class="icon">○</span>
-    <input type="text" placeholder="Search properties by name, area, or sector..." id="search-input">
+    <input type="text" placeholder="Search properties by name, area, sector, or plot number..." id="search-input">
   </div>
   <div class="pm-filters" id="status-filters">
     <!-- JS -->
@@ -69,30 +81,166 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
 document.addEventListener('DOMContentLoaded', () => {
   window.PMNav.render('properties');
   const crm = window.CRM;
-  const data = crm.getCRM();
 
-  const props = data.properties.filter(p => p.internalStatus !== 'Archived');
-  document.getElementById('prop-count').textContent = props.length + ' properties listed.';
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[c]);
+  }
 
-  // Archive / status change
+  const liveProps = () => crm.getCRM().properties.filter(p => p.internalStatus !== 'Archived');
+  const registryMaps = () => (window.PM_MAP_REGISTRY && Array.isArray(window.PM_MAP_REGISTRY.maps)) ? window.PM_MAP_REGISTRY.maps : [];
+  const normalize = (v) => String(v || '').trim().toLowerCase();
+  const masterMapForArea = (area) => registryMaps().find(m => m.type === 'masterplan' && normalize(m.area) === normalize(area) && m.status === 'active') || null;
+  const sectorMapForProperty = (prop) => {
+    if (!prop) return null;
+    if (prop.sectorMapId) {
+      const explicit = registryMaps().find(m => m.id === prop.sectorMapId);
+      if (explicit) return explicit;
+    }
+    const sectorText = normalize(prop.sector || prop.block);
+    return registryMaps().find(m =>
+      m.type === 'sector' &&
+      m.status === 'active' &&
+      (
+        normalize(m.area) === normalize(prop.area) ||
+        normalize(m.title) === sectorText ||
+        normalize(m.block) === sectorText ||
+        normalize(m.sectorOrBlockName) === sectorText ||
+        normalize(m.matchKey) === sectorText.replace(/\s+/g, '-')
+      )
+    ) || null;
+  };
+  const clientHrefForProperty = (id, view) => {
+    const href = new URL('/app/plotmap/', window.location.origin);
+    href.searchParams.set('property', id);
+    if (view) href.searchParams.set('view', view);
+    return href.toString();
+  };
+  const mapStudioHrefForProperty = (prop) => {
+    const href = new URL('/admin/map-studio.html', window.location.origin);
+    const sectorMap = sectorMapForProperty(prop);
+    if (sectorMap) href.searchParams.set('map', sectorMap.id);
+    href.searchParams.set('tool', 'pin');
+    href.searchParams.set('property', prop.id);
+    return href.toString();
+  };
+  const pinIndex = () => {
+    const map = new Map();
+    if (!window.PMOverlayStore) return map;
+    window.PMOverlayStore.customItems().forEach(it => {
+      if (it && it.kind === 'pin' && it.propertyId && !it.deleted && !map.has(it.propertyId)) {
+        map.set(it.propertyId, it);
+      }
+    });
+    return map;
+  };
+
+  // Property pins drawn in Map Studio (overlay store) — pin.propertyId links them.
+  function pinForProperty(id) {
+    if (!window.PMOverlayStore) return null;
+    return window.PMOverlayStore.customItems().find(it => it.kind === 'pin' && it.propertyId === id && !it.deleted) || null;
+  }
+  function mapTitle(mapId) {
+    const reg = window.PM_MAP_REGISTRY;
+    const m = reg && reg.maps ? reg.maps.find(x => x.id === mapId) : null;
+    return m ? (m.displayName || m.title || mapId) : mapId;
+  }
+
+  // Map registry → area datalist + sector map select (registry loads deferred)
+  function fillMapOptions() {
+    const reg = window.PM_MAP_REGISTRY;
+    if (!reg || !Array.isArray(reg.maps)) { setTimeout(fillMapOptions, 300); return; }
+    const areas = [...new Set(reg.maps.filter(m => m.type === 'masterplan' && m.area).map(m => m.area))];
+    document.getElementById('area-options').innerHTML = areas.map(a => '<option value="' + esc(a) + '">').join('');
+    const sectors = reg.maps.filter(m => m.type === 'sector' && m.hasOriginalMap);
+    document.getElementById('p-sectormap').innerHTML = '<option value="">— none —</option>' +
+      sectors.map(m => '<option value="' + esc(m.id) + '">' + esc(m.displayName || m.title) + '</option>').join('');
+  }
+  fillMapOptions();
+
+  document.getElementById('prop-count').textContent = liveProps().length + ' properties listed.';
+
+  // ---- form open/close + edit mode ----
+  const formCard = document.getElementById('add-prop');
+  function openForm(prop) {
+    document.getElementById('p-editing').value = prop ? prop.id : '';
+    document.getElementById('form-title').textContent = prop ? 'Edit Property' : 'Add New Property';
+    document.getElementById('form-submit').textContent = prop ? 'Save Changes' : 'Save Property';
+    document.getElementById('p-title').value = prop ? (prop.title || '') : '';
+    document.getElementById('p-area').value = prop ? (prop.area || '') : '';
+    document.getElementById('p-sector').value = prop ? (prop.sector || prop.block || '') : '';
+    document.getElementById('p-plot').value = prop ? (prop.plotNumber || '') : '';
+    document.getElementById('p-type').value = prop ? (prop.type || 'Plot') : 'Plot';
+    document.getElementById('p-size').value = prop ? (prop.size || '') : '';
+    document.getElementById('p-facing').value = prop ? (prop.facing || '') : '';
+    document.getElementById('p-status').value = prop && ['Available', 'On Hold', 'Internal Only'].includes(prop.internalStatus) ? prop.internalStatus : 'Available';
+    document.getElementById('p-sectormap').value = prop ? (prop.sectorMapId || '') : '';
+    document.getElementById('p-desc').value = prop ? (prop.description || '') : '';
+    document.getElementById('p-photos').value = prop && Array.isArray(prop.photos) ? prop.photos.join(', ') : '';
+    document.getElementById('p-visible').checked = prop ? prop.clientVisible !== false : true;
+    formCard.style.display = 'block';
+    formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function closeForm() {
+    formCard.style.display = 'none';
+    document.getElementById('add-prop-form').reset();
+    document.getElementById('p-editing').value = '';
+  }
+  document.getElementById('btn-toggle-add').addEventListener('click', () => {
+    if (formCard.style.display === 'none') openForm(null); else closeForm();
+  });
+  document.getElementById('form-cancel').addEventListener('click', closeForm);
+
+  window.editProp = function(id) {
+    const p = liveProps().find(x => x.id === id);
+    if (p) openForm(p);
+  };
+
   window.archiveProp = function(id) {
+    if (!confirm('Archive this property? It disappears from the client presentation and this list, but is not deleted.')) return;
     crm.archiveProperty(id);
-    window.location.reload();
+    renderProps();
   };
 
   window.markSold = function(id) {
-    const d = crm.getCRM();
-    const p = d.properties.find(x => x.id === id);
-    if (p) {
-      p.internalStatus = 'Sold';
-      p.updatedAt = new Date().toISOString();
-      p.syncStatus = 'pending';
-      crm.saveCRM(d);
-      if (window.PMSyncQueue) {
-        window.PMSyncQueue.enqueueSyncAction({ entityType: 'properties', entityId: id, actionType: 'update', payload: p });
-      }
-    }
-    window.location.reload();
+    crm.updateProperty(id, { internalStatus: 'Sold' });
+    renderProps();
+  };
+
+  window.toggleVisible = function(id) {
+    const p = liveProps().find(x => x.id === id);
+    if (!p) return;
+    crm.updateProperty(id, { clientVisible: p.clientVisible === false });
+    renderProps();
+  };
+
+  window.unpinProp = function(id) {
+    const pin = pinForProperty(id);
+    if (!pin) return;
+    if (!confirm('Remove this property\'s marker from the map? The property itself stays in your inventory.')) return;
+    window.PMOverlayStore.remove(pin.id);
+    renderProps();
+  };
+  window.placeProp = function(id) {
+    const prop = liveProps().find(x => x.id === id);
+    if (!prop) return;
+    window.location.href = mapStudioHrefForProperty(prop);
+  };
+  window.viewPropOnMap = function(id) {
+    window.open(clientHrefForProperty(id, 'map'), '_blank', 'noopener');
+  };
+  window.sharePropWhatsapp = function(id) {
+    const prop = liveProps().find(x => x.id === id);
+    if (!prop) return;
+    const safeBits = [
+      prop.title || 'Property',
+      [prop.area, prop.sector || prop.block].filter(Boolean).join(' · '),
+      prop.size || '',
+      prop.description || ''
+    ].filter(Boolean);
+    const msg = safeBits.join('\n') + '\n\nView on map: ' + clientHrefForProperty(id, 'detail');
+    window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank', 'noopener');
   };
 
   // Gradient backgrounds for property cards
@@ -104,7 +252,6 @@ document.addEventListener('DOMContentLoaded', () => {
     'linear-gradient(135deg,#F7E7E0 0%,#EFD6CA 100%)'
   ];
 
-  // Status badge classes
   function statusBadge(s) {
     if (s === 'Available') return { cls: 'available', bg: 'rgba(234,243,238,.95)', color: '#1F5E47' };
     if (s === 'On Hold') return { cls: 'on-hold', bg: 'rgba(243,234,216,.95)', color: '#8A6224' };
@@ -114,12 +261,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Filter chips
-  const statuses = ['All', 'Available', 'On Hold', 'Internal Only', 'Sold'];
+  const statuses = ['All', 'Available', 'On Hold', 'Internal Only', 'Sold', 'Hidden from client'];
   let activeFilter = 'All';
   const filtersEl = document.getElementById('status-filters');
 
   function renderFilters() {
-    filtersEl.innerHTML = statuses.map(s => `<span class="pm-chip ${activeFilter === s ? 'active' : ''}" data-status="${s}">${s}</span>`).join('');
+    filtersEl.innerHTML = statuses.map(s => `<span class="pm-chip ${activeFilter === s ? 'active' : ''}" data-status="${esc(s)}">${esc(s)}</span>`).join('');
     filtersEl.querySelectorAll('.pm-chip').forEach(chip => {
       chip.addEventListener('click', () => {
         activeFilter = chip.dataset.status;
@@ -130,13 +277,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderProps() {
+    const props = liveProps();
+    const pins = pinIndex();
+    document.getElementById('prop-count').textContent = props.length + ' properties listed.';
     const searchTerm = (document.getElementById('search-input').value || '').toLowerCase();
     const filtered = props.filter(p => {
       const matchSearch = !searchTerm ||
         (p.title || '').toLowerCase().includes(searchTerm) ||
         (p.area || '').toLowerCase().includes(searchTerm) ||
-        (p.sector || '').toLowerCase().includes(searchTerm);
-      const matchStatus = activeFilter === 'All' || p.internalStatus === activeFilter;
+        (p.sector || '').toLowerCase().includes(searchTerm) ||
+        (p.plotNumber || '').toLowerCase().includes(searchTerm);
+      const matchStatus = activeFilter === 'All'
+        || (activeFilter === 'Hidden from client' ? p.clientVisible === false : p.internalStatus === activeFilter);
       return matchSearch && matchStatus;
     });
 
@@ -148,22 +300,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
     grid.innerHTML = filtered.map((p, i) => {
       const badge = statusBadge(p.internalStatus);
+      const pin = pins.get(p.id) || null;
+      const hidden = p.clientVisible === false;
+      const sectorMap = sectorMapForProperty(p);
+      const masterMap = masterMapForArea(p.area);
       const flags = [];
-      if (!p.photos || p.photos.length === 0) flags.push('Add photos');
-      if (!p.mapPinId) flags.push('Map pin missing');
+      if (hidden) flags.push('Hidden from client');
+      else if (!pin) flags.push('Not on map yet');
+      else if (!p.photos || p.photos.length === 0) flags.push('Add photos');
+
+      const photo = Array.isArray(p.photos) && p.photos[0]
+        ? `background:url('${esc(p.photos[0])}') center/cover, ${gradients[i % gradients.length]};`
+        : `background:${gradients[i % gradients.length]};`;
+
+      const mapLine = pin
+        ? `<div class="size" style="color:#1F5E47;">On map: ${esc(mapTitle(pin.mapId))}</div>`
+        : `<div class="size" style="color:#8A6224;">Not placed on a map — use Map Studio → tap “+ Add Property”.</div>`;
+      const mapSupport = `
+        <div class="size" style="margin-top:4px;color:#6B6456;">
+          ${masterMap ? `Client map: ${esc(masterMap.displayName || masterMap.title || p.area)}` : 'Client map: area-linked'}
+          ${sectorMap ? ` · Sector map: ${esc(sectorMap.displayName || sectorMap.title)}` : ''}
+        </div>`;
 
       return `<div class="pm-prop-card">
-        <div class="hero" style="background:${gradients[i % gradients.length]};">
-          <span class="badge" style="background:${badge.bg};color:${badge.color};">${p.internalStatus}</span>
-          ${flags.length ? `<span class="flag">${flags[0]}</span>` : ''}
+        <div class="hero" style="${photo}">
+          <span class="badge" style="background:${badge.bg};color:${badge.color};">${esc(p.internalStatus)}</span>
+          ${flags.length ? `<span class="flag">${esc(flags[0])}</span>` : ''}
         </div>
         <div class="body">
-          <div class="area">${p.area || '-'} ${p.sector ? '· ' + p.sector : ''}</div>
-          <div class="name">${p.title || 'Unnamed'}</div>
-          <div class="size">${p.type || '-'} · ${p.size || p.plotSize || '-'}</div>
+          <div class="area">${esc(p.area || '-')} ${p.sector ? '· ' + esc(p.sector) : ''} ${p.plotNumber ? '· Plot ' + esc(p.plotNumber) : ''}</div>
+          <div class="name">${esc(p.title || 'Unnamed')}</div>
+          <div class="size">${esc(p.type || '-')} · ${esc(p.size || p.plotSize || '-')}${p.facing ? ' · ' + esc(p.facing) : ''}</div>
+          ${mapLine}
+          ${mapSupport}
+          ${p.description ? `<div class="size" style="margin-top:8px;color:#4E4A40;">${esc(p.description)}</div>` : ''}
           <div class="actions">
-            <button onclick="archiveProp('${p.id}')" class="warn">Remove</button>
-            ${p.internalStatus === 'Available' ? `<button onclick="markSold('${p.id}')">Mark Sold</button>` : ''}
+            <button onclick="editProp('${esc(p.id)}')">Edit</button>
+            <button onclick="toggleVisible('${esc(p.id)}')">${hidden ? 'Show to clients' : 'Hide from clients'}</button>
+            <button onclick="viewPropOnMap('${esc(p.id)}')">View on map</button>
+            <button onclick="sharePropWhatsapp('${esc(p.id)}')">WhatsApp</button>
+            ${pin ? `<button onclick="unpinProp('${esc(p.id)}')" class="warn">Remove from map</button>` : `<button onclick="placeProp('${esc(p.id)}')">Place on map</button>`}
+            ${p.internalStatus === 'Available' ? `<button onclick="markSold('${esc(p.id)}')">Mark Sold</button>` : ''}
+            <button onclick="archiveProp('${esc(p.id)}')" class="warn">Archive</button>
           </div>
         </div>
       </div>`;
@@ -172,18 +350,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('search-input').addEventListener('input', renderProps);
 
-  // Add property form
+  // Add / edit submit
   document.getElementById('add-prop-form').addEventListener('submit', (e) => {
     e.preventDefault();
-    crm.addProperty({
-      title: document.getElementById('p-title').value,
-      area: document.getElementById('p-area').value,
-      sector: document.getElementById('p-sector').value,
+    const editingId = document.getElementById('p-editing').value;
+    const photos = document.getElementById('p-photos').value
+      .split(',').map(s => s.trim()).filter(s => /^https?:\/\//i.test(s)).slice(0, 8);
+    const fields = {
+      title: document.getElementById('p-title').value.trim(),
+      area: document.getElementById('p-area').value.trim(),
+      sector: document.getElementById('p-sector').value.trim(),
+      block: document.getElementById('p-sector').value.trim(),
+      plotNumber: document.getElementById('p-plot').value.trim(),
       type: document.getElementById('p-type').value,
-      size: document.getElementById('p-size').value,
-      internalStatus: document.getElementById('p-status').value
-    });
-    window.location.reload();
+      propertyType: document.getElementById('p-type').value,
+      size: document.getElementById('p-size').value.trim(),
+      facing: document.getElementById('p-facing').value.trim(),
+      internalStatus: document.getElementById('p-status').value,
+      sectorMapId: document.getElementById('p-sectormap').value || null,
+      masterMapId: (masterMapForArea(document.getElementById('p-area').value.trim()) || {}).id || null,
+      description: document.getElementById('p-desc').value.trim(),
+      photos,
+      clientVisible: document.getElementById('p-visible').checked
+    };
+    if (editingId) crm.updateProperty(editingId, fields);
+    else crm.addProperty(fields);
+    closeForm();
+    renderProps();
   });
 
   renderFilters();
