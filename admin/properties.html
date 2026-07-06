@@ -4,28 +4,23 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Property Inventory â€” PlotMap</title>
+<title>Property Inventory — PlotMap</title>
 <link rel="stylesheet" href="/admin/crm-ui.css">
 <script src="/admin/core/auth.js"></script>
 <script src="/admin/crm-data.js"></script>
 <script src="/admin/core/data-adapter.js"></script>
 <script src="/admin/core/sync-queue.js"></script>
-<script src="/admin/core/finance-engine.js"></script>
-<script src="/admin/core/command-engine.js"></script>
-<script src="/admin/core/report-engine.js"></script>
-<script src="/admin/core/event-tracker.js"></script>
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
 <script src="/admin/core/supabase-sync.js"></script>
+<script src="/admin/core/nav.js"></script>
 <script>
 if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
 </script>
 </head>
 <body class="pm-shell">
 
-<header class="pm-topbar" id="topbar">
-  <!-- JS sets nav based on role -->
-</header>
+<header id="pm-topbar"></header>
 
 <main class="pm-main">
   <div class="pm-page-header">
@@ -57,7 +52,7 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
 
   <!-- Search + Filters -->
   <div class="pm-search" style="margin-bottom:12px;">
-    <span class="icon">â—‹</span>
+    <span class="icon">○</span>
     <input type="text" placeholder="Search properties by name, area, or sector..." id="search-input">
   </div>
   <div class="pm-filters" id="status-filters">
@@ -72,48 +67,9 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+  window.PMNav.render('properties');
   const crm = window.CRM;
   const data = crm.getCRM();
-  const role = localStorage.getItem('plotmap_admin_role');
-  const isDealer = role === 'dealer';
-
-  // Set topbar
-  const topbar = document.getElementById('topbar');
-  if (isDealer) {
-    topbar.classList.add('dealer-bar');
-    const ownerUser = data.users && data.users.find(u => u.role === 'owner');
-    const ownerName = ownerUser ? ownerUser.name : 'Owner';
-    topbar.innerHTML = `
-      <a class="brand" href="/"><div class="brand-icon"><i></i></div><span class="brand-name">PlotMap</span></a>
-      <nav>
-        <a href="/admin/owner.html">Dashboard</a>
-        <a href="/app/plotmap/">Client Presentation</a>
-        <a href="/admin/map-studio.html">Map Studio</a>
-        <a href="/admin/properties.html" class="on">Properties</a>
-        <a href="/admin/area-intelligence.html">Area Intelligence</a>
-        <a href="/admin/deals.html">Deals</a>
-        <a href="/admin/clients.html">Client Movement</a>
-        <a href="/admin/property-insights.html">Property Insights</a>
-      </nav>
-      <div class="sp"></div>
-      <div class="role-chip">
-        <div class="role-info"><div class="role-name">${ownerName.split(' ')[0]}</div><div class="role-kind">Owner</div></div>
-        <div class="role-avatar" style="background:var(--pm-emerald);">${ownerName.charAt(0).toUpperCase()}</div>
-      </div>`;
-  } else {
-    topbar.classList.add('team-bar');
-    topbar.innerHTML = `
-      <a class="brand" href="/"><div class="brand-icon"><i></i></div><span class="brand-name">PlotMap</span></a>
-      <nav>
-        <a href="/admin/team.html">Workspace</a>
-        <a href="/admin/clients.html">Clients</a>
-        <a href="/admin/properties.html" class="on">Properties</a>
-        <a href="/admin/deals.html">Deals</a>
-        <a href="/admin/map-studio.html">Map Studio</a>
-      </nav>
-      <div class="sp"></div>
-      <a href="/" style="font-size:13.5px;font-weight:700;">Home</a>`;
-  }
 
   const props = data.properties.filter(p => p.internalStatus !== 'Archived');
   document.getElementById('prop-count').textContent = props.length + ' properties listed.';
@@ -121,6 +77,21 @@ document.addEventListener('DOMContentLoaded', () => {
   // Archive / status change
   window.archiveProp = function(id) {
     crm.archiveProperty(id);
+    window.location.reload();
+  };
+
+  window.markSold = function(id) {
+    const d = crm.getCRM();
+    const p = d.properties.find(x => x.id === id);
+    if (p) {
+      p.internalStatus = 'Sold';
+      p.updatedAt = new Date().toISOString();
+      p.syncStatus = 'pending';
+      crm.saveCRM(d);
+      if (window.PMSyncQueue) {
+        window.PMSyncQueue.enqueueSyncAction({ entityType: 'properties', entityId: id, actionType: 'update', payload: p });
+      }
+    }
     window.location.reload();
   };
 
@@ -187,12 +158,12 @@ document.addEventListener('DOMContentLoaded', () => {
           ${flags.length ? `<span class="flag">${flags[0]}</span>` : ''}
         </div>
         <div class="body">
-          <div class="area">${p.area || '-'} ${p.sector ? 'Â· ' + p.sector : ''}</div>
+          <div class="area">${p.area || '-'} ${p.sector ? '· ' + p.sector : ''}</div>
           <div class="name">${p.title || 'Unnamed'}</div>
-          <div class="size">${p.type || '-'} Â· ${p.size || p.plotSize || '-'}</div>
+          <div class="size">${p.type || '-'} · ${p.size || p.plotSize || '-'}</div>
           <div class="actions">
             <button onclick="archiveProp('${p.id}')" class="warn">Remove</button>
-            ${p.internalStatus === 'Available' ? `<button onclick="CRM.updatePropertyStatus('${p.id}','Sold');location.reload();">Mark Sold</button>` : ''}
+            ${p.internalStatus === 'Available' ? `<button onclick="markSold('${p.id}')">Mark Sold</button>` : ''}
           </div>
         </div>
       </div>`;

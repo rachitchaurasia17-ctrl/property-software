@@ -4,20 +4,14 @@
   const OWNER_ROUTES = [
     '/admin/owner.html',
     '/admin/area-intelligence.html',
-    '/admin/finance.html',
-    '/admin/access.html',
-    '/admin/reports.html'
+    '/admin/property-insights.html'
   ];
   const TEAM_ROUTES = [
     '/admin/team.html',
     '/admin/clients.html',
     '/admin/properties.html',
-    '/admin/followups.html',
-    '/admin/site-visits.html',
     '/admin/deals.html',
-    '/admin/map-studio.html',
-    '/admin/maps.html',
-    '/admin/editor.html'
+    '/admin/map-studio.html'
   ];
   let pageGuardPromise = null;
 

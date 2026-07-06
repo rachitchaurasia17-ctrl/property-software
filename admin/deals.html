@@ -4,137 +4,50 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Deals â€” PlotMap</title>
+<title>Deals — PlotMap</title>
 <link rel="stylesheet" href="/admin/crm-ui.css">
 <script src="/admin/core/auth.js"></script>
 <script src="/admin/crm-data.js"></script>
 <script src="/admin/core/data-adapter.js"></script>
 <script src="/admin/core/sync-queue.js"></script>
-<script src="/admin/core/finance-engine.js"></script>
-<script src="/admin/core/command-engine.js"></script>
-<script src="/admin/core/report-engine.js"></script>
-<script src="/admin/core/event-tracker.js"></script>
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
 <script src="/admin/core/supabase-sync.js"></script>
+<script src="/admin/core/nav.js"></script>
 <script>
 if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
 </script>
 </head>
 <body class="pm-shell">
 
-<header class="pm-topbar team-bar">
-  <a class="brand" href="/"><div class="brand-icon"><i></i></div><span class="brand-name">PlotMap</span></a>
-  <nav>
-    <a href="/admin/team.html">Workspace</a>
-    <a href="/admin/clients.html">Clients</a>
-    <a href="/admin/properties.html">Properties</a>
-    <a href="/admin/deals.html" class="on">Deals</a>
-    <a href="/admin/map-studio.html">Map Studio</a>
-  </nav>
-  <div class="sp"></div>
-  <a href="/admin/index.html" style="font-size:13.5px;font-weight:700;">Switch Role</a>
-</header>
+<header id="pm-topbar"></header>
 
 <main class="pm-main">
   <div class="pm-page-header">
     <div>
       <h1>Deals</h1>
-      <div class="sub">Record closed deals and track commissions.</div>
+      <div class="sub">Follow-up pipeline for property interest.</div>
     </div>
-    <button class="pm-btn pm-btn-primary" onclick="document.getElementById('add-deal').style.display = document.getElementById('add-deal').style.display === 'none' ? 'block' : 'none'">+ Record Deal</button>
   </div>
 
-  <div class="pm-card-xl" id="add-deal" style="display:none;margin-bottom:18px;">
-    <div class="pm-card-h">Record New Deal</div>
-    <form class="pm-form" id="add-deal-form">
-      <div class="pm-grid cols-3">
-        <div class="fld"><label>Client</label><select id="d-client" required><option value="">Select client...</option></select></div>
-        <div class="fld"><label>Deal Type</label><select id="d-type"><option>sale</option><option>purchase</option><option>rental</option></select></div>
-        <div class="fld"><label>Area</label><input type="text" id="d-area" placeholder="e.g. Aerocity"></div>
-        <div class="fld"><label>Deal Value (â‚¹)</label><input type="number" id="d-val" required placeholder="0"></div>
-        <div class="fld"><label>Commission (â‚¹)</label><input type="number" id="d-comm" required placeholder="0"></div>
-        <div class="fld"><label>Received (â‚¹)</label><input type="number" id="d-rec" value="0" placeholder="0"></div>
+  <div class="pm-card-xl" style="max-width:680px;">
+    <div class="pm-empty" style="padding:40px 24px;">
+      <div class="title">Deals will connect property interest to follow-up pipeline.</div>
+      <div class="desc" style="margin-top:8px;max-width:460px;margin-left:auto;margin-right:auto;">
+        When a client shows repeated interest in a property inside Client Presentation,
+        it will surface here so you can follow up and close.
       </div>
-      <div style="margin-top:16px;display:flex;gap:10px;">
-        <button type="submit" class="pm-btn pm-btn-primary">Save Deal</button>
-        <button type="button" class="pm-btn pm-btn-secondary" onclick="document.getElementById('add-deal').style.display='none'">Cancel</button>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px;">
+        <a class="pm-btn pm-btn-primary" href="/admin/property-insights.html">See property interest</a>
+        <a class="pm-btn pm-btn-secondary" href="/admin/clients.html">View client movement</a>
       </div>
-    </form>
-  </div>
-
-  <div class="pm-card-xl" style="padding:0;overflow:hidden;">
-    <div class="pm-table-wrap">
-      <table class="pm-table" id="deals-table">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Client</th>
-            <th>Type</th>
-            <th>Value</th>
-            <th>Commission</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
     </div>
   </div>
 </main>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  const crm = window.CRM;
-  const data = crm.getCRM();
-
-  // Populate client select
-  const sel = document.getElementById('d-client');
-  data.clients.forEach(c => {
-    sel.innerHTML += `<option value="${c.id}">${c.name} (${c.phone})</option>`;
-  });
-
-  const tbody = document.querySelector('#deals-table tbody');
-
-  if(data.deals.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="pm-empty" style="padding:32px;"><div class="title">No deals yet</div><div class="desc">Record your first deal above.</div></td></tr>';
-  } else {
-    tbody.innerHTML = data.deals.map(d => {
-      const c = data.clients.find(cl => cl.id === d.clientId) || {};
-      const dt = new Date(d.dealDate).toLocaleDateString();
-      const valFmt = Number(d.dealValue).toLocaleString('en-IN', {style:'currency',currency:'INR',maximumFractionDigits:0});
-      const commFmt = Number(d.commissionAmount).toLocaleString('en-IN', {style:'currency',currency:'INR',maximumFractionDigits:0});
-      return `
-      <tr>
-        <td style="font-weight:600">${dt}</td>
-        <td style="font-weight:700">${c.name || '-'}</td>
-        <td style="text-transform:capitalize">${d.dealType}<br><span style="font-size:12px;color:var(--pm-text-mut)">${d.area||''}</span></td>
-        <td style="font-weight:700;font-family:'Fraunces',serif;">${valFmt}</td>
-        <td style="color:var(--pm-gold);font-weight:700;">${commFmt}</td>
-        <td><span class="pm-status ok">${d.status}</span></td>
-      </tr>
-      `;
-    }).join('');
-  }
-
-  document.getElementById('add-deal-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const commAmt = Number(document.getElementById('d-comm').value) || 0;
-    const recAmt = Number(document.getElementById('d-rec').value) || 0;
-    const clientId = document.getElementById('d-client').value;
-
-    crm.addDeal({
-      clientId: clientId,
-      dealType: document.getElementById('d-type').value,
-      area: document.getElementById('d-area').value,
-      dealValue: Number(document.getElementById('d-val').value) || 0,
-      commissionAmount: commAmt,
-      commissionReceived: recAmt,
-      commissionPending: commAmt - recAmt,
-      staffId: 's1'
-    });
-    crm.updateClientStatus(clientId, 'Closed');
-    window.location.reload();
-  });
+  window.PMNav.render('deals');
 });
 </script>
 </body>

@@ -4,240 +4,158 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Client Movement â€” PlotMap</title>
+<title>Client Movement — PlotMap</title>
 <link rel="stylesheet" href="/admin/crm-ui.css">
 <script src="/admin/core/auth.js"></script>
 <script src="/admin/crm-data.js"></script>
 <script src="/admin/core/data-adapter.js"></script>
 <script src="/admin/core/sync-queue.js"></script>
-<script src="/admin/core/finance-engine.js"></script>
-<script src="/admin/core/command-engine.js"></script>
-<script src="/admin/core/report-engine.js"></script>
-<script src="/admin/core/event-tracker.js"></script>
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
 <script src="/admin/core/supabase-sync.js"></script>
+<script src="/admin/core/nav.js"></script>
 <script>
 if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
 </script>
+<style>
+.mv-session { background:#fff;border:1px solid var(--pm-border);border-radius:18px;padding:20px 22px;margin-bottom:14px; }
+.mv-session-head { display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px; }
+.mv-step { display:flex;gap:12px;padding:9px 0;border-top:1px solid var(--pm-border-subtle);align-items:flex-start; }
+.mv-step .dot { width:8px;height:8px;border-radius:50%;background:var(--pm-emerald);margin-top:6px;flex:none; }
+.mv-step .t { font-size:12px;color:var(--pm-text-mut);font-weight:600;white-space:nowrap;width:58px; }
+</style>
 </head>
 <body class="pm-shell">
 
-<header class="pm-topbar" id="topbar">
-  <!-- JS sets nav based on role -->
-</header>
+<header id="pm-topbar"></header>
 
 <main class="pm-main">
   <div class="pm-page-header">
     <div>
       <h1>Client Movement</h1>
-      <div class="sub" id="client-count">All your clients in one place.</div>
+      <div class="sub" id="session-count">How clients move through your presentation — session by session.</div>
     </div>
-    <button class="pm-btn pm-btn-primary" onclick="document.getElementById('add-client').style.display = document.getElementById('add-client').style.display === 'none' ? 'block' : 'none'">+ Add Client</button>
+    <div class="pm-filters" id="day-filters" style="margin:0;"></div>
   </div>
 
-  <!-- Add Client Form -->
-  <div class="pm-card-xl" id="add-client" style="display:none; margin-bottom:18px;">
-    <div class="pm-card-h">Add New Client</div>
-    <form class="pm-form" id="add-client-form">
-      <div class="pm-grid cols-3">
-        <div class="fld"><label>Name</label><input type="text" id="c-name" required placeholder="Client name"></div>
-        <div class="fld"><label>Phone</label><input type="tel" id="c-phone" required placeholder="Phone number"></div>
-        <div class="fld"><label>Client Type</label><select id="c-type"><option>Buyer</option><option>Seller</option><option>Investor</option></select></div>
-        <div class="fld"><label>Interested Area</label><input type="text" id="c-area" placeholder="e.g. Aerocity, Zirakpur"></div>
-        <div class="fld"><label>Property Type</label><input type="text" id="c-ptype" placeholder="e.g. Plot, Flat, SCO"></div>
-        <div class="fld"><label>Size Requirement</label><input type="text" id="c-size" placeholder="e.g. 200 sq.yd."></div>
-      </div>
-      <div style="margin-top:16px;display:flex;gap:10px;">
-        <button type="submit" class="pm-btn pm-btn-primary">Save Client</button>
-        <button type="button" class="pm-btn pm-btn-secondary" onclick="document.getElementById('add-client').style.display='none'">Cancel</button>
-      </div>
-    </form>
-  </div>
-
-  <!-- Search + Filters -->
-  <div class="pm-search" style="margin-bottom:12px;">
-    <span class="icon">â—‹</span>
-    <input type="text" placeholder="Search clients by name, phone, or area..." id="search-input">
-  </div>
-
-  <div class="pm-filters" id="stage-filters">
-    <!-- JS -->
-  </div>
-
-  <!-- Clients Table -->
-  <div class="pm-card-xl" style="padding:0;overflow:hidden;">
-    <div id="clients-grid">
-      <div class="pm-table-header" style="grid-template-columns:1fr 1fr 120px 120px 100px;" id="table-header">
-        <span>Client</span>
-        <span>Area / Budget</span>
-        <span>Stage</span>
-        <span id="ltv-col">Lifetime</span>
-        <span>Action</span>
-      </div>
-      <div id="clients-list">
-        <!-- JS rendered -->
-      </div>
-    </div>
-  </div>
+  <div id="sessions"></div>
 </main>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+  window.PMNav.render('client-movement');
+
   const crm = window.CRM;
   const data = crm.getCRM();
-  const role = localStorage.getItem('plotmap_admin_role');
-  const isDealer = role === 'dealer';
+  const events = Array.isArray(data.presentationEvents) ? data.presentationEvents : [];
+  const propById = Object.fromEntries((data.properties || []).map(p => [p.id, p]));
 
-  // Set topbar based on role
-  const topbar = document.getElementById('topbar');
-  if (isDealer) {
-    topbar.classList.add('dealer-bar');
-    const ownerUser = data.users && data.users.find(u => u.role === 'owner');
-    const ownerName = ownerUser ? ownerUser.name : 'Owner';
-    topbar.innerHTML = `
-      <a class="brand" href="/"><div class="brand-icon"><i></i></div><span class="brand-name">PlotMap</span></a>
-      <nav>
-        <a href="/admin/owner.html">Dashboard</a>
-        <a href="/admin/property-insights.html">Property Insights</a>
-        <a href="/admin/clients.html" class="on">Clients</a>
-        <a href="/admin/area-intelligence.html">Area Intelligence</a>
-      </nav>
-      <div class="sp"></div>
-      <div class="role-chip">
-        <div class="role-info"><div class="role-name">${ownerName.split(' ')[0]}</div><div class="role-kind">Owner</div></div>
-        <div class="role-avatar" style="background:var(--pm-emerald);">${ownerName.charAt(0).toUpperCase()}</div>
-      </div>`;
-  } else {
-    topbar.classList.add('team-bar');
-    topbar.innerHTML = `
-      <a class="brand" href="/"><div class="brand-icon"><i></i></div><span class="brand-name">PlotMap</span></a>
-      <nav>
-        <a href="/admin/team.html">Workspace</a>
-        <a href="/admin/clients.html" class="on">Clients</a>
-        <a href="/admin/properties.html">Properties</a>
-        <a href="/admin/deals.html">Deals</a>
-        <a href="/admin/map-studio.html">Map Studio</a>
-      </nav>
-      <div class="sp"></div>
-      <a href="/admin/index.html" style="font-size:13.5px;font-weight:700;">Switch Role</a>`;
-  }
+  const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[c]);
 
-  // Hide LTV column for team
-  if (!isDealer) {
-    document.getElementById('ltv-col').style.display = 'none';
-    document.getElementById('table-header').style.gridTemplateColumns = '1fr 1fr 120px 100px';
-  }
-
-  const clients = data.clients;
-  document.getElementById('client-count').textContent = clients.length + ' clients total.';
-
-  // Status mapping
-  function statusClass(s) {
-    if (s === 'Closed') return 'ok';
-    if (s === 'Warm' || s === 'Property Shared') return 'warm';
-    if (s === 'Negotiation') return 'negotiating';
-    if (s === 'Site Visit Planned' || s === 'Site Visit Done') return 'info';
-    if (s === 'Not Answering') return 'err';
-    if (s === 'New') return 'new';
-    return 'neutral';
-  }
-
-  // Filter chips
-  const stages = ['All', 'New', 'Warm', 'Property Shared', 'Site Visit Planned', 'Negotiation', 'Closed', 'Not Answering'];
-  const filtersEl = document.getElementById('stage-filters');
-  let activeFilter = 'All';
-
-  function renderFilters() {
-    filtersEl.innerHTML = stages.map(s => `<span class="pm-chip ${activeFilter === s ? 'active' : ''}" data-stage="${s}">${s}</span>`).join('');
-    filtersEl.querySelectorAll('.pm-chip').forEach(chip => {
-      chip.addEventListener('click', () => {
-        activeFilter = chip.dataset.stage;
-        renderFilters();
-        renderClients();
-      });
-    });
-  }
-
-  // Change status
-  window.markStatus = function(id, status) {
-    crm.updateClientStatus(id, status);
-    window.location.reload();
+  const EVENT_LABELS = {
+    presentation_opened: 'Opened the presentation',
+    map_opened: 'Opened a map',
+    area_viewed: 'Opened an area',
+    sector_viewed: 'Viewed a sector',
+    property_viewed: 'Viewed a property',
+    property_selected: 'Opened a property',
+    client_panel_opened: 'Opened property details',
+    overlay_selected: 'Clicked a map overlay',
+    original_proof_clicked: 'Opened original map proof',
+    sector_proof_clicked: 'Opened sector proof',
+    inventory_opened: 'Opened the inventory',
+    property_shared: 'Shared a property',
+    property_shared_whatsapp: 'Shared a property on WhatsApp',
+    brochure_shared: 'Shared a brochure',
+    followup_created_from_presentation: 'Follow-up created from presentation'
   };
 
-  // Render clients
-  function renderClients() {
-    const searchTerm = (document.getElementById('search-input').value || '').toLowerCase();
-    let filtered = clients.filter(c => {
-      const matchSearch = !searchTerm ||
-        (c.name || '').toLowerCase().includes(searchTerm) ||
-        (c.phone || '').toLowerCase().includes(searchTerm) ||
-        (c.interestedArea || '').toLowerCase().includes(searchTerm);
-      const matchStage = activeFilter === 'All' || c.status === activeFilter;
-      return matchSearch && matchStage;
-    });
+  // Group Client Presentation events by session, newest session first.
+  const bySession = new Map();
+  events.forEach(e => {
+    const key = e.sessionId || 'no-session';
+    if (!bySession.has(key)) bySession.set(key, []);
+    bySession.get(key).push(e);
+  });
+  const sessions = [...bySession.entries()].map(([id, list]) => {
+    const sorted = [...list].sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
+    return { id, events: sorted, start: sorted[0].createdAt || '', end: sorted[sorted.length - 1].createdAt || '' };
+  }).sort((a, b) => String(b.start).localeCompare(String(a.start)));
 
-    const listEl = document.getElementById('clients-list');
-    if (filtered.length === 0) {
-      listEl.innerHTML = '<div class="pm-empty" style="padding:32px;"><div class="title">No clients found</div><div class="desc">Try changing your search or filter.</div></div>';
+  // Day filter chips: All / Today / 7 days
+  const filtersEl = document.getElementById('day-filters');
+  let activeFilter = 'All';
+  const FILTERS = ['All', 'Today', 'Last 7 days'];
+
+  function withinFilter(session) {
+    if (activeFilter === 'All') return true;
+    const start = Date.parse(session.start) || 0;
+    const dayMs = 86400000;
+    if (activeFilter === 'Today') {
+      return String(session.start).slice(0, 10) === new Date().toISOString().slice(0, 10);
+    }
+    return Date.now() - start <= 7 * dayMs;
+  }
+
+  function renderFilters() {
+    filtersEl.innerHTML = FILTERS.map(f =>
+      `<span class="pm-chip ${activeFilter === f ? 'active' : ''}" data-f="${f}">${f}</span>`).join('');
+    filtersEl.querySelectorAll('.pm-chip').forEach(chip => {
+      chip.addEventListener('click', () => { activeFilter = chip.dataset.f; renderFilters(); renderSessions(); });
+    });
+  }
+
+  function stepDetail(e) {
+    const prop = e.propertyId && propById[e.propertyId];
+    return [prop ? (prop.title || prop.name) : null, e.area || null, e.sector || null]
+      .filter(Boolean).join(' · ');
+  }
+
+  function renderSessions() {
+    const el = document.getElementById('sessions');
+    const visible = sessions.filter(withinFilter);
+    document.getElementById('session-count').textContent = visible.length
+      ? visible.length + ' client session' + (visible.length === 1 ? '' : 's') + ' captured from Client Presentation.'
+      : 'How clients move through your presentation — session by session.';
+
+    if (visible.length === 0) {
+      el.innerHTML = '<div class="pm-card-xl"><div class="pm-empty"><div class="title">No client movement yet</div><div class="desc">No client activity yet. Open Client Presentation to start tracking.</div></div></div>';
       return;
     }
 
-    const colTemplate = isDealer ? '1fr 1fr 120px 120px 100px' : '1fr 1fr 120px 100px';
-    listEl.innerHTML = filtered.map(c => {
-      const initials = c.name ? c.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '??';
-      const colors = ['#1F5E47', '#3E6E96', '#9A4A2C', '#A87C3D', '#5F5A78'];
-      const color = colors[Math.abs((c.name || '').charCodeAt(0)) % colors.length];
-      const ltv = isDealer ? `<span style="font-family:'Fraunces',serif;font-size:16px;font-weight:600;color:var(--pm-gold);">${c.lifetimeValue ? 'â‚¹ ' + Number(c.lifetimeValue).toLocaleString('en-IN') : '-'}</span>` : '';
-      return `<div class="pm-table-row" style="grid-template-columns:${colTemplate};">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <div class="pm-avatar sm" style="background:${color};">${initials}</div>
-          <div>
-            <div style="font-size:14.5px;font-weight:700;">${c.name}</div>
-            <div style="font-size:12px;color:var(--pm-text-mut);">${c.phone || '-'}</div>
+    el.innerHTML = visible.slice(0, 30).map(s => {
+      const start = s.start ? new Date(s.start) : null;
+      const dateLabel = start
+        ? start.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ' + start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : 'Unknown time';
+      const areas = [...new Set(s.events.map(e => e.area).filter(Boolean))];
+      const steps = s.events.slice(0, 25).map(e => {
+        const t = e.createdAt ? new Date(e.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        const detail = stepDetail(e);
+        return `<div class="mv-step">
+          <span class="t">${esc(t)}</span>
+          <span class="dot"></span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:700;">${esc(EVENT_LABELS[e.eventType] || e.eventType)}</div>
+            ${detail ? `<div style="font-size:12.5px;color:var(--pm-text-mut);">${esc(detail)}</div>` : ''}
           </div>
+        </div>`;
+      }).join('');
+      const more = s.events.length > 25 ? `<div style="font-size:12.5px;color:var(--pm-text-mut);padding-top:8px;">+ ${s.events.length - 25} more steps in this session</div>` : '';
+      return `<section class="mv-session">
+        <div class="mv-session-head">
+          <div style="font-size:16px;font-weight:800;">${esc(dateLabel)}</div>
+          <div style="font-size:12.5px;color:var(--pm-text-mut);font-weight:600;">${s.events.length} step${s.events.length === 1 ? '' : 's'}${areas.length ? ' · ' + esc(areas.join(', ')) : ''}</div>
         </div>
-        <div>
-          <div style="font-size:14px;font-weight:600;">${c.interestedArea || '-'}</div>
-          <div style="font-size:12px;color:var(--pm-text-mut);">${c.propertyType || ''} ${c.sizeRequirement || ''}</div>
-        </div>
-        <span class="pm-status ${statusClass(c.status)}">${c.status}</span>
-        ${ltv}
-        <select style="font-size:12px;padding:7px 10px;border:1px solid var(--pm-border);border-radius:var(--pm-radius-sm);font-family:inherit;cursor:pointer;background:#fff;" onchange="markStatus('${c.id}', this.value)">
-          <option value="" disabled selected>Updateâ€¦</option>
-          <option value="New">New</option>
-          <option value="Warm">Warm</option>
-          <option value="Property Shared">Property Shared</option>
-          <option value="Site Visit Planned">Site Visit Planned</option>
-          <option value="Negotiation">Negotiation</option>
-          <option value="Not Answering">Not Answering</option>
-          <option value="Closed">Closed</option>
-        </select>
-      </div>`;
+        ${steps}${more}
+      </section>`;
     }).join('');
   }
 
-  // Search
-  document.getElementById('search-input').addEventListener('input', renderClients);
-
-  // Add client form
-  document.getElementById('add-client-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    crm.addClient({
-      name: document.getElementById('c-name').value,
-      phone: document.getElementById('c-phone').value,
-      type: document.getElementById('c-type').value,
-      interestedArea: document.getElementById('c-area').value,
-      propertyType: document.getElementById('c-ptype').value,
-      sizeRequirement: document.getElementById('c-size').value,
-      status: 'New',
-      assignedStaff: 's1'
-    });
-    window.location.reload();
-  });
-
   renderFilters();
-  renderClients();
+  renderSessions();
 });
 </script>
 </body>

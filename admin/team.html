@@ -4,155 +4,100 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Team Workspace â€” PlotMap</title>
+<title>Team Workspace — PlotMap</title>
 <link rel="stylesheet" href="/admin/crm-ui.css">
 <script src="/admin/core/auth.js"></script>
 <script src="/admin/crm-data.js"></script>
 <script src="/admin/core/data-adapter.js"></script>
 <script src="/admin/core/sync-queue.js"></script>
-<script src="/admin/core/finance-engine.js"></script>
-<script src="/admin/core/command-engine.js"></script>
-<script src="/admin/core/report-engine.js"></script>
-<script src="/admin/core/event-tracker.js"></script>
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
 <script src="/admin/core/supabase-sync.js"></script>
+<script src="/admin/core/nav.js"></script>
 <script>
 if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
 </script>
 </head>
 <body class="pm-shell">
 
-<header class="pm-topbar team-bar">
-  <a class="brand" href="/">
-    <div class="brand-icon"><i></i></div>
-    <span class="brand-name">PlotMap</span>
-  </a>
-  <nav>
-    <a href="/admin/team.html" class="on">Workspace</a>
-    <a href="/admin/clients.html">Clients</a>
-    <a href="/admin/properties.html">Properties</a>
-    <a href="/admin/deals.html">Deals</a>
-    <a href="/admin/map-studio.html">Map Studio</a>
-  </nav>
-  <div class="sp"></div>
-  <a href="/admin/index.html" style="font-size:13.5px;font-weight:700;">Switch Role</a>
-</header>
+<header id="pm-topbar"></header>
 
 <main class="pm-main">
-  <!-- Greeting -->
   <div class="pm-page-header">
     <div>
       <h1 id="greeting">Welcome.</h1>
       <div class="sub" id="date-line">Your daily workspace.</div>
     </div>
+    <a class="pm-btn pm-btn-primary" href="/app/plotmap/">Open Client Presentation</a>
   </div>
 
-  <!-- Stat cards -->
-  <div class="pm-grid cols-2" style="margin-bottom:20px;" id="stat-cards">
-    <!-- JS -->
-  </div>
+  <!-- Today's presentation activity -->
+  <div class="pm-grid cols-3" style="margin-bottom:20px;" id="stat-cards"></div>
 
   <!-- Quick Actions -->
   <div style="margin-bottom:18px;">
     <div style="font-size:20px;font-weight:800;margin-bottom:14px;">Quick actions</div>
     <div class="pm-grid cols-3">
-      <a href="/admin/clients.html" class="pm-action-card">
-        <div class="ic" style="background:#E7F0EB;color:var(--pm-emerald);">ðŸ‘¤</div>
-        <div class="txt">Add Client</div>
-      </a>
       <a href="/admin/properties.html" class="pm-action-card">
-        <div class="ic" style="background:#F3EAD8;color:var(--pm-gold);">ðŸ </div>
+        <div class="ic" style="background:#F3EAD8;color:var(--pm-gold);">+</div>
         <div class="txt">Add Property</div>
       </a>
       <a href="/admin/map-studio.html" class="pm-action-card">
-        <div class="ic" style="background:#EDEAF2;color:var(--pm-purple);">ðŸ—ºï¸</div>
+        <div class="ic" style="background:#EDEAF2;color:var(--pm-purple);">◈</div>
         <div class="txt">Map Studio</div>
+      </a>
+      <a href="/admin/clients.html" class="pm-action-card">
+        <div class="ic" style="background:#E7F0EB;color:var(--pm-emerald);">▶</div>
+        <div class="txt">Client Movement</div>
       </a>
     </div>
   </div>
 
-  <!-- My clients + Quick Add -->
-  <div class="pm-grid sidebar-right" style="margin-bottom:18px;align-items:start;">
-    <div class="pm-card-xl">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-        <div>
-          <div style="font-size:18px;font-weight:800;">My clients</div>
-          <div style="font-size:13px;color:var(--pm-text-mut);margin-top:2px;">Clients assigned to you</div>
-        </div>
-        <a href="/admin/clients.html" class="pm-btn-ghost">View all â†’</a>
-      </div>
-      <div class="pm-table-wrap">
-        <table class="pm-table" id="recent-clients">
-          <thead>
-            <tr>
-              <th>Client</th>
-              <th>Status</th>
-              <th>Interest</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <!-- rendered by js -->
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="pm-card-xl">
-      <div style="font-size:18px;font-weight:800;margin-bottom:12px;">Quick Add Client</div>
-      <form class="pm-form" id="quick-client-form">
-        <div class="fld">
-          <label>Name</label>
-          <input type="text" id="qc-name" required placeholder="Client name">
-        </div>
-        <div class="fld">
-          <label>Phone</label>
-          <input type="tel" id="qc-phone" required placeholder="Phone number">
-        </div>
-        <div class="fld">
-          <label>Interested Area</label>
-          <input type="text" id="qc-area" placeholder="e.g. Aerocity">
-        </div>
-        <button type="submit" class="pm-btn pm-btn-primary full">Add Client</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- Recent Activity -->
+  <!-- Recent client movement -->
   <div class="pm-card-xl">
-    <div style="font-size:18px;font-weight:800;margin-bottom:12px;">Recent activity</div>
-    <div id="activity-feed">
-      <!-- JS rendered -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <div>
+        <div class="pm-card-h">Recent client movement</div>
+        <div class="pm-card-sub">Latest Client Presentation events</div>
+      </div>
+      <a href="/admin/clients.html" class="pm-btn-ghost">View all →</a>
     </div>
+    <div id="activity-feed"></div>
   </div>
 </main>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+  window.PMNav.render('dashboard');
+
   const crm = window.CRM;
   const data = crm.getCRM();
+  const events = Array.isArray(data.presentationEvents) ? data.presentationEvents : [];
+  const propById = Object.fromEntries((data.properties || []).map(p => [p.id, p]));
 
-  // Greeting
+  const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[c]);
+
   const hour = new Date().getHours();
   const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const staffUser = data.staff && data.staff.length > 0 ? data.staff[0] : null;
-  const staffName = staffUser ? staffUser.name : 'Team';
-  document.getElementById('greeting').textContent = greet + ', ' + staffName.split(' ')[0] + '.';
-
+  document.getElementById('greeting').textContent = greet + '.';
   const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const now = new Date();
-  document.getElementById('date-line').textContent = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' â€” your daily workspace.';
+  document.getElementById('date-line').textContent = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' — your daily workspace.';
 
-  // Stat cards
+  // Today's activity from Client Presentation events only
   const todayStr = now.toISOString().slice(0, 10);
-  const todayClients = data.clients.filter(c => c.createdAt && c.createdAt.slice(0, 10) === todayStr).length;
-  const todayProps = data.properties.filter(p => p.createdAt && p.createdAt.slice(0, 10) === todayStr).length;
+  const todayEvents = events.filter(e => String(e.createdAt || '').slice(0, 10) === todayStr);
+  const todaySessions = new Set(todayEvents.map(e => e.sessionId).filter(Boolean)).size;
+  const todayViews = todayEvents.filter(e => ['property_viewed', 'property_selected', 'client_panel_opened'].includes(e.eventType)).length;
+  const availableProps = (data.properties || []).filter(p => p.internalStatus === 'Available').length;
 
   document.getElementById('stat-cards').innerHTML = [
-    { k: 'Clients added', v: todayClients, c: 'var(--pm-emerald)' },
-    { k: 'Properties added', v: todayProps, c: 'var(--pm-gold)' }
+    { k: 'Client sessions today', v: todaySessions, c: 'var(--pm-emerald)' },
+    { k: 'Property views today', v: todayViews, c: 'var(--pm-gold)' },
+    { k: 'Available properties', v: availableProps, c: 'var(--pm-blue)' }
   ].map(s => `
     <div style="background:#fff;border:1px solid var(--pm-border);border-radius:22px;padding:24px 26px;box-shadow:0 1px 2px rgba(20,18,12,.03), 0 12px 26px rgba(40,32,15,.04);">
       <div style="font-size:14px;color:var(--pm-text-sec);font-weight:600;">${s.k}</div>
@@ -160,64 +105,38 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   `).join('');
 
-  // Recent clients
-  const rcTbody = document.querySelector('#recent-clients tbody');
-  const recent = [...data.clients].sort((a, b) => {
-    const ta = a.lastActivityAt || a.createdAt || 0;
-    const tb = b.lastActivityAt || b.createdAt || 0;
-    return (typeof tb === 'string' ? tb : String(tb)).localeCompare(typeof ta === 'string' ? ta : String(ta));
-  }).slice(0, 5);
-
-  function sc(s) {
-    if (s === 'Closed') return 'ok';
-    if (s === 'Warm' || s === 'Property Shared' || s === 'Negotiation') return 'warn';
-    if (s === 'Site Visit Planned') return 'info';
-    if (s === 'Not Answering') return 'err';
-    return 'neutral';
-  }
-
-  if (recent.length === 0) {
-    rcTbody.innerHTML = '<tr><td colspan="4" style="padding:24px; text-align:center; color:var(--pm-text-mut);">No clients yet.</td></tr>';
-  } else {
-    rcTbody.innerHTML = recent.map(c => `
-      <tr>
-        <td style="font-weight:600">${c.name}</td>
-        <td><span class="pm-status ${sc(c.status)}">${c.status}</span></td>
-        <td>${c.interestedArea || '-'}</td>
-        <td><a href="/admin/clients.html" class="pm-btn pm-btn-ghost sm">View</a></td>
-      </tr>
-    `).join('');
-  }
-
-  // Activity feed
+  // Activity feed — presentation events only
+  const EVENT_LABELS = {
+    presentation_opened: 'Presentation opened',
+    map_opened: 'Map opened',
+    area_viewed: 'Area viewed',
+    sector_viewed: 'Sector viewed',
+    property_viewed: 'Property viewed',
+    property_selected: 'Property opened',
+    client_panel_opened: 'Property details opened',
+    overlay_selected: 'Map overlay clicked',
+    inventory_opened: 'Inventory opened',
+    property_shared_whatsapp: 'Property shared on WhatsApp'
+  };
   const feedEl = document.getElementById('activity-feed');
-  const events = (data.events || []).slice(-6).reverse();
-  if (events.length === 0) {
-    feedEl.innerHTML = '<div class="pm-empty"><div class="desc">No recent activity.</div></div>';
+  const recent = [...events]
+    .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
+    .slice(0, 6);
+  if (recent.length === 0) {
+    feedEl.innerHTML = '<div class="pm-empty"><div class="title">No client activity yet</div><div class="desc">No client activity yet. Open Client Presentation to start tracking.</div></div>';
   } else {
-    feedEl.innerHTML = events.map(ev => `
-      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-top:1px solid var(--pm-border-subtle);">
+    feedEl.innerHTML = recent.map(e => {
+      const prop = e.propertyId && propById[e.propertyId];
+      const detail = [prop ? (prop.title || prop.name) : null, e.area || null].filter(Boolean).join(' · ');
+      return `<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-top:1px solid var(--pm-border-subtle);">
         <div style="width:8px;height:8px;border-radius:50%;background:var(--pm-emerald);margin-top:6px;flex:none;"></div>
         <div>
-          <div style="font-size:14px;font-weight:700;">${ev.type || ev.action || 'Activity'}</div>
-          <div style="font-size:12px;color:var(--pm-text-mut);">${ev.description || ev.details || ''}</div>
+          <div style="font-size:14px;font-weight:700;">${esc(EVENT_LABELS[e.eventType] || e.eventType)}</div>
+          <div style="font-size:12px;color:var(--pm-text-mut);">${esc(detail || 'Client Presentation')}</div>
         </div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
   }
-
-  // Quick form
-  document.getElementById('quick-client-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    crm.addClient({
-      name: document.getElementById('qc-name').value,
-      phone: document.getElementById('qc-phone').value,
-      interestedArea: document.getElementById('qc-area').value,
-      status: 'New',
-      assignedStaff: 's1'
-    });
-    window.location.reload();
-  });
 });
 </script>
 </body>

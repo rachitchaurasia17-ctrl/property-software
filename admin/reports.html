@@ -2,40 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Section inactive - PlotMap</title>
-<link rel="stylesheet" href="/admin/crm-ui.css">
-<script src="/admin/core/auth.js"></script>
-<script src="/admin/crm-data.js"></script>
-<script src="/admin/core/data-adapter.js"></script>
-<script src="/admin/core/sync-queue.js"></script>
-<script src="/admin/core/access-control.js"></script>
+<title>PlotMap Redirecting...</title>
+<!-- Reports was intentionally removed from the product. Safe redirect only; loads no data. -->
 <script>
-if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
+  window.location.replace('/admin/owner.html');
 </script>
 </head>
-<body class="pm-shell">
-<main class="pm-main" style="min-height:100vh;display:flex;align-items:center;justify-content:center;">
-  <section class="pm-card-xl" style="max-width:560px;text-align:center;">
-    <div class="pm-serif" style="font-size:32px;font-weight:500;letter-spacing:-0.01em;">This section is not active in this version.</div>
-    <div style="font-size:15px;color:var(--pm-text-mut);line-height:1.6;margin-top:10px;">PlotMap is focused on daily business, clients, properties and map activity.</div>
-    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px;">
-      <a class="pm-btn pm-btn-primary" href="/admin/owner.html">Dealer dashboard</a>
-      <a class="pm-btn pm-btn-secondary" href="/admin/team.html">Team workspace</a>
-    </div>
-  </section>
-</main>
-<script>
-(async function() {
-  if (window.PMAuth) {
-    const profile = await window.PMAuth.getCurrentProfile().catch(() => null);
-    if (profile && window.PMAuth.normalizeRole(profile.role) === 'team') {
-      document.querySelector('.pm-btn-primary').href = '/admin/team.html';
-      document.querySelector('.pm-btn-primary').textContent = 'Team workspace';
-    }
-  }
-})();
-</script>
+<body>
+<p><a href="/admin/owner.html">Continue to dashboard</a></p>
 </body>
 </html>

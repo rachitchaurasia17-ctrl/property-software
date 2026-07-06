@@ -17,32 +17,14 @@
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
 <script src="/admin/core/supabase-sync.js"></script>
+<script src="/admin/core/nav.js"></script>
 <script>
 if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
 </script>
 </head>
 <body class="pm-shell">
 
-<header class="pm-topbar dealer-bar">
-  <a class="brand" href="/">
-    <div class="brand-icon"><i></i></div>
-    <span class="brand-name">PlotMap</span>
-  </a>
-  <nav>
-    <a href="/admin/owner.html">Dashboard</a>
-    <a href="/admin/property-insights.html" class="on">Property Insights</a>
-    <a href="/admin/clients.html">Clients</a>
-    <a href="/admin/area-intelligence.html">Area Intelligence</a>
-  </nav>
-  <div class="sp"></div>
-  <div class="role-chip">
-    <div class="role-info">
-      <div class="role-name" id="owner-name">Owner</div>
-      <div class="role-kind">Owner</div>
-    </div>
-    <div class="role-avatar" style="background:var(--pm-emerald);" id="owner-initial">O</div>
-  </div>
-</header>
+<header id="pm-topbar"></header>
 
 <main class="pm-main">
   <div class="pm-page-header">
@@ -98,13 +80,10 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+  window.PMNav.render('property-insights');
   const crm = window.CRM;
   const data = crm.getCRM();
   const props = data.properties || [];
-  const ownerUser = data.users && data.users.find(u => u.role === 'owner');
-  const ownerName = ownerUser ? ownerUser.name : 'Owner';
-  document.getElementById('owner-name').textContent = ownerName.split(' ')[0];
-  document.getElementById('owner-initial').textContent = ownerName.charAt(0).toUpperCase();
 
   const available = props.filter(p => p.internalStatus === 'Available');
   const onHold = props.filter(p => p.internalStatus === 'On Hold');

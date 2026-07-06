@@ -823,7 +823,7 @@ input::placeholder{color:#B9AE94;}
       render();
       toast('Tap the map where the property is');
     });
-    root().querySelectorAll('[data-view]').forEach(b => b.onclick = () => { window.open('/app/plotmap/', '_blank'); });
+    root().querySelectorAll('[data-view]').forEach(b => b.onclick = () => { window.location.href = '/app/plotmap/'; });
   }
 
   /* ---------- publish / confirm modals ---------- */
@@ -847,7 +847,7 @@ input::placeholder{color:#B9AE94;}
         + '<div class="sub">' + esc(pub.doneMsg || 'Now live in Client Presentation.') + '</div>'
         + '<button class="btn-dark" id="pubOpen">Open in Client Presentation</button>'
         + '<button class="btn-ghost" id="pubStay">Keep working</button></div></div>';
-      document.getElementById('pubOpen').onclick = () => { window.open('/app/plotmap/', '_blank'); S.publish = null; S.pubDone = false; renderModals(); };
+      document.getElementById('pubOpen').onclick = () => { S.publish = null; S.pubDone = false; window.location.href = '/app/plotmap/'; };
       document.getElementById('pubStay').onclick = () => { S.publish = null; S.pubDone = false; render(); };
       return;
     }
@@ -919,7 +919,7 @@ input::placeholder{color:#B9AE94;}
 
   /* ---------- boot ---------- */
   document.getElementById('btnMapPick').onclick = () => { S.picker = { q: '' }; renderModals(); };
-  document.getElementById('tabPresent').onclick = () => { window.open('/app/plotmap/', '_blank'); };
+  document.getElementById('tabPresent').onclick = () => { window.location.href = '/app/plotmap/'; };
   document.getElementById('tabStudio').onclick = () => { S.view = 'hub'; render(); };
   if (Store) Store.subscribe(() => { /* remote updates: refresh quietly when idle */ });
   render();

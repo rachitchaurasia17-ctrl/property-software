@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Area Intelligence Ã¢â‚¬â€ PlotMap</title>
+<title>Area Intelligence — PlotMap</title>
 <link rel="stylesheet" href="/admin/crm-ui.css">
 <script src="/admin/core/auth.js"></script>
 <script src="/admin/crm-data.js"></script>
@@ -17,6 +17,7 @@
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
 <script src="/admin/core/supabase-sync.js"></script>
+<script src="/admin/core/nav.js"></script>
 <script>
 if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
 </script>
@@ -31,19 +32,7 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
 </head>
 <body class="pm-shell">
 
-<header class="pm-topbar dealer-bar">
-  <a class="brand" href="/"><div class="brand-icon"><i></i></div><span class="brand-name">PlotMap</span></a>
-  <nav>
-    <a href="/admin/owner.html">Dashboard</a>
-    <a href="/admin/property-insights.html">Property Insights</a>
-    <a href="/admin/clients.html">Clients</a>
-    <a href="/admin/area-intelligence.html" class="on">Area Intelligence</a>
-  </nav>
-  <div class="sp"></div>
-  <div class="role-chip" id="role-chip">
-    <!-- JS -->
-  </div>
-</header>
+<header id="pm-topbar"></header>
 
 <main class="pm-main">
   <div class="pm-page-header">
@@ -77,18 +66,9 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+  window.PMNav.render('area-intelligence');
   const crm = window.CRM;
-  const data = crm.getCRM();
-  
-  // Set role chip
-  const ownerUser = data.users && data.users.find(u => u.role === 'owner');
-  const ownerName = ownerUser ? ownerUser.name : 'Owner';
-  document.getElementById('role-chip').innerHTML = `
-    <div class="role-info"><div class="role-name">${ownerName.split(' ')[0]}</div><div class="role-kind">Owner</div></div>
-    <div class="role-avatar" style="background:var(--pm-emerald);">${ownerName.charAt(0).toUpperCase()}</div>
-  `;
-
-  const areaData = crm.computeAreaInsights(); 
+  const areaData = crm.computeAreaInsights();
   
   // Area Pulse
   const pgrid = document.getElementById('area-pulse');
