@@ -111,8 +111,11 @@
     else GEO = { viewBox: `0 0 ${IW} ${IH}`, cyan: [], red: [], black: [] };
   }
 
-  const supabaseUrl = 'https://czmkfmkmgqlienmdihul.supabase.co';
-  const supabaseKey = 'sb_publishable_DGqcs0JaDVgzImUGGgg_FQ_Q_SkgnhX';
+  const supabaseUrl = (window.env && window.env.VITE_SUPABASE_URL) || 'https://czmkfmkmgqlienmdihul.supabase.co';
+  const supabaseKey = (window.env && window.env.VITE_SUPABASE_ANON_KEY) || 'sb_publishable_DGqcs0JaDVgzImUGGgg_FQ_Q_SkgnhX';
+  if (!supabaseUrl || !supabaseKey) {
+    console.warn('PlotMap Auth [Dev Warning]: Supabase URL or Anon Key is missing. Check your environment configuration (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY).');
+  }
   const supabase = window.supabase ? window.supabase.createClient(supabaseUrl, supabaseKey) : null;
 
 

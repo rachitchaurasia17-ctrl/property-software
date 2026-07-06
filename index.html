@@ -354,7 +354,7 @@
       <p class="lead">Client presentation or dealer workspace.</p>
     </div>
 
-    <div class="cards" aria-label="PlotMap role options">
+    <div class="cards" aria-label="PlotMap role options" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
       <a class="role-card primary" href="/app/plotmap/">
         <span class="role-icon" aria-hidden="true">C</span>
         <span>
@@ -374,6 +374,16 @@
         </span>
         <span class="role-action">Sign In</span>
       </button>
+
+      <a class="role-card team" href="/admin/team.html">
+        <span class="role-icon" aria-hidden="true">T</span>
+        <span>
+          <p class="role-kicker">Internal workspace</p>
+          <h2 class="role-title">Team Login</h2>
+          <p class="role-text">Access team operations and assignments.</p>
+        </span>
+        <span class="role-action" style="background: var(--blue);">Continue as Team</span>
+      </a>
     </div>
 
     <div id="auth-shell">

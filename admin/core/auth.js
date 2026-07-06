@@ -1,9 +1,13 @@
 (function() {
-  const SUPABASE_URL = 'https://czmkfmkmgqlienmdihul.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_DGqcs0JaDVgzImUGGgg_FQ_Q_SkgnhX';
+  const SUPABASE_URL = (window.env && window.env.VITE_SUPABASE_URL) || 'https://czmkfmkmgqlienmdihul.supabase.co';
+  const SUPABASE_KEY = (window.env && window.env.VITE_SUPABASE_ANON_KEY) || 'sb_publishable_DGqcs0JaDVgzImUGGgg_FQ_Q_SkgnhX';
   const SESSION_KEY = 'plotmap_supabase_session_v1';
   const PROFILE_KEY = 'plotmap_supabase_profile_v1';
   const REFRESH_SKEW_MS = 60000;
+
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    console.warn('PlotMap Auth [Dev Warning]: Supabase URL or Anon Key is missing. Check your environment configuration (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY).');
+  }
 
   function isLocalDev() {
     const host = String(location.hostname || '').toLowerCase();
@@ -84,10 +88,10 @@
     };
   }
 
-  async function authFetch(path, options) {
-    const res = await fetch(SUPABASE_URL + path, Object.assign({
-      headers: Object.assign({ apikey: SUPABASE_KEY }, options && options.headers ? options.headers : {})
-    }, options || {}));
+  async function authFetch(path, options = {}) {
+    const headers = Object.assign({ apikey: SUPABASE_KEY }, options.headers || {});
+    const fetchOptions = Object.assign({}, options, { headers });
+    const res = await fetch(SUPABASE_URL + path, fetchOptions);
     if (!res.ok) {
       const body = await res.text().catch(() => '');
       throw new Error(body || ('Supabase auth ' + res.status));
