@@ -1,17 +1,18 @@
 -- ============================================================
--- PlotMap - Multi-Dealer Isolation corrected migration
--- Phase 2 security prep. DO NOT run until reviewed and approved.
+-- PlotMap - Multi-Dealer Isolation RPC setup
+-- Phase 2 Migration A. Safe to apply before the RPC frontend deploy.
 --
 -- Purpose:
---   Move public Client Presentation reads/writes behind dealer-scoped
---   SECURITY DEFINER RPCs, then remove direct anon table/view access.
+--   Add dealer-scoped SECURITY DEFINER RPCs for Client Presentation
+--   reads/writes without removing the old direct anon table/view paths.
 --
--- Safety:
+-- Rollout safety:
+--   - Non-breaking for old production frontend.
+--   - No revokes.
+--   - No public policy drops.
 --   - No destructive schema or data operations.
 --   - No unconditional private-table policies.
 --   - Does not mutate existing data rows.
---   - Does not change authenticated staff RLS except removing the old
---     direct public anon paths after RPCs exist.
 -- ============================================================
 
 create extension if not exists pgcrypto;
@@ -149,21 +150,3 @@ $$;
 grant execute on function public.plotmap_record_presentation_event(
   text, text, text, text, text, text, text, text, jsonb, text, timestamptz
 ) to anon, authenticated;
-
--- ---------- remove old unscoped public paths after RPCs exist ----------
-revoke select on public.client_safe_properties from anon;
-revoke select on public.prebuilt_maps from anon;
-revoke select on public.map_overlays from anon;
-revoke insert on public.presentation_events from anon;
-
-drop policy if exists "plotmap prebuilt public read" on public.prebuilt_maps;
-drop policy if exists "plotmap overlays public read" on public.map_overlays;
-drop policy if exists "plotmap pevents public insert" on public.presentation_events;
-
--- Retired policies from the original setup are included defensively. These
--- names should already be gone if supabase_security_patch.sql is live.
-drop policy if exists "plotmap public read" on public.prebuilt_maps;
-drop policy if exists "plotmap public write" on public.prebuilt_maps;
-drop policy if exists "plotmap overlays read" on public.map_overlays;
-drop policy if exists "plotmap overlays write" on public.map_overlays;
-drop policy if exists "plotmap pevents insert" on public.presentation_events;

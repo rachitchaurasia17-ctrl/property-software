@@ -2,10 +2,10 @@
 
 _Prepared by Claude · 2026-07-07 · branch `phase-1-5-role-and-isolation-prep`_
 
-> **STATUS: PREP ONLY.** No migration has been applied. The draft migration
-> `supabase/migrations/20260707_multi_dealer_isolation_draft.sql` **MUST BE
-> REVIEWED BY CODEX BEFORE APPLYING.** Multi-dealer isolation is **not
-> production-trusted** until then.
+> **STATUS: PREP ONLY.** No migration has been applied. Phase 2 is split into
+> a non-breaking RPC setup migration and a later anon lockdown migration. Apply
+> them only in the safe rollout order below. Multi-dealer isolation is **not
+> production-trusted** until both migrations are applied and verified.
 
 Goal: dealer A can never read or write dealer B's properties, maps, overlays,
 settings, share links, audit logs, analytics, or team data — enforced in
@@ -118,7 +118,39 @@ recommended for a paid multi-dealer product.
 the RPCs to use. Backfill/parameterize the `dealer-demo` default (R5) and
 `dealer_id` on legacy rows (R4) — data task, done by Codex with care.
 
-## 6. Draft migration created
+## 6. Phase 2 rollout migrations
+
+`supabase/migrations/20260707a_multi_dealer_rpc_setup.sql` is Migration A.
+It is additive and intended to be safe before the frontend deploy: dealer_id
+indexes, `plotmap_dealer_is_active`, dealer-scoped Client Presentation read
+RPCs, the presentation event write RPC, and execute grants. It does **not**
+revoke anon table/view access or drop public policies, so old production should
+continue working if Migration A is applied by itself.
+
+`supabase/migrations/20260707b_multi_dealer_anon_lockdown.sql` is Migration B.
+It is the breaking lockdown step and is explicitly marked:
+**DO NOT APPLY UNTIL AFTER RPC FRONTEND IS DEPLOYED AND VERIFIED.** It revokes
+direct anon access from `client_safe_properties`, `prebuilt_maps`,
+`map_overlays`, and `presentation_events`, then drops the old public
+read/insert policies.
+
+Safe rollout order:
+
+1. Apply Migration A to the target Supabase project.
+2. Deploy the frontend that reads properties/maps/overlays through the RPCs and
+   writes presentation analytics through `plotmap_record_presentation_event`.
+3. Verify Client Presentation loads for the target dealer, published overlays
+   render, and presentation events are written through the RPC.
+4. Apply Migration B only after step 3 passes in production.
+5. Run the two-dealer Antigravity checklist below.
+
+The older one-shot corrected migration has been removed from the active
+migration set to prevent accidentally applying setup and lockdown together.
+The original draft migration remains historical prep context only. These
+migrations contain no `DROP TABLE`/`DELETE`/`TRUNCATE`, no `using(true)`/`with
+check(true)`.
+
+Historical draft context:
 
 `supabase/migrations/20260707_multi_dealer_isolation_draft.sql` — **DRAFT, not
 applied.** Active statements are additive/idempotent only (dealer_id indexes +
