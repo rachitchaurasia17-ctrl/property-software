@@ -54,10 +54,13 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
           <label>Photo links (comma separated, optional)</label>
           <input type="text" id="p-photos" placeholder="https://…jpg, https://…jpg">
           <div style="font-size:12px;color:var(--pm-text-mut);margin-top:6px;" id="p-photo-storage-note">Storage scaffold: photos can later live in Supabase Storage.</div>
+          <!-- Photo manager: shows current photos (URL + uploaded) with remove. Always available. -->
+          <div id="p-photo-manager" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;"></div>
           <!-- Upload UI: hidden unless dealer storage is enabled (Phase 5). Inert by default. -->
           <div id="p-photo-upload" style="display:none;margin-top:10px;">
             <input type="file" id="p-photo-file" accept="image/jpeg,image/png,image/webp" multiple>
             <button type="button" class="pm-btn pm-btn-secondary sm" id="p-photo-upload-btn" style="margin-left:8px;">Upload to storage</button>
+            <div id="p-photo-selected" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;"></div>
             <div id="p-photo-upload-status" style="font-size:12px;color:var(--pm-text-mut);margin-top:6px;"></div>
           </div>
         </div>
@@ -195,8 +198,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('p-visible').checked = prop ? prop.clientVisible !== false : true;
     if (window.PMFoundation) {
       const storagePath = window.PMFoundation.photoFolderForProperty((prop && prop.id) || 'draft');
-      document.getElementById('p-photo-storage-note').textContent = 'Storage scaffold: ' + storagePath;
+      document.getElementById('p-photo-storage-note').textContent = 'Storage folder: ' + storagePath;
     }
+    if (window.PMPhotoManager) window.PMPhotoManager.reset(prop);
     formCard.style.display = 'block';
     formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -377,8 +381,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('add-prop-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const editingId = document.getElementById('p-editing').value;
-    const photos = document.getElementById('p-photos').value
-      .split(',').map(s => s.trim()).filter(s => /^https?:\/\//i.test(s)).slice(0, 8);
+    // Photos come from the photo manager (URL links + gated storage uploads).
+    const photoData = window.PMPhotoManager
+      ? window.PMPhotoManager.collect()
+      : (function () {
+          const urls = document.getElementById('p-photos').value.split(',').map(s => s.trim()).filter(s => /^https?:\/\//i.test(s)).slice(0, 8);
+          return { photos: urls, photoStorage: urls.map((url, i) => ({ id: 'photo-' + i, kind: 'external', publicUrl: url })) };
+        })();
     const fields = {
       title: document.getElementById('p-title').value.trim(),
       area: document.getElementById('p-area').value.trim(),
@@ -393,8 +402,8 @@ document.addEventListener('DOMContentLoaded', () => {
       sectorMapId: document.getElementById('p-sectormap').value || null,
       masterMapId: (masterMapForArea(document.getElementById('p-area').value.trim()) || {}).id || null,
       description: document.getElementById('p-desc').value.trim(),
-      photos,
-      photoStorage: photos.map((url, index) => ({ id: 'photo-' + index, kind: 'external', publicUrl: url })),
+      photos: photoData.photos,
+      photoStorage: photoData.photoStorage,
       clientVisible: document.getElementById('p-visible').checked
     };
     if (editingId) crm.updateProperty(editingId, fields);
@@ -413,61 +422,139 @@ document.addEventListener('DOMContentLoaded', () => {
   renderProps();
 });
 
-// ── Phase 5 (PREP): per-dealer photo upload to Supabase Storage ──
-// INERT by default: the UI only appears when this dealer's settings have
-// storageEnabled = true, which requires the bucket + per-dealer Storage RLS
-// policies (draft: supabase/migrations/20260707_storage_photo_policies_draft.sql)
-// to be applied and reviewed by Codex first. No policies are applied here.
-document.addEventListener('DOMContentLoaded', () => {
-  const wrap = document.getElementById('p-photo-upload');
-  if (!wrap || !window.PMFoundation) return;
-  let settings;
-  try { settings = window.PMFoundation.getDealerSettings(); } catch (e) { return; }
-  if (!settings || settings.storageEnabled !== true) return; // stays hidden in prod until enabled
-  wrap.style.display = 'block';
-
+// ── Phase 5: property photo workflow (URL links + gated Storage upload) ──
+// PMPhotoManager tracks two photo kinds for the open form:
+//   • URL photos   → the comma-separated https links in #p-photos
+//   • storage photos → objects uploaded to the per-dealer Storage folder
+//     (only when the dealer has storageEnabled=true; needs the bucket + RLS
+//     from the Codex-gated draft migration). Both survive save via photoStorage.
+// Serving Storage photos to Client Presentation needs signed URLs — until that
+// lands, storage photos are recorded but shown as "pending" here, and never
+// leak to clients (private bucket, no anon read).
+window.PMPhotoManager = (function () {
   const MAX_BYTES = 5 * 1024 * 1024;
   const OK_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-  const statusEl = document.getElementById('p-photo-upload-status');
-  const setStatus = (msg) => { statusEl.textContent = msg; };
+  let storagePaths = [];           // uploaded object paths for the open form
+  const $ = (id) => document.getElementById(id);
+  const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]);
 
-  document.getElementById('p-photo-upload-btn').addEventListener('click', async () => {
-    const fileInput = document.getElementById('p-photo-file');
-    const files = [...(fileInput.files || [])];
-    if (!files.length) { setStatus('Choose one or more image files first.'); return; }
-    const bad = files.find(f => !OK_TYPES.includes(f.type) || f.size > MAX_BYTES);
-    if (bad) { setStatus('Only JPG/PNG/WebP up to 5 MB each are allowed.'); return; }
-    if (!window.PMAuth) { setStatus('Not signed in.'); return; }
-    const token = await window.PMAuth.getAccessToken().catch(() => null);
-    if (!token) { setStatus('Session expired — sign in again.'); return; }
+  function urlPhotos() {
+    return ($('p-photos').value || '').split(',').map(s => s.trim()).filter(s => /^https?:\/\//i.test(s));
+  }
+  function fileLabel(path) { return String(path).split('/').pop(); }
 
-    const bucket = settings.photoBucket || 'property-photos';
-    const propId = document.getElementById('p-editing').value || 'draft';
-    const added = [];
-    for (const file of files) {
-      const path = window.PMFoundation.buildPhotoObjectPath(propId, file.name.replace(/\.[^.]+$/, ''));
-      setStatus('Uploading ' + file.name + '…');
-      try {
-        const res = await fetch(window.PMAuth.SUPABASE_URL + '/storage/v1/object/' + bucket + '/' + path, {
-          method: 'POST',
-          headers: { apikey: window.PMAuth.SUPABASE_KEY, Authorization: 'Bearer ' + token, 'x-upsert': 'true' },
-          body: file
-        });
-        if (!res.ok) { setStatus('Upload failed for ' + file.name + ' (' + res.status + '). Check Storage bucket + policies.'); return; }
-        // Private bucket: store the object PATH; serving needs a signed URL or a
-        // client-visible read policy — see the Codex handoff. Path is appended to
-        // the photo-links field so it saves with the property on submit.
-        added.push(path);
-      } catch (err) {
-        setStatus('Upload error: ' + (err && err.message ? err.message : 'network')); return;
-      }
-    }
-    const photosField = document.getElementById('p-photos');
-    photosField.value = [photosField.value.trim(), ...added].filter(Boolean).join(', ');
-    setStatus('Uploaded ' + added.length + ' file(s). They save with the property. (Serving needs signed URLs — see handoff.)');
-    fileInput.value = '';
+  function renderManager() {
+    const host = $('p-photo-manager');
+    if (!host) return;
+    const chips = [];
+    urlPhotos().forEach((url, i) => chips.push(
+      '<span class="pm-chip" style="display:inline-flex;align-items:center;gap:8px;">' +
+        '<span style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(fileLabel(url)) + '</span>' +
+        '<button type="button" data-rm-url="' + i + '" title="Remove" style="border:none;background:transparent;cursor:pointer;color:#b0532c;font-weight:800;">✕</button>' +
+      '</span>'));
+    storagePaths.forEach((p, i) => chips.push(
+      '<span class="pm-chip" style="display:inline-flex;align-items:center;gap:8px;background:#E9EFF4;">' +
+        '<span style="font-size:11px;color:#3E6E96;font-weight:700;">stored</span>' +
+        '<span style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(fileLabel(p)) + '</span>' +
+        '<button type="button" data-rm-store="' + i + '" title="Remove" style="border:none;background:transparent;cursor:pointer;color:#b0532c;font-weight:800;">✕</button>' +
+      '</span>'));
+    host.innerHTML = chips.length ? chips.join('') : '<span style="font-size:12px;color:var(--pm-text-mut);">No photos yet.</span>';
+    host.querySelectorAll('[data-rm-url]').forEach(btn => btn.addEventListener('click', () => {
+      const list = urlPhotos(); list.splice(Number(btn.getAttribute('data-rm-url')), 1);
+      $('p-photos').value = list.join(', '); renderManager();
+    }));
+    host.querySelectorAll('[data-rm-store]').forEach(btn => btn.addEventListener('click', () => {
+      storagePaths.splice(Number(btn.getAttribute('data-rm-store')), 1); renderManager();
+    }));
+  }
+
+  function reset(prop) {
+    storagePaths = (prop && Array.isArray(prop.photoStorage))
+      ? prop.photoStorage.filter(e => e && e.kind === 'storage' && e.path).map(e => e.path) : [];
+    const sel = $('p-photo-selected'); if (sel) sel.innerHTML = '';
+    const st = $('p-photo-upload-status'); if (st) st.textContent = '';
+    renderManager();
+  }
+
+  // Returns { photos, photoStorage } for the property record on submit.
+  function collect() {
+    const urls = urlPhotos().slice(0, 8);
+    const photoStorage = [
+      ...urls.map((url, i) => ({ id: 'photo-ext-' + i, kind: 'external', publicUrl: url })),
+      ...storagePaths.map((path, i) => ({ id: 'photo-st-' + i, kind: 'storage', path: path, publicUrl: null }))
+    ];
+    return { photos: urls, photoStorage: photoStorage };
+  }
+
+  // Keep the manager in sync when URL links are typed/pasted (always active).
+  document.addEventListener('DOMContentLoaded', () => {
+    const links = $('p-photos');
+    if (links) links.addEventListener('input', renderManager);
+    renderManager();
   });
-});
+
+  // Wire the gated uploader (only visible when storage is enabled).
+  document.addEventListener('DOMContentLoaded', () => {
+    const wrap = $('p-photo-upload');
+    if (!wrap || !window.PMFoundation) return;
+    let settings; try { settings = window.PMFoundation.getDealerSettings(); } catch (e) { return; }
+    if (!settings || settings.storageEnabled !== true) return; // stays hidden until backend is live
+    wrap.style.display = 'block';
+    const setStatus = (m) => { const el = $('p-photo-upload-status'); if (el) el.textContent = m; };
+    const fileInput = $('p-photo-file');
+
+    fileInput.addEventListener('change', () => {
+      const sel = $('p-photo-selected'); sel.innerHTML = '';
+      [...(fileInput.files || [])].forEach(f => {
+        const ok = OK_TYPES.includes(f.type) && f.size <= MAX_BYTES;
+        const tag = document.createElement('span');
+        tag.className = 'pm-chip';
+        tag.style.cssText = 'font-size:11px;' + (ok ? '' : 'background:#F7E7E0;color:#b0532c;');
+        tag.textContent = f.name + (ok ? '' : ' — rejected');
+        sel.appendChild(tag);
+      });
+    });
+
+    $('p-photo-upload-btn').addEventListener('click', async () => {
+      const files = [...(fileInput.files || [])];
+      if (!files.length) { setStatus('Choose one or more image files first.'); return; }
+      if (files.some(f => !OK_TYPES.includes(f.type) || f.size > MAX_BYTES)) {
+        setStatus('Only JPG/PNG/WebP up to 5 MB each are allowed.'); return;
+      }
+      if (!window.PMAuth) { setStatus('Not signed in.'); return; }
+      const token = await window.PMAuth.getAccessToken().catch(() => null);
+      if (!token) { setStatus('Session expired — sign in again.'); return; }
+      const bucket = settings.photoBucket || 'property-photos';
+      const propId = $('p-editing').value || 'draft';
+      let done = 0;
+      for (const file of files) {
+        const base = file.name.replace(/\.[^.]+$/, '') + '-' + (storagePaths.length + done + 1);
+        const path = window.PMFoundation.buildPhotoObjectPath(propId, base);
+        setStatus('Uploading ' + (done + 1) + '/' + files.length + ' — ' + file.name + '…');
+        try {
+          const res = await fetch(window.PMAuth.SUPABASE_URL + '/storage/v1/object/' + bucket + '/' + path, {
+            method: 'POST',
+            headers: { apikey: window.PMAuth.SUPABASE_KEY, Authorization: 'Bearer ' + token, 'x-upsert': 'true' },
+            body: file
+          });
+          if (!res.ok) {
+            const hint = (res.status === 400 || res.status === 404) ? ' Storage bucket/policies may not be live yet.'
+              : (res.status === 401 || res.status === 403) ? ' Not permitted — check Storage RLS.' : '';
+            setStatus('Upload failed for ' + file.name + ' (' + res.status + ').' + hint + ' Your other photos are unaffected.');
+            renderManager(); return;
+          }
+          storagePaths.push(path); done++;
+        } catch (err) {
+          setStatus('Upload error (network). Your saved photos are unaffected.'); renderManager(); return;
+        }
+      }
+      setStatus('Uploaded ' + done + ' file(s). Saved with the property. Client display needs signed URLs (see handoff).');
+      fileInput.value = ''; $('p-photo-selected').innerHTML = ''; renderManager();
+    });
+  });
+
+  return { reset: reset, collect: collect, render: renderManager };
+})();
 </script>
 </body>
 </html>
