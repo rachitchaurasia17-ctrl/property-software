@@ -75,13 +75,22 @@ body {
 }
 
 .road-shadow {
-  stroke: rgba(0, 24, 48, 0.55);
-  stroke-width: 16;
+  stroke: rgba(0, 24, 48, 0.38);
+  stroke-width: 17;
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
-  filter: blur(6px);
+  filter: url(#roadShadowBlur);
   transform: translateY(5px);
+}
+
+.road-halo {
+  stroke: rgba(0, 150, 255, 0.28);
+  stroke-width: 20;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: url(#roadGlow);
 }
 
 .road-body {
@@ -90,9 +99,7 @@ body {
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
-  filter:
-    drop-shadow(0 0 8px rgba(0, 195, 255, 0.9))
-    drop-shadow(0 0 18px rgba(0, 130, 255, 0.65));
+  filter: drop-shadow(0 0 8px rgba(0, 195, 255, 0.85));
 }
 
 .road-core {
@@ -101,10 +108,7 @@ body {
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
-  filter:
-    drop-shadow(0 0 4px rgba(255,255,255,0.95))
-    drop-shadow(0 0 14px rgba(0,210,255,0.95))
-    drop-shadow(0 0 28px rgba(0,120,255,0.8));
+  filter: drop-shadow(0 0 6px rgba(120, 225, 255, 0.95));
 }
 
 .road-dash {
@@ -114,14 +118,15 @@ body {
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-dasharray: 2 26;
-  animation: pmFlow 1.6s linear infinite;
-  filter: drop-shadow(0 0 5px rgba(255,255,255,0.9)) drop-shadow(0 0 10px rgba(0,210,255,0.9));
+  animation: pmFlow 2.6s linear infinite;
 }
 @keyframes pmFlow { to { stroke-dashoffset: -56; } }
+@media (prefers-reduced-motion: reduce) { .road-dash { animation: none; } }
 
 /* road groups toggle off when deselected */
 .road-g { transition: opacity .35s ease; }
 .road-g.off .road-shadow,
+.road-g.off .road-halo,
 .road-g.off .road-body,
 .road-g.off .road-core,
 .road-g.off .road-dash { display: none; }
@@ -226,51 +231,63 @@ body {
 
   <!-- 2 · road glow overlay (viewBox mapped onto the full image) -->
   <svg class="road-overlay" viewBox="0 0 1600 1200" preserveAspectRatio="none" aria-hidden="true">
+    <defs>
+      <filter id="roadGlow" x="-30%" y="-30%" width="160%" height="160%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="6"></feGaussianBlur>
+      </filter>
+      <filter id="roadShadowBlur" x="-30%" y="-30%" width="160%" height="160%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="3"></feGaussianBlur>
+      </filter>
+    </defs>
+
     <!-- Chandi Path — top spine -->
     <g class="road-g" data-road="chandi-path">
       <path class="road-shadow" d="M 106 142 L 480 139 L 900 140 L 1493 141"/>
+      <path class="road-halo"   d="M 106 142 L 480 139 L 900 140 L 1493 141"/>
       <path class="road-body"   d="M 106 142 L 480 139 L 900 140 L 1493 141"/>
       <path class="road-core"   d="M 106 142 L 480 139 L 900 140 L 1493 141"/>
       <path class="road-dash"   d="M 106 142 L 480 139 L 900 140 L 1493 141"/>
       <path class="road-hit"    d="M 106 142 L 480 139 L 900 140 L 1493 141"/>
     </g>
 
-    <!-- Central spine — Chandi Path down to Purav Marg past the petrol pump -->
+    <!-- Central spine — Chandi Path down past the shops to Purav Marg (pixel-verified centerline) -->
     <g class="road-g" data-road="central-spine">
-      <path class="road-shadow" d="M 795 138 C 800 240 806 290 818 380 C 832 465 858 560 886 660 C 896 740 884 830 866 940 L 860 1002"/>
-      <path class="road-body"   d="M 795 138 C 800 240 806 290 818 380 C 832 465 858 560 886 660 C 896 740 884 830 866 940 L 860 1002"/>
-      <path class="road-core"   d="M 795 138 C 800 240 806 290 818 380 C 832 465 858 560 886 660 C 896 740 884 830 866 940 L 860 1002"/>
-      <path class="road-dash"   d="M 795 138 C 800 240 806 290 818 380 C 832 465 858 560 886 660 C 896 740 884 830 866 940 L 860 1002"/>
-      <path class="road-hit"    d="M 795 138 C 800 240 806 290 818 380 C 832 465 858 560 886 660 C 896 740 884 830 866 940 L 860 1002"/>
+      <path class="road-shadow" d="M 785 138 C 795 185, 805 225, 812 265 C 818 320, 816 370, 820 420 C 822 450, 820 480, 826 508 C 836 555, 845 595, 858 630 C 870 658, 885 682, 890 705 C 882 745, 826 772, 810 800 C 802 830, 800 860, 800 900 C 800 940, 799 975, 800 1010"/>
+      <path class="road-halo"   d="M 785 138 C 795 185, 805 225, 812 265 C 818 320, 816 370, 820 420 C 822 450, 820 480, 826 508 C 836 555, 845 595, 858 630 C 870 658, 885 682, 890 705 C 882 745, 826 772, 810 800 C 802 830, 800 860, 800 900 C 800 940, 799 975, 800 1010"/>
+      <path class="road-body"   d="M 785 138 C 795 185, 805 225, 812 265 C 818 320, 816 370, 820 420 C 822 450, 820 480, 826 508 C 836 555, 845 595, 858 630 C 870 658, 885 682, 890 705 C 882 745, 826 772, 810 800 C 802 830, 800 860, 800 900 C 800 940, 799 975, 800 1010"/>
+      <path class="road-core"   d="M 785 138 C 795 185, 805 225, 812 265 C 818 320, 816 370, 820 420 C 822 450, 820 480, 826 508 C 836 555, 845 595, 858 630 C 870 658, 885 682, 890 705 C 882 745, 826 772, 810 800 C 802 830, 800 860, 800 900 C 800 940, 799 975, 800 1010"/>
+      <path class="road-dash"   d="M 785 138 C 795 185, 805 225, 812 265 C 818 320, 816 370, 820 420 C 822 450, 820 480, 826 508 C 836 555, 845 595, 858 630 C 870 658, 885 682, 890 705 C 882 745, 826 772, 810 800 C 802 830, 800 860, 800 900 C 800 940, 799 975, 800 1010"/>
+      <path class="road-hit"    d="M 785 138 C 795 185, 805 225, 812 265 C 818 320, 816 370, 820 420 C 822 450, 820 480, 826 508 C 836 555, 845 595, 858 630 C 870 658, 885 682, 890 705 C 882 745, 826 772, 810 800 C 802 830, 800 860, 800 900 C 800 940, 799 975, 800 1010"/>
     </g>
 
-    <!-- Mid connector — spine to Sector 26 edge, past Saint Soldier School -->
+    <!-- East link — spine junction along Saint Soldier School toward Sector 26 (pixel-verified centerline) -->
     <g class="road-g" data-road="school-link">
-      <path class="road-shadow" d="M 868 552 L 1080 538 L 1300 527 L 1494 522"/>
-      <path class="road-body"   d="M 868 552 L 1080 538 L 1300 527 L 1494 522"/>
-      <path class="road-core"   d="M 868 552 L 1080 538 L 1300 527 L 1494 522"/>
-      <path class="road-dash"   d="M 868 552 L 1080 538 L 1300 527 L 1494 522"/>
-      <path class="road-hit"    d="M 868 552 L 1080 538 L 1300 527 L 1494 522"/>
+      <path class="road-shadow" d="M 890 700 C 928 683, 965 672, 1005 680 C 1055 690, 1105 704, 1150 722 C 1200 742, 1235 764, 1275 771 C 1320 776, 1345 758, 1385 738 C 1412 725, 1432 716, 1455 708"/>
+      <path class="road-halo"   d="M 890 700 C 928 683, 965 672, 1005 680 C 1055 690, 1105 704, 1150 722 C 1200 742, 1235 764, 1275 771 C 1320 776, 1345 758, 1385 738 C 1412 725, 1432 716, 1455 708"/>
+      <path class="road-body"   d="M 890 700 C 928 683, 965 672, 1005 680 C 1055 690, 1105 704, 1150 722 C 1200 742, 1235 764, 1275 771 C 1320 776, 1345 758, 1385 738 C 1412 725, 1432 716, 1455 708"/>
+      <path class="road-core"   d="M 890 700 C 928 683, 965 672, 1005 680 C 1055 690, 1105 704, 1150 722 C 1200 742, 1235 764, 1275 771 C 1320 776, 1345 758, 1385 738 C 1412 725, 1432 716, 1455 708"/>
+      <path class="road-dash"   d="M 890 700 C 928 683, 965 672, 1005 680 C 1055 690, 1105 704, 1150 722 C 1200 742, 1235 764, 1275 771 C 1320 776, 1345 758, 1385 738 C 1412 725, 1432 716, 1455 708"/>
+      <path class="road-hit"    d="M 890 700 C 928 683, 965 672, 1005 680 C 1055 690, 1105 704, 1150 722 C 1200 742, 1235 764, 1275 771 C 1320 776, 1345 758, 1385 738 C 1412 725, 1432 716, 1455 708"/>
     </g>
   </svg>
 
   <!-- 3–6 · selection overlays + pins -->
   <div class="selection-layer">
-    <!-- house · 4-K block, north-east -->
-    <div class="selected-house" style="left:74.1%; top:19.9%; width:4.0%; height:5.6%;" title="House · 4-K block"></div>
-    <div class="map-pin" style="left:76.1%; top:19.4%;"></div>
+    <!-- house · 2-K row, west block (pixel-verified footprint) -->
+    <div class="selected-house" style="left:15.88%; top:37.33%; width:2.63%; height:4.33%;" title="House · 2-K row"></div>
+    <div class="map-pin" style="left:17.19%; top:37.1%;"></div>
 
-    <!-- house · 2-K row, east -->
-    <div class="selected-house" style="left:68.0%; top:37.3%; width:3.5%; height:4.9%;" title="House · 2-K row"></div>
-    <div class="map-pin" style="left:69.75%; top:36.8%;"></div>
+    <!-- house · 3-K row, east of the spine (pixel-verified footprint) -->
+    <div class="selected-house" style="left:67.2%; top:31.0%; width:2.88%; height:4.67%;" title="House · 3-K row"></div>
+    <div class="map-pin" style="left:68.63%; top:30.8%;"></div>
 
-    <!-- house · 5-M row, south-central -->
-    <div class="selected-house" style="left:41.0%; top:71.7%; width:3.2%; height:4.8%;" title="House · 5-Marla row"></div>
-    <div class="map-pin" style="left:42.6%; top:71.2%;"></div>
+    <!-- house · B block, south-east (pixel-verified footprint) -->
+    <div class="selected-house" style="left:81.75%; top:68.17%; width:2.38%; height:4.67%;" title="House · B block"></div>
+    <div class="map-pin" style="left:82.94%; top:67.95%;"></div>
 
     <!-- school · Saint Soldier High School (translucent frame keeps the label readable) -->
-    <div class="selected-school" style="left:62.6%; top:51.8%; width:16.3%; height:9.2%;" title="Saint Soldier High School"></div>
-    <div class="map-pin" style="left:70.7%; top:51.3%; width:38px; height:38px;"></div>
+    <div class="selected-school" style="left:59.94%; top:51.33%; width:19.5%; height:11.5%;" title="Saint Soldier High School"></div>
+    <div class="map-pin" style="left:69.69%; top:51.15%; width:38px; height:38px;"></div>
   </div>
 </div>
 
