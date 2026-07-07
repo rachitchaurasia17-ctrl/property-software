@@ -49,7 +49,7 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
       <h1 id="greeting" class="pm-serif">Welcome.</h1>
       <div class="sub" id="date-line">Your work table for today.</div>
     </div>
-    <a class="pm-btn pm-btn-primary" href="/app/plotmap/">Open Client Presentation</a>
+    <button type="button" class="pm-btn pm-btn-primary" id="hdr-add-client">+ Add Client Details</button>
   </div>
 
   <!-- This week -->
@@ -130,31 +130,49 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
   </div>
 </main>
 
-<!-- Add Client modal -->
+<!-- Add / edit client details modal -->
 <div class="tw-overlay" id="modal-client">
   <form class="tw-modal" id="form-client">
-    <h2>Add Client</h2>
-    <div class="pm-card-sub" style="margin-bottom:14px;">A new lead for your book.</div>
+    <h2 id="cl-title">Client details</h2>
+    <div class="pm-card-sub" id="cl-sub" style="margin-bottom:14px;">Just the basics — you can add more later. Saved details show up on the Dealer Login too.</div>
+    <input type="hidden" id="cl-id" value="">
     <div class="pm-form">
-      <div class="fld"><label>Name</label><input id="cl-name" type="text" placeholder="Client name" required></div>
+      <div class="fld"><label>Full name</label><input id="cl-name" type="text" placeholder="e.g. Rajdeep Singh" required></div>
       <div class="pm-grid cols-2" style="margin-top:10px;">
-        <div class="fld"><label>Phone</label><input id="cl-phone" type="text" placeholder="Phone"></div>
-        <div class="fld"><label>Interested area</label><input id="cl-area" type="text" placeholder="e.g. Aerocity"></div>
+        <div class="fld"><label>Phone</label><input id="cl-phone" type="text" placeholder="+91 …"></div>
+        <div class="fld"><label>Budget</label><input id="cl-budget" type="text" placeholder="₹ …"></div>
+      </div>
+      <div class="pm-grid cols-2" style="margin-top:10px;">
+        <div class="fld"><label>Area interested in</label><input id="cl-area" type="text" placeholder="e.g. Aerocity"></div>
+        <div class="fld"><label>Property type</label>
+          <select id="cl-ptype">
+            <option value="">—</option>
+            <option>Residential Plot</option><option>Commercial</option><option>Commercial SCO</option>
+            <option>Showroom</option><option>Residential</option><option>Other</option>
+          </select>
+        </div>
       </div>
       <div class="pm-grid cols-2" style="margin-top:10px;">
         <div class="fld"><label>Requirement</label><input id="cl-size" type="text" placeholder="e.g. 250 sq yd"></div>
         <div class="fld"><label>Stage</label>
           <select id="cl-status">
             <option>New</option><option>Warm</option><option>Property Shared</option>
-            <option>Site Visit Planned</option><option>Negotiation</option><option>Closed</option>
+            <option>Site Visit Planned</option><option>Site Visit Done</option>
+            <option>Negotiation</option><option>Closed</option><option>Not Answering</option>
           </select>
         </div>
+      </div>
+      <div class="fld" style="margin-top:10px;"><label>How did they reach you?</label>
+        <select id="cl-source">
+          <option value="">—</option>
+          <option>Walk-in</option><option>Reference</option><option>WhatsApp</option><option>Website</option><option>Campaign</option>
+        </select>
       </div>
       <div class="fld" style="margin-top:10px;"><label>Notes</label><input id="cl-notes" type="text" placeholder="Anything worth remembering"></div>
     </div>
     <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end;">
       <button type="button" class="pm-btn pm-btn-secondary" data-close-modal="modal-client">Cancel</button>
-      <button type="submit" class="pm-btn pm-btn-primary">Add Client</button>
+      <button type="submit" class="pm-btn pm-btn-primary" id="cl-submit">Save client</button>
     </div>
   </form>
 </div>
@@ -179,31 +197,11 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
   </form>
 </div>
 
-<!-- Update Client stage modal -->
-<div class="tw-overlay" id="modal-update">
-  <form class="tw-modal" id="form-update">
-    <h2>Update client</h2>
-    <div class="pm-card-sub" id="up-who" style="margin-bottom:14px;"></div>
-    <input type="hidden" id="up-id" value="">
-    <div class="pm-form">
-      <div class="fld"><label>Stage</label>
-        <select id="up-status">
-          <option>New</option><option>Warm</option><option>Property Shared</option>
-          <option>Site Visit Planned</option><option>Site Visit Done</option>
-          <option>Negotiation</option><option>Closed</option><option>Not Answering</option>
-        </select>
-      </div>
-    </div>
-    <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end;">
-      <button type="button" class="pm-btn pm-btn-secondary" data-close-modal="modal-update">Cancel</button>
-      <button type="submit" class="pm-btn pm-btn-primary">Save</button>
-    </div>
-  </form>
-</div>
-
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  window.PMNav.render('workspace');
+  // Force the team nav on the workspace even for an owner — this page is the
+  // Team Workspace context, not the dealer intelligence bar.
+  window.PMNav.render('workspace', 'team');
 
   const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -313,7 +311,10 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>`;
       }).join('');
       listEl.querySelectorAll('[data-update-client]').forEach(btn => {
-        btn.addEventListener('click', () => openUpdate(btn.getAttribute('data-update-client')));
+        btn.addEventListener('click', () => {
+          const c = (scoped().clients || []).find(x => x.id === btn.getAttribute('data-update-client'));
+          if (c) openClientForm(c);
+        });
       });
     }
 
@@ -341,24 +342,44 @@ document.addEventListener('DOMContentLoaded', () => {
     ov.addEventListener('click', (e) => { if (e.target === ov) ov.classList.remove('on'); });
   });
 
-  // Add Client
-  document.getElementById('act-add-client').addEventListener('click', () => {
+  // Add / edit client details (shared modal)
+  function openClientForm(client) {
+    const editing = !!(client && client.id);
     document.getElementById('form-client').reset();
+    document.getElementById('cl-id').value = editing ? client.id : '';
+    document.getElementById('cl-title').textContent = editing ? 'Update client details' : 'Add client details';
+    document.getElementById('cl-submit').textContent = editing ? 'Save changes' : 'Add client';
+    document.getElementById('cl-name').value = editing ? (client.name || '') : '';
+    document.getElementById('cl-phone').value = editing ? (client.phone || '') : '';
+    document.getElementById('cl-budget').value = editing ? (client.budgetRange || '') : '';
+    document.getElementById('cl-area').value = editing ? (client.interestedArea || '') : '';
+    document.getElementById('cl-ptype').value = editing ? (client.propertyType || '') : '';
+    document.getElementById('cl-size').value = editing ? (client.sizeRequirement || '') : '';
+    document.getElementById('cl-status').value = editing ? (client.status || 'New') : 'New';
+    document.getElementById('cl-source').value = editing ? (client.leadSource || '') : '';
+    document.getElementById('cl-notes').value = editing ? (client.notes || '') : '';
     openModal('modal-client');
-  });
+  }
+  document.getElementById('act-add-client').addEventListener('click', () => openClientForm(null));
+  document.getElementById('hdr-add-client').addEventListener('click', () => openClientForm(null));
   document.getElementById('form-client').addEventListener('submit', (e) => {
     e.preventDefault();
     const name = document.getElementById('cl-name').value.trim();
     if (!name) return;
-    crm.addClient({
+    const details = {
       name,
       phone: document.getElementById('cl-phone').value.trim(),
+      budgetRange: document.getElementById('cl-budget').value.trim(),
       interestedArea: document.getElementById('cl-area').value.trim(),
+      propertyType: document.getElementById('cl-ptype').value,
       sizeRequirement: document.getElementById('cl-size').value.trim(),
       status: document.getElementById('cl-status').value,
-      notes: document.getElementById('cl-notes').value.trim(),
-      type: 'buyer'
-    });
+      leadSource: document.getElementById('cl-source').value,
+      notes: document.getElementById('cl-notes').value.trim()
+    };
+    const id = document.getElementById('cl-id').value;
+    if (id) crm.updateClient(id, details);
+    else crm.addClient(Object.assign({ type: 'buyer' }, details));
     closeModal('modal-client');
     render();
   });
@@ -396,25 +417,6 @@ document.addEventListener('DOMContentLoaded', () => {
       status: 'scheduled'
     });
     closeModal('modal-visit');
-    render();
-  });
-
-  // Update client stage
-  function openUpdate(id) {
-    const data = scoped();
-    const client = (data.clients || []).find(c => c.id === id);
-    if (!client) return;
-    document.getElementById('up-id').value = id;
-    document.getElementById('up-who').textContent = client.name || 'Client';
-    document.getElementById('up-status').value = client.status || 'New';
-    openModal('modal-update');
-  }
-  document.getElementById('form-update').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const id = document.getElementById('up-id').value;
-    const status = document.getElementById('up-status').value;
-    if (id) crm.updateClientStatus(id, status);
-    closeModal('modal-update');
     render();
   });
 

@@ -317,6 +317,19 @@
     }
   }
 
+  // Full client-detail update. Dealer-scoped + queued for Supabase sync, so a
+  // detail edited by a team member surfaces to the owner on Dealer Login.
+  function updateClient(clientId, changes) {
+    const data = getCRM();
+    const client = findOwnedRecord(data.clients, clientId, firstDealerId(data));
+    if (!client) return null;
+    Object.assign(client, changes || {}, { lastActivityAt: Date.now(), updatedAt: nowIso(), syncStatus: 'pending' });
+    enqueueChange(data, 'clients', clientId, 'update', client);
+    saveCRM(data);
+    logEvent('client_updated', { clientId, fields: Object.keys(changes || {}) }, client.assignedStaff);
+    return client;
+  }
+
   function addProperty(property) {
     const data = getCRM();
     const ts = nowIso();
@@ -904,7 +917,7 @@
 
   window.CRM = {
     loadCRM, saveCRM, getCRM, getScopedCRM, resetCRMToDemo,
-    addClient, updateClientStatus,
+    addClient, updateClientStatus, updateClient,
     addProperty, updateProperty, archiveProperty,
     addFollowup, updateFollowupStatus,
     addSiteVisit, updateSiteVisitStatus,
