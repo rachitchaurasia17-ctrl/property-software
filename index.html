@@ -129,7 +129,7 @@
   .doors {
     flex: none;
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 14px;
   }
   .door {
@@ -150,6 +150,7 @@
   }
   .door.client:hover, .door.client:focus-visible { border-color: #1F5E47; }
   .door.dealer:hover, .door.dealer:focus-visible { border-color: #A87C3D; }
+  .door.team:hover, .door.team:focus-visible { border-color: #3E6E96; }
   .door-top { display: flex; align-items: center; justify-content: space-between; }
   .door-ic {
     width: 46px; height: 46px; border-radius: 14px;
@@ -158,6 +159,7 @@
   }
   .door.client .door-ic { background: #E7F0EB; color: #1F5E47; }
   .door.dealer .door-ic { background: #F6ECD8; color: #A87C3D; }
+  .door.team .door-ic { background: #E9EFF4; color: #3E6E96; }
   .door-num { font-family: 'Fraunces', Georgia, serif; font-size: 15px; color: #C8BFA8; }
   .door-tag {
     font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase;
@@ -165,6 +167,7 @@
   }
   .door.client .door-tag { color: #1F5E47; }
   .door.dealer .door-tag { color: #A87C3D; }
+  .door.team .door-tag { color: #3E6E96; }
   .door-title {
     font-family: 'Fraunces', Georgia, serif;
     font-size: 24px; font-weight: 500; letter-spacing: -0.01em; color: #1C2B22; margin-top: 5px;
@@ -177,6 +180,7 @@
   }
   .door.client .door-cta { color: #1F5E47; }
   .door.dealer .door-cta { color: #A87C3D; }
+  .door.team .door-cta { color: #3E6E96; }
   .door-cta .arw { font-size: 15px; }
 
   .footnote {
@@ -222,10 +226,12 @@
   .auth-form button[type="submit"]:hover { background: #184E3B; }
   .auth-form button[type="submit"]:disabled { opacity: .65; cursor: default; }
 
-  @media (max-width: 760px) {
-    .frame { padding: 24px 20px 32px; }
+  @media (max-width: 980px) {
     .doors { grid-template-columns: 1fr; }
     .door { min-height: 0; }
+  }
+  @media (max-width: 760px) {
+    .frame { padding: 24px 20px 32px; }
     .hero { padding-top: 30px; }
     .topline { flex-direction: column; align-items: flex-start; gap: 10px; }
   }
@@ -271,15 +277,26 @@
         <span class="door-cta">Start presenting <span class="arw">→</span></span>
       </a>
 
-      <button class="door dealer" type="button" onclick="openAuth()">
+      <button class="door dealer" type="button" onclick="openDealer()">
         <span class="door-top">
           <span class="door-ic" aria-hidden="true">◆</span>
           <span class="door-num">02</span>
         </span>
         <span class="door-tag">For the dealer</span>
         <span class="door-title">Dealer Login</span>
-        <span class="door-desc">Your command room — maps, properties and client movement in one calm place. Team members sign in here too.</span>
+        <span class="door-desc">Your command room — business signals, area intelligence, client movement and property insights in one calm place.</span>
         <span class="door-cta">Enter command <span class="arw">→</span></span>
+      </button>
+
+      <button class="door team" type="button" onclick="openTeam()">
+        <span class="door-top">
+          <span class="door-ic" aria-hidden="true">◐</span>
+          <span class="door-num">03</span>
+        </span>
+        <span class="door-tag">For your team</span>
+        <span class="door-title">Team Workspace</span>
+        <span class="door-desc">The daily work table — add properties, open Map Studio, mark maps and keep client work moving.</span>
+        <span class="door-cta">Open workspace <span class="arw">→</span></span>
       </button>
     </div>
 
@@ -296,12 +313,16 @@
       </form>
     </div>
 
-    <p class="footnote">Team members sign in through Dealer Login.<br>The client map stays separate — and client-safe — at /app/plotmap/.</p>
+    <p class="footnote">Team Workspace signs in the first time, then this device remembers you.<br>The client map stays separate — and client-safe — at /app/plotmap/.</p>
   </div>
 </main>
 
 <script>
   let nextTarget = '';
+  // Which door opened the auth form. 'team' lands on the Team Workspace after
+  // sign-in; 'dealer' uses the profile's role home. This is UX routing only —
+  // real access is Supabase auth + role/scope + RLS on every page.
+  let authIntent = 'dealer';
 
   // Only allow same-origin path redirects ("/admin/...") — never
   // absolute URLs or protocol-relative ("//host") values.
@@ -314,6 +335,31 @@
     document.getElementById('auth-email').focus();
     // Scroll into view if needed
     document.getElementById('auth-shell').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // Dealer Login entry — owner intelligence command center.
+  function openDealer() {
+    authIntent = 'dealer';
+    const heading = document.querySelector('#auth-form h2');
+    if (heading) heading.textContent = 'Dealer Login';
+    openAuth();
+  }
+
+  // Team Workspace entry. If this device already holds a real Supabase session
+  // (refresh token persisted from a previous sign-in), go straight in — no
+  // Gmail prompt. Otherwise open the same real login, flavored for the team.
+  async function openTeam() {
+    authIntent = 'team';
+    const heading = document.querySelector('#auth-form h2');
+    if (heading) heading.textContent = 'Team Workspace';
+    if (window.PMAuth) {
+      const profile = await window.PMAuth.getCurrentProfile().catch(() => null);
+      if (profile) {
+        window.location.href = '/admin/team.html';
+        return;
+      }
+    }
+    openAuth();
   }
 
   function closeAuth() {
@@ -354,7 +400,16 @@
         const profile = await window.PMAuth.getCurrentProfile();
         if (!profile) throw new Error('No admin profile found for this account.');
 
-        window.location.href = nextTarget || window.PMAuth.routeForRole(profile.role);
+        let dest = nextTarget;
+        if (!dest) {
+          const role = window.PMAuth.normalizeRole(profile.role);
+          // Team door → land on the workspace for any admin-rank account;
+          // viewers fall through to their role home (the client presentation).
+          dest = (authIntent === 'team' && role !== 'viewer')
+            ? '/admin/team.html'
+            : window.PMAuth.routeForRole(profile.role);
+        }
+        window.location.href = dest;
       } catch (error) {
         status.textContent = error.message || 'Sign in failed.';
         status.style.color = '#9A4A2C';

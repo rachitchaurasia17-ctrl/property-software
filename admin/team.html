@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Team Dashboard — PlotMap</title>
+<title>Team Workspace — PlotMap</title>
 <link rel="stylesheet" href="/admin/crm-ui.css">
 <script src="/admin/core/auth.js"></script>
 <script src="/admin/crm-data.js"></script>
@@ -27,7 +27,7 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
   <div class="pm-page-header">
     <div>
       <h1 id="greeting">Welcome.</h1>
-      <div class="sub" id="date-line">Your daily workspace.</div>
+      <div class="sub" id="date-line">Your work table for today.</div>
     </div>
     <a class="pm-btn pm-btn-primary" href="/app/plotmap/">Open Client Presentation</a>
   </div>
@@ -45,11 +45,11 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
       </a>
       <a href="/admin/map-studio.html" class="pm-action-card">
         <div class="ic" style="background:#EDEAF2;color:var(--pm-purple);">◈</div>
-        <div class="txt">Map Studio</div>
+        <div class="txt">Open Map Studio</div>
       </a>
-      <a href="/admin/clients.html" class="pm-action-card">
-        <div class="ic" style="background:#E7F0EB;color:var(--pm-emerald);">▶</div>
-        <div class="txt">Client Movement</div>
+      <a href="/admin/properties.html" class="pm-action-card">
+        <div class="ic" style="background:#E9EFF4;color:var(--pm-blue);">▤</div>
+        <div class="txt">Properties</div>
       </a>
     </div>
   </div>
@@ -88,14 +88,13 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
     </div>
   </div>
 
-  <!-- Recent client movement -->
+  <!-- Recent activity (this workspace's own client-presentation signal) -->
   <div class="pm-card-xl">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
       <div>
-        <div class="pm-card-h">Recent client movement</div>
+        <div class="pm-card-h">Recent activity</div>
         <div class="pm-card-sub">Latest Client Presentation events</div>
       </div>
-      <a href="/admin/clients.html" class="pm-btn-ghost">View all →</a>
     </div>
     <div id="activity-feed"></div>
   </div>
@@ -103,7 +102,7 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  window.PMNav.render('dashboard');
+  window.PMNav.render('workspace');
 
   // Friendly notice when another admin page bounced the user here.
   try {
@@ -126,9 +125,18 @@ document.addEventListener('DOMContentLoaded', () => {
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   })[c]);
 
-  const hour = new Date().getHours();
-  const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  document.getElementById('greeting').textContent = greet + '.';
+  const greetingEl = document.getElementById('greeting');
+  greetingEl.textContent = 'Welcome.';
+  // Personalize from the signed-in Supabase profile (async, non-blocking).
+  if (window.PMAuth) {
+    window.PMAuth.getCurrentProfile().then(profile => {
+      if (!profile) return;
+      const raw = (profile.display_name || (profile.email || '').split('@')[0] || '').trim();
+      if (!raw) return;
+      const name = raw.charAt(0).toUpperCase() + raw.slice(1);
+      greetingEl.textContent = 'Welcome, ' + name + '.';
+    }).catch(() => {});
+  }
   const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const now = new Date();
