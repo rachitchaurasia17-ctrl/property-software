@@ -100,13 +100,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.sessionId) row.sessions.add(e.sessionId);
     if (String(e.createdAt || '') > row.last) row.last = e.createdAt || '';
   });
-  const signals = Object.keys(perProp).map(id => {
+  // only properties that still exist are actionable follow-ups
+  const signals = Object.keys(perProp).filter(id => propById[id]).map(id => {
     const s = perProp[id];
     const prop = propById[id];
     return {
       propertyId: id,
-      title: prop ? (prop.title || prop.name || 'Property') : 'Property (removed)',
-      area: prop ? (prop.area || '') : '',
+      title: prop.title || prop.name || 'Property',
+      area: prop.area || '',
       views: s.views, shares: s.shares, sessions: s.sessions.size, last: s.last,
       score: s.views + s.shares * 2 + s.sessions.size
     };

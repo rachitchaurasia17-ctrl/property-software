@@ -127,9 +127,9 @@
       pathsOf(item).forEach(d => {
         if (isStrong && isLine) {
           const glow = GLOW[col] || '#FFD97A';
-          under += '<path d="' + d + '" fill="none" stroke="rgba(0,24,48,.5)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" transform="translate(0,4)" style="filter:blur(5px)"/>';
-          mid += '<path d="' + d + '" fill="none" stroke="' + rgba(glow, .66) + '" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 7px ' + rgba(glow, .85) + ') drop-shadow(0 0 15px ' + rgba(col, .55) + ')"/>';
-          mid += '<path d="' + d + '" fill="none" stroke="rgba(235,255,255,.98)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 4px rgba(255,255,255,.9)) drop-shadow(0 0 12px ' + rgba(glow, .9) + ')"/>';
+          under += '<path d="' + d + '" fill="none" stroke="rgba(0,24,48,.55)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" transform="translate(0,5)" style="filter:blur(6px)"/>';
+          mid += '<path d="' + d + '" fill="none" stroke="' + rgba(glow, .72) + '" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 8px ' + rgba(glow, .9) + ') drop-shadow(0 0 18px ' + rgba(col, .65) + ')"/>';
+          mid += '<path d="' + d + '" fill="none" stroke="rgba(235,255,255,.98)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 4px rgba(255,255,255,.95)) drop-shadow(0 0 14px ' + rgba(glow, .95) + ') drop-shadow(0 0 28px ' + rgba(col, .8) + ')"/>';
           mid += '<path d="' + d + '" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 32" style="pointer-events:none;filter:drop-shadow(0 0 5px rgba(255,255,255,1)) drop-shadow(0 0 10px ' + rgba(glow, 1) + ');animation:pm-flowdash 1.4s linear infinite"/>';
         } else if (isStrong) {
           const isBlockish = item.kind === 'block' || item.kind === 'plot';

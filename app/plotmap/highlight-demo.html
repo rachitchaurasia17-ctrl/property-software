@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>PlotMap — Sector 28 Highlight System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ————————————————————————————————————————————————
+   PlotMap premium highlight system — Sector 28 reference build.
+   The base map is an untouched <img>; every effect is a separate
+   overlay layer (SVG strokes, absolute HTML boxes, CSS filters).
+   ———————————————————————————————————————————————— */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  background: #F3F1EB;
+  color: #1C1E1B;
+  -webkit-font-smoothing: antialiased;
+  padding: 26px 18px 44px;
+}
+.page-head { max-width: 1600px; margin: 0 auto 18px; display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.page-head h1 { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 30px; letter-spacing: -0.01em; margin: 0; }
+.page-head .sub { font-size: 14px; color: #6A6E68; margin-top: 4px; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; }
+.legend span { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; color: #4A4E46; }
+.legend i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+
+/* ── Stage ── */
+.plotmap-stage {
+  position: relative;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid #E1DCCF;
+  box-shadow: 0 2px 4px rgba(120,90,30,.05), 0 26px 60px rgba(40,38,20,.16);
+  background: #fff;
+}
+
+.base-map {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.road-overlay,
+.selection-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── 2 · Road glow overlay ── */
+.road-overlay {
+  z-index: 5;
+  pointer-events: none;
+}
+
+.road-hit {
+  pointer-events: stroke;
+  stroke: transparent;
+  stroke-width: 34;
+  fill: none;
+  cursor: pointer;
+}
+
+.road-shadow {
+  stroke: rgba(0, 24, 48, 0.55);
+  stroke-width: 16;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: blur(6px);
+  transform: translateY(5px);
+}
+
+.road-body {
+  stroke: rgba(32, 190, 255, 0.72);
+  stroke-width: 11;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter:
+    drop-shadow(0 0 8px rgba(0, 195, 255, 0.9))
+    drop-shadow(0 0 18px rgba(0, 130, 255, 0.65));
+}
+
+.road-core {
+  stroke: rgba(235, 255, 255, 0.98);
+  stroke-width: 3.5;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter:
+    drop-shadow(0 0 4px rgba(255,255,255,0.95))
+    drop-shadow(0 0 14px rgba(0,210,255,0.95))
+    drop-shadow(0 0 28px rgba(0,120,255,0.8));
+}
+
+.road-dash {
+  stroke: rgba(255, 255, 255, 0.95);
+  stroke-width: 2.6;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 2 26;
+  animation: pmFlow 1.6s linear infinite;
+  filter: drop-shadow(0 0 5px rgba(255,255,255,0.9)) drop-shadow(0 0 10px rgba(0,210,255,0.9));
+}
+@keyframes pmFlow { to { stroke-dashoffset: -56; } }
+
+/* road groups toggle off when deselected */
+.road-g { transition: opacity .35s ease; }
+.road-g.off .road-shadow,
+.road-g.off .road-body,
+.road-g.off .road-core,
+.road-g.off .road-dash { display: none; }
+
+/* ── 3–6 · Selection layer ── */
+.selection-layer {
+  z-index: 10;
+  pointer-events: none;
+}
+
+.selected-house {
+  position: absolute;
+  border-radius: 7px;
+  background:
+    linear-gradient(145deg, rgba(255, 241, 150, 0.62), rgba(255, 174, 22, 0.28));
+  border: 2px solid rgba(255, 226, 100, 0.98);
+  box-shadow:
+    0 0 10px rgba(255, 220, 85, 0.95),
+    0 0 24px rgba(255, 175, 30, 0.55),
+    0 14px 24px rgba(0, 0, 0, 0.38),
+    inset 0 1px 3px rgba(255, 255, 255, 0.75),
+    inset 0 -5px 10px rgba(110, 60, 0, 0.25);
+  transform: perspective(900px) rotateX(8deg) translateY(-8px);
+  transform-origin: center bottom;
+  backdrop-filter: saturate(1.2) brightness(1.08);
+}
+
+.selected-house::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 5px;
+  border: 1px solid rgba(255,255,255,0.42);
+  background: linear-gradient(135deg, rgba(255,255,255,0.42), transparent 48%);
+}
+
+.selected-school {
+  position: absolute;
+  border-radius: 10px;
+  background: rgba(255, 190, 45, 0.16);
+  border: 3px solid rgba(255, 210, 65, 1);
+  box-shadow:
+    0 0 14px rgba(255, 220, 90, 1),
+    0 0 34px rgba(255, 165, 0, 0.72),
+    0 18px 30px rgba(0, 0, 0, 0.35);
+  transform: perspective(900px) rotateX(5deg) translateY(-6px);
+  transform-origin: center bottom;
+}
+
+/* ── Premium blue pins ── */
+.map-pin {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  background: linear-gradient(145deg, #57d7ff, #0077e6 60%, #004ea8);
+  border: 3px solid #ffffff;
+  border-radius: 50% 50% 50% 0;
+  transform: translate(-50%, -100%) rotate(-45deg);
+  box-shadow:
+    0 0 10px rgba(0, 190, 255, 0.9),
+    0 12px 22px rgba(0,0,0,0.35);
+}
+
+.map-pin::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  left: 50%;
+  top: 50%;
+  background: white;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+@media (hover: hover) {
+  .map-pin { transition: transform .18s ease; }
+  .map-pin:hover { transform: translate(-50%, -108%) rotate(-45deg); }
+}
+
+.foot-note { max-width: 1600px; margin: 14px auto 0; font-size: 12.5px; color: #9A9D96; }
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <div>
+    <h1>Sector 28 · Highlight System</h1>
+    <div class="sub">Untouched base map with overlay-only selection — roads, plots and school highlighted as a client would see them.</div>
+  </div>
+  <div class="legend">
+    <span><i style="background:#20BEFF;"></i>Selected roads</span>
+    <span><i style="background:#FFD24A;"></i>Selected houses</span>
+    <span><i style="background:#FFB021;"></i>Selected school</span>
+    <span><i style="background:#0077E6;border-radius:50% 50% 50% 0;transform:rotate(-45deg);"></i>Location pins</span>
+  </div>
+</div>
+
+<div class="plotmap-stage">
+  <!-- 1 · untouched base map -->
+  <img class="base-map" src="/maps/sector%2028%20chd.png" alt="Sector 28 layout plan">
+
+  <!-- 2 · road glow overlay (viewBox mapped onto the full image) -->
+  <svg class="road-overlay" viewBox="0 0 1600 1200" preserveAspectRatio="none" aria-hidden="true">
+    <!-- Chandi Path — top spine -->
+    <g class="road-g" data-road="chandi-path">
+      <path class="road-shadow" d="M 106 142 L 480 139 L 900 140 L 1493 141"/>
+      <path class="road-body"   d="M 106 142 L 480 139 L 900 140 L 1493 141"/>
+      <path class="road-core"   d="M 106 142 L 480 139 L 900 140 L 1493 141"/>
+      <path class="road-dash"   d="M 106 142 L 480 139 L 900 140 L 1493 141"/>
+      <path class="road-hit"    d="M 106 142 L 480 139 L 900 140 L 1493 141"/>
+    </g>
+
+    <!-- Central spine — Chandi Path down to Purav Marg past the petrol pump -->
+    <g class="road-g" data-road="central-spine">
+      <path class="road-shadow" d="M 795 138 C 800 240 806 290 818 380 C 832 465 858 560 886 660 C 896 740 884 830 866 940 L 860 1002"/>
+      <path class="road-body"   d="M 795 138 C 800 240 806 290 818 380 C 832 465 858 560 886 660 C 896 740 884 830 866 940 L 860 1002"/>
+      <path class="road-core"   d="M 795 138 C 800 240 806 290 818 380 C 832 465 858 560 886 660 C 896 740 884 830 866 940 L 860 1002"/>
+      <path class="road-dash"   d="M 795 138 C 800 240 806 290 818 380 C 832 465 858 560 886 660 C 896 740 884 830 866 940 L 860 1002"/>
+      <path class="road-hit"    d="M 795 138 C 800 240 806 290 818 380 C 832 465 858 560 886 660 C 896 740 884 830 866 940 L 860 1002"/>
+    </g>
+
+    <!-- Mid connector — spine to Sector 26 edge, past Saint Soldier School -->
+    <g class="road-g" data-road="school-link">
+      <path class="road-shadow" d="M 868 552 L 1080 538 L 1300 527 L 1494 522"/>
+      <path class="road-body"   d="M 868 552 L 1080 538 L 1300 527 L 1494 522"/>
+      <path class="road-core"   d="M 868 552 L 1080 538 L 1300 527 L 1494 522"/>
+      <path class="road-dash"   d="M 868 552 L 1080 538 L 1300 527 L 1494 522"/>
+      <path class="road-hit"    d="M 868 552 L 1080 538 L 1300 527 L 1494 522"/>
+    </g>
+  </svg>
+
+  <!-- 3–6 · selection overlays + pins -->
+  <div class="selection-layer">
+    <!-- house · 4-K block, north-east -->
+    <div class="selected-house" style="left:74.1%; top:19.9%; width:4.0%; height:5.6%;" title="House · 4-K block"></div>
+    <div class="map-pin" style="left:76.1%; top:19.4%;"></div>
+
+    <!-- house · 2-K row, east -->
+    <div class="selected-house" style="left:68.0%; top:37.3%; width:3.5%; height:4.9%;" title="House · 2-K row"></div>
+    <div class="map-pin" style="left:69.75%; top:36.8%;"></div>
+
+    <!-- house · 5-M row, south-central -->
+    <div class="selected-house" style="left:41.0%; top:71.7%; width:3.2%; height:4.8%;" title="House · 5-Marla row"></div>
+    <div class="map-pin" style="left:42.6%; top:71.2%;"></div>
+
+    <!-- school · Saint Soldier High School (translucent frame keeps the label readable) -->
+    <div class="selected-school" style="left:62.6%; top:51.8%; width:16.3%; height:9.2%;" title="Saint Soldier High School"></div>
+    <div class="map-pin" style="left:70.7%; top:51.3%; width:38px; height:38px;"></div>
+  </div>
+</div>
+
+<p class="foot-note">Overlay-only rendering — the base plan is never modified. Tap a glowing road to unselect it; tap again to bring it back.</p>
+
+<script>
+// Minimal interaction: road hit strokes toggle their own glow group.
+document.querySelectorAll('.road-g').forEach(g => {
+  const hit = g.querySelector('.road-hit');
+  if (hit) hit.addEventListener('click', () => g.classList.toggle('off'));
+});
+</script>
+</body>
+</html>
