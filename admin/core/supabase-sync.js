@@ -102,6 +102,17 @@
     return { ok: true, data: await res.json().catch(() => null) };
   }
 
+  function rpcPath(name) {
+    return 'rpc/' + encodeURIComponent(name);
+  }
+
+  async function callRpc(name, payload, options) {
+    return rest(rpcPath(name), Object.assign({
+      method: 'POST',
+      body: JSON.stringify(payload || {})
+    }, options || {}));
+  }
+
   function tableFor(entityType) {
     if (entityType === 'presentationEvents') return 'presentation_events';
     if (entityType === 'overlays') return 'map_overlays';
@@ -174,6 +185,35 @@
         const rows = [...byId.values()].map(rowFor);
         try {
           items.forEach(it => window.PMSyncQueue.markSyncActionSyncing(it.id));
+          if (table === 'presentation_events') {
+            const rowOutcome = new Map();
+            for (const [rowId, it] of byId) {
+              const row = rowFor(it);
+              try {
+                const single = await callRpc('plotmap_record_presentation_event', {
+                  p_dealer_id: row.dealer_id,
+                  p_session_id: row.session_id,
+                  p_event_type: row.event_type,
+                  p_area: row.area,
+                  p_sector: row.sector,
+                  p_map_id: row.map_id,
+                  p_property_id: row.property_id,
+                  p_client_id: row.client_id,
+                  p_metadata: row.metadata || {},
+                  p_event_id: row.id,
+                  p_created_at: row.created_at
+                }, { prefer: 'return=minimal' });
+                rowOutcome.set(rowId, !!single.ok);
+              } catch (err) {
+                rowOutcome.set(rowId, false);
+              }
+            }
+            items.forEach(it => {
+              if (rowOutcome.get(rowFor(it).id)) window.PMSyncQueue.markSyncActionSynced(it.id);
+              else window.PMSyncQueue.markSyncActionRetrying(it.id);
+            });
+            continue;
+          }
           // presentation_events is append-only for anon (RLS allows INSERT
           // only, no SELECT/UPDATE) — any ON CONFLICT resolution is rejected
           // by RLS, so it must be a plain insert.
@@ -253,10 +293,9 @@
     const dealerId = resolveCurrentDealerId();
     const table = isAdminRoute() ? 'crm_records' : CLIENT_SAFE_PROPERTIES_VIEW;
     if (unavailable.has(table)) return;
-    const path = isAdminRoute()
-      ? 'crm_records?select=*&dealer_id=eq.' + encodeURIComponent(dealerId) + '&updated_at=gt.' + encodeURIComponent(since) + '&order=updated_at.asc&limit=500'
-      : CLIENT_SAFE_PROPERTIES_VIEW + '?select=*&dealer_id=eq.' + encodeURIComponent(dealerId) + '&updated_at=gt.' + encodeURIComponent(since) + '&order=updated_at.asc&limit=500';
-    const result = await rest(path, { method: 'GET' });
+    const result = isAdminRoute()
+      ? await rest('crm_records?select=*&dealer_id=eq.' + encodeURIComponent(dealerId) + '&updated_at=gt.' + encodeURIComponent(since) + '&order=updated_at.asc&limit=500', { method: 'GET' })
+      : await callRpc('plotmap_client_properties', { p_dealer_id: dealerId });
     if (result.missing || result.forbidden || !result.data || !result.data.length) return;
     const data = window.CRM.getCRM();
     let latest = since;
@@ -330,7 +369,9 @@
     if (unavailable.has('map_overlays') || !window.PMOverlayStore) return;
     const since = pullStamps().map_overlays || '1970-01-01T00:00:00Z';
     const dealerId = resolveCurrentDealerId();
-    const result = await rest('map_overlays?select=*&dealer_id=eq.' + encodeURIComponent(dealerId) + '&updated_at=gt.' + encodeURIComponent(since) + '&order=updated_at.asc&limit=500', { method: 'GET' });
+    const result = isAdminRoute()
+      ? await rest('map_overlays?select=*&dealer_id=eq.' + encodeURIComponent(dealerId) + '&updated_at=gt.' + encodeURIComponent(since) + '&order=updated_at.asc&limit=500', { method: 'GET' })
+      : await callRpc('plotmap_client_overlays', { p_dealer_id: dealerId });
     if (result.missing || result.forbidden || !result.data || !result.data.length) return;
     let latest = since;
     const rows = result.data.map(row => {

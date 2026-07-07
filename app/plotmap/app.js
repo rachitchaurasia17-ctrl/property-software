@@ -229,7 +229,7 @@
   const zoneById = (id) => mapZones().find(z => z.id === id);
   const pinById = (id) => mapPins().find(p => p.id === id);
   const mapProperties = () => (DS.properties || []).filter(p => p && p.clientVisible !== false && areaMatchesActive(p.area) && p.id && p.plotNumber && p.blockId && blockById(p.blockId));
-  const clientDealerId = (() => {
+  let clientDealerId = (() => {
     try {
       const params = new URLSearchParams(location.search || '');
       const dealerId = params.get('dealerId') || params.get('dealer');
@@ -274,12 +274,12 @@
     shareContext.slug = params.get('share') || null;
   } catch (e) {}
   function resolveShareLink() {
-    if (!shareContext.slug || shareContext.checked || !navigator.onLine) return;
+    if (!shareContext.slug || shareContext.checked || !navigator.onLine) return Promise.resolve(null);
     shareContext.checked = true;
     const supaUrl = (window.PMSupaSync && window.PMSupaSync.url) || null;
     const supaKey = (window.PMSupaSync && window.PMSupaSync.key) || null;
-    if (!supaUrl || !supaKey) return;
-    fetch(supaUrl + '/rest/v1/rpc/plotmap_resolve_share_link', {
+    if (!supaUrl || !supaKey) return Promise.resolve(null);
+    return fetch(supaUrl + '/rest/v1/rpc/plotmap_resolve_share_link', {
       method: 'POST',
       headers: { apikey: supaKey, Authorization: 'Bearer ' + supaKey, 'Content-Type': 'application/json' },
       body: JSON.stringify({ share_slug: shareContext.slug })
@@ -295,10 +295,13 @@
         setTimeout(() => note.remove(), 6000);
         return;
       }
-      if (row.dealer_id) { try { localStorage.setItem('plotmap_dealer_id', row.dealer_id); } catch (e) {} }
-    }).catch(() => {});
+      if (row.dealer_id) {
+        clientDealerId = row.dealer_id;
+        try { localStorage.setItem('plotmap_dealer_id', row.dealer_id); } catch (e) {}
+      }
+    }).catch(() => null);
   }
-  setTimeout(resolveShareLink, 800);
+  const shareLinkReady = resolveShareLink();
 
   /* --- Offline-lite indicator ---
      Everything the presentation shows is cached locally (localStorage +
@@ -1893,10 +1896,11 @@
     console.error('Failed to load legacy map manifest', e);
   }
 
+  await shareLinkReady;
   await useDataset(state.areaId);
   
   if (supabase) {
-    const { data } = await supabase.from('prebuilt_maps').select('*').order('created_at', { ascending: true });
+    const { data } = await supabase.rpc('plotmap_client_maps', { p_dealer_id: clientDealerId || 'dealer-demo' });
     if (data) state.prebuiltMaps = data;
   }
   

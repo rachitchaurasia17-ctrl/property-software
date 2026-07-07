@@ -86,6 +86,9 @@
           payload: event
         });
       }
+      if (window.PMSupaSync && typeof window.PMSupaSync.requestDrain === 'function') {
+        window.PMSupaSync.requestDrain();
+      }
       return event;
     } catch (err) {
       console.warn('PlotMap event tracking unavailable', err);
