@@ -54,6 +54,12 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
           <label>Photo links (comma separated, optional)</label>
           <input type="text" id="p-photos" placeholder="https://…jpg, https://…jpg">
           <div style="font-size:12px;color:var(--pm-text-mut);margin-top:6px;" id="p-photo-storage-note">Storage scaffold: photos can later live in Supabase Storage.</div>
+          <!-- Upload UI: hidden unless dealer storage is enabled (Phase 5). Inert by default. -->
+          <div id="p-photo-upload" style="display:none;margin-top:10px;">
+            <input type="file" id="p-photo-file" accept="image/jpeg,image/png,image/webp" multiple>
+            <button type="button" class="pm-btn pm-btn-secondary sm" id="p-photo-upload-btn" style="margin-left:8px;">Upload to storage</button>
+            <div id="p-photo-upload-status" style="font-size:12px;color:var(--pm-text-mut);margin-top:6px;"></div>
+          </div>
         </div>
       </div>
       <label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:14px;cursor:pointer;">
@@ -405,6 +411,62 @@ document.addEventListener('DOMContentLoaded', () => {
 
   renderFilters();
   renderProps();
+});
+
+// ── Phase 5 (PREP): per-dealer photo upload to Supabase Storage ──
+// INERT by default: the UI only appears when this dealer's settings have
+// storageEnabled = true, which requires the bucket + per-dealer Storage RLS
+// policies (draft: supabase/migrations/20260707_storage_photo_policies_draft.sql)
+// to be applied and reviewed by Codex first. No policies are applied here.
+document.addEventListener('DOMContentLoaded', () => {
+  const wrap = document.getElementById('p-photo-upload');
+  if (!wrap || !window.PMFoundation) return;
+  let settings;
+  try { settings = window.PMFoundation.getDealerSettings(); } catch (e) { return; }
+  if (!settings || settings.storageEnabled !== true) return; // stays hidden in prod until enabled
+  wrap.style.display = 'block';
+
+  const MAX_BYTES = 5 * 1024 * 1024;
+  const OK_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+  const statusEl = document.getElementById('p-photo-upload-status');
+  const setStatus = (msg) => { statusEl.textContent = msg; };
+
+  document.getElementById('p-photo-upload-btn').addEventListener('click', async () => {
+    const fileInput = document.getElementById('p-photo-file');
+    const files = [...(fileInput.files || [])];
+    if (!files.length) { setStatus('Choose one or more image files first.'); return; }
+    const bad = files.find(f => !OK_TYPES.includes(f.type) || f.size > MAX_BYTES);
+    if (bad) { setStatus('Only JPG/PNG/WebP up to 5 MB each are allowed.'); return; }
+    if (!window.PMAuth) { setStatus('Not signed in.'); return; }
+    const token = await window.PMAuth.getAccessToken().catch(() => null);
+    if (!token) { setStatus('Session expired — sign in again.'); return; }
+
+    const bucket = settings.photoBucket || 'property-photos';
+    const propId = document.getElementById('p-editing').value || 'draft';
+    const added = [];
+    for (const file of files) {
+      const path = window.PMFoundation.buildPhotoObjectPath(propId, file.name.replace(/\.[^.]+$/, ''));
+      setStatus('Uploading ' + file.name + '…');
+      try {
+        const res = await fetch(window.PMAuth.SUPABASE_URL + '/storage/v1/object/' + bucket + '/' + path, {
+          method: 'POST',
+          headers: { apikey: window.PMAuth.SUPABASE_KEY, Authorization: 'Bearer ' + token, 'x-upsert': 'true' },
+          body: file
+        });
+        if (!res.ok) { setStatus('Upload failed for ' + file.name + ' (' + res.status + '). Check Storage bucket + policies.'); return; }
+        // Private bucket: store the object PATH; serving needs a signed URL or a
+        // client-visible read policy — see the Codex handoff. Path is appended to
+        // the photo-links field so it saves with the property on submit.
+        added.push(path);
+      } catch (err) {
+        setStatus('Upload error: ' + (err && err.message ? err.message : 'network')); return;
+      }
+    }
+    const photosField = document.getElementById('p-photos');
+    photosField.value = [photosField.value.trim(), ...added].filter(Boolean).join(', ');
+    setStatus('Uploaded ' + added.length + ' file(s). They save with the property. (Serving needs signed URLs — see handoff.)');
+    fileInput.value = '';
+  });
 });
 </script>
 </body>
