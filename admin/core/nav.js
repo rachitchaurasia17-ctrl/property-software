@@ -12,8 +12,7 @@
     { key: 'dashboard', label: 'Dashboard', href: '/admin/owner.html' },
     { key: 'area-intelligence', label: 'Area Intelligence', href: '/admin/area-intelligence.html' },
     { key: 'client-movement', label: 'Client Movement', href: '/admin/clients.html' },
-    { key: 'property-insights', label: 'Property Insights', href: '/admin/property-insights.html' },
-    { key: 'presentation', label: 'Client Presentation', href: '/app/plotmap/' }
+    { key: 'property-insights', label: 'Property Insights', href: '/admin/property-insights.html' }
   ];
 
   // Team Workspace = the staff work table. ONLY daily-work surfaces:
@@ -63,12 +62,19 @@
     return role === 'team' ? teamNavItems() : DEALER_NAV;
   }
 
-  function render(active) {
+  // render(active, navRole?)
+  // `navRole` lets a page force which nav SET renders ('team' | 'dealer'),
+  // independent of the signed-in role. The Team Workspace forces the team nav
+  // so an owner using the workspace sees Workspace/Properties/Map Studio — not
+  // the dealer intelligence bar. The brand + role chip still reflect the real
+  // role, so an owner can click the logo to return to their dashboard.
+  function render(active, navRole) {
     const host = document.getElementById('pm-topbar');
     if (!host) return;
     const role = currentRole();
-    const items = navFor(role);
-    host.classList.add('pm-topbar', role === 'team' ? 'team-bar' : 'dealer-bar');
+    const barRole = navRole === 'team' || navRole === 'dealer' ? navRole : role;
+    const items = navFor(barRole);
+    host.classList.add('pm-topbar', barRole === 'team' ? 'team-bar' : 'dealer-bar');
     host.innerHTML =
       '<a class="brand" href="' + (role === 'team' ? '/admin/team.html' : '/admin/owner.html') + '">' +
         '<div class="brand-icon"><i></i></div>' +

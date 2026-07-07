@@ -38,6 +38,19 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
     <div class="pm-filters" id="day-filters" style="margin:0;"></div>
   </div>
 
+  <!-- Client details — the client book the team maintains (synced from Team Workspace) -->
+  <section class="pm-card-xl" style="margin-bottom:18px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;flex-wrap:wrap;">
+      <div>
+        <div class="pm-card-h">Client details</div>
+        <div class="pm-card-sub">Client records your team adds and updates in the Team Workspace</div>
+      </div>
+      <div class="pm-card-sub" id="client-book-count"></div>
+    </div>
+    <div id="client-book"></div>
+  </section>
+
+  <div class="pm-card-h" style="margin-bottom:10px;">Client movement</div>
   <div id="sessions"></div>
 </main>
 
@@ -154,6 +167,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }).join('');
   }
 
+  // ---- Client details book (from CRM clients the team maintains) ----
+  function renderClientBook() {
+    const scoped = crm.getScopedCRM ? crm.getScopedCRM() : data;
+    const clients = Array.isArray(scoped.clients) ? scoped.clients : [];
+    const sorted = [...clients].sort((a, b) => (Number(b.lastActivityAt) || 0) - (Number(a.lastActivityAt) || 0));
+    document.getElementById('client-book-count').textContent = clients.length
+      ? clients.length + ' client' + (clients.length === 1 ? '' : 's') : '';
+    const el = document.getElementById('client-book');
+    if (!sorted.length) {
+      el.innerHTML = '<div class="pm-empty"><div class="title">No client records yet</div><div class="desc">Client details your team adds in the Team Workspace appear here.</div></div>';
+      return;
+    }
+    el.innerHTML = sorted.map(c => {
+      const line = [c.interestedArea, c.propertyType, c.sizeRequirement, c.budgetRange].filter(Boolean).join(' · ');
+      const sub = [c.phone, c.leadSource ? 'via ' + c.leadSource : ''].filter(Boolean).join(' · ');
+      return `<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:13px 0;border-top:1px solid var(--pm-border-subtle);">
+        <div style="min-width:0;">
+          <div style="font-size:14.5px;font-weight:700;">${esc(c.name || 'Unknown')}</div>
+          <div style="font-size:12.5px;color:var(--pm-text-mut);margin-top:2px;">${esc(line || '—')}</div>
+          ${sub ? `<div style="font-size:12px;color:var(--pm-text-mut);margin-top:2px;">${esc(sub)}</div>` : ''}
+          ${c.notes ? `<div style="font-size:12px;color:var(--pm-text-sec);margin-top:4px;">${esc(c.notes)}</div>` : ''}
+        </div>
+        <span class="pm-chip" style="white-space:nowrap;">${esc(c.status || 'New')}</span>
+      </div>`;
+    }).join('');
+  }
+
+  renderClientBook();
   renderFilters();
   renderSessions();
 });
