@@ -3,8 +3,17 @@
 -- ⚠️  DRAFT ONLY — MUST BE REVIEWED BY CODEX BEFORE APPLYING. ⚠️
 --
 -- Prepared by Claude (Phase 3 PREP). NOT applied to Supabase.
--- Apply the Phase 2 multi-dealer isolation work FIRST. See
--- docs/TEAM_PERMISSION_RLS_HANDOFF.md for the role matrix and Codex prompt.
+--
+-- ROLLOUT ORDER (must be respected):
+--   1. 20260707a_multi_dealer_rpc_setup.sql   (applied)
+--   2. 20260707b_multi_dealer_anon_lockdown.sql (only after RPC frontend
+--      verification — see docs/MIGRATION_B_VERIFICATION_CHECKLIST.md)
+--   3. THIS FILE — team-role write capabilities (Codex review required)
+--
+-- Depends on helpers already live from Migration A / the security patch:
+--   plotmap_current_role(), plotmap_current_dealer_id(),
+--   plotmap_dealer_is_active(text). This file only ADDS capability helpers.
+-- See docs/TEAM_PERMISSION_RLS_HANDOFF.md for the role matrix and Codex prompt.
 --
 -- Safety contract for this file:
 --   • ACTIVE statements are additive/idempotent read-only helper functions
