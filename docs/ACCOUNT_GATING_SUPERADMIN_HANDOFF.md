@@ -1,78 +1,99 @@
-# Account Gating & Superadmin Console — Handoff (Phase 4 PREP)
+# Account Gating, Manual Billing & Superadmin — Handoff (Phase 4)
 
-_Prepared by Claude · 2026-07-07 · branch `phase-1-5-role-and-isolation-prep`_
+_Prepared by Claude · updated 2026-07-08 · branch `phase-1-5-role-and-isolation-prep`_
 
-> **STATUS: PARTIAL BUILD + PREP.** A safe, owner-only, read-only **Account &
-> plan** view is built. A cross-dealer **superadmin console** is **NOT** built
-> because the schema has no superadmin role and RLS cannot safely scope it yet.
-> Manual billing only — no payment integration. Nothing here is
-> production-trusted until Codex audits the RLS noted below.
+> **STATUS: APP-SIDE BUILT · BACKEND CODEX-GATED.** Owner-facing account &
+> manual-billing UI + a non-blocking account banner are built. Real
+> suspension/expiry **enforcement** (blocking writes for a suspended/expired
+> dealer) and any **superadmin** cross-dealer control are **NOT** built — they
+> require Supabase RLS/RPCs that only Codex may apply. Not production-trusted
+> for paid rollout until the audit below passes. Manual billing only — no
+> payment gateway, no service-role key.
 
-## Dealer statuses (already modeled)
+## Current implemented UI behavior (this branch)
 
-`dealer_settings` carries `subscription_status` (`trial`/`active`/…),
-`account_status` (`active`/`suspended`/`expired`), `trial_start`, `trial_end`,
-`plan_code`, `seat_limit`, `max_maps`, `max_properties`, `max_team_members`.
-The four operational statuses used by gating: **trial · active · suspended ·
-expired**.
+- **Account & billing card** (`admin/owner.html`, owner-only via `billing.manage`):
+  shows status chip (trial/active/suspended/expired), plan, trial-end/expiry,
+  seats, limits, paid/unpaid, renewal reminder, payment proof link, payment
+  notes. An **Edit billing** form lets the owner record the manual billing state
+  (account status, subscription trial/paid, plan, trial end, expiry date,
+  renewal reminder, paid flag, proof link, notes). Saved via
+  `PMFoundation.saveDealerSettings` and audited (`dealer_settings_saved`).
+- **Data model:** the new fields (`paid`, `expiryDate`, `renewalReminder`,
+  `paymentNotes`, `paymentProofLink`) ride in the existing dealer-scoped settings
+  record payload — **no schema migration required**, never exposed to clients.
+- **Account gate** (`PMFoundation.getAccountGate`): resolves status +
+  `trial/paid` expiry into `{ status, blocked, level, message, daysLeft }`.
+- **Non-blocking banner** (`admin/core/nav.js`): admin pages show a warning
+  banner when the plan ends within 7 days, and a blocked-style banner when
+  suspended/expired. It **never redirects or hard-locks** (owner is not locked
+  out accidentally). Not rendered on Client Presentation.
+- **Client Presentation:** unchanged — no billing/admin/account data is exposed
+  to clients; `app/plotmap/*` untouched.
+- **Existing gating retained:** `PMAccess.isDealerAllowed` (suspended/expired →
+  access-expired) and `PMFoundation.checkPlanLimit` (soft property/map/team
+  limits + block add-flows when not active).
 
-## What IS built (safe, this branch)
+## Remaining backend / RLS requirements (Codex)
 
-1. **Owner-only Account & plan card** (`admin/owner.html`) — read-only view of
-   *this dealer's own* status/plan/trial/seats/limits via
-   `PMFoundation.getPlanState()`. Gated behind the `billing.manage` scope
-   (owner). No writes, no billing actions, no cross-dealer data.
-2. **Existing account gating (already in code, confirmed):**
-   - `PMAccess` (`admin/core/access-control.js`) — `isDealerAllowed()` blocks
-     `suspended`/`expired` and trial-past-end; `renderBlockedScreen()` →
-     `/admin/access-expired.html`.
-   - `PMFoundation.checkPlanLimit()` — soft limits for properties/maps/team, and
-     blocks add-flows when the account is not active.
+The frontend account state is **UX only**. For paid operation the boundary must
+be enforced server-side:
 
-## What is NOT built (needs schema + RLS — Codex)
+1. **Write-block for suspended/expired dealers** — private-table write policies
+   (crm_records, map_overlays, prebuilt_maps, dealer_settings, share_links)
+   must additionally require the dealer to be active, e.g. AND
+   `plotmap_dealer_is_active(dealer_id)` (helper already live from Migration A).
+   Stacks on the Phase 3 team-role capabilities.
+2. **Who may change `account_status`** — a normal dealer-owner must **not** be
+   able to self-activate/extend. Move `account_status` / `expiry_date` /
+   `subscription_status` writes behind a provider/superadmin path (see below);
+   until then the owner's edits are a *local record*, not a grant of access.
+3. **Persist billing fields server-side** — decide storage: dealer_settings
+   columns vs the `metadata` jsonb. Currently they live in the settings payload
+   (dealer-scoped) which is fine for a record but should be normalized for
+   reporting/enforcement.
 
-A **superadmin console** to view/suspend/expire/reactivate dealers across the
-whole platform requires cross-dealer read/write, which today's RLS forbids
-(every private policy is `dealer_id = plotmap_current_dealer_id()`, and there is
-no superadmin role). Building it in the browser would require either a
-service-role key (**forbidden** in frontend) or a superadmin RLS tier. So it is
-**documented, not built.**
+## Suggested account status rules
 
-### Exact Codex work required for a safe superadmin console
+| Status | Meaning | Effect (once RLS enforces) |
+| --- | --- | --- |
+| `trial` | Active trial; `trial_end` in the future | Full access until `trial_end`. |
+| `active` | Paid & current; `expiry_date` in the future | Full access until `expiry_date`. |
+| `suspended` | Provider paused (non-payment/abuse) | No writes; read may be limited; owner sees blocked banner + can reach billing/contact. |
+| `expired` | Trial/plan end passed, not renewed | No writes; owner prompted to renew. |
 
-1. **Role/claim:** add a `superadmin` concept — either a `profiles.role`
-   value `superadmin` (widen the `profiles_role_check` constraint) or a
-   separate `platform_admins(profile_id)` table. Prefer the table so dealer
-   role logic stays untouched.
-2. **Helper:** `plotmap_is_superadmin()` (`security definer`, active-only).
-3. **Cross-dealer access:** either
-   - (a) additive RLS policies on `dealer_settings` (and read-only on other
-     tables as needed) of the form
-     `using (plotmap_is_superadmin())` — **never** `using(true)`; or
-   - (b) a set of `security definer` admin RPCs
-     (`plotmap_admin_list_dealers()`, `plotmap_admin_set_dealer_status(dealer_id, status)`)
-     that check `plotmap_is_superadmin()` internally. **(b) is preferred** —
-     smaller surface, easier to audit, no broad table exposure.
-4. **Account-status writes:** `set_dealer_status` must only change
-   `account_status`/`subscription_status`/`trial_end`, log to `audit_logs`, and
-   be superadmin-only.
-5. **Frontend:** a `/admin/superadmin.html` console guarded to superadmins,
-   calling only those RPCs. **Never exposed to normal dealers** (guard + RLS).
-6. **No service-role key in the frontend**, ever.
+Transitions are **provider-driven** (manual). Grace: keep read access + billing
+visibility so the owner can renew — never a hard lockout of the account owner.
 
-### Draft migration
+## Superadmin console — NOT built (needs role + RLS)
 
-Not created as SQL yet — the superadmin model is a schema decision (role vs
-table) that Codex should make first. Once decided, it is a small additive
-migration (helper + admin RPCs + audit). Mark **Codex review required**.
+A cross-dealer console (list dealers, set status, extend expiry) needs
+cross-dealer access, which today's per-dealer RLS forbids and which must never
+use a service-role key in the browser. **Documented, not built.** Codex work:
 
-## Verification still required before calling Phase 4 complete
+1. Add a `superadmin` concept — prefer a `platform_admins(profile_id)` table +
+   `plotmap_is_superadmin()` helper (keeps dealer role logic untouched).
+2. Provide audited `security definer` RPCs
+   (`plotmap_admin_list_dealers()`, `plotmap_admin_set_dealer_status(dealer_id,status,expiry)`)
+   that check `plotmap_is_superadmin()` internally — **preferred** over broad
+   `using(plotmap_is_superadmin())` table policies. Never `using(true)`.
+3. A superadmin-guarded `/admin/superadmin.html` calling only those RPCs, never
+   exposed to normal dealers.
 
-- [ ] Codex chooses the superadmin model and writes the additive migration.
-- [ ] RLS/RPC proven: a superadmin can change only account-status fields, only
-      via audited RPCs; a normal owner/team **cannot** call them or see other
-      dealers.
-- [ ] Suspended/expired dealer is blocked from writes end-to-end (RLS, not just
-      the browser gate).
-- [ ] Owner Account card shows correct live status from Supabase after Migration
-      B + team-permission RLS land.
+## What Codex must audit
+
+- Suspended/expired dealer **cannot write** any private table (RLS proof, not UI).
+- Dealer-owner **cannot** escalate their own `account_status`/`expiry_date`.
+- Only a superadmin (via audited RPC) can change another dealer's status.
+- No service-role key anywhere in the frontend; no `using(true)`/`with check(true)`.
+- Billing fields are dealer-scoped and never readable by anon/clients.
+
+## What must be tested before paid rollout
+
+- [ ] Set a dealer `suspended` → their team/owner writes are rejected by RLS;
+      reads/billing still reachable; blocked banner shows.
+- [ ] Let a trial `trial_end` pass → account reads `expired`; writes blocked by RLS.
+- [ ] Owner edits billing record → persists, audited, and does **not** grant access.
+- [ ] Two-dealer: dealer A cannot see or change dealer B's billing/status.
+- [ ] Client Presentation shows **no** billing/account/admin data.
+- [ ] Owner is never hard-locked out of the account/billing screen.

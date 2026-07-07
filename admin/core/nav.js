@@ -114,6 +114,36 @@
         if (initEl) initEl.textContent = esc(name.charAt(0).toUpperCase());
       }).catch(() => {});
     }
+
+    renderAccountBanner();
+  }
+
+  // Non-blocking account banner on admin pages. Informs about suspended /
+  // expired / soon-to-expire accounts. It NEVER redirects or hard-locks (the
+  // owner must not be locked out accidentally) — real enforcement is Supabase
+  // RLS (Codex). Not shown on Client Presentation (nav.js only loads on admin).
+  function renderAccountBanner() {
+    try {
+      if (!window.PMFoundation || typeof window.PMFoundation.getAccountGate !== 'function') return;
+      const gate = window.PMFoundation.getAccountGate();
+      const existing = document.getElementById('pm-account-banner');
+      if (!gate || (gate.level !== 'blocked' && gate.level !== 'warning')) {
+        if (existing) existing.remove();
+        return;
+      }
+      const blocked = gate.level === 'blocked';
+      const bg = blocked ? '#F7E7E0' : '#FBF3E4';
+      const bd = blocked ? '#E4B7A5' : '#E8D9BE';
+      const fg = blocked ? '#8A3B1E' : '#8A6224';
+      const banner = existing || document.createElement('div');
+      banner.id = 'pm-account-banner';
+      banner.setAttribute('role', 'status');
+      banner.style.cssText = 'padding:11px 18px;font-size:13.5px;font-weight:600;text-align:center;'
+        + 'border-bottom:1px solid ' + bd + ';background:' + bg + ';color:' + fg + ';';
+      banner.textContent = (blocked ? '⚠ ' : '') + esc(gate.message);
+      const host = document.getElementById('pm-topbar');
+      if (host && host.parentNode && !existing) host.parentNode.insertBefore(banner, host);
+    } catch (err) {}
   }
 
   window.PMNav = { render, DEALER_NAV, TEAM_NAV };

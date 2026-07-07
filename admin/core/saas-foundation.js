@@ -186,6 +186,15 @@
       planCode: 'founding',
       trialStart: (dealer && dealer.trialStart) || nowIso(),
       trialEnd: (dealer && dealer.trialEnd) || null,
+      // Manual-billing readiness (no payment gateway). These ride in the
+      // dealer-scoped record payload — no schema change. They are the manual
+      // record the provider/owner keeps; the SECURITY boundary that actually
+      // blocks a suspended/expired dealer must live in Supabase RLS (Codex).
+      paid: false,
+      expiryDate: null,
+      renewalReminder: null,
+      paymentNotes: '',
+      paymentProofLink: '',
       seatLimit: 5,
       seatCount: Number(teamCount || 1),
       maxMaps: 10,
@@ -203,7 +212,10 @@
     const settings = getDealerSettings();
     const now = Date.now();
     const trialEnd = settings.trialEnd ? Date.parse(settings.trialEnd) : 0;
+    const expiry = settings.expiryDate ? Date.parse(settings.expiryDate) : 0;
     const trialExpired = settings.subscriptionStatus === 'trial' && trialEnd && trialEnd < now;
+    const paidExpired = (settings.accountStatus || 'active') === 'active'
+      && settings.subscriptionStatus !== 'trial' && expiry && expiry < now;
     return {
       planCode: settings.planCode || 'founding',
       subscriptionStatus: settings.subscriptionStatus || 'trial',
@@ -211,12 +223,50 @@
       trialStart: settings.trialStart || null,
       trialEnd: settings.trialEnd || null,
       trialExpired,
-      active: (settings.accountStatus || 'active') === 'active' && !trialExpired,
+      paidExpired,
+      paid: settings.paid === true,
+      expiryDate: settings.expiryDate || null,
+      renewalReminder: settings.renewalReminder || null,
+      paymentNotes: settings.paymentNotes || '',
+      paymentProofLink: settings.paymentProofLink || '',
+      active: (settings.accountStatus || 'active') === 'active' && !trialExpired && !paidExpired,
       seatLimit: Number(settings.seatLimit || 5),
       maxMaps: Number(settings.maxMaps || 10),
       maxProperties: Number(settings.maxProperties || 500),
       maxTeamMembers: Number(settings.maxTeamMembers || settings.seatLimit || 5)
     };
+  }
+
+  // Resolve an account gate for the UI (banner + soft state). This is UX only —
+  // the real block for suspended/expired dealers must be enforced by Supabase
+  // RLS (Codex). It never hard-locks the owner; it informs. Statuses:
+  // trial · active · suspended · expired.
+  function getAccountGate() {
+    const plan = getPlanState();
+    const DAY = 86400000;
+    const now = Date.now();
+    let status = plan.accountStatus;                 // active | suspended | expired
+    if (status === 'active' && plan.subscriptionStatus === 'trial') status = 'trial';
+    if (plan.trialExpired || plan.paidExpired) status = 'expired';
+
+    const endMs = plan.subscriptionStatus === 'trial'
+      ? (plan.trialEnd ? Date.parse(plan.trialEnd) : 0)
+      : (plan.expiryDate ? Date.parse(plan.expiryDate) : 0);
+    const daysLeft = endMs ? Math.ceil((endMs - now) / DAY) : null;
+
+    const blocked = status === 'suspended' || status === 'expired';
+    let level = 'ok', message = '';
+    if (status === 'suspended') {
+      level = 'blocked';
+      message = 'This account is suspended. Contact your PlotMap provider to reactivate.';
+    } else if (status === 'expired') {
+      level = 'blocked';
+      message = 'This account has ' + (plan.subscriptionStatus === 'trial' ? 'passed its trial end' : 'expired') + '. Contact your PlotMap provider to renew.';
+    } else if (daysLeft !== null && daysLeft <= 7) {
+      level = 'warning';
+      message = (plan.subscriptionStatus === 'trial' ? 'Trial' : 'Plan') + ' ends in ' + Math.max(0, daysLeft) + ' day' + (daysLeft === 1 ? '' : 's') + '. Arrange renewal with your PlotMap provider.';
+    }
+    return { status, blocked, level, message, daysLeft, active: plan.active, plan };
   }
 
   // Soft limit check used by add-flows: returns { ok, message }.
@@ -587,6 +637,7 @@
     getDealerSettings,
     saveDealerSettings,
     getPlanState,
+    getAccountGate,
     checkPlanLimit,
     listTeamMembers,
     saveTeamMember,
