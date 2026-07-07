@@ -10,9 +10,6 @@
 <script src="/admin/crm-data.js"></script>
 <script src="/admin/core/data-adapter.js"></script>
 <script src="/admin/core/sync-queue.js"></script>
-<script src="/admin/core/finance-engine.js"></script>
-<script src="/admin/core/command-engine.js"></script>
-<script src="/admin/core/report-engine.js"></script>
 <script src="/admin/core/event-tracker.js"></script>
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
@@ -22,12 +19,16 @@
 if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
 </script>
 <style>
-.ap-stats { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-.ap-stat { flex: 1; min-width: 45%; background: var(--pm-bg); padding: 8px 12px; border-radius: 8px; }
-.ap-stat-val { font-size: 16px; font-weight: 700; color: var(--pm-text); }
-.ap-stat-lbl { font-size: 11px; color: var(--pm-text-mut); font-weight: 600; text-transform: uppercase; margin-top: 2px; }
-.gap-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--pm-border-subtle); align-items: center; }
-.gap-row:last-child { border-bottom: none; }
+.ai-card { background:#fff;border:1px solid var(--pm-border);border-radius:20px;padding:18px 20px; }
+.ai-stats { display:flex;flex-wrap:wrap;gap:8px;margin-top:14px; }
+.ai-stat { flex:1;min-width:30%;background:var(--pm-bg-warm);border:1px solid var(--pm-border-subtle);padding:10px 12px;border-radius:12px; }
+.ai-stat-val { font-size:18px;font-weight:800;color:var(--pm-text); }
+.ai-stat-lbl { font-size:10.5px;color:var(--pm-text-mut);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:2px; }
+.ai-meaning { display:flex;gap:10px;align-items:flex-start;margin-top:14px;background:var(--pm-emerald-light);border:1px solid #CDE6DA;border-radius:12px;padding:10px 12px; }
+.ai-meaning i { flex:none;width:22px;height:22px;border-radius:7px;background:var(--pm-emerald);color:#fff;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:800;font-size:12px; }
+.ai-meaning span { font-size:12.5px;color:#216B4E;font-weight:600;line-height:1.45; }
+.gap-row { display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--pm-border-subtle);align-items:center; }
+.gap-row:last-child { border-bottom:none; }
 </style>
 </head>
 <body class="pm-shell">
@@ -38,28 +39,25 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
   <div class="pm-page-header">
     <div>
       <h1>Area Intelligence</h1>
-      <div class="sub">Map-first business insights based strictly on your PlotMap internal activity.</div>
+      <div class="sub">Which areas your clients care about — built only from Client Presentation activity.</div>
     </div>
+    <a class="pm-btn pm-btn-secondary" href="/app/plotmap/">Open Client Presentation</a>
   </div>
 
-  <div style="font-size:18px;font-weight:800;margin-bottom:12px;">Area Pulse</div>
-  <div class="pm-grid cols-3" id="area-pulse" style="margin-bottom:24px;">
-    <!-- JS -->
-  </div>
+  <div style="font-size:18px;font-weight:800;margin-bottom:12px;">Hot &amp; rising areas</div>
+  <div class="pm-grid cols-3" id="area-pulse" style="margin-bottom:24px;"></div>
 
   <div class="pm-grid wide-left" style="align-items:start;">
     <div class="pm-card-xl">
-      <div class="pm-card-h">Demand vs Inventory Gap</div>
-      <div class="pm-card-sub">Comparing client requirements against your available internal inventory.</div>
+      <div class="pm-card-h">Client attention vs your inventory</div>
+      <div class="pm-card-sub">Presentation attention per area, compared with the stock you can show</div>
       <div id="gap-analysis"></div>
     </div>
 
     <div class="pm-card-xl">
-      <div class="pm-card-h">Map Activity Insights</div>
-      <div class="pm-card-sub">Client interaction with your PlotMap presentations.</div>
-      <div id="map-activity" style="display:flex;flex-direction:column;gap:12px;">
-        <!-- JS -->
-      </div>
+      <div class="pm-card-h">Map activity</div>
+      <div class="pm-card-sub">From Client Presentation sessions only — admin browsing never counts</div>
+      <div id="map-activity" style="display:flex;flex-direction:column;gap:12px;"></div>
     </div>
   </div>
 </main>
@@ -68,80 +66,119 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
 document.addEventListener('DOMContentLoaded', () => {
   window.PMNav.render('area-intelligence');
   const crm = window.CRM;
-  const areaData = crm.computeAreaInsights();
-  
-  // Area Pulse
-  const pgrid = document.getElementById('area-pulse');
-  if(areaData.length === 0) {
-    pgrid.innerHTML = '<div class="pm-empty" style="grid-column:1/-1;"><div class="desc">No area data available.</div></div>';
-  } else {
-    pgrid.innerHTML = areaData.map(a => {
-      let cls = 'neutral';
-      if (a.status === 'Hot' || a.status === 'High Interest') cls = 'warm';
-      else if (a.status === 'Rising') cls = 'info';
-      else if (a.status === 'Low Activity') cls = 'neutral';
+  const data = crm.getScopedCRM ? crm.getScopedCRM() : crm.getCRM();
+  const stats = crm.computePresentationStats ? crm.computePresentationStats() : { perArea: {} };
 
+  const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[c]);
+
+  // Presentation-only area rows (skip internal map ids from older event formats)
+  const inventoryByArea = {};
+  (data.properties || []).forEach(p => {
+    if (p.area && p.internalStatus === 'Available') inventoryByArea[p.area] = (inventoryByArea[p.area] || 0) + 1;
+  });
+
+  const areas = Object.keys(stats.perArea)
+    .filter(name => !/^(masterplan|sector)-/.test(name))
+    .map(name => {
+      const a = stats.perArea[name];
+      const score = a.mapOpens + a.views * 2 + (a.overlayClicks || 0) + (a.sectorOpens || 0) + (a.shares || 0) * 2;
+      return { name, score, inventory: inventoryByArea[name] || 0, ...a };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  const active = areas.filter(a => a.score > 0);
+
+  function statusFor(a, rank) {
+    if (rank === 0 && a.score >= 4) return { label: 'Hot', cls: 'warm' };
+    if (a.score >= 2) return { label: 'Rising', cls: 'info' };
+    return { label: 'Getting looks', cls: 'neutral' };
+  }
+
+  function whyText(a) {
+    const parts = [];
+    if (a.mapOpens) parts.push(a.mapOpens + ' map open' + (a.mapOpens === 1 ? '' : 's'));
+    if (a.views) parts.push(a.views + ' property view' + (a.views === 1 ? '' : 's'));
+    if (a.shares) parts.push(a.shares + ' share' + (a.shares === 1 ? '' : 's'));
+    if (a.sessions) parts.push(a.sessions + ' client session' + (a.sessions === 1 ? '' : 's'));
+    return parts.length ? 'Why it’s here: ' + parts.join(', ') + '.' : '';
+  }
+
+  function meaningText(a, rank) {
+    if (rank === 0 && a.inventory === 0) return 'Clients are exploring ' + a.name + ' but you have nothing available to show there. Worth sourcing stock.';
+    if (rank === 0) return 'This is your hottest area right now — lead your next presentation with ' + a.name + '.';
+    if (a.inventory === 0) return 'Interest is building here and you have no available stock — keep an eye on it.';
+    if (a.views > a.mapOpens) return 'Clients go deep on properties here — follow up on the plots they opened.';
+    return 'Clients open this map often — make sure its properties have photos and pins.';
+  }
+
+  // ---- Hot & rising areas ----
+  const pgrid = document.getElementById('area-pulse');
+  if (active.length === 0) {
+    pgrid.innerHTML = '<div class="pm-card-xl" style="grid-column:1/-1;"><div class="pm-empty" style="padding:36px 20px;"><div class="title">No client activity yet</div><div class="desc" style="margin-top:6px;">Area Intelligence fills in as clients explore your Client Presentation. Open it and walk a client through a map to get started.</div><div style="margin-top:16px;"><a class="pm-btn pm-btn-primary" href="/app/plotmap/">Open Client Presentation</a></div></div></div>';
+  } else {
+    pgrid.innerHTML = active.slice(0, 6).map((a, i) => {
+      const st = statusFor(a, i);
       return `
-      <div class="pm-prop-card" style="padding:16px;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
-          <div style="font-size:18px;font-weight:700;">${a.name}</div>
-          <span class="pm-status ${cls}">${a.status}</span>
+      <div class="ai-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+          <div style="font-size:19px;font-weight:800;">${esc(a.name)}</div>
+          <span class="pm-status ${st.cls}">${st.label}</span>
         </div>
-        <div style="font-size:13px;color:var(--pm-text-mut);line-height:1.4;min-height:36px;">${a.summary}</div>
-        <div class="ap-stats">
-          <div class="ap-stat"><div class="ap-stat-val">${a.interest}</div><div class="ap-stat-lbl">Active Clients</div></div>
-          <div class="ap-stat"><div class="ap-stat-val">${a.inventory}</div><div class="ap-stat-lbl">Inventory</div></div>
-          <div class="ap-stat"><div class="ap-stat-val">${a.views}</div><div class="ap-stat-lbl">Prop Views</div></div>
+        <div style="font-size:12.5px;color:var(--pm-text-mut);line-height:1.45;margin-top:6px;min-height:32px;">${esc(whyText(a))}</div>
+        <div class="ai-stats">
+          <div class="ai-stat"><div class="ai-stat-val">${a.mapOpens}</div><div class="ai-stat-lbl">Map opens</div></div>
+          <div class="ai-stat"><div class="ai-stat-val">${a.views}</div><div class="ai-stat-lbl">Property views</div></div>
+          <div class="ai-stat"><div class="ai-stat-val">${a.sessions}</div><div class="ai-stat-lbl">Sessions</div></div>
         </div>
-      </div>
-      `;
+        <div class="ai-meaning"><i>i</i><span><b>What this means for you:</b> ${esc(meaningText(a, i))}</span></div>
+      </div>`;
     }).join('');
   }
 
-  // Gap
+  // ---- Attention vs inventory ----
   const gapDiv = document.getElementById('gap-analysis');
-  const gapData = areaData.filter(a => a.interest > 0 || a.inventory > 0);
-  if(gapData.length === 0) {
-    gapDiv.innerHTML = '<div class="pm-empty"><div class="desc">Not enough data to compute gaps.</div></div>';
+  const gapRows = areas.filter(a => a.score > 0 || a.inventory > 0);
+  if (gapRows.length === 0) {
+    gapDiv.innerHTML = '<div class="pm-empty"><div class="desc">Once clients start exploring, you’ll see where attention outruns your stock.</div></div>';
   } else {
-    gapDiv.innerHTML = gapData.map(a => {
-      let gapColor = 'var(--pm-text)';
-      let cls = 'neutral';
-      if (a.gap.includes('high demand, low inventory')) { gapColor = 'var(--pm-orange)'; cls = 'warm'; }
-      if (a.gap.includes('stable demand, high inventory')) { gapColor = 'var(--pm-gold)'; cls = 'warn'; }
-      
+    const maxScore = Math.max(1, ...gapRows.map(a => a.score));
+    gapDiv.innerHTML = gapRows.slice(0, 8).map(a => {
+      let verdict, color;
+      if (a.score >= 3 && a.inventory === 0) { verdict = 'High attention · no stock'; color = 'var(--pm-orange)'; }
+      else if (a.score >= 3 && a.inventory <= 2) { verdict = 'High attention · low stock'; color = 'var(--pm-gold-dark)'; }
+      else if (a.score === 0 && a.inventory > 0) { verdict = 'Stock waiting · no attention yet'; color = 'var(--pm-blue)'; }
+      else { verdict = a.inventory + ' available · steady interest'; color = 'var(--pm-emerald)'; }
       return `
       <div class="gap-row">
-        <div style="font-weight:700;">${a.name}</div>
-        <div style="color:${gapColor}; font-weight:600; text-transform:capitalize; font-size:13px; background:var(--pm-bg); padding:4px 10px; border-radius:12px;">${a.gap}</div>
-      </div>
-      `;
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:14.5px;">${esc(a.name)}</div>
+          <div class="pm-progress slim" style="margin-top:7px;max-width:280px;"><div class="bar" style="width:${Math.round((a.score / maxScore) * 100)}%;background:var(--pm-emerald);"></div></div>
+        </div>
+        <div style="color:${color};font-weight:700;font-size:12.5px;background:var(--pm-bg-warm);border:1px solid var(--pm-border-subtle);padding:6px 12px;border-radius:999px;white-space:nowrap;">${verdict}</div>
+      </div>`;
     }).join('');
   }
 
-  // Map Activity
+  // ---- Map activity highlights ----
   const mapAct = document.getElementById('map-activity');
-  let topOpened = [...areaData].sort((a,b)=>b.mapOpens - a.mapOpens)[0];
-  let topShared = [...areaData].sort((a,b)=>b.shares - a.shares)[0];
-  let topViewed = [...areaData].sort((a,b)=>b.views - a.views)[0];
-
-  mapAct.innerHTML = `
-    <div style="padding:16px;background:var(--pm-bg);border-radius:12px;border:1px solid var(--pm-border-subtle);">
-      <div style="font-size:13px;color:var(--pm-text-mut);font-weight:600;text-transform:uppercase;margin-bottom:4px;">Most Opened Map</div>
-      <div style="font-size:22px;font-weight:800;color:var(--pm-blue);">${topOpened && topOpened.mapOpens > 0 ? topOpened.name : '-'}</div>
-      <div style="font-size:13px;color:var(--pm-text-mut);margin-top:2px;">${topOpened ? topOpened.mapOpens : 0} opens via PlotMap</div>
-    </div>
-    <div style="padding:16px;background:var(--pm-bg);border-radius:12px;border:1px solid var(--pm-border-subtle);">
-      <div style="font-size:13px;color:var(--pm-text-mut);font-weight:600;text-transform:uppercase;margin-bottom:4px;">Most Shared Area</div>
-      <div style="font-size:22px;font-weight:800;color:var(--pm-gold);">${topShared && topShared.shares > 0 ? topShared.name : '-'}</div>
-      <div style="font-size:13px;color:var(--pm-text-mut);margin-top:2px;">${topShared ? topShared.shares : 0} properties shared</div>
-    </div>
-    <div style="padding:16px;background:var(--pm-bg);border-radius:12px;border:1px solid var(--pm-border-subtle);">
-      <div style="font-size:13px;color:var(--pm-text-mut);font-weight:600;text-transform:uppercase;margin-bottom:4px;">Most Viewed Properties</div>
-      <div style="font-size:22px;font-weight:800;color:var(--pm-emerald);">${topViewed && topViewed.views > 0 ? topViewed.name : '-'}</div>
-      <div style="font-size:13px;color:var(--pm-text-mut);margin-top:2px;">${topViewed ? topViewed.views : 0} detailed views</div>
-    </div>
-  `;
+  const byOpens = [...active].sort((a, b) => b.mapOpens - a.mapOpens)[0];
+  const byShares = [...active].sort((a, b) => (b.shares || 0) - (a.shares || 0))[0];
+  const byViews = [...active].sort((a, b) => b.views - a.views)[0];
+  const tile = (label, area, valueText, color, link) => `
+    <div style="padding:16px;background:var(--pm-bg-warm);border-radius:14px;border:1px solid var(--pm-border-subtle);">
+      <div style="font-size:11.5px;color:var(--pm-text-mut);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">${label}</div>
+      <div style="font-size:21px;font-weight:800;color:${color};">${esc(area || '—')}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px;">
+        <span style="font-size:12.5px;color:var(--pm-text-mut);">${esc(valueText)}</span>
+        ${area && link ? `<a href="${link}" style="font-size:12.5px;font-weight:700;">Open →</a>` : ''}
+      </div>
+    </div>`;
+  mapAct.innerHTML =
+    tile('Most opened map', byOpens && byOpens.mapOpens > 0 ? byOpens.name : '', byOpens ? byOpens.mapOpens + ' opens in Client Presentation' : 'No opens yet', 'var(--pm-blue)', '/app/plotmap/')
+    + tile('Most shared area', byShares && (byShares.shares || 0) > 0 ? byShares.name : '', byShares ? (byShares.shares || 0) + ' properties shared' : 'No shares yet', 'var(--pm-gold)', '/admin/properties.html')
+    + tile('Most viewed properties', byViews && byViews.views > 0 ? byViews.name : '', byViews ? byViews.views + ' detailed views' : 'No views yet', 'var(--pm-emerald)', '/admin/property-insights.html');
 });
 </script>
 </body>

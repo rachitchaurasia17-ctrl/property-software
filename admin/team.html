@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Team Workspace — PlotMap</title>
+<title>Team Dashboard — PlotMap</title>
 <link rel="stylesheet" href="/admin/crm-ui.css">
 <script src="/admin/core/auth.js"></script>
 <script src="/admin/crm-data.js"></script>
@@ -216,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const allowedPagesText = (scopes) => {
       const set = new Set(scopes || []);
       const pages = PAGE_SCOPES.filter(p => set.has(p.scope)).map(p => p.label);
-      return pages.length ? 'Can open: Workspace, ' + pages.join(', ') : 'Can open: Workspace only';
+      return pages.length ? 'Can open: Dashboard, ' + pages.join(', ') : 'Can open: Dashboard only';
     };
     const selectedScopes = () => [...permGrid.querySelectorAll('input[type="checkbox"]:checked')].map(box => box.value);
     const refreshAllowedPages = () => {

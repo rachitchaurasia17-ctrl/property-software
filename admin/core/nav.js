@@ -19,7 +19,7 @@
   // scopes (PMAccess.resolveScopes on the cached Supabase profile). Pages
   // are also guarded by PMAccess.guardPage — hiding nav is UX, not security.
   const TEAM_NAV = [
-    { key: 'dashboard', label: 'Workspace', href: '/admin/team.html' },
+    { key: 'dashboard', label: 'Dashboard', href: '/admin/team.html' },
     { key: 'presentation', label: 'Client Presentation', href: '/app/plotmap/', scope: 'presentation.view' },
     { key: 'map-studio', label: 'Map Studio', href: '/admin/map-studio.html', scope: 'mapstudio.manage' },
     { key: 'properties', label: 'Properties', href: '/admin/properties.html', scope: 'properties.manage' },

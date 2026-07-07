@@ -3,393 +3,301 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PlotMap - Choose Your Workspace</title>
+<title>PlotMap — Property Presentation, On a Living Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="/admin/core/auth.js"></script>
 <style>
-  :root {
-    --ink: #111815;
-    --paper: #f6f2ea;
-    --panel: rgba(255, 255, 255, 0.88);
-    --line: rgba(25, 46, 37, 0.14);
-    --muted: #66736c;
-    --emerald: #0f6b4d;
-    --gold: #a36f28;
-    --blue: #315f8f;
-    --shadow: 0 18px 50px rgba(20, 28, 24, 0.14);
-  }
-
   * { box-sizing: border-box; }
   html, body { margin: 0; min-height: 100%; }
   body {
-    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    color: var(--ink);
-    background:
-      linear-gradient(135deg, rgba(15, 107, 77, 0.16), transparent 42%),
-      linear-gradient(315deg, rgba(163, 111, 40, 0.15), transparent 40%),
-      var(--paper);
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    color: #1C1E1B;
+    background: #F5EFE2;
     -webkit-font-smoothing: antialiased;
   }
-
+  ::selection { background: #CFE2D7; color: #13402F; }
   a { color: inherit; text-decoration: none; }
   button, input { font-family: inherit; }
+  .serif { font-family: 'Fraunces', Georgia, serif; }
 
   .page {
+    position: relative;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    padding: 28px clamp(18px, 4vw, 48px);
+    overflow: hidden;
+  }
+  .page::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(120% 82% at 50% -8%, #FCF8EF 0%, #F4EDDE 46%, #ECE3CF 100%);
+    pointer-events: none;
+  }
+  .glow-gold {
+    position: absolute; left: 50%; top: -170px; transform: translateX(-50%);
+    width: 860px; height: 560px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(193,150,74,0.20), transparent 64%);
+    pointer-events: none;
+  }
+  .glow-green {
+    position: absolute; left: 50%; top: 30%; transform: translateX(-50%);
+    width: 560px; height: 380px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(31,94,71,0.08), transparent 66%);
+    pointer-events: none;
+  }
+  .hairline {
+    position: absolute; left: 0; right: 0; top: 0; height: 3px;
+    background: linear-gradient(90deg, transparent, rgba(168,124,61,.6), transparent);
   }
 
-  .topbar {
-    width: min(1120px, 100%);
-    margin: 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-  }
-
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 0;
-  }
-
-  .brand-mark {
-    width: 42px;
-    height: 42px;
-    border-radius: 8px;
-    border: 1px solid rgba(15, 107, 77, 0.26);
-    background: linear-gradient(145deg, #ffffff, #e7efe9);
-    box-shadow: 0 10px 30px rgba(15, 107, 77, 0.12);
+  .frame {
     position: relative;
-    flex: none;
-  }
-
-  .brand-mark::before,
-  .brand-mark::after {
-    content: "";
-    position: absolute;
-    border-radius: 999px;
-    border: 2px solid var(--emerald);
-  }
-
-  .brand-mark::before {
-    inset: 10px;
-  }
-
-  .brand-mark::after {
-    width: 8px;
-    height: 8px;
-    right: 7px;
-    bottom: 7px;
-    background: var(--gold);
-    border-color: #fff;
-  }
-
-  .brand-title {
-    display: grid;
-    gap: 2px;
-  }
-
-  .brand-title strong {
-    font-size: 20px;
-    letter-spacing: 0;
-  }
-
-  .brand-title span {
-    color: var(--muted);
-    font-size: 13px;
-    font-weight: 600;
-  }
-
-  .status {
-    color: #4f5e56;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-
-  .hero {
-    width: min(1120px, 100%);
-    margin: auto;
-    padding: clamp(48px, 8vh, 92px) 0 34px;
-  }
-
-  .hero-copy {
-    max-width: 720px;
-  }
-
-  .eyebrow {
-    color: var(--emerald);
-    font-size: 13px;
-    font-weight: 800;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    margin: 0 0 16px;
-  }
-
-  h1 {
-    margin: 0;
-    font-family: Georgia, "Times New Roman", serif;
-    font-weight: 500;
-    font-size: 72px;
-    line-height: 0.96;
-    letter-spacing: 0;
-  }
-
-  .lead {
-    margin: 20px 0 0;
-    max-width: 620px;
-    color: #4e5f56;
-    font-size: 20px;
-    line-height: 1.55;
-  }
-
-  .choice-line {
-    margin: 18px 0 0;
-    color: #26362f;
-    font-size: 15px;
-    font-weight: 800;
-  }
-
-  .cards {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-    margin-top: clamp(28px, 5vw, 48px);
-  }
-
-  .role-card {
-    min-height: 252px;
+    min-height: 100vh;
+    max-width: 1080px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 32px 48px 40px;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    gap: 22px;
-    padding: 24px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    background: var(--panel);
-    box-shadow: var(--shadow);
-    outline: none;
-    cursor: pointer;
-    text-align: left;
-    transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
   }
 
-  .role-card:hover,
-  .role-card:focus-visible {
-    transform: translateY(-3px);
-    border-color: rgba(15, 107, 77, 0.34);
-    box-shadow: 0 22px 58px rgba(20, 28, 24, 0.18);
+  .topline {
+    display: flex; align-items: center; justify-content: space-between; flex: none; gap: 16px;
   }
-
-  .role-card.primary {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(235, 246, 240, 0.92));
-    border-color: rgba(15, 107, 77, 0.3);
+  .live-tag {
+    display: flex; align-items: center; gap: 9px;
+    color: #5C7A6B; font-size: 12px; letter-spacing: 0.2em; font-weight: 700; text-transform: uppercase;
   }
-
-  .role-icon {
-    width: 44px;
-    height: 44px;
-    display: grid;
-    place-items: center;
-    border-radius: 8px;
-    border: 1px solid rgba(15, 107, 77, 0.18);
-    background: #fff;
-    color: var(--emerald);
-    font-size: 24px;
-    font-weight: 800;
+  .live-tag i {
+    width: 7px; height: 7px; border-radius: 50%; background: #2E8B66;
+    box-shadow: 0 0 0 4px rgba(46,139,102,.16);
   }
+  .powered {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .powered .lbl { font-size: 11px; letter-spacing: 0.16em; color: #9A8C6E; text-transform: uppercase; }
+  .powered .ring { width: 13px; height: 13px; border-radius: 50%; border: 2.5px solid #1F5E47; }
+  .powered b { font-size: 14px; font-weight: 800; letter-spacing: -0.01em; color: #1C2B22; }
 
-  .role-card.secondary .role-icon { color: var(--gold); }
-
-  .role-kicker {
-    margin: 0 0 8px;
-    color: var(--muted);
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.12em;
+  .hero {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+    padding: clamp(36px, 7vh, 72px) 0 30px;
+  }
+  .emblem {
+    width: 78px; height: 78px; border-radius: 22px;
+    border: 1px solid rgba(168,124,61,.5);
+    background: linear-gradient(155deg, #FFFCF4, #F1E7D0);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 20px 44px rgba(120,90,30,.18), inset 0 1px 0 rgba(255,255,255,.7);
+    margin-bottom: 30px;
+  }
+  .emblem i { width: 28px; height: 28px; border-radius: 50%; border: 3px solid #1F5E47; display: block; }
+  h1 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 500;
+    font-size: clamp(48px, 8vw, 78px);
+    line-height: 1;
+    letter-spacing: 0.04em;
+    margin: 0;
+    color: #15281F;
+  }
+  .word {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 400;
+    font-size: clamp(18px, 2.6vw, 26px);
+    letter-spacing: 0.52em;
+    padding-left: 0.52em;
+    margin: 14px 0 0;
+    color: #A87C3D;
     text-transform: uppercase;
   }
-
-  .role-title {
-    margin: 0;
-    font-size: 25px;
-    line-height: 1.1;
-    letter-spacing: 0;
+  .estd {
+    display: flex; align-items: center; gap: 14px; margin: 30px 0 0;
+  }
+  .estd .rule { height: 1px; width: 44px; }
+  .estd .rule.l { background: linear-gradient(90deg, transparent, rgba(168,124,61,.7)); }
+  .estd .rule.r { background: linear-gradient(90deg, rgba(168,124,61,.7), transparent); }
+  .estd span { font-size: 11.5px; letter-spacing: 0.34em; color: #8A7C60; font-weight: 700; text-transform: uppercase; }
+  .lead {
+    font-size: 17.5px; line-height: 1.6; color: #5F6B61; max-width: 48ch; margin: 26px 0 0;
   }
 
-  .role-text {
-    margin: 12px 0 0;
-    color: #5d6c64;
-    font-size: 15px;
-    line-height: 1.55;
+  .doors {
+    flex: none;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
   }
-
-  .role-action {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 46px;
-    padding: 0 16px;
-    border-radius: 8px;
-    background: var(--ink);
-    color: #fff;
-    font-size: 14px;
-    font-weight: 800;
+  .door {
+    text-align: left; cursor: pointer;
+    background: #FFFDF8;
+    border: 1px solid #E8DFC9;
+    border-radius: 20px;
+    padding: 24px 22px 22px;
+    display: flex; flex-direction: column;
+    min-height: 184px;
+    box-shadow: 0 2px 4px rgba(120,90,30,.04), 0 16px 36px rgba(120,90,30,.07);
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
   }
-
-  .primary .role-action { background: var(--emerald); }
-  .secondary .role-action { background: #6c512c; }
+  .door:hover, .door:focus-visible {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 22px rgba(120,90,30,.1), 0 28px 56px rgba(120,90,30,.15);
+    outline: none;
+  }
+  .door.client:hover, .door.client:focus-visible { border-color: #1F5E47; }
+  .door.dealer:hover, .door.dealer:focus-visible { border-color: #A87C3D; }
+  .door-top { display: flex; align-items: center; justify-content: space-between; }
+  .door-ic {
+    width: 46px; height: 46px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 800;
+  }
+  .door.client .door-ic { background: #E7F0EB; color: #1F5E47; }
+  .door.dealer .door-ic { background: #F6ECD8; color: #A87C3D; }
+  .door-num { font-family: 'Fraunces', Georgia, serif; font-size: 15px; color: #C8BFA8; }
+  .door-tag {
+    font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase;
+    font-weight: 700; margin-top: 20px;
+  }
+  .door.client .door-tag { color: #1F5E47; }
+  .door.dealer .door-tag { color: #A87C3D; }
+  .door-title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 24px; font-weight: 500; letter-spacing: -0.01em; color: #1C2B22; margin-top: 5px;
+  }
+  .door-desc { font-size: 13px; color: #6B7268; line-height: 1.5; margin-top: 8px; }
+  .door-cta {
+    display: flex; align-items: center; gap: 7px;
+    margin-top: auto; padding-top: 16px;
+    font-size: 13.5px; font-weight: 700;
+  }
+  .door.client .door-cta { color: #1F5E47; }
+  .door.dealer .door-cta { color: #A87C3D; }
+  .door-cta .arw { font-size: 15px; }
 
   .footnote {
-    width: min(1120px, 100%);
-    margin: 24px auto 0;
-    color: #718078;
-    font-size: 13px;
-    line-height: 1.5;
+    margin: 22px auto 0; color: #8A7C60; font-size: 12.5px; line-height: 1.5; text-align: center;
   }
 
+  /* ── Dealer login form ── */
   #auth-shell {
-    margin-top: 24px;
-    max-width: 480px;
+    margin: 20px auto 0;
+    max-width: 440px;
     width: 100%;
     display: none;
+    animation: authIn .25s ease both;
   }
-
+  @keyframes authIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
   .auth-form {
-    background: #fff;
-    border: 1px solid var(--line);
-    border-radius: 12px;
+    background: #FFFDF8;
+    border: 1px solid #E8DFC9;
+    border-radius: 20px;
     padding: 24px;
-    box-shadow: var(--shadow);
+    box-shadow: 0 2px 4px rgba(120,90,30,.04), 0 24px 52px rgba(120,90,30,.12);
   }
-
+  .auth-form h2 {
+    font-family: 'Fraunces', Georgia, serif;
+    margin: 0; font-size: 24px; font-weight: 500; letter-spacing: -0.01em; color: #1C2B22;
+  }
+  .auth-close {
+    border: none; background: #F4F2EA; color: #6A6E68; cursor: pointer;
+    width: 32px; height: 32px; border-radius: 10px; font-size: 14px; font-weight: 700;
+  }
+  .auth-close:hover { background: #ECE8DD; color: #1C1E1B; }
   .auth-form input {
-    width: 100%;
-    height: 46px;
-    margin-bottom: 12px;
-    border-radius: 8px;
-    border: 1px solid var(--line);
-    padding: 0 14px;
-    font-size: 15px;
+    width: 100%; height: 48px; margin-bottom: 12px;
+    border-radius: 13px; border: 1px solid #E8DFC9; background: #FAF8F3;
+    padding: 0 15px; font-size: 15px; color: #1C1E1B; outline: none;
   }
-
+  .auth-form input:focus { border-color: #1F5E47; background: #fff; }
   .auth-form button[type="submit"] {
-    width: 100%;
-    height: 46px;
-    border-radius: 8px;
-    border: none;
-    background: #6c512c;
-    color: #fff;
-    font-weight: 800;
-    font-size: 15px;
-    cursor: pointer;
+    width: 100%; height: 48px; border-radius: 13px; border: none;
+    background: #1F5E47; color: #fff; font-weight: 700; font-size: 15px; cursor: pointer;
+    box-shadow: 0 8px 18px rgba(31,94,71,.24);
   }
+  .auth-form button[type="submit"]:hover { background: #184E3B; }
+  .auth-form button[type="submit"]:disabled { opacity: .65; cursor: default; }
 
-  @media (max-width: 880px) {
-    .cards {
-      grid-template-columns: 1fr;
-    }
-
-    .role-card {
-      min-height: 210px;
-    }
-  }
-
-  @media (max-width: 560px) {
-    .page {
-      padding: 20px 16px;
-    }
-
-    .topbar {
-      align-items: flex-start;
-      flex-direction: column;
-    }
-
-    .status {
-      white-space: normal;
-    }
-
-    .hero {
-      padding-top: 44px;
-    }
-
-    h1 {
-      font-size: 46px;
-    }
-
-    .lead {
-      font-size: 17px;
-    }
-
-    .role-card {
-      padding: 20px;
-    }
+  @media (max-width: 760px) {
+    .frame { padding: 24px 20px 32px; }
+    .doors { grid-template-columns: 1fr; }
+    .door { min-height: 0; }
+    .hero { padding-top: 30px; }
+    .topline { flex-direction: column; align-items: flex-start; gap: 10px; }
   }
 </style>
 </head>
 <body>
 <main class="page">
-  <header class="topbar" aria-label="PlotMap">
-    <a class="brand" href="/" aria-label="PlotMap home">
-      <span class="brand-mark" aria-hidden="true"></span>
-      <span class="brand-title">
-        <strong>PlotMap</strong>
-        <span>Premium Real Estate Map Studio</span>
+  <span class="hairline" aria-hidden="true"></span>
+  <span class="glow-gold" aria-hidden="true"></span>
+  <span class="glow-green" aria-hidden="true"></span>
+
+  <div class="frame">
+    <header class="topline" aria-label="PlotMap">
+      <span class="live-tag"><i aria-hidden="true"></i>Tricity · Live</span>
+      <span class="powered">
+        <span class="lbl">Powered by</span>
+        <span class="ring" aria-hidden="true"></span>
+        <b>PlotMap</b>
       </span>
-    </a>
-    <div class="status">Tricity map workspace</div>
-  </header>
+    </header>
 
-  <section class="hero" aria-labelledby="gateway-title">
-    <div class="hero-copy">
-      <p class="eyebrow">Choose how you want to continue</p>
-      <h1 id="gateway-title">Choose your workspace</h1>
-      <p class="lead">Client presentation or dealer workspace.</p>
-    </div>
+    <section class="hero" aria-labelledby="gateway-title">
+      <div class="emblem" aria-hidden="true"><i></i></div>
+      <h1 id="gateway-title">PlotMap</h1>
+      <div class="word">Property Presentation</div>
+      <div class="estd" aria-hidden="true">
+        <span class="rule l"></span>
+        <span>Estd · Tricity</span>
+        <span class="rule r"></span>
+      </div>
+      <p class="lead">The whole property business — presented on a living map, run from one calm, premium command system.</p>
+    </section>
 
-    <div class="cards" aria-label="PlotMap role options" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
-      <a class="role-card primary" href="/app/plotmap/">
-        <span class="role-icon" aria-hidden="true">C</span>
-        <span>
-          <p class="role-kicker">Public presentation</p>
-          <h2 class="role-title">Open Client Presentation</h2>
-          <p class="role-text">Open the clean client-facing map presentation.</p>
+    <div class="doors" aria-label="PlotMap entry options">
+      <a class="door client" href="/app/plotmap/">
+        <span class="door-top">
+          <span class="door-ic" aria-hidden="true">◑</span>
+          <span class="door-num">01</span>
         </span>
-        <span class="role-action">Continue as Client</span>
+        <span class="door-tag">For your client</span>
+        <span class="door-title">Client Presentation</span>
+        <span class="door-desc">Walk a buyer through any property, sector and location on a beautiful live map.</span>
+        <span class="door-cta">Start presenting <span class="arw">→</span></span>
       </a>
 
-      <button class="role-card secondary" onclick="openAuth()">
-        <span class="role-icon" aria-hidden="true">D</span>
-        <span>
-          <p class="role-kicker">Secure workspace</p>
-          <h2 class="role-title">Dealer Login</h2>
-          <p class="role-text">Manage maps, listings, and client presentation. Team members sign in here too.</p>
+      <button class="door dealer" type="button" onclick="openAuth()">
+        <span class="door-top">
+          <span class="door-ic" aria-hidden="true">◆</span>
+          <span class="door-num">02</span>
         </span>
-        <span class="role-action">Sign In</span>
+        <span class="door-tag">For the dealer</span>
+        <span class="door-title">Dealer Login</span>
+        <span class="door-desc">Your command room — maps, properties and client movement in one calm place. Team members sign in here too.</span>
+        <span class="door-cta">Enter command <span class="arw">→</span></span>
       </button>
     </div>
 
     <div id="auth-shell">
       <form id="auth-form" class="auth-form">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
-          <h2 style="margin:0; font-size:20px; font-weight:700;">Dealer Login</h2>
-          <button type="button" onclick="closeAuth()" style="border:none; background:transparent; font-size:14px; color:var(--muted); cursor:pointer;">Close</button>
+          <h2>Dealer Login</h2>
+          <button type="button" class="auth-close" onclick="closeAuth()" aria-label="Close">✕</button>
         </div>
         <input id="auth-email" type="email" autocomplete="email" placeholder="Email address" required>
         <input id="auth-password" type="password" autocomplete="current-password" placeholder="Password" required>
         <button id="auth-submit" type="submit">Continue</button>
-        <div id="auth-status" style="margin-top:12px; font-size:13px; color:#c0392b; font-weight:600; min-height:16px;"></div>
+        <div id="auth-status" style="margin-top:12px; font-size:13px; color:#9A4A2C; font-weight:600; min-height:16px;"></div>
       </form>
     </div>
-  </section>
 
-  <p class="footnote">Team members can sign in through Dealer Login.<br>The client map remains separate at /app/plotmap/.</p>
+    <p class="footnote">Team members sign in through Dealer Login.<br>The client map stays separate — and client-safe — at /app/plotmap/.</p>
+  </div>
 </main>
 
 <script>
@@ -437,7 +345,7 @@
       const status = document.getElementById('auth-status');
       const submit = document.getElementById('auth-submit');
       status.textContent = 'Signing in…';
-      status.style.color = '#5d6c64';
+      status.style.color = '#5F6B61';
       submit.disabled = true;
       try {
         const email = document.getElementById('auth-email').value.trim();
@@ -445,11 +353,11 @@
         await window.PMAuth.signIn(email, password);
         const profile = await window.PMAuth.getCurrentProfile();
         if (!profile) throw new Error('No admin profile found for this account.');
-        
+
         window.location.href = nextTarget || window.PMAuth.routeForRole(profile.role);
       } catch (error) {
         status.textContent = error.message || 'Sign in failed.';
-        status.style.color = '#c0392b';
+        status.style.color = '#9A4A2C';
       } finally {
         submit.disabled = false;
       }

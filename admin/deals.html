@@ -12,11 +12,25 @@
 <script src="/admin/core/sync-queue.js"></script>
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
+<script src="/admin/core/saas-foundation.js"></script>
 <script src="/admin/core/supabase-sync.js"></script>
 <script src="/admin/core/nav.js"></script>
 <script>
 if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
 </script>
+<style>
+.dl-signal { display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid var(--pm-border-subtle); }
+.dl-signal .heat { flex:none;width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px; }
+.dl-stage { font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap; }
+.dl-followup { background:#fff;border:1px solid var(--pm-border);border-radius:18px;padding:16px 18px;margin-bottom:12px; }
+.dl-followup textarea { width:100%;border:1px solid var(--pm-border);border-radius:10px;background:var(--pm-bg-warm);padding:9px 11px;font-size:13px;color:var(--pm-text);resize:vertical;min-height:38px;outline:none; }
+.dl-followup textarea:focus { border-color:var(--pm-emerald);background:#fff; }
+.dl-stagebtns { display:flex;gap:6px;flex-wrap:wrap; }
+.dl-stagebtns button { border:1px solid var(--pm-border);background:#fff;color:var(--pm-text-sec);font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px;cursor:pointer; }
+.dl-stagebtns button.on { border-color:var(--pm-emerald);background:var(--pm-emerald-light);color:var(--pm-emerald); }
+.dl-wa { display:inline-flex;align-items:center;gap:7px;border:1px solid #CDE6DA;background:#EAF3EE;color:#216B4E;font-size:12.5px;font-weight:700;padding:8px 13px;border-radius:11px;cursor:pointer;text-decoration:none; }
+.dl-wa:hover { background:#DCEEE4;color:#184E3B; }
+</style>
 </head>
 <body class="pm-shell">
 
@@ -26,20 +40,28 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
   <div class="pm-page-header">
     <div>
       <h1>Deals</h1>
-      <div class="sub">Follow-up pipeline for property interest.</div>
+      <div class="sub">Turn Client Presentation interest into follow-ups — no spreadsheets, no pressure.</div>
     </div>
   </div>
 
-  <div class="pm-card-xl" style="max-width:680px;">
-    <div class="pm-empty" style="padding:40px 24px;">
-      <div class="title">Deals will connect property interest to follow-up pipeline.</div>
-      <div class="desc" style="margin-top:8px;max-width:460px;margin-left:auto;margin-right:auto;">
-        When a client shows repeated interest in a property inside Client Presentation,
-        it will surface here so you can follow up and close.
+  <div class="pm-grid wide-left" style="align-items:start;">
+    <!-- Interest signals -->
+    <div class="pm-card-xl">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px;flex-wrap:wrap;">
+        <div>
+          <div class="pm-card-h">Interest signals</div>
+          <div class="pm-card-sub">Properties clients keep coming back to in Client Presentation</div>
+        </div>
       </div>
-      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px;">
-        <a class="pm-btn pm-btn-primary" href="/admin/property-insights.html">See property interest</a>
-        <a class="pm-btn pm-btn-secondary" href="/admin/clients.html">View client movement</a>
+      <div id="signals"></div>
+    </div>
+
+    <!-- Follow-up pipeline -->
+    <div>
+      <div class="pm-card-xl" style="margin-bottom:14px;">
+        <div class="pm-card-h">Your follow-ups</div>
+        <div class="pm-card-sub">Saved on this device — a simple pipeline, one card per interested client</div>
+        <div id="followups"></div>
       </div>
     </div>
   </div>
@@ -48,6 +70,173 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   window.PMNav.render('deals');
+
+  const crm = window.CRM;
+  const data = crm.getScopedCRM ? crm.getScopedCRM() : crm.getCRM();
+  const events = Array.isArray(data.presentationEvents) ? data.presentationEvents : [];
+  const propById = Object.fromEntries((data.properties || []).map(p => [p.id, p]));
+
+  const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[c]);
+
+  const STAGES = ['New', 'Contacted', 'Visit planned', 'Closing', 'Done'];
+  const STORE_KEY = 'plotmap_deal_followups_v1';
+
+  function loadFollowups() {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; } catch (err) { return []; }
+  }
+  function saveFollowups(rows) {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(rows)); } catch (err) {}
+  }
+
+  // ---- Interest signals: presentation events only, grouped per property ----
+  const INTEREST_EVENTS = ['property_viewed', 'property_selected', 'client_panel_opened', 'property_shared', 'property_shared_whatsapp', 'brochure_shared'];
+  const perProp = {};
+  events.forEach(e => {
+    if (!e.propertyId || !INTEREST_EVENTS.includes(e.eventType)) return;
+    const row = perProp[e.propertyId] || (perProp[e.propertyId] = { views: 0, shares: 0, sessions: new Set(), last: '' });
+    if (e.eventType.indexOf('shared') >= 0) row.shares += 1; else row.views += 1;
+    if (e.sessionId) row.sessions.add(e.sessionId);
+    if (String(e.createdAt || '') > row.last) row.last = e.createdAt || '';
+  });
+  const signals = Object.keys(perProp).map(id => {
+    const s = perProp[id];
+    const prop = propById[id];
+    return {
+      propertyId: id,
+      title: prop ? (prop.title || prop.name || 'Property') : 'Property (removed)',
+      area: prop ? (prop.area || '') : '',
+      views: s.views, shares: s.shares, sessions: s.sessions.size, last: s.last,
+      score: s.views + s.shares * 2 + s.sessions.size
+    };
+  }).sort((a, b) => b.score - a.score);
+
+  const fmtWhen = (iso) => {
+    if (!iso) return '';
+    const t = new Date(iso);
+    const today = new Date().toISOString().slice(0, 10) === String(iso).slice(0, 10);
+    return today ? t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : t.toLocaleDateString([], { day: 'numeric', month: 'short' });
+  };
+
+  function heatFor(i) {
+    if (i === 0) return { bg: 'var(--pm-emerald-light)', fg: 'var(--pm-emerald)', label: 'Hot' };
+    if (i <= 2) return { bg: 'var(--pm-gold-light)', fg: 'var(--pm-gold-dark)', label: 'Warm' };
+    return { bg: 'var(--pm-bg-warm)', fg: 'var(--pm-text-sec)', label: 'Interest' };
+  }
+
+  function waLink(f) {
+    let msg = 'Hello! Sharing details of ' + f.title + (f.area ? ' in ' + f.area : '') + ' from our presentation.';
+    try {
+      if (window.PMFoundation) {
+        const s = window.PMFoundation.getDealerSettings();
+        if (s && s.shareMessage) msg = s.shareMessage + ' — ' + f.title + (f.area ? ' (' + f.area + ')' : '');
+      }
+    } catch (err) {}
+    return 'https://wa.me/?text=' + encodeURIComponent(msg);
+  }
+
+  function renderSignals() {
+    const el = document.getElementById('signals');
+    const followups = loadFollowups();
+    const tracked = new Set(followups.filter(f => f.stage !== 'Done').map(f => f.propertyId));
+    if (signals.length === 0) {
+      el.innerHTML = '<div class="pm-empty" style="padding:36px 20px;"><div class="title">Deals will help you turn presentation interest into follow-ups.</div><div class="desc" style="margin-top:8px;max-width:440px;margin-left:auto;margin-right:auto;">When a client views or shares a property inside Client Presentation, the interest shows up here — ready to become a follow-up.</div><div style="margin-top:18px;"><a class="pm-btn pm-btn-primary" href="/app/plotmap/">Open Client Presentation</a></div></div>';
+      return;
+    }
+    el.innerHTML = signals.slice(0, 12).map((s, i) => {
+      const heat = heatFor(i);
+      return `<div class="dl-signal">
+        <div class="heat" style="background:${heat.bg};color:${heat.fg};">${s.views + s.shares}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14.5px;font-weight:700;">${esc(s.title)}</div>
+          <div style="font-size:12.5px;color:var(--pm-text-mut);">${esc(s.area || '—')} · ${s.sessions} session${s.sessions === 1 ? '' : 's'} · ${s.views} view${s.views === 1 ? '' : 's'}${s.shares ? ' · ' + s.shares + ' share' + (s.shares === 1 ? '' : 's') : ''} · last ${esc(fmtWhen(s.last))}</div>
+        </div>
+        <span class="dl-stage" style="background:${heat.bg};color:${heat.fg};">${heat.label}</span>
+        ${tracked.has(s.propertyId)
+          ? '<span style="font-size:12.5px;font-weight:700;color:var(--pm-emerald);white-space:nowrap;">In follow-ups ✓</span>'
+          : `<button class="pm-btn pm-btn-secondary sm" type="button" data-track="${esc(s.propertyId)}">Start follow-up</button>`}
+      </div>`;
+    }).join('');
+    el.querySelectorAll('[data-track]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const sig = signals.find(x => x.propertyId === btn.getAttribute('data-track'));
+        if (!sig) return;
+        const rows = loadFollowups();
+        rows.unshift({
+          id: 'fu' + Date.now(),
+          propertyId: sig.propertyId,
+          title: sig.title,
+          area: sig.area,
+          stage: 'New',
+          note: '',
+          createdAt: new Date().toISOString()
+        });
+        saveFollowups(rows);
+        renderSignals();
+        renderFollowups();
+      });
+    });
+  }
+
+  function renderFollowups() {
+    const el = document.getElementById('followups');
+    const rows = loadFollowups();
+    if (rows.length === 0) {
+      el.innerHTML = '<div class="pm-empty"><div class="title">No follow-ups yet</div><div class="desc">Pick an interest signal on the left and start a follow-up.</div></div>';
+      return;
+    }
+    el.innerHTML = rows.map(f => `
+      <div class="dl-followup">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+          <div style="min-width:0;">
+            <div style="font-size:15px;font-weight:700;">${esc(f.title)}</div>
+            <div style="font-size:12px;color:var(--pm-text-mut);">${esc(f.area || '—')} · started ${esc(fmtWhen(f.createdAt))}</div>
+          </div>
+          <button type="button" data-del="${esc(f.id)}" title="Remove follow-up" style="border:none;background:transparent;color:var(--pm-text-mut);cursor:pointer;font-size:15px;padding:2px 4px;">✕</button>
+        </div>
+        <div class="dl-stagebtns" style="margin:12px 0 10px;">
+          ${STAGES.map(s => `<button type="button" data-stage="${esc(s)}" data-id="${esc(f.id)}" class="${f.stage === s ? 'on' : ''}">${s}</button>`).join('')}
+        </div>
+        <textarea data-note="${esc(f.id)}" placeholder="Follow-up note — who is interested, what they asked for…">${esc(f.note)}</textarea>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+          <a class="dl-wa" href="${esc(waLink(f))}" target="_blank" rel="noopener">Share on WhatsApp</a>
+          <a class="pm-btn pm-btn-secondary sm" href="/admin/property-insights.html">Property interest</a>
+        </div>
+      </div>
+    `).join('');
+    el.querySelectorAll('[data-stage]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const rows2 = loadFollowups();
+        const row = rows2.find(x => x.id === btn.getAttribute('data-id'));
+        if (!row) return;
+        row.stage = btn.getAttribute('data-stage');
+        saveFollowups(rows2);
+        renderSignals();
+        renderFollowups();
+      });
+    });
+    el.querySelectorAll('[data-note]').forEach(area => {
+      area.addEventListener('change', () => {
+        const rows2 = loadFollowups();
+        const row = rows2.find(x => x.id === area.getAttribute('data-note'));
+        if (!row) return;
+        row.note = area.value.slice(0, 500);
+        saveFollowups(rows2);
+      });
+    });
+    el.querySelectorAll('[data-del]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!confirm('Remove this follow-up?')) return;
+        saveFollowups(loadFollowups().filter(x => x.id !== btn.getAttribute('data-del')));
+        renderSignals();
+        renderFollowups();
+      });
+    });
+  }
+
+  renderSignals();
+  renderFollowups();
 });
 </script>
 </body>
