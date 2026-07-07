@@ -6,7 +6,7 @@ Updated: 2026-07-06 (repo cleanup + product consolidation pass)
 
 | Route | Purpose | Auth | Decision |
 | --- | --- | --- | --- |
-| `/` | Entry: **Open Client Presentation** + **Dealer Login** (only login; team signs in here too) | Public | Keep |
+| `/` | Entry: 3 cards — **Client Presentation** + **Dealer Login** + **Team Workspace** (Phase 1.5 role split) | Public | Keep |
 | `/app/plotmap/` | Client Presentation (maps, sectors, properties — client-safe data only) | Public | Keep |
 | `/app/index.html` | Redirect → `/app/plotmap/` | Public | Keep (safe redirect) |
 
@@ -38,7 +38,15 @@ Updated: 2026-07-06 (repo cleanup + product consolidation pass)
 ## Navigation source
 
 All admin topbars render from **one** definition: `admin/core/nav.js` (`PMNav.render`).
-Dealer nav: Dashboard, Client Presentation, Map Studio, Properties, Area Intelligence,
-Deals, Client Movement, Property Insights. Team nav: Workspace, Client Presentation,
-Map Studio, Properties, Deals, Client Movement. Finance/Reports/Access are not defined
-anywhere in nav and cannot come back through a shared component.
+
+**Phase 1.5 role split** — Dealer Login and Team Workspace now have distinct navs:
+
+- **Dealer nav (owner intelligence):** Dashboard, Area Intelligence, Client Movement,
+  Property Insights, Client Presentation. **No** Map Studio / Properties / Deals here —
+  those are Team Workspace work tools.
+- **Team nav (staff workspace):** Workspace, Properties, Map Studio (scope-filtered).
+  **No** Area Intelligence / Client Movement / Property Insights / Deals / Dashboard.
+
+Finance/Reports/Access are not defined anywhere in nav and cannot come back through a
+shared component. Nav visibility is UX; real access is `PMAccess.guardPage` + Supabase
+RLS. See `docs/ROLE_ARCHITECTURE.md`.

@@ -3,30 +3,29 @@
 // per-page <nav> blocks; retired sections (Finance, Reports, Access) must
 // never reappear here.
 (function () {
-  // Approved dealer navigation. Order matters.
+  // Dealer Login = the owner's business-intelligence command center.
+  // ONLY intelligence surfaces belong here. Work tools (Map Studio,
+  // Properties, Deals) intentionally live in Team Workspace, not here, so
+  // owner intelligence and daily staff work stay separated (Phase 1.5).
+  // Client Presentation is an allowed convenience link. Order matters.
   const DEALER_NAV = [
     { key: 'dashboard', label: 'Dashboard', href: '/admin/owner.html' },
-    { key: 'presentation', label: 'Client Presentation', href: '/app/plotmap/' },
-    { key: 'map-studio', label: 'Map Studio', href: '/admin/map-studio.html' },
-    { key: 'properties', label: 'Properties', href: '/admin/properties.html' },
     { key: 'area-intelligence', label: 'Area Intelligence', href: '/admin/area-intelligence.html' },
-    { key: 'deals', label: 'Deals', href: '/admin/deals.html' },
     { key: 'client-movement', label: 'Client Movement', href: '/admin/clients.html' },
-    { key: 'property-insights', label: 'Property Insights', href: '/admin/property-insights.html' }
+    { key: 'property-insights', label: 'Property Insights', href: '/admin/property-insights.html' },
+    { key: 'presentation', label: 'Client Presentation', href: '/app/plotmap/' }
   ];
 
-  // Team members see the workspace subset filtered by their permission
-  // scopes (PMAccess.resolveScopes on the cached Supabase profile). Pages
-  // are also guarded by PMAccess.guardPage — hiding nav is UX, not security.
+  // Team Workspace = the staff work table. ONLY daily-work surfaces:
+  // Workspace, Properties, Map Studio. Owner-intelligence surfaces
+  // (Area Intelligence, Client Movement, Property Insights, Deals) are
+  // deliberately absent (Phase 1.5). Items are still filtered by permission
+  // scope (PMAccess.resolveScopes on the cached Supabase profile) and every
+  // page is guarded by PMAccess.guardPage — hiding nav is UX, not security.
   const TEAM_NAV = [
-    { key: 'dashboard', label: 'Dashboard', href: '/admin/team.html' },
-    { key: 'presentation', label: 'Client Presentation', href: '/app/plotmap/', scope: 'presentation.view' },
-    { key: 'map-studio', label: 'Map Studio', href: '/admin/map-studio.html', scope: 'mapstudio.manage' },
+    { key: 'workspace', label: 'Workspace', href: '/admin/team.html' },
     { key: 'properties', label: 'Properties', href: '/admin/properties.html', scope: 'properties.manage' },
-    { key: 'deals', label: 'Deals', href: '/admin/deals.html', scope: 'deals.view' },
-    { key: 'client-movement', label: 'Client Movement', href: '/admin/clients.html', scope: 'clients.view' },
-    { key: 'area-intelligence', label: 'Area Intelligence', href: '/admin/area-intelligence.html', scope: 'insights.view', optIn: true },
-    { key: 'property-insights', label: 'Property Insights', href: '/admin/property-insights.html', scope: 'insights.view', optIn: true }
+    { key: 'map-studio', label: 'Map Studio', href: '/admin/map-studio.html', scope: 'mapstudio.manage' }
   ];
 
   function cachedProfile() {
