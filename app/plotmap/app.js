@@ -127,7 +127,7 @@
     propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, activePinId: null,
     filters: emptyFilters(),
     secQ: '', secArea: 'all',
-    lightbox: null, present: false, drawerOpen: false
+    lightbox: null, present: false, drawerOpen: false, galleryOpen: false, mapModal: null
   };
   const bootLink = (() => {
     try {
@@ -1164,22 +1164,24 @@
     const split = state.section === 'master' || (state.section === 'props' && state.propView === 'sector');
     return `<div style="flex:1; display:flex; flex-direction:column; min-width:0; position:relative;">
       <div class="topbar">
-        <div class="brand"><span class="logo"><i></i></span><span class="brand-name">${esc(brandDisplayName())}</span></div>
+        <div class="brand"><span class="logo"><i></i></span><span class="brand-name">PlotMap</span></div>
         <button class="area-switch" id="areaToggle"><span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.1"><span class="cur">${esc(area().name)}</span><span class="lab">View all maps</span></span><span class="caret">▾</span></button>
         <div class="divider"></div>
         <div style="display:flex;gap:3px"><button class="tab ${state.section === 'master' ? 'on' : ''}" id="tabMaster">Masterplan</button><button class="tab ${state.section === 'props' && state.propView !== 'sector' ? 'on' : ''}" id="tabProps">Properties</button><button class="tab ${state.section === 'sectors' ? 'on' : ''}" id="tabSectors">Sector Maps</button></div>
         ${state.section === 'master' ? `<div class="divider"></div><div class="mode-switch topbar-mode"><button class="${mapKind() === 'original' && !state.activeLetter ? 'on' : ''}" id="modeOriginal">Original</button><button class="${mapKind() === 'markings' && !state.activeLetter ? 'on' : ''}" id="mode3d" ${markingsAvailable() ? '' : 'disabled'}>3D Map</button>${shortcutGroupsAvailable() ? `<div class="divider" style="margin:3px 6px;width:1px;background:#1B3F7C"></div>${['A','B','C','D'].map(L => `<button class="transparent-btn ${state.activeLetter === L ? 'on' : ''}" data-prebuilt-label="${L}" title="Highlight set ${L}">${L}</button>`).join('')}` : ''}</div>` : ''}
         <div class="spacer"></div>
-        <div class="client-role-chip"><span><b>Guest</b><small>Client view</small></span><i>C</i></div>
+        <button class="gallery-icon-btn" id="galleryToggle" aria-label="View photos" title="Photos on this map"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="9" r="1.6"/><path d="M21 15l-5-5-8 8"/></svg></button>
         ${showBack ? '<button class="back-btn" id="backMaster"><span>‹</span> Back to Masterplan</button>' : ''}
 
         ${state.areaMenuOpen ? areaMenuHTML() : ''}
       </div>
+      ${state.galleryOpen ? galleryPanelHTML() : ''}
       <div class="body ${split ? 'split-body' : 'full-body'}" style="flex:1; display:flex; position:relative; min-height:0;">
         ${split ? `<div class="map-stage" style="flex:1; width:100%;"><div class="mapwrap" id="mapwrap"><div class="maplayer" id="maplayer"></div>${mapControlsHTML()}</div></div><aside class="panel presentation-panel ${state.drawerOpen ? 'open' : ''}">${panelHTML()}</aside>`
           : `<div class="full" id="full">${fullHTML()}</div>`}
       </div>
     </div>
+    ${state.mapModal ? mapModalHTML() : ''}
     ${state.lightbox ? lightboxHTML() : ''}`;
   }
   function areaMenuHTML() {
@@ -1191,6 +1193,81 @@
       <div style="height:1px;background:#EEE4CF;margin:7px 8px"></div>
       <button class="area-row" id="viewAllSectors" style="color:#16356A;font-weight:680">View all sector maps →</button></div>`;
   }
+  /* ---------- PHOTO GALLERY SIDE PANEL (nav photo icon) ----------
+     Client-safe: shows photos of the things ON this map — dealer-added
+     property photos first, then a labelled tile per masterplan feature
+     (blocks / roads / sectors / landmarks). Never any internal data. */
+  function galleryPhotos() {
+    const out = [];
+    allClientProperties().forEach(p => {
+      (Array.isArray(p.photos) ? p.photos : []).forEach(src => {
+        if (/^https?:\/\//i.test(String(src || ''))) out.push({ src, label: propertyTitle(p) });
+      });
+    });
+    // Legacy-dataset maps: photos per category item.
+    if (out.length < 8) {
+      activeCategories().forEach(c => {
+        catItems(c.id).slice(0, 3).forEach(it => {
+          out.push({ grad: PM.grads[c.id] || PM.grads.roads, label: it.name, cat: c.label });
+        });
+      });
+    }
+    // Overlay-flow maps: label a tile for each published thing on this map
+    // (blocks / roads / sectors / landmarks) — client-safe names only.
+    if (out.length < 8) {
+      const kindGrad = { road: PM.grads.roads, block: PM.grads.sectors || PM.grads.roads, sector: PM.grads.sectors || PM.grads.roads, landmark: PM.grads.landmarks || PM.grads.roads, commercial: PM.grads.institutions || PM.grads.roads, pin: PM.grads.landmarks || PM.grads.roads };
+      const kindLabel = { road: 'Road', block: 'Block', sector: 'Sector', landmark: 'Landmark', commercial: 'Commercial', pin: 'Location', boundary: 'Boundary' };
+      try {
+        const store = window.PMOverlayStore;
+        const mapId = currentClientMapId() || (activeMasterMap() && activeMasterMap().id);
+        if (store && mapId) {
+          store.publishedForClient(mapId).slice(0, 24).forEach(it => {
+            if (!it || !it.name || it.kind === 'label') return;
+            out.push({ grad: kindGrad[it.kind] || PM.grads.roads, label: it.name, cat: kindLabel[it.kind] || 'Map' });
+          });
+        }
+      } catch (e) {}
+    }
+    return out.slice(0, 24);
+  }
+  function galleryPanelHTML() {
+    const photos = galleryPhotos();
+    const tiles = photos.length
+      ? photos.map(ph => `<div class="gal-tile">${ph.src
+          ? `<img src="${esc(ph.src)}" alt="${esc(ph.label || 'Photo')}" loading="lazy">`
+          : `<span class="gal-fill" style="background:${ph.grad}"></span><span class="gal-cam"></span>`}
+          <span class="gal-cap">${esc(ph.label || '')}${ph.cat ? ' · ' + esc(ph.cat) : ''}</span></div>`).join('')
+      : `<div class="gal-empty">Photos for this map will appear here as they’re added.</div>`;
+    return `<div class="gallery-scrim" id="galleryScrim"></div>
+      <aside class="gallery-panel" role="dialog" aria-label="Map photos">
+        <div class="gal-head"><div><div class="gal-title">Photos on this map</div><div class="gal-sub">${esc(area().name)} · client-safe gallery</div></div>
+          <button class="gal-close" id="galleryClose" aria-label="Close">×</button></div>
+        <div class="gal-grid">${tiles}</div>
+      </aside>`;
+  }
+
+  /* ---------- IN-PAGE MAP MODAL (Show Area Context / View on Sector Map) ----------
+     Shows the masterplan or sector map right on top of the current page with a
+     close button — no navigation away. Its own map stage (#mmwrap/#mmlayer) so it
+     never collides with the main plan shell, mounts the same overlay engine, and
+     highlights the property's block/sector. */
+  function mapModalHTML() {
+    const m = state.mapModal; if (!m) return '';
+    const p = propById(m.propId);
+    const title = m.kind === 'sector'
+      ? (p ? `${esc(p.block)} · Sector map` : 'Sector map')
+      : `${esc(area().name)} · Area context`;
+    const sub = p ? `Plot ${esc(p.plotNumber)} · ${esc(p.area)}` : 'Official map proof';
+    return `<div class="pm-map-modal" id="mapModal">
+      <div class="mm-card">
+        <div class="mm-head"><div><div class="mm-title">${title}</div><div class="mm-sub">${sub}</div></div>
+          <button class="mm-close" id="mapModalClose" aria-label="Close">×</button></div>
+        <div class="mm-stage"><div class="mm-wrap" id="mmwrap"><div class="mm-layer" id="mmlayer"></div>
+          <div class="mm-zoom"><button id="mmIn" title="Zoom in">+</button><div class="mm-zsep"></div><button id="mmOut" title="Zoom out">−</button><div class="mm-zsep"></div><button id="mmFit" title="Reset view">⤢</button></div>
+        </div></div>
+      </div></div>`;
+  }
+
   function mapControlsHTML() {
     const showModes = state.section === 'master';
     const sectorSm = activeSectorMap();
@@ -1424,36 +1501,35 @@
     const active = FILTER_KEYS.reduce((n, k) => n + ((state.filters[k] && state.filters[k].size) || 0), 0);
     const grp = (key) => { const g = DS.filters[key], s = state.filters[key] || new Set(); return `<div class="fgroup"><div class="fglabel">${g.label}</div><div class="fchips">${g.values.map(v => { const val = v.val || v, lab = v.label || v; const on = s.has(val); return `<button class="fchip ${on ? 'on' : ''}" data-fk="${key}" data-fv="${esc(val)}">${esc(lab)}</button>`; }).join('')}</div></div>`; };
     return `<div class="full-in">
-      <div class="eyebrow">Selected properties</div>
-      <div class="serif" style="font-size:40px;font-weight:560;letter-spacing:-1px;line-height:1.02;margin-top:6px">${esc(area().name)} Properties</div>
+      <div class="props-head"><div>
+        <div class="serif props-title">Properties</div>
+        <div class="props-sub">Browse available plots, sectors and locations.</div>
+      </div></div>
       <div class="filters">${filterKeys.map(grp).join('')}${active ? '<button class="clear-all" id="clearF">Clear all filters</button>' : ''}</div>
-      ${list.length ? `<div class="grid-cards">${list.map(cardHTML).join('')}</div>` : `<div class="empty" style="background:#fff; border:1px solid #EBE1CC; border-radius:18px; padding:60px 40px; margin-top:24px;"><div style="font-size:36px; margin-bottom:12px;">🔍</div><div style="font-size:18px; font-weight:700; color:#0B1A36;">No properties match</div><div style="font-size:14px; margin-top:6px; color:#6B6456;">Try adjusting your filters to see more results.</div><button class="btn-ghost" id="clearF2" style="margin:6px auto 0; height:42px; padding:0 18px">Clear all filters</button></div>`}
+      ${list.length ? `<div class="grid-cards prop-grid">${list.map(cardHTML).join('')}</div>` : `<div class="empty" style="background:#fff; border:1px solid #EBE1CC; border-radius:18px; padding:60px 40px; margin-top:24px;"><div style="font-size:36px; margin-bottom:12px;">🔍</div><div style="font-size:18px; font-weight:700; color:#0B1A36;">No properties match</div><div style="font-size:14px; margin-top:6px; color:#6B6456;">Try adjusting your filters to see more results.</div><button class="btn-ghost" id="clearF2" style="margin:6px auto 0; height:42px; padding:0 18px">Clear all filters</button></div>`}
     </div>`;
   }
   function cardHTML(p) {
-    const g = PM.grads.property[hash(p.id) % PM.grads.property.length]; const near = p.near.map(n => driverName(n))[0];
-    const sectorAction = hasSectorMap(p) ? `<button class="btn-primary" style="flex:1;height:48px;font-size:14px" data-sector="${p.id}">View on Sector Map</button>` : '';
-    const title = p.title ? `<div style="font-size:18px;font-weight:760;color:#1F1B15;line-height:1.15;margin-top:10px">${esc(p.title)}</div>` : '';
-    const desc = p.description ? `<div style="font-size:13px;color:#6B6456;font-weight:560;line-height:1.45;margin-top:8px">${esc(p.description)}</div>` : '';
+    const g = PM.grads.property[hash(p.id) % PM.grads.property.length];
     const hero = Array.isArray(p.photos) && p.photos[0]
-      ? `<img src="${esc(p.photos[0])}" alt="${esc(p.title || ('Plot ' + p.plotNumber))}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">`
-      : `<span class="ph-fill" style="background:${g};position:absolute;inset:0"></span><span class="ph-tex" style="position:absolute;inset:0"></span><span class="ph-cam"></span><span class="ph-soon" style="position:absolute;left:0;right:0;bottom:13px;text-align:center;color:rgba(255,255,255,.8);font-size:11px;font-weight:650">Photo coming soon</span>`;
-    return `<div class="pcard">
-      <div class="ph-wrap" data-details-prop="${p.id}">${hero}
-        <span class="av-badge"><span style="width:7px;height:7px;border-radius:50%;background:#1C8A57"></span>Available</span>${near ? `<span class="near-badge">◆ ${esc(near)}</span>` : ''}</div>
-      <div class="cbody"><div class="size-xl">${esc(p.size)}</div>
-        ${title}
-        <div style="font-size:16px;font-weight:700;color:#2E2A22;margin-top:9px">${esc(p.block)} · Plot ${esc(p.plotNumber)}</div>
-        <div style="font-size:13.5px;color:#7C7565;font-weight:580;margin-top:5px">${esc(p.area)} · ${esc(p.plotType)} · ${esc(p.roadFacing)}</div>
-        ${desc}
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:11px">${p.near.map(n => `<span class="near-mini">◆ ${esc(driverName(n))}</span>`).join('')}</div>
-        <div style="display:flex;gap:9px;margin-top:15px">${sectorAction}<button class="btn-ghost" style="padding:0 16px;height:48px;font-size:14px" data-details-prop="${p.id}">Details</button></div></div></div>`;
+      ? `<img src="${esc(p.photos[0])}" alt="${esc(propertyTitle(p))}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">`
+      : `<span class="ph-fill" style="background:${g};position:absolute;inset:0"></span><span class="ph-tex" style="position:absolute;inset:0"></span><span class="ph-cam"></span>`;
+    const name = p.title || (p.plotNumber ? 'Plot ' + p.plotNumber : (p.block || 'Property'));
+    const sizeLine = [p.size, p.plotType].filter(Boolean).join(' · ');
+    const blockLine = [p.block, p.plotNumber ? 'Plot ' + p.plotNumber : ''].filter(Boolean).join(' · ');
+    return `<div class="pcard pcard-clean" data-details-prop="${p.id}" role="button" tabindex="0">
+      <div class="pc-hero">${hero}<span class="pc-status"><span class="pc-dot"></span>Available</span></div>
+      <div class="pc-info">
+        <div class="pc-area">${esc(p.area || '')}</div>
+        <div class="pc-nm">${esc(name)}</div>
+        <div class="pc-sz">${esc(sizeLine)}</div>
+        ${blockLine ? `<div class="pc-blk">${esc(blockLine)}</div>` : ''}
+      </div></div>`;
   }
   function detailHTML() {
     const p = propById(state.selectedId); if (!p) return browseHTML();
     const ph = propertyGallery(p, 8);
     const meta = [['Plot type', p.plotType], ['Road facing', p.roadFacing], ['Block / pocket', p.block], ['Sector / area', p.area], ['Plot number', p.plotNumber], ['Availability', p.availability]];
-    const sectorAction = hasSectorMap(p) ? `<button class="btn-primary" style="flex:1;height:56px;font-size:16px" data-sector="${p.id}">View on Sector Map</button>` : '';
     return `<div class="full-in" style="max-width:1040px;padding-top:0;animation:riseIn .22s ease">
       <div class="detail-head"><button class="backlink" id="backBrowse" style="font-size:14px;padding:8px 0">‹ Back to properties</button></div>
       <div style="display:grid;grid-template-columns:1.12fr 1fr;gap:30px;margin-top:8px;align-items:start">
@@ -1467,8 +1543,11 @@
           ${p.description ? `<div style="font-size:14px;color:#5A5447;line-height:1.6;margin-top:16px">${esc(p.description)}</div>` : ''}
           <div class="rel-h">Nearby landmarks &amp; value drivers</div>
           <div style="display:flex;flex-wrap:wrap;gap:8px">${p.near.map(n => `<span class="driver-chip">◆ ${esc(driverName(n))}</span>`).join('')}</div>
-          <div style="display:flex;gap:11px;margin-top:24px">${sectorAction}<button class="btn-ghost" style="flex:1;height:56px;font-size:15px;color:#16356A" data-areacontext="${p.id}">Show Area Context</button></div>
-          <button class="btn-ghost wfull" style="height:46px;margin-top:11px;color:#7C7565;font-weight:640" id="sendLater">Send Details Later</button></div></div></div>`;
+          <div class="detail-actions">
+            <button class="btn-primary da-btn" data-mm-sector="${p.id}">View on Sector Map</button>
+            <button class="btn-ghost da-btn" style="color:#16356A" data-mm-area="${p.id}">Show Area Context</button>
+            <button class="btn-primary da-btn da-wa" data-whatsapp="${p.id}"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" style="margin-right:6px;vertical-align:-3px"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91C21.96 6.45 17.5 2 12.04 2zm5.8 14.14c-.24.68-1.42 1.32-1.95 1.36-.5.05-.99.24-3.35-.7-2.82-1.11-4.6-4.02-4.74-4.2-.14-.19-1.13-1.5-1.13-2.87 0-1.36.71-2.03.97-2.31.24-.26.53-.33.71-.33.18 0 .36 0 .51.01.16.01.39-.06.6.46.24.57.82 1.97.89 2.11.07.14.12.31.02.5-.1.19-.15.31-.29.48-.14.16-.3.37-.43.49-.14.14-.29.29-.12.57.16.28.73 1.2 1.56 1.95 1.07.95 1.98 1.25 2.26 1.39.28.14.44.12.6-.07.16-.19.69-.8.87-1.08.18-.28.36-.23.6-.14.24.09 1.55.73 1.81.86.26.14.44.21.5.32.06.11.06.65-.18 1.32z"/></svg>Send via WhatsApp</button>
+          </div></div></div></div>`;
   }
   function sectorsHubHTML() {
     const q = state.secQ.trim().toLowerCase();
@@ -1483,9 +1562,8 @@
     const cities = preferred.concat(extras).concat(present.has('Other') ? ['Other'] : []);
     const chips = [['all', 'All']].concat(cities.map(c => [c, c]));
     return `<div class="full-in">
-      <div class="eyebrow">Exact plot proof</div>
-      <div class="serif" style="font-size:40px;font-weight:560;letter-spacing:-1px;line-height:1.02;margin-top:6px">Sector Maps</div>
-      <div style="font-size:16px; color:#6B6456; margin-top:8px; font-weight:600;">${list.length} map${list.length === 1 ? '' : 's'}${state.secArea !== 'all' ? ' in ' + esc(state.secArea) : ''}</div>
+      <div class="serif props-title">Sector Maps</div>
+      <div class="props-sub">All <b>${all.length} sector map${all.length === 1 ? '' : 's'}</b> across ${esc(area().name)} — verified and ready to show.${state.secArea !== 'all' ? ' Showing ' + list.length + ' in ' + esc(state.secArea) + '.' : ''}</div>
       <div class="chips" style="margin-top:16px">${chips.map(([v, l]) => `<button class="chip ${state.secArea === v ? 'on' : ''}" data-secarea="${esc(v)}">${esc(l)}</button>`).join('')}</div>
       <div class="search"><span class="ic"></span><input id="secSearch" value="${esc(state.secQ)}" placeholder="Search sector or block… e.g. Block A, Sector 20"></div>
       ${list.length ? `<div class="grid-cards" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr));margin-top:22px">${list.map(secCardHTML).join('')}</div>` : `<div class="empty" style="background:#fff; border:1px solid #EBE1CC; border-radius:18px; padding:60px 40px; margin-top:24px;"><div style="font-size:36px; margin-bottom:12px;">🗺️</div><div style="font-size:18px; font-weight:700; color:#0B1A36;">No maps match</div><div style="font-size:14px; margin-top:6px; color:#6B6456;">Try a different search or city filter.</div></div>`}
@@ -1495,16 +1573,15 @@
     const title = mapTitle(s);
     const accent = catColor('sectors');
     const thumb = mapThumb(s);
-    const badges = [
-      s.hasOriginalMap ? '<span class="sec-tag ready">Original available</span>' : '',
-      s.hasEasyMap ? '<span class="sec-tag easy">3D available</span>' : ''
-    ].filter(Boolean).join('');
-    return `<div class="seccard">
-      <div class="sec-thumb ${thumb ? 'has-thumb' : ''}" style="--a:${accent};">
-        ${thumb ? `<img src="${esc(thumb)}" alt="${esc(title)} map preview" loading="lazy" decoding="async">` : `<span class="sec-grid"></span><span class="sec-big">${esc(title.replace(/[^A-Z0-9]/gi, '').slice(-2))}</span>`}
-        ${badges}</div>
-      <div class="sec-body"><div class="sec-name">${esc(title)}</div><div class="sec-area">${esc(mapCity(s))}</div>
-        <button class="btn-primary wfull" style="height:44px;margin-top:11px;font-size:13.5px" data-opensec="${esc(s.id)}">Open Map</button></div></div>`;
+    const verified = s.status ? /verif|publish|active|ready/i.test(s.status) : !!s.hasOriginalMap;
+    return `<div class="seccard seccard-clean" data-opensec="${esc(s.id)}" role="button" tabindex="0">
+      <div class="sec-schem ${thumb ? 'has-thumb' : ''}" style="--a:${accent};">
+        ${thumb
+          ? `<img src="${esc(thumb)}" alt="${esc(title)} map preview" loading="lazy" decoding="async">`
+          : `<span class="sec-schem-grid"></span><svg class="sec-schem-line" viewBox="0 0 240 128" preserveAspectRatio="none"><polyline points="-8,86 70,64 150,74 250,40" fill="none" stroke="#9FBFC4" stroke-width="6" stroke-linecap="round"></polyline></svg><span class="sec-schem-block" style="border-color:${accent};"></span>`}
+        <span class="sec-badge2 ${verified ? 'ok' : 'draft'}">${verified ? 'Verified' : 'Draft'}</span>
+      </div>
+      <div class="sec-body2"><div class="sec-nm2">${esc(title)}</div><div class="sec-meta2">${esc(mapCity(s))}</div></div></div>`;
   }
   function lightboxHTML() {
     const lb = state.lightbox; const ph = lb.photos[lb.index];
@@ -1678,6 +1755,21 @@
     each('[data-details-prop]', b => b.addEventListener('click', () => openDetail(b.getAttribute('data-details-prop'))));
     each('[data-sector]', b => b.addEventListener('click', () => openSector(b.getAttribute('data-sector'))));
     each('[data-areacontext]', b => b.addEventListener('click', () => showAreaContext(b.getAttribute('data-areacontext'))));
+
+    // Photo gallery side panel (nav photo icon)
+    on('galleryToggle', () => { state.galleryOpen = !state.galleryOpen; render(); });
+    on('galleryClose', () => { state.galleryOpen = false; render(); });
+    on('galleryScrim', () => { state.galleryOpen = false; render(); });
+
+    // In-page map modal (Show Area Context / View on Sector Map) — no navigation
+    each('[data-mm-area]', b => b.addEventListener('click', () => openMapModal('area', b.getAttribute('data-mm-area'))));
+    each('[data-mm-sector]', b => b.addEventListener('click', () => openMapModal('sector', b.getAttribute('data-mm-sector'))));
+    on('mapModalClose', closeMapModal);
+    on('mapModal', e => { if (e.target && e.target.id === 'mapModal') closeMapModal(); });
+    on('mmIn', () => mmZoom(1.25)); on('mmOut', () => mmZoom(1 / 1.25)); on('mmFit', mmFit);
+
+    // Send property details to a client over WhatsApp (wa.me prefilled message)
+    each('[data-whatsapp]', b => b.addEventListener('click', () => sendWhatsApp(b.getAttribute('data-whatsapp'))));
 
     // filters (multi-select)
     each('[data-fk]', b => b.addEventListener('click', () => { const k = b.getAttribute('data-fk'), v = b.getAttribute('data-fv'); const s = state.filters[k] || (state.filters[k] = new Set()); s.has(v) ? s.delete(v) : s.add(v); el('full').innerHTML = browseHTML(); bindPlan(); }));
@@ -1875,6 +1967,70 @@
       return;
     }
     openDetail(target.id);
+  }
+  /* ---------- in-page map modal (own stage, no navigation) ---------- */
+  let mm = { scale: 1, tx: 0, ty: 0, w: 1, h: 1 };
+  function mmApply() { const l = el('mmlayer'); if (l) l.style.transform = `translate(${mm.tx}px,${mm.ty}px) scale(${mm.scale})`; }
+  function mmFit() { const w = el('mmwrap'); if (!w || !w.clientWidth) return; const W = w.clientWidth, H = w.clientHeight; const s = Math.min(W / mm.w, H / mm.h); mm.scale = s; mm.tx = (W - mm.w * s) / 2; mm.ty = (H - mm.h * s) / 2; mmApply(); }
+  function mmZoom(f) { const w = el('mmwrap'); if (!w) return; const W = w.clientWidth, H = w.clientHeight; const ns = Math.max(Math.min(W / mm.w, H / mm.h) * 0.9, Math.min(mm.scale * f, 6)); const k = ns / mm.scale; mm.tx = W / 2 - (W / 2 - mm.tx) * k; mm.ty = H / 2 - (H / 2 - mm.ty) * k; mm.scale = ns; mmApply(); }
+  function openMapModal(kind, propId) {
+    const p = propById(propId); if (!p) return;
+    if (kind === 'sector' && !sectorMapForProperty(p)) { toast('No sector map linked to this plot yet.'); return; }
+    state.mapModal = { kind, propId }; state.galleryOpen = false;
+    window.logEvent(kind === 'sector' ? 'sector_proof_clicked' : 'original_proof_clicked', { area: state.areaId || null, propertyId: propId });
+    render();
+    requestAnimationFrame(buildMapModal);
+  }
+  function closeMapModal() {
+    if (!state.mapModal) return;
+    const l = el('mmlayer'); if (l && window.PlotMapOverlayEngine) window.PlotMapOverlayEngine.clear(l);
+    state.mapModal = null; render();
+  }
+  function buildMapModal() {
+    const m = state.mapModal; if (!m) return;
+    const wrapEl = el('mmwrap'), layerEl = el('mmlayer'); if (!wrapEl || !layerEl) return;
+    const p = propById(m.propId);
+    let mapId, src, W, H;
+    if (m.kind === 'sector') {
+      const sm = sectorMapForProperty(p); if (!sm) return;
+      mapId = sm.id; src = toPublicAssetPath(sm.originalMapSrc) || mapImage(sm);
+      const dim = sm.originalDimensions || sm.dimensions || {}; W = dim.width || 3880; H = dim.height || 3069;
+    } else {
+      const mp = activeMasterMap(); mapId = mp && mp.id;
+      src = activeMasterSrc('original') || (DS.assets && DS.assets.original);
+      const dim = activeMasterDimensions('original') || {}; W = dim.width || 3880; H = dim.height || 3069;
+    }
+    mm.w = W; mm.h = H;
+    layerEl.style.width = W + 'px'; layerEl.style.height = H + 'px';
+    layerEl.innerHTML = `<img class="plotmap-base-map" src="${esc(src || '')}" alt="Map proof" style="width:${W}px;height:${H}px;max-width:none;display:block">`;
+    if (window.PlotMapOverlayEngine && mapId) {
+      window.PlotMapOverlayEngine.mount({ container: layerEl, mapId, width: W, height: H, mode: 'original', client: true });
+    }
+    mmFit();
+    if (!wrapEl._mmBound) {
+      wrapEl._mmBound = true;
+      let dragging = false, sx, sy, stx, sty;
+      wrapEl.addEventListener('pointerdown', e => { if (e.target.closest('.mm-zoom')) return; dragging = true; sx = e.clientX; sy = e.clientY; stx = mm.tx; sty = mm.ty; try { wrapEl.setPointerCapture(e.pointerId); } catch (err) {} });
+      wrapEl.addEventListener('pointermove', e => { if (!dragging) return; mm.tx = stx + (e.clientX - sx); mm.ty = sty + (e.clientY - sy); mmApply(); });
+      wrapEl.addEventListener('pointerup', () => { dragging = false; });
+      wrapEl.addEventListener('wheel', e => { e.preventDefault(); const r = wrapEl.getBoundingClientRect(); const ox = e.clientX - r.left, oy = e.clientY - r.top; const f = e.deltaY < 0 ? 1.1 : 1 / 1.1; const ns = Math.max(0.15, Math.min(mm.scale * f, 6)); const k = ns / mm.scale; mm.tx = ox - (ox - mm.tx) * k; mm.ty = oy - (oy - mm.ty) * k; mm.scale = ns; mmApply(); }, { passive: false });
+    }
+  }
+  /* ---------- WhatsApp share (client-safe, prefilled message) ---------- */
+  function sendWhatsApp(id) {
+    const p = propById(id); if (!p) return;
+    const brand = dealerBranding.brandName || 'PlotMap';
+    const details = [
+      `*${propertyTitle(p)}*`,
+      [p.block, p.plotNumber ? 'Plot ' + p.plotNumber : ''].filter(Boolean).join(' · '),
+      [p.size, p.plotType, p.roadFacing].filter(Boolean).join(' · '),
+      p.area ? 'Area: ' + p.area : '',
+      p.description || ''
+    ].filter(Boolean);
+    const link = location.origin + '/app/plotmap/?property=' + encodeURIComponent(p.id) + (clientDealerId ? '&dealerId=' + encodeURIComponent(clientDealerId) : '');
+    const msg = (dealerBranding.shareMessage ? dealerBranding.shareMessage + '\n\n' : '') + details.join('\n') + '\n\nView on the live map: ' + link + '\n\n— ' + brand;
+    window.logEvent('brochure_shared', { area: state.areaId || null, propertyId: id, metadata: { source: 'whatsapp' } });
+    window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank', 'noopener');
   }
   function toast(msg) { let t = el('toast'); if (!t) { t = document.createElement('div'); t.id = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.style.opacity = '1'; clearTimeout(t._h); t._h = setTimeout(() => t.style.opacity = '0', 1900); }
 

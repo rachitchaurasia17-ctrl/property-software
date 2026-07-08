@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Client Movement — PlotMap</title>
+<title>Client Details — PlotMap</title>
 <link rel="stylesheet" href="/admin/crm-ui.css">
 <script src="/admin/core/auth.js"></script>
 <script src="/admin/crm-data.js"></script>
@@ -32,8 +32,8 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
 <main class="pm-main">
   <div class="pm-page-header">
     <div>
-      <h1>Client Movement</h1>
-      <div class="sub" id="session-count">How clients move through your presentation — session by session.</div>
+      <h1>Client Details</h1>
+      <div class="sub" id="session-count">The clients your team is working with — records and recent activity.</div>
     </div>
     <div class="pm-filters" id="day-filters" style="margin:0;"></div>
   </div>
@@ -50,7 +50,7 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
     <div id="client-book"></div>
   </section>
 
-  <div class="pm-card-h" style="margin-bottom:10px;">Client movement</div>
+  <div class="pm-card-h" style="margin-bottom:10px;">Recent client activity</div>
   <div id="sessions"></div>
 </main>
 
@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
       : 'How clients move through your presentation — session by session.';
 
     if (visible.length === 0) {
-      el.innerHTML = '<div class="pm-card-xl"><div class="pm-empty"><div class="title">No client movement yet</div><div class="desc">No client activity yet. Open Client Presentation to start tracking.</div></div></div>';
+      el.innerHTML = '<div class="pm-card-xl"><div class="pm-empty"><div class="title">No client activity yet</div><div class="desc">No client activity yet. Open Client Presentation to start tracking.</div></div></div>';
       return;
     }
 

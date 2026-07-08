@@ -25,7 +25,7 @@
     { id: 'properties.manage', label: 'Properties (add / edit / archive)' },
     { id: 'mapstudio.manage', label: 'Map Studio (draw / edit)' },
     { id: 'mapstudio.publish', label: 'Publish maps to clients' },
-    { id: 'clients.view', label: 'Client Movement' },
+    { id: 'clients.view', label: 'Client Details' },
     { id: 'deals.view', label: 'Deals' },
     { id: 'insights.view', label: 'Area Intelligence & Property Insights' },
     { id: 'exports.manage', label: 'Backup & Export' },

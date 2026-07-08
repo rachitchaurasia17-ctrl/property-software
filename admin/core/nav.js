@@ -11,7 +11,7 @@
   const DEALER_NAV = [
     { key: 'dashboard', label: 'Dashboard', href: '/admin/owner.html' },
     { key: 'area-intelligence', label: 'Area Intelligence', href: '/admin/area-intelligence.html' },
-    { key: 'client-movement', label: 'Client Movement', href: '/admin/clients.html' },
+    { key: 'client-movement', label: 'Client Details', href: '/admin/clients.html' },
     { key: 'property-insights', label: 'Property Insights', href: '/admin/property-insights.html' }
   ];
 

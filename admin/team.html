@@ -65,10 +65,6 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
       <span class="ic" style="background:#F3EAD8;color:var(--pm-gold);">+</span>
       <span class="lbl">Add Property</span>
     </button>
-    <button type="button" class="tw-action" id="act-schedule-visit">
-      <span class="ic" style="background:#E9EFF4;color:var(--pm-blue);">◷</span>
-      <span class="lbl">Schedule Visit</span>
-    </button>
     <a class="tw-action" href="/admin/map-studio.html">
       <span class="ic" style="background:#EDEAF2;color:var(--pm-purple);">◈</span>
       <span class="lbl">Open Map Studio</span>
@@ -177,26 +173,6 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
   </form>
 </div>
 
-<!-- Schedule Visit modal -->
-<div class="tw-overlay" id="modal-visit">
-  <form class="tw-modal" id="form-visit">
-    <h2>Schedule Visit</h2>
-    <div class="pm-card-sub" style="margin-bottom:14px;">Book a site visit for a client.</div>
-    <div class="pm-form">
-      <div class="fld"><label>Client</label><select id="sv-client"></select></div>
-      <div class="pm-grid cols-2" style="margin-top:10px;">
-        <div class="fld"><label>Property (optional)</label><select id="sv-property"></select></div>
-        <div class="fld"><label>Date &amp; time</label><input id="sv-date" type="datetime-local"></div>
-      </div>
-      <div class="fld" style="margin-top:10px;"><label>Notes</label><input id="sv-notes" type="text" placeholder="Meeting point, plot, etc."></div>
-    </div>
-    <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end;">
-      <button type="button" class="pm-btn pm-btn-secondary" data-close-modal="modal-visit">Cancel</button>
-      <button type="submit" class="pm-btn pm-btn-primary">Schedule Visit</button>
-    </div>
-  </form>
-</div>
-
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   // Force the team nav on the workspace even for an owner — this page is the
@@ -275,12 +251,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const clients = Array.isArray(data.clients) ? data.clients : [];
     const properties = Array.isArray(data.properties) ? data.properties : [];
     const followups = Array.isArray(data.followups) ? data.followups : [];
-    const siteVisits = Array.isArray(data.siteVisits) ? data.siteVisits : [];
 
     // ---- This week stats ----
     const stats = [
       { k: 'Clients added', v: clients.filter(c => withinWeek(c.createdAt || c.lastActivityAt)).length, unit: 'this week' },
-      { k: 'Site visits done', v: siteVisits.filter(s => (s.status === 'completed' || s.status === 'done') && withinWeek(s.updatedAt || s.date || s.dateTime)).length, unit: '' },
       { k: 'Properties added', v: properties.filter(p => withinWeek(p.createdAt)).length, unit: '' },
       { k: 'Follow-ups logged', v: followups.filter(f => withinWeek(f.createdAt || f.dateTime)).length, unit: '' }
     ];
@@ -387,37 +361,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Add Property → the real, existing add form
   document.getElementById('act-add-property').addEventListener('click', () => {
     window.location.href = '/admin/properties.html';
-  });
-
-  // Schedule Visit
-  document.getElementById('act-schedule-visit').addEventListener('click', () => {
-    const data = scoped();
-    const clients = Array.isArray(data.clients) ? data.clients : [];
-    const properties = Array.isArray(data.properties) ? data.properties : [];
-    const cSel = document.getElementById('sv-client');
-    const pSel = document.getElementById('sv-property');
-    cSel.innerHTML = clients.length
-      ? clients.map(c => `<option value="${esc(c.id)}">${esc(c.name || c.id)}</option>`).join('')
-      : '<option value="">Add a client first</option>';
-    pSel.innerHTML = '<option value="">— none —</option>' +
-      properties.map(p => `<option value="${esc(p.id)}">${esc(p.title || p.plotNumber || p.id)}</option>`).join('');
-    document.getElementById('form-visit').reset();
-    openModal('modal-visit');
-  });
-  document.getElementById('form-visit').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const clientId = document.getElementById('sv-client').value;
-    if (!clientId) { closeModal('modal-visit'); return; }
-    const dtRaw = document.getElementById('sv-date').value;
-    crm.addSiteVisit({
-      clientId,
-      propertyId: document.getElementById('sv-property').value || null,
-      dateTime: dtRaw ? new Date(dtRaw).toISOString() : '',
-      notes: document.getElementById('sv-notes').value.trim(),
-      status: 'scheduled'
-    });
-    closeModal('modal-visit');
-    render();
   });
 
   render();
