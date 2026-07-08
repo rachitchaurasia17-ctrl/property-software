@@ -2,6 +2,38 @@
 
 PlotMap overlays keep the official map image untouched and render presentation layers above it.
 
+## Premium highlight system (2026-07 rebuild)
+
+The hero look — the map is always in its premium state, not only on selection:
+
+- **Roads** render as raised electric-cyan **glass light strips**: an invisible
+  wide hit path, a dark blurred shadow, a semi-transparent cyan body with glow,
+  and a thin white-blue core. Rounded caps/joins, no junction dots or rings.
+- **Blocks / landmarks / plots** render as **true 3D slabs** built from
+  translated copies of the same SVG path: soft ground shadow → stepped darker
+  side wall (side→mid gradient) → bright gradient top face with light edge and
+  color glow → glossy sheen → inner bevel hairline → fitted white label.
+  Small lift variation (10/12/14 viewBox units) — never huge.
+- **Sectors** (large zone polygons) render as **luminous glass panels**: a
+  glowing edge in the block color plus a near-transparent tint, so the original
+  map stays fully readable beneath. They extrude only while selected.
+- **Palette** — nine premium colors (gold, magenta, purple, teal, emerald,
+  blue, orange, cyan, ruby). Items with the default store color are
+  auto-assigned a stable palette color from their id, so a map freshly marked
+  in Map Studio gets reference-quality varied colors with zero configuration.
+- **Selection** — dim veil over the map; the selected item re-renders above the
+  veil with +6 lift, brighter saturation, stronger glow (roads add a slow white
+  light-flow pulse). Clicking empty map clears. A/B/C/D group highlighting and
+  the client-safe drawer are unchanged.
+- Entrance animation is a subtle fade/lift (no bounce) and respects
+  `prefers-reduced-motion`.
+
+Anything published from Map Studio flows through
+`PMOverlayStore.publishedForClient(mapId)` into this renderer, so **future
+masterplans marked in Map Studio highlight automatically** with this look.
+Maps without overlay data render the plain image (mount returns null, no
+crash). Demo: `app/plotmap/highlight-demo.html` (New Chandigarh reference).
+
 Layer order:
 
 1. Existing official map image
