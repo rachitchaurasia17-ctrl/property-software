@@ -1,10 +1,10 @@
 -- ============================================================
 -- PlotMap - Phase 4 account gating enforcement
--- DRAFT ONLY. DO NOT APPLY UNTIL APP-SIDE ACCOUNT UI IS ALIGNED.
+-- REVIEWED DRAFT. APPLY ONLY VIA THE RUN ORDER IN THE PHASE 4 AUDIT REPORT.
 --
 -- Purpose:
 --   Backend-enforce suspended/expired account write blocking, plan limits,
---   and provider-only account/billing status changes.
+--   and provider-only account/plan/status changes.
 --
 -- Safety:
 --   - No DROP TABLE / DROP DATABASE / DELETE FROM / TRUNCATE.
@@ -352,7 +352,7 @@ begin
        or new.max_properties is distinct from old.max_properties
        or new.max_team_members is distinct from old.max_team_members
      ) then
-    raise exception 'account, billing, storage, and plan columns are provider-only';
+    raise exception 'account, storage, and plan columns are provider-only';
   end if;
 
   return new;
@@ -374,7 +374,11 @@ declare
   v_old jsonb := '{}'::jsonb;
   v_new jsonb := coalesce(new.payload, '{}'::jsonb);
 begin
-  if coalesce(new.entity_type, old.entity_type) <> 'dealerSettings' then
+  if tg_op = 'INSERT' and new.entity_type <> 'dealerSettings' then
+    return new;
+  end if;
+
+  if tg_op = 'UPDATE' and coalesce(new.entity_type, old.entity_type) <> 'dealerSettings' then
     return new;
   end if;
 
@@ -392,17 +396,14 @@ begin
     or v_new ? 'paid'
     or v_new ? 'paymentProofLink'
     or v_new ? 'paymentNotes'
-    or v_new ? 'billingEmail'
     or v_new ? 'storageEnabled'
-    or v_new ? 'photoBucket'
-    or v_new ? 'photoFolder'
     or v_new ? 'seatLimit'
     or v_new ? 'seatCount'
     or v_new ? 'maxMaps'
     or v_new ? 'maxProperties'
     or v_new ? 'maxTeamMembers'
   ) then
-    raise exception 'account, billing, storage, and plan fields are provider-only';
+    raise exception 'account, storage, and plan fields are provider-only';
   end if;
 
   if tg_op = 'UPDATE' then
@@ -419,17 +420,14 @@ begin
     or v_new->'paid' is distinct from v_old->'paid'
     or v_new->'paymentProofLink' is distinct from v_old->'paymentProofLink'
     or v_new->'paymentNotes' is distinct from v_old->'paymentNotes'
-    or v_new->'billingEmail' is distinct from v_old->'billingEmail'
     or v_new->'storageEnabled' is distinct from v_old->'storageEnabled'
-    or v_new->'photoBucket' is distinct from v_old->'photoBucket'
-    or v_new->'photoFolder' is distinct from v_old->'photoFolder'
     or v_new->'seatLimit' is distinct from v_old->'seatLimit'
     or v_new->'seatCount' is distinct from v_old->'seatCount'
     or v_new->'maxMaps' is distinct from v_old->'maxMaps'
     or v_new->'maxProperties' is distinct from v_old->'maxProperties'
     or v_new->'maxTeamMembers' is distinct from v_old->'maxTeamMembers'
   ) then
-    raise exception 'account, billing, storage, and plan fields are provider-only';
+    raise exception 'account, storage, and plan fields are provider-only';
   end if;
 
   return new;

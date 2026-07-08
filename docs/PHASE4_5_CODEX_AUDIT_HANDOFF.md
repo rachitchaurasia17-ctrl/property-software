@@ -8,16 +8,15 @@ Draft migrations:
 
 ## Phase 4 Account Gating
 
-Decision: SAFE DRAFT TO COMMIT, NOT approved to apply yet.
+Decision: PHASE 4 SQL REVIEWED. Safe to apply only after the explicit run order
+and preflight checks from the Phase 4 audit report.
 
 The draft adds provider-controlled account status, account write gates, plan
-limit helpers, and platform-admin RPCs. It also blocks normal dealer writes to
-account/billing/storage/plan fields in both normalized `dealer_settings` and
-local-first `crm_records` `dealerSettings` payloads.
+limit helpers, and platform-admin RPCs. It blocks normal dealer writes to
+provider-controlled account/storage/plan fields in both normalized
+`dealer_settings` and local-first `crm_records` `dealerSettings` payloads.
 
 Before applying:
-- Align owner UI so normal owners cannot edit provider-only account/billing
-  fields that RLS will reject.
 - Seed `platform_admins` from trusted SQL, not from frontend code.
 - Verify `dealer-demo` remains active before and after the migration.
 
