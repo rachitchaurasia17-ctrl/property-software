@@ -185,9 +185,9 @@
     // the original map stays fully readable. Selected sectors extrude lightly.
     const glassSel = isGlass(item) && o.strong;
     const eLift = glass ? 0 : lift;
-    const wallSteps = glassSel ? 5 : 7;
+    const wallSteps = glassSel ? 5 : 9;
     const wallOpacity = glassSel ? 0.5 : 1;
-    const topOpacity = glass ? 0.14 : glassSel ? 0.4 : 0.93;
+    const topOpacity = glass ? 0.14 : glassSel ? 0.22 : 0.93;
     const glowPart = 'drop-shadow(0 0 ' + (o.strong ? 16 : 9) + 'px ' + pal.glow + ')';
     const shadeStyle = glass
       ? 'filter:' + glowPart + ';'
@@ -199,16 +199,17 @@
       if (!glass) {
         // 1 · soft ground shadow (offset down, blurred) — sells the lift
         html += '<path d="' + d + '" fill="rgba(14,10,3,' + (glassSel ? '.22' : '.42') + ')" transform="translate(3 ' + (eLift * 0.6 + 6).toFixed(1) + ')" style="filter:blur(7px);pointer-events:none"/>';
-        // 2 · stepped side wall: side color at base → mid near the top
+        // 2 · stepped side wall: deep shadow at base → mid near the top, so the
+        //     slab reads as truly extruded (dark grounding = "out of screen")
         for (let k = 0; k <= wallSteps; k++) {
           const t = k / wallSteps;
-          html += '<path d="' + d + '" fill="' + mix(pal.side, pal.mid, 0.15 + 0.55 * t) + '" fill-opacity="' + wallOpacity + '" transform="translate(0 ' + (-eLift * t).toFixed(2) + ')" style="pointer-events:none"/>';
+          html += '<path d="' + d + '" fill="' + mix(pal.side, pal.mid, 0.04 + 0.66 * t) + '" fill-opacity="' + wallOpacity + '" transform="translate(0 ' + (-eLift * t).toFixed(2) + ')" style="pointer-events:none"/>';
         }
       }
       // 3 · top face: bright gradient + light edge + color glow. Glass panels
       //     stay near-transparent so the base map reads through; the glowing
       //     edge in the block color is what defines them.
-      html += '<path d="' + d + '" fill="url(#pmTop-' + key + '-' + sfx + ')" fill-opacity="' + topOpacity + '" stroke="' + (glass ? pal.top : lighten(pal.top, 0.6)) + '" stroke-width="' + (glass ? 2.8 : 1.5) + '" stroke-linejoin="round" transform="translate(0 ' + (-eLift) + ')" style="' + shadeStyle + 'pointer-events:none"/>';
+      html += '<path d="' + d + '" fill="url(#pmTop-' + key + '-' + sfx + ')" fill-opacity="' + topOpacity + '" stroke="' + (glass || glassSel ? pal.top : lighten(pal.top, 0.6)) + '" stroke-width="' + (glassSel ? 3.6 : glass ? 2.8 : 1.5) + '" stroke-linejoin="round" transform="translate(0 ' + (-eLift) + ')" style="' + shadeStyle + 'pointer-events:none"/>';
       // 4 · glossy sheen sweeping from the top-left
       html += '<path d="' + d + '" fill="url(#pmGloss-' + sfx + ')" fill-opacity="' + (glass ? 0.3 : glassSel ? 0.55 : 1) + '" transform="translate(0 ' + (-eLift) + ')" style="pointer-events:none"/>';
       // 5 · inner bevel hairline just above the face
