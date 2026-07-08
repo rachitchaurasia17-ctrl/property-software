@@ -49,11 +49,15 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
         <div class="fld"><label>Facing</label><input type="text" id="p-facing" placeholder="e.g. Park facing"></div>
         <div class="fld"><label>Status</label><select id="p-status"><option>Available</option><option>On Hold</option><option>Internal Only</option></select></div>
         <div class="fld"><label>Detailed Map</label><select id="p-sectormap"><option value="">— none —</option></select></div>
+        <div style="grid-column:1/-1;display:flex;align-items:center;gap:10px;background:#FBF6EC;border:1px solid #EADFC6;border-radius:12px;padding:11px 14px;margin-top:4px;">
+          <span style="font-size:16px;">🔒</span>
+          <span style="font-size:13px;color:#6B5A30;font-weight:600;">Only client-safe information should be shown. Price, seller and internal notes never appear in the Client Presentation.</span>
+        </div>
         <div class="fld" style="grid-column:1/-1;"><label>Short Description (shown to clients)</label><input type="text" id="p-desc" maxlength="240" placeholder="e.g. Corner plot near main market"></div>
         <div class="fld" style="grid-column:1/-1;">
           <label>Photo links (comma separated, optional)</label>
           <input type="text" id="p-photos" placeholder="https://…jpg, https://…jpg">
-          <div style="font-size:12px;color:var(--pm-text-mut);margin-top:6px;" id="p-photo-storage-note">Storage scaffold: photos can later live in Supabase Storage.</div>
+          <div style="font-size:12px;color:var(--pm-text-mut);margin-top:6px;" id="p-photo-storage-note">Paste image links (Google Drive, website, etc.) — they show in the presentation right away. Device uploads turn on once your storage is enabled.</div>
           <!-- Photo manager: shows current photos (URL + uploaded) with remove. Always available. -->
           <div id="p-photo-manager" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;"></div>
           <!-- Upload UI: hidden unless dealer storage is enabled (Phase 5). Inert by default. -->
@@ -65,9 +69,9 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
           </div>
         </div>
       </div>
-      <label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:14px;cursor:pointer;">
-        <input type="checkbox" id="p-visible" checked>
-        Show this property to clients in the presentation
+      <label style="display:flex;align-items:center;gap:12px;margin-top:16px;padding:13px 15px;border:1px solid var(--pm-border);border-radius:12px;background:#fff;font-size:14px;cursor:pointer;">
+        <input type="checkbox" id="p-visible" checked style="width:18px;height:18px;flex:none;">
+        <span><strong style="display:block;">Show this property to clients</strong><span style="font-size:12.5px;color:var(--pm-text-mut);">On = visible in the Client Presentation. Off = kept private to your team.</span></span>
       </label>
       <div style="margin-top:16px;display:flex;gap:10px;">
         <button type="submit" class="pm-btn pm-btn-primary" id="form-submit">Save Property</button>
@@ -319,7 +323,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const grid = document.getElementById('prop-grid');
     if (filtered.length === 0) {
-      grid.innerHTML = '<div class="pm-empty" style="grid-column:1/-1;"><div class="title">No properties found</div><div class="desc">Try changing your search or filter.</div></div>';
+      grid.innerHTML = props.length === 0
+        ? '<div class="pm-empty" style="grid-column:1/-1;"><div class="title">Add your first property</div><div class="desc">Build your inventory so you have something beautiful to show a client. Click “+ Add Property” to start.</div><button class="pm-btn pm-btn-primary" style="margin-top:14px;" onclick="document.getElementById(\'btn-toggle-add\').click()">+ Add Property</button></div>'
+        : '<div class="pm-empty" style="grid-column:1/-1;"><div class="title">No properties match</div><div class="desc">Try a different search or clear the status filter to see everything.</div></div>';
       return;
     }
 
@@ -329,12 +335,20 @@ document.addEventListener('DOMContentLoaded', () => {
       const hidden = p.clientVisible === false;
       const sectorMap = sectorMapForProperty(p);
       const masterMap = masterMapForArea(p.area);
-      const flags = [];
-      if (hidden) flags.push('Hidden from client');
-      else if (!pin) flags.push('Not on map yet');
-      else if (!p.photos || p.photos.length === 0) flags.push('Add photos');
 
       const hydratedPhotos = window.PMFoundation ? window.PMFoundation.hydratePropertyPhotos(p) : (Array.isArray(p.photos) ? p.photos : []);
+      // Readiness hints — honest + client-safe. "Ready to show" only when it is.
+      const hasPhoto = Array.isArray(hydratedPhotos) && hydratedPhotos.length > 0;
+      const onMap = !!pin;
+      const hasSector = !!sectorMap;
+      const ready = !hidden && hasPhoto && (onMap || hasSector);
+      const hints = [];
+      if (ready) hints.push({ t: 'Ready to show', bg: '#E7F0EB', c: '#1F5E47' });
+      if (hidden) hints.push({ t: 'Hidden from client', bg: '#EFEBE3', c: '#6B6456' });
+      if (!hasPhoto) hints.push({ t: 'Needs photo', bg: '#FBF3E4', c: '#8A6224' });
+      if (!onMap) hints.push({ t: 'Not on map yet', bg: '#E8EEF5', c: '#2C5A86' });
+      if (!hasSector) hints.push({ t: 'Needs sector proof', bg: '#EDEAF2', c: '#5B3E86' });
+      const flags = hints.map(h => h.t);
       const photo = hydratedPhotos[0]
         ? `background:url('${esc(hydratedPhotos[0])}') center/cover, ${gradients[i % gradients.length]};`
         : `background:${gradients[i % gradients.length]};`;
@@ -357,6 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="area">${esc(p.area || '-')} ${p.sector ? '· ' + esc(p.sector) : ''} ${p.plotNumber ? '· Plot ' + esc(p.plotNumber) : ''}</div>
           <div class="name">${esc(p.title || 'Unnamed')}</div>
           <div class="size">${esc(p.type || '-')} · ${esc(p.size || p.plotSize || '-')}${p.facing ? ' · ' + esc(p.facing) : ''}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;">${hints.map(h => `<span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:${h.bg};color:${h.c};">${esc(h.t)}</span>`).join('')}</div>
           ${mapLine}
           ${mapSupport}
           ${window.PMFoundation ? `<div class="size" style="margin-top:4px;color:#6B6456;">Photo folder: ${esc(window.PMFoundation.photoFolderForProperty(p.id))}</div>` : ''}

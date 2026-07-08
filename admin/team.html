@@ -49,7 +49,7 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
       <h1 id="greeting" class="pm-serif">Welcome.</h1>
       <div class="sub" id="date-line">Your work table for today.</div>
     </div>
-    <button type="button" class="pm-btn pm-btn-primary" id="hdr-add-client">+ Add Client Details</button>
+    <button type="button" class="pm-btn pm-btn-primary" id="hdr-add-client">+ Add Client</button>
   </div>
 
   <!-- This week -->
@@ -389,7 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { label: 'Map Studio', scope: 'mapstudio.manage' },
         { label: 'Properties', scope: 'properties.manage' },
         { label: 'Deals', scope: 'deals.view' },
-        { label: 'Client Movement', scope: 'clients.view' },
+        { label: 'Client Details', scope: 'clients.view' },
         { label: 'Area Intelligence + Property Insights', scope: 'insights.view' }
       ];
       const allowedPagesText = (scopes) => {

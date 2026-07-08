@@ -1046,7 +1046,7 @@ body{font-family:'Plus Jakarta Sans','Plus Jakarta Sans',system-ui,sans-serif;co
 .as-grid{grid-template-columns:repeat(3,1fr)!important;gap:13px!important;padding:18px 48px 30px!important;align-content:start;}
 .as-tile{min-height:0!important;padding:16px 18px 15px!important;}
 .as-name{font-size:20px!important;}
-@media(max-height:760px){
+@media(max-height:840px){
   .as-top{padding:14px 48px 0!important;}
   .as-in{padding:14px 48px 6px!important;}
   .as-mark .logo{width:42px!important;height:42px!important;margin:0 auto 8px!important;}
@@ -1057,6 +1057,11 @@ body{font-family:'Plus Jakarta Sans','Plus Jakarta Sans',system-ui,sans-serif;co
   .as-name{font-size:18px!important;}
 }
 @media(max-width:900px){.as-grid{grid-template-columns:repeat(2,1fr)!important;}}
+
+/* Golden (recommended) map tile — reflects real published highlights only */
+.as-tile{position:relative;}
+.as-tile.as-golden{border-color:#C79A3B!important;box-shadow:0 2px 4px rgba(160,120,40,.10),0 16px 40px rgba(160,120,40,.16)!important;}
+.as-reco{position:absolute;top:12px;right:12px;background:linear-gradient(135deg,#E9C877,#C79A3B);color:#3A2A08;font-size:10.5px;font-weight:800;letter-spacing:.02em;padding:4px 10px;border-radius:999px;box-shadow:0 3px 8px rgba(160,120,40,.28);}
 
 /* #2 · Nav photo icon + client-safe photo gallery side panel */
 .gallery-icon-btn{flex:none;width:40px;height:40px;border-radius:11px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.06);color:#EAF0FF;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .16s ease,border-color .16s ease;}
@@ -1078,7 +1083,9 @@ body{font-family:'Plus Jakarta Sans','Plus Jakarta Sans',system-ui,sans-serif;co
 
 /* #4 · Property detail action row — three buttons, always one row, no scroll */
 .detail-actions{display:flex;gap:9px;margin-top:22px;flex-wrap:nowrap;}
+.detail-actions.detail-actions-4{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .detail-actions .da-btn{flex:1 1 0;min-width:0;height:50px;font-size:13.5px;padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;justify-content:center;}
+.detail-actions.detail-actions-4 .da-btn{width:100%;flex:none;}
 .detail-actions .da-wa{background:#1F5E47;color:#fff;box-shadow:0 8px 18px rgba(31,94,71,.24);}
 .detail-actions .da-wa:hover{background:#184E3B;}
 @media(max-width:560px){.detail-actions{flex-wrap:wrap}.detail-actions .da-btn{flex:1 1 46%}}
@@ -1129,6 +1136,7 @@ body{font-family:'Plus Jakarta Sans','Plus Jakarta Sans',system-ui,sans-serif;co
 .seccard-clean .sec-schem-block{position:absolute;left:30%;top:42%;width:32px;height:24px;border-radius:5px;background:rgba(31,94,71,.14);border:1.5px solid var(--a,#1F5E47);}
 .seccard-clean .sec-badge2{position:absolute;right:11px;top:11px;font-size:10.5px;font-weight:700;padding:4px 9px;border-radius:999px;}
 .seccard-clean .sec-badge2.ok{background:#E7F0EB;color:#1F5E47;}
+.seccard-clean .sec-badge2.proof{background:#EAF1F7;color:#2C5A86;}
 .seccard-clean .sec-badge2.draft{background:#F3EAD8;color:#8A6224;}
 .seccard-clean .sec-body2{padding:13px 15px 14px;}
 .seccard-clean .sec-nm2{font-size:16px;font-weight:800;color:#23201A;}

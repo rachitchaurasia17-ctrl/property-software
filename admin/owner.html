@@ -31,12 +31,24 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
       <h1 id="greeting">Good morning.</h1>
       <div class="sub" id="date-line">Your PlotMap activity at a glance.</div>
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <span id="owner-account-chip" class="pm-chip" style="display:none;font-weight:700;cursor:pointer;" title="Account status — open Account & billing">Trial</span>
+      <a class="pm-btn pm-btn-primary" href="/app/plotmap/" target="_blank" rel="noopener">Open Client Presentation</a>
+      <a class="pm-btn pm-btn-secondary" href="/admin/properties.html">+ Add Property</a>
       <a class="pm-btn pm-btn-secondary" href="/admin/map-studio.html">Open Map Studio</a>
     </div>
   </div>
 
-  <!-- Account & billing (owner-only). Manual billing — no payment gateway. -->
+  <!-- Needs attention today — the owner's daily action list -->
+  <div class="pm-card-xl" id="attention-card" style="margin-bottom:16px;">
+    <div class="pm-card-h">Needs your attention today</div>
+    <div class="pm-card-sub">The few things worth doing next — everything else is running.</div>
+    <div id="attention-list" style="margin-top:12px;"></div>
+  </div>
+
+  <!-- Account & billing (owner-only). Manual billing — no payment gateway.
+       Collapsed into the "Account &amp; business settings" drawer below so the
+       daily dashboard stays clean; gating logic is unchanged. -->
   <section class="pm-card-xl" id="account-plan-card" style="display:none;margin-bottom:16px;">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
       <div>
@@ -82,6 +94,18 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
   <!-- Today's client activity -->
   <div class="pm-grid cols-4" style="margin-bottom:20px;" id="stat-cards"></div>
 
+  <!-- Property readiness — what's ready to show vs. what needs work -->
+  <div class="pm-card-xl" style="margin-bottom:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div>
+        <div class="pm-card-h">Property readiness</div>
+        <div class="pm-card-sub">What's ready to show a client, and what still needs a photo, a map location, or sector proof.</div>
+      </div>
+      <a href="/admin/properties.html" class="pm-btn-ghost">Manage properties →</a>
+    </div>
+    <div class="pm-grid cols-4" id="readiness-cards" style="margin-top:14px;"></div>
+  </div>
+
   <!-- Hot areas + Most viewed properties -->
   <div class="pm-grid cols-2" style="margin-bottom:16px;align-items:start;">
     <div class="pm-card-xl">
@@ -96,7 +120,7 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
     </div>
   </div>
 
-  <!-- Recent client movement + Map Studio status -->
+  <!-- Recent client activity + Map Studio status -->
   <div class="pm-grid wide-left" style="margin-bottom:16px;align-items:start;">
     <div class="pm-card-xl">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
@@ -127,27 +151,27 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
   <div style="margin-bottom:18px;">
     <div style="font-size:20px;font-weight:800;margin-bottom:14px;">Quick actions</div>
     <div class="pm-grid cols-4">
-      <a href="/admin/clients.html" class="pm-action-card">
-        <div class="ic" style="background:#E7F0EB;color:var(--pm-emerald);">▶</div>
-        <div class="txt">Client Details</div>
+      <a href="/admin/properties.html" class="pm-action-card">
+        <div class="ic" style="background:#F3EAD8;color:var(--pm-gold);">＋</div>
+        <div class="txt">Add Property</div>
       </a>
-      <a href="/admin/property-insights.html" class="pm-action-card">
-        <div class="ic" style="background:#F3EAD8;color:var(--pm-gold);">◆</div>
-        <div class="txt">Property Insights</div>
+      <a href="/app/plotmap/" target="_blank" rel="noopener" class="pm-action-card">
+        <div class="ic" style="background:#E7F0EB;color:var(--pm-emerald);">▶</div>
+        <div class="txt">Open Client Presentation</div>
       </a>
       <a href="/admin/map-studio.html" class="pm-action-card">
         <div class="ic" style="background:#EDEAF2;color:var(--pm-purple);">◈</div>
         <div class="txt">Open Map Studio</div>
       </a>
-      <a href="/admin/area-intelligence.html" class="pm-action-card">
-        <div class="ic" style="background:#E8EEF5;color:var(--pm-blue);">◉</div>
-        <div class="txt">View Area Intelligence</div>
+      <a href="/admin/team.html" class="pm-action-card">
+        <div class="ic" style="background:#E8EEF5;color:var(--pm-blue);">＋</div>
+        <div class="txt">Add Client</div>
       </a>
     </div>
   </div>
 
-  <div style="margin-bottom:18px;">
-    <div style="font-size:20px;font-weight:800;margin-bottom:14px;">Business settings</div>
+  <details class="pm-owner-drawer" style="margin-bottom:18px;">
+    <summary style="font-size:16px;font-weight:800;cursor:pointer;padding:14px 0;list-style:none;">⚙ Account &amp; business settings <span style="font-weight:600;color:var(--pm-text-mut);font-size:13px;">— branding, plan, billing, backup (owner only)</span></summary>
     <div class="pm-grid cols-3" style="align-items:start;">
       <div class="pm-card">
         <div class="pm-card-h">Dealer settings</div>
@@ -206,7 +230,7 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
         </div>
       </div>
     </div>
-  </div>
+  </details>
 
   <div class="pm-card-xl" style="margin-bottom:18px;">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
@@ -280,6 +304,60 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   `).join('');
 
+  // ---- Property readiness + Needs-attention (daily command center) ----
+  (function renderReadiness() {
+    const props = (data.properties || []).filter(p => p && p.internalStatus !== 'Archived');
+    const hasPhoto = (p) => Array.isArray(p.photos) && p.photos.some(s => /^https?:\/\//i.test(String(s || '')));
+    const onMap = (p) => !!(p.masterMapId || p.blockId || (Array.isArray(p.plotAt) && p.plotAt.length === 2));
+    const hasSector = (p) => !!p.sectorMapId;
+    const clientVisible = (p) => p.clientVisible !== false;
+    const needPhoto = props.filter(p => !hasPhoto(p));
+    const notOnMap = props.filter(p => !onMap(p));
+    const needSector = props.filter(p => !hasSector(p));
+    const ready = props.filter(p => clientVisible(p) && hasPhoto(p) && (onMap(p) || hasSector(p)));
+
+    const rc = document.getElementById('readiness-cards');
+    if (rc) rc.innerHTML = [
+      { k: 'Ready to show', v: ready.length, c: 'var(--pm-emerald)', hint: 'Client-safe with a photo & map/sector' },
+      { k: 'Needs photo', v: needPhoto.length, c: 'var(--pm-gold)', hint: 'Add a photo link to make it shine' },
+      { k: 'Not on map yet', v: notOnMap.length, c: 'var(--pm-blue)', hint: 'Place in Map Studio to highlight' },
+      { k: 'Needs sector proof', v: needSector.length, c: 'var(--pm-purple)', hint: 'Link a sector map for exact plots' }
+    ].map(s => `
+      <div style="background:#fff;border:1px solid var(--pm-border);border-radius:18px;padding:18px 20px;box-shadow:0 1px 2px rgba(20,18,12,.03),0 10px 22px rgba(40,32,15,.035);">
+        <span style="font-size:13px;color:var(--pm-text-sec);font-weight:600;">${s.k}</span>
+        <div class="pm-serif" style="font-size:38px;font-weight:500;letter-spacing:-.01em;margin-top:8px;line-height:1;color:${s.c};">${s.v}</div>
+        <div style="font-size:12px;color:var(--pm-text-mut);margin-top:8px;">${s.hint}</div>
+      </div>`).join('');
+
+    // Needs-attention action list — the few things worth doing next.
+    const custom = window.PMOverlayStore ? window.PMOverlayStore.customItems() : [];
+    const drafts = Array.isArray(custom) ? custom.filter(it => it.status !== 'published').length : 0;
+    const followups = Array.isArray(data.followups) ? data.followups : [];
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const dueFollowups = followups.filter(f => f && !f.done && String(f.dueDate || f.dateTime || '').slice(0, 10) <= todayISO && (f.dueDate || f.dateTime)).length;
+
+    const items = [];
+    if (!props.length) items.push({ href: '/admin/properties.html', em: '＋', t: 'Add your first property', d: 'Build your inventory so clients have something to see.' });
+    if (needPhoto.length) items.push({ href: '/admin/properties.html', em: '📷', t: needPhoto.length + ' propert' + (needPhoto.length === 1 ? 'y needs' : 'ies need') + ' a photo', d: 'A photo makes a plot far easier to sell.' });
+    if (notOnMap.length) items.push({ href: '/admin/map-studio.html', em: '📍', t: notOnMap.length + ' not placed on a map yet', d: 'Place them in Map Studio to highlight on the masterplan.' });
+    if (drafts) items.push({ href: '/admin/map-studio.html', em: '✎', t: drafts + ' map marking' + (drafts === 1 ? '' : 's') + ' still in draft', d: 'Publish in Map Studio so clients can see them.' });
+    if (dueFollowups) items.push({ href: '/admin/clients.html', em: '☎', t: dueFollowups + ' client follow-up' + (dueFollowups === 1 ? '' : 's') + ' due', d: 'A quick call keeps deals warm.' });
+
+    const al = document.getElementById('attention-list');
+    if (al) {
+      if (!items.length) {
+        al.innerHTML = '<div class="pm-empty"><div class="title">You’re all caught up ✨</div><div class="desc">Nothing needs you right now — open Client Presentation to walk a buyer through the map.</div></div>';
+      } else {
+        al.innerHTML = items.slice(0, 5).map(it => `
+          <a href="${it.href}" style="display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid var(--pm-border-subtle);text-decoration:none;color:inherit;">
+            <span style="flex:none;width:38px;height:38px;border-radius:11px;background:#F6F1E6;display:flex;align-items:center;justify-content:center;font-size:17px;">${it.em}</span>
+            <span style="flex:1;min-width:0;"><span style="display:block;font-size:14.5px;font-weight:700;">${esc(it.t)}</span><span style="display:block;font-size:12.5px;color:var(--pm-text-mut);">${esc(it.d)}</span></span>
+            <span style="flex:none;color:var(--pm-emerald);font-weight:700;font-size:18px;">→</span>
+          </a>`).join('');
+      }
+    }
+  })();
+
   // ---- Hot areas ----
   const hotEl = document.getElementById('hot-areas');
   const areaRows = Object.keys(stats.perArea)
@@ -330,7 +408,7 @@ document.addEventListener('DOMContentLoaded', () => {
     `).join('');
   }
 
-  // ---- Recent client movement ----
+  // ---- Recent client activity ----
   const feedEl = document.getElementById('movement-feed');
   const EVENT_LABELS = {
     presentation_opened: 'Presentation opened',
@@ -669,6 +747,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const chip = document.getElementById('account-status-chip');
     chip.textContent = String(gate.status || 'trial').replace(/^\w/, m => m.toUpperCase());
     chip.style.color = st.c; chip.style.background = st.bg;
+    // Small header chip (daily dashboard) — the big card stays collapsed.
+    const hchip = document.getElementById('owner-account-chip');
+    if (hchip) {
+      hchip.textContent = 'Account · ' + String(gate.status || 'trial').replace(/^\w/, m => m.toUpperCase());
+      hchip.style.color = st.c; hchip.style.background = st.bg; hchip.style.display = 'inline-flex';
+    }
 
     const cells = [
       { k: 'Plan', v: plan.planCode || 'founding' },
@@ -693,8 +777,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('account-plan-note').textContent = gate.message
       || 'Account active. Record payments below; changes here are a manual record only.';
-    document.getElementById('account-plan-card').style.display = 'block';
+    // Keep the big billing card collapsed on the daily dashboard — the owner
+    // opens it from the header chip or the settings drawer. Gating unchanged.
   }
+  // Header chip toggles the (collapsed) billing card in place.
+  (function () {
+    const hchip = document.getElementById('owner-account-chip');
+    const card = document.getElementById('account-plan-card');
+    if (hchip && card) hchip.addEventListener('click', () => {
+      card.style.display = card.style.display === 'block' ? 'none' : 'block';
+      if (card.style.display === 'block') card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  })();
 
   // Edit form wiring
   const form = document.getElementById('account-edit-form');

@@ -17,7 +17,7 @@
 
   // Team Workspace = the staff work table. ONLY daily-work surfaces:
   // Workspace, Properties, Map Studio. Owner-intelligence surfaces
-  // (Area Intelligence, Client Movement, Property Insights, Deals) are
+  // (Area Intelligence, Client Details, Property Insights, Deals) are
   // deliberately absent (Phase 1.5). Items are still filtered by permission
   // scope (PMAccess.resolveScopes on the cached Supabase profile) and every
   // page is guarded by PMAccess.guardPage — hiding nav is UX, not security.
