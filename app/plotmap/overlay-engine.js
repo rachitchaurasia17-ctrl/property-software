@@ -1,29 +1,85 @@
-/* PlotMap overlay engine: mounts interactive overlays above untouched map images.
-   Data source: PMOverlayStore.publishedForClient(mapId) when available (Map
-   Studio published items + seeded dataset), falling back to the static
-   PLOTMAP_OVERLAYS dataset. Adds the premium selection language from the
-   design handoff: dim veil, glass-road glow with flow pulses, lifted blocks,
-   ring pins and a client-safe side drawer. */
+/* PlotMap overlay engine — the premium highlight system.
+   Mounts interactive overlays ABOVE untouched map images. The base map is
+   sacred: every effect here is an SVG/CSS layer, never an image edit.
+
+   Data source: PMOverlayStore.publishedForClient(mapId) when available
+   (Map Studio published items + seeded dataset), falling back to the static
+   PLOTMAP_OVERLAYS dataset — so any map marked inside Map Studio gets this
+   look automatically, now and for future masterplans.
+
+   Visual language (reference: premium 3D masterplan):
+   • Roads   — raised electric-cyan glass light strips (shadow/body/core).
+   • Blocks  — true 3D slabs: gradient top face, stepped darker side wall,
+               glossy sheen, bevel hairline, soft ground shadow, color glow.
+   • Pins    — small blue gradient pins with white core.
+   • Select  — dim veil + selected item lifts higher and glows brighter. */
 (function () {
   const SVG_NS = 'http://www.w3.org/2000/svg';
-  const COLORS = { gold: '#A87F1F', blue: '#1E5FA8', emerald: '#157A56', bronze: '#B06A2C', ink: '#23201A' };
-  const GLOW = { '#1E5FA8': '#1FC8FF', '#157A56': '#2CEAA6', '#B06A2C': '#F5A84E', '#A87F1F': '#FFD97A', '#23201A': '#FFD97A' };
+
+  /* ---------- premium block palette (bold, not dull) ---------- */
+  const PALETTE = {
+    gold:    { top: '#FFD34F', mid: '#E19A10', side: '#7C4A04', glow: 'rgba(255,190,45,.5)' },
+    magenta: { top: '#FF4FA3', mid: '#D31368', side: '#6D0735', glow: 'rgba(255,45,145,.48)' },
+    purple:  { top: '#9B5CFF', mid: '#6B27C7', side: '#35115F', glow: 'rgba(155,92,255,.46)' },
+    teal:    { top: '#3FF2D0', mid: '#079E91', side: '#04534F', glow: 'rgba(40,235,210,.42)' },
+    emerald: { top: '#79EF65', mid: '#2CA83C', side: '#0D541B', glow: 'rgba(90,230,80,.42)' },
+    blue:    { top: '#4AA8FF', mid: '#145CC8', side: '#082A68', glow: 'rgba(55,150,255,.46)' },
+    orange:  { top: '#FF9847', mid: '#DF5614', side: '#6B2108', glow: 'rgba(255,130,40,.46)' },
+    cyan:    { top: '#53E8FF', mid: '#0FA8D8', side: '#065C7A', glow: 'rgba(60,220,255,.46)' },
+    ruby:    { top: '#FF6052', mid: '#CC251D', side: '#68100D', glow: 'rgba(255,80,70,.46)' }
+  };
+  const PALETTE_KEYS = Object.keys(PALETTE);
+  // Legacy store color names → palette families.
+  const COLOR_MAP = { gold: 'gold', blue: 'blue', emerald: 'emerald', bronze: 'orange', ink: 'purple' };
+  // Store defaults per kind — a default color means "auto-assign variety".
+  const KIND_DEFAULT = { sector: 'gold', block: 'gold', plot: 'gold', landmark: 'emerald', commercial: 'emerald', road: 'blue', boundary: 'blue', pin: 'gold' };
+  // Auto-assignment order tuned so neighbouring blocks contrast well.
+  const AUTO_ORDER = ['gold', 'teal', 'purple', 'blue', 'magenta', 'emerald', 'orange', 'cyan', 'ruby'];
+
   const KIND_LABEL = { road: 'Road', sector: 'Sector', block: 'Block', landmark: 'Landmark', pin: 'Location', commercial: 'Commercial', label: 'Label', plot: 'Plot', boundary: 'Boundary' };
   const GROUP_NAMES = { A: 'Connectivity', B: 'Residential', C: 'Commercial & Civic', D: 'Growth Corridor' };
   const GROUP_COLORS = { A: '#1E5FA8', B: '#A87F1F', C: '#157A56', D: '#B06A2C' };
+  // Drawer chip colors per palette (mid tones read best on parchment).
+  const KIND_COLOR_HEX = { gold: '#A87F1F', blue: '#1E5FA8', emerald: '#157A56', orange: '#B06A2C', purple: '#6B27C7', magenta: '#D31368', teal: '#079E91', cyan: '#0FA8D8', ruby: '#CC251D' };
 
   let current = null;   // { root, container, mapId, mode, items, vb, selId, groupKey }
+  let uidSeq = 0;
 
-  function itemHex(item) {
-    return COLORS[item.color] || (item.kind === 'road' || item.kind === 'boundary' ? COLORS.blue
-      : item.kind === 'landmark' ? COLORS.emerald
-      : item.kind === 'commercial' ? COLORS.bronze : COLORS.gold);
+  /* ---------- color helpers ---------- */
+  function hexRgb(hex) { const n = parseInt(hex.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+  function rgba(hex, a) { const c = hexRgb(hex); return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')'; }
+  function mix(hexA, hexB, t) {
+    const a = hexRgb(hexA), b = hexRgb(hexB);
+    return 'rgb(' + Math.round(a[0] + (b[0] - a[0]) * t) + ',' + Math.round(a[1] + (b[1] - a[1]) * t) + ',' + Math.round(a[2] + (b[2] - a[2]) * t) + ')';
   }
-  function rgba(hex, a) { const n = parseInt(hex.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; }
-  function lighten(hex, amt) { const n = parseInt(hex.slice(1), 16); let r = n >> 16, g = (n >> 8) & 255, b = n & 255; r = Math.round(r + (255 - r) * amt); g = Math.round(g + (255 - g) * amt); b = Math.round(b + (255 - b) * amt); return 'rgb(' + r + ',' + g + ',' + b + ')'; }
-  function darken(hex, amt) { const n = parseInt(hex.slice(1), 16); const r = n >> 16, g = (n >> 8) & 255, b = n & 255; return 'rgb(' + Math.round(r * (1 - amt)) + ',' + Math.round(g * (1 - amt)) + ',' + Math.round(b * (1 - amt)) + ')'; }
+  function lighten(hex, amt) { const c = hexRgb(hex); return 'rgb(' + c.map(v => Math.round(v + (255 - v) * amt)).join(',') + ')'; }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  function hashStr(s) { let h = 0; s = String(s || ''); for (let i = 0; i < s.length; i++) { h = ((h << 5) - h + s.charCodeAt(i)) | 0; } return Math.abs(h); }
 
+  /* Palette for an item: explicit non-default colors are honored; default
+     colors get a stable per-item auto color so a freshly marked map already
+     looks like the reference (varied premium blocks, no config needed). */
+  function paletteKeyFor(item) {
+    const mapped = COLOR_MAP[item.color] || (PALETTE[item.color] ? item.color : null);
+    const isDefault = !item.color || item.color === KIND_DEFAULT[item.kind];
+    if (mapped && !isDefault) return mapped;
+    return AUTO_ORDER[hashStr(item.id) % AUTO_ORDER.length];
+  }
+  function paletteFor(item) { return PALETTE[paletteKeyFor(item)] || PALETTE.gold; }
+  function itemHex(item) { return KIND_COLOR_HEX[paletteKeyFor(item)] || '#A87F1F'; }
+
+  /* Lift per item — small premium variation (never huge). viewBox units. */
+  function liftFor(item) {
+    if (item.kind === 'sector') return 8;
+    if (item.kind === 'landmark' || item.kind === 'commercial') return 9;
+    return [10, 12, 14][hashStr(item.id + 'l') % 3]; // blocks / plots
+  }
+  /* Sectors are large zone polygons: render them as raised GLASS panels so
+     the original map stays readable beneath. Blocks/landmarks/plots are the
+     solid 3D slabs that pop (the reference look). */
+  function isGlass(item) { return item.kind === 'sector'; }
+
+  /* ---------- data plumbing (unchanged contract) ---------- */
   function legacyOverlayFor(mapId, mode) {
     const overlays = window.PLOTMAP_OVERLAYS || {};
     const overlay = mapId ? overlays[mapId] : null;
@@ -49,8 +105,8 @@
     const overlay = legacyOverlayFor(mapId, mode);
     if (!overlay) return [];
     const out = [];
-    (overlay.roads || []).forEach(r => { if (r.public) out.push({ id: r.id, kind: 'road', name: r.label, d: r.d, color: 'blue', group: r.group, rows: r.rows }); });
-    (overlay.shapes || []).forEach(s => { if (s.public) out.push({ id: s.id, kind: s.type === 'landmark' ? 'landmark' : (s.type || 'sector'), name: s.label, paths: s.paths, color: s.type === 'landmark' ? 'emerald' : 'gold', group: s.group, rows: s.rows }); });
+    (overlay.roads || []).forEach(r => { if (r.public) out.push({ id: r.id, kind: 'road', name: r.label, d: r.d, color: 'blue', group: r.group, rows: r.rows, rel: r.rel, sub: r.sub }); });
+    (overlay.shapes || []).forEach(s => { if (s.public) out.push({ id: s.id, kind: s.type === 'landmark' ? 'landmark' : (s.type || 'sector'), name: s.label, paths: s.paths, color: s.type === 'landmark' ? 'emerald' : 'gold', group: s.group, rows: s.rows, rel: s.rel, parent: s.parent, sub: s.sub }); });
     return out;
   }
 
@@ -70,9 +126,7 @@
     if (item.at) return [item.at[0], item.at[1] - 14];
     const d = item.d || (item.paths && item.paths[0]) || '';
     if (Array.isArray(item.pts) && item.pts.length) {
-      const pts = item.pts.length === 2 && item.kind === 'plot'
-        ? [[item.pts[0][0], item.pts[0][1]], [item.pts[1][0], item.pts[1][1]]]
-        : item.pts;
+      const pts = item.pts;
       return [pts.reduce((a, p) => a + p[0], 0) / pts.length, pts.reduce((a, p) => a + p[1], 0) / pts.length];
     }
     if (d) {
@@ -96,63 +150,163 @@
     try { if (typeof window.logEvent === 'function') window.logEvent(type, meta || {}); } catch (e) {}
   }
 
-  /* ---------- idle layer (calm, always visible) ---------- */
-  function buildIdleSvg(items, vb) {
-    let html = '';
-    items.forEach(item => {
-      if (item.kind === 'pin' || item.kind === 'label') return;
-      const isLine = item.kind === 'road' || item.kind === 'boundary';
-      pathsOf(item).forEach((d, i) => {
-        if (isLine) {
-          html += '<g class="plotmap-road" data-overlay-id="' + esc(item.id) + '">'
-            + '<path d="' + d + '" class="road-shadow"/><path d="' + d + '" class="road-body"/><path d="' + d + '" class="road-core"/>'
-            + '<path d="' + d + '" class="road-hit" data-hit="' + esc(item.id) + '" tabindex="0" role="button" aria-label="' + esc(item.name || 'Road') + '"/></g>';
-        } else {
-          html += '<path d="' + d + '" class="plotmap-shape plotmap-shape-' + esc(item.kind) + '" data-overlay-id="' + esc(item.id) + '" data-hit="' + esc(item.id) + '" tabindex="0" role="button" aria-label="' + esc(item.name || 'Map area') + '"/>';
+  /* ---------- shared defs: top-face gradients + gloss ---------- */
+  function buildDefs(sfx) {
+    let g = '';
+    PALETTE_KEYS.forEach(key => {
+      const p = PALETTE[key];
+      g += '<linearGradient id="pmTop-' + key + '-' + sfx + '" x1="0" y1="0" x2="0.25" y2="1">'
+        + '<stop offset="0" stop-color="' + lighten(p.top, 0.28) + '"/>'
+        + '<stop offset="0.42" stop-color="' + p.top + '"/>'
+        + '<stop offset="1" stop-color="' + p.mid + '"/>'
+        + '</linearGradient>';
+    });
+    g += '<linearGradient id="pmGloss-' + sfx + '" x1="0" y1="0" x2="0.18" y2="1">'
+      + '<stop offset="0" stop-color="rgba(255,255,255,.5)"/>'
+      + '<stop offset="0.4" stop-color="rgba(255,255,255,.14)"/>'
+      + '<stop offset="0.72" stop-color="rgba(255,255,255,0)"/>'
+      + '</linearGradient>';
+    return '<defs>' + g + '</defs>';
+  }
+
+  /* ---------- 3D block builder (the hero) ----------
+     One group per item; every effect is a translated copy of the SAME path,
+     so the geometry always matches the map. Layers bottom→top:
+     ground shadow → stepped side wall → gradient top face → gloss → bevel
+     hairline → transparent hit path → fitted label. */
+  function blockSvg(item, pal, sfx, opts) {
+    const o = opts || {};
+    const lift = (o.lift != null ? o.lift : liftFor(item));
+    const key = paletteKeyFor(item);
+    const paths = pathsOf(item);
+    if (!paths.length) return '';
+    const glass = isGlass(item) && !o.strong;
+    // Idle glass panel: no extrusion at all — a luminous edge + faint tint so
+    // the original map stays fully readable. Selected sectors extrude lightly.
+    const glassSel = isGlass(item) && o.strong;
+    const eLift = glass ? 0 : lift;
+    const wallSteps = glassSel ? 5 : 9;
+    const wallOpacity = glassSel ? 0.5 : 1;
+    const topOpacity = glass ? 0.14 : glassSel ? 0.22 : 0.93;
+    const glowPart = 'drop-shadow(0 0 ' + (o.strong ? 16 : 9) + 'px ' + pal.glow + ')';
+    const shadeStyle = glass
+      ? 'filter:' + glowPart + ';'
+      : 'filter:drop-shadow(0 2.5px 2.5px rgba(24,16,4,.34)) ' + glowPart + ';';
+
+    let html = '<g class="pm-block3d' + (o.strong ? ' pm-block3d-active' : '') + '" data-overlay-id="' + esc(item.id) + '"'
+      + (o.delay ? ' style="animation-delay:' + o.delay + 'ms"' : '') + '>';
+    paths.forEach(d => {
+      if (!glass) {
+        // 1 · soft ground shadow (offset down, blurred) — sells the lift
+        html += '<path d="' + d + '" fill="rgba(14,10,3,' + (glassSel ? '.22' : '.42') + ')" transform="translate(3 ' + (eLift * 0.6 + 6).toFixed(1) + ')" style="filter:blur(7px);pointer-events:none"/>';
+        // 2 · stepped side wall: deep shadow at base → mid near the top, so the
+        //     slab reads as truly extruded (dark grounding = "out of screen")
+        for (let k = 0; k <= wallSteps; k++) {
+          const t = k / wallSteps;
+          html += '<path d="' + d + '" fill="' + mix(pal.side, pal.mid, 0.04 + 0.66 * t) + '" fill-opacity="' + wallOpacity + '" transform="translate(0 ' + (-eLift * t).toFixed(2) + ')" style="pointer-events:none"/>';
         }
-      });
+      }
+      // 3 · top face: bright gradient + light edge + color glow. Glass panels
+      //     stay near-transparent so the base map reads through; the glowing
+      //     edge in the block color is what defines them.
+      html += '<path d="' + d + '" fill="url(#pmTop-' + key + '-' + sfx + ')" fill-opacity="' + topOpacity + '" stroke="' + (glass || glassSel ? pal.top : lighten(pal.top, 0.6)) + '" stroke-width="' + (glassSel ? 3.6 : glass ? 2.8 : 1.5) + '" stroke-linejoin="round" transform="translate(0 ' + (-eLift) + ')" style="' + shadeStyle + 'pointer-events:none"/>';
+      // 4 · glossy sheen sweeping from the top-left
+      html += '<path d="' + d + '" fill="url(#pmGloss-' + sfx + ')" fill-opacity="' + (glass ? 0.3 : glassSel ? 0.55 : 1) + '" transform="translate(0 ' + (-eLift) + ')" style="pointer-events:none"/>';
+      // 5 · inner bevel hairline just above the face
+      if (!glass) {
+        html += '<path d="' + d + '" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="0.9" stroke-linejoin="round" transform="translate(0 ' + (-eLift - 1.2) + ')" style="pointer-events:none"/>';
+      }
+      // 6 · invisible hit surface on the lifted face
+      if (!o.noHit) {
+        html += '<path d="' + d + '" class="pm-block-hit" data-hit="' + esc(item.id) + '" transform="translate(0 ' + (-eLift) + ')" tabindex="0" role="button" aria-label="' + esc(item.name || 'Map area') + '"/>';
+      }
+    });
+    // 7 · fitted label on the face (sized after mount via fitBlockLabels)
+    if (item.name && !o.noLabel) {
+      const c = centroidOf(item, o.vb || [0, 0, 1, 1]);
+      html += '<text class="pm-block-label' + (glass ? ' pm-glass-label' : '') + '" data-fit="1" x="' + c[0].toFixed(1) + '" y="' + (c[1] - eLift).toFixed(1) + '" text-anchor="middle" dominant-baseline="middle">' + esc(item.name) + '</text>';
+    }
+    html += '</g>';
+    return html;
+  }
+
+  /* Fit block labels to their faces; hide labels that cannot fit legibly. */
+  function fitBlockLabels(svg) {
+    if (!svg) return;
+    svg.querySelectorAll('g.pm-block3d').forEach(g => {
+      const t = g.querySelector('text.pm-block-label');
+      if (!t) return;
+      const hit = g.querySelector('.pm-block-hit') || g.querySelector('path');
+      if (!hit) { t.style.display = 'none'; return; }
+      let bb;
+      try { bb = hit.getBBox(); } catch (e) { t.style.display = 'none'; return; }
+      const len = Math.max((t.textContent || '').length, 1);
+      const fs = Math.min(bb.width / (len * 0.64), bb.height * 0.3, 26);
+      if (fs < 8.5) { t.style.display = 'none'; return; }
+      t.setAttribute('font-size', fs.toFixed(1));
+      t.setAttribute('stroke-width', Math.max(1.6, fs * 0.16).toFixed(1));
+    });
+  }
+
+  /* ---------- glass road builder ---------- */
+  function roadSvg(item, opts) {
+    const o = opts || {};
+    let html = '';
+    pathsOf(item).forEach(d => {
+      html += '<g class="plotmap-road' + (o.strong ? ' pm-road-active' : '') + '" data-overlay-id="' + esc(item.id) + '">'
+        + '<path d="' + d + '" class="road-shadow"/>'
+        + '<path d="' + d + '" class="road-body"/>'
+        + '<path d="' + d + '" class="road-core"/>'
+        + (o.strong ? '<path d="' + d + '" class="road-flow"/>' : '')
+        + (o.noHit ? '' : '<path d="' + d + '" class="road-hit" data-hit="' + esc(item.id) + '" tabindex="0" role="button" aria-label="' + esc(item.name || 'Road') + '"/>')
+        + '</g>';
     });
     return html;
   }
 
-  /* ---------- selection layer (premium, from the design handoff) ---------- */
-  function buildSelectionSvg(items, strong, soft, vb) {
-    let under = '', mid = '', top = '';
+  /* ---------- idle layer: the hero state (reference look, always on) ---------- */
+  function buildIdleSvg(items, vb, sfx) {
+    let roads = '', glass = '', solid = '';
+    let i = 0;
     items.forEach(item => {
       if (item.kind === 'pin' || item.kind === 'label') return;
-      const col = itemHex(item);
+      const isLine = item.kind === 'road' || item.kind === 'boundary';
+      if (isLine) { roads += roadSvg(item); return; }
+      if (!pathsOf(item).length) return; // pts-based rects render in the HTML layer
+      const html = blockSvg(item, paletteFor(item), sfx, { vb, delay: Math.min(i * 70, 560) });
+      if (isGlass(item)) glass += html; else solid += html;
+      i++;
+    });
+    // stack: glass zone panels → glowing roads → solid 3D blocks on top,
+    // matching the physical metaphor (slabs sit on the lit map)
+    return buildDefs(sfx) + glass + roads + solid;
+  }
+
+  /* ---------- selection layer (above the veil, even more premium) ---------- */
+  function buildSelectionSvg(items, strong, soft, vb, sfx) {
+    let out = buildDefs(sfx);
+    items.forEach(item => {
+      if (item.kind === 'pin' || item.kind === 'label') return;
       const isStrong = strong.has(item.id), isSoft = soft.has(item.id);
       if (!isStrong && !isSoft) return;
       const isLine = item.kind === 'road' || item.kind === 'boundary';
-      pathsOf(item).forEach(d => {
-        if (isStrong && isLine) {
-          const glow = GLOW[col] || '#FFD97A';
-          under += '<path d="' + d + '" fill="none" stroke="rgba(0,24,48,.55)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" transform="translate(0,5)" style="filter:blur(6px)"/>';
-          mid += '<path d="' + d + '" fill="none" stroke="' + rgba(glow, .72) + '" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 8px ' + rgba(glow, .9) + ') drop-shadow(0 0 18px ' + rgba(col, .65) + ')"/>';
-          mid += '<path d="' + d + '" fill="none" stroke="rgba(235,255,255,.98)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 4px rgba(255,255,255,.95)) drop-shadow(0 0 14px ' + rgba(glow, .95) + ') drop-shadow(0 0 28px ' + rgba(col, .8) + ')"/>';
-          mid += '<path d="' + d + '" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 32" style="pointer-events:none;filter:drop-shadow(0 0 5px rgba(255,255,255,1)) drop-shadow(0 0 10px ' + rgba(glow, 1) + ');animation:pm-flowdash 1.4s linear infinite"/>';
-        } else if (isStrong) {
-          const isBlockish = item.kind === 'block' || item.kind === 'plot';
-          const lift = isBlockish ? 14 : 8, steps = 4;
-          const topFace = lighten(col, isBlockish ? .34 : .44), topEdge = lighten(col, .74);
-          under += '<path d="' + d + '" fill="rgba(22,15,4,.45)" transform="translate(0,' + (lift + 4) + ')" style="filter:blur(8px)"/>';
-          for (let k = 0; k <= steps; k++) {
-            const t = k / steps;
-            mid += '<path d="' + d + '" fill="' + darken(col, 0.6 - 0.44 * t) + '" transform="translate(0,' + (-lift * t).toFixed(1) + ')"/>';
-          }
-          top += '<path d="' + d + '" fill="' + topFace + '" fill-opacity=".92" stroke="' + topEdge + '" stroke-width="2" stroke-linejoin="round" transform="translate(0,' + (-lift) + ')" style="filter:drop-shadow(0 3px 3px rgba(26,18,6,.3))"/>';
-          top += '<path d="' + d + '" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1" stroke-linejoin="round" transform="translate(0,' + (-lift - 1) + ')"/>';
-        } else if (isSoft) {
-          under += isLine
+      if (isStrong && isLine) {
+        out += roadSvg(item, { strong: true, noHit: false });
+      } else if (isStrong) {
+        out += blockSvg(item, paletteFor(item), sfx, { vb, strong: true, lift: liftFor(item) + 6 });
+      } else if (isSoft) {
+        const col = itemHex(item);
+        pathsOf(item).forEach(d => {
+          out += isLine
             ? '<path d="' + d + '" fill="none" stroke="' + rgba(col, .55) + '" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>'
             : '<path d="' + d + '" fill="' + rgba(col, .12) + '" stroke="' + rgba(col, .72) + '" stroke-width="2.4" stroke-linejoin="round"/>';
-        }
-      });
+        });
+      }
     });
-    return under + mid + top;
+    return out;
   }
 
-  /* ---------- pins / labels / boxes (HTML in the fitted layer) ---------- */
+  /* ---------- pins / plot boxes / labels (HTML in the fitted layer) ---------- */
   function pctPos(x, y, vb) {
     return { left: (x / vb[2] * 100).toFixed(3) + '%', top: (y / vb[3] * 100).toFixed(3) + '%' };
   }
@@ -168,9 +322,10 @@
         const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
         const x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs);
         const y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+        const key = paletteKeyFor(item);
         const box = document.createElement('button');
         box.type = 'button';
-        box.className = item.kind === 'plot' ? 'selected-house' : 'selected-school';
+        box.className = 'plotmap-block block-' + key;
         box.dataset.overlayId = item.id;
         box.title = item.name || '';
         box.setAttribute('aria-label', item.name || 'Selected area');
@@ -178,12 +333,16 @@
           left: (x0 / vb[2] * 100) + '%', top: (y0 / vb[3] * 100) + '%',
           width: ((x1 - x0) / vb[2] * 100) + '%', height: ((y1 - y0) / vb[3] * 100) + '%'
         });
+        box.style.setProperty('--lift', [8, 10, 12][hashStr(item.id) % 3] + 'px');
         if (anySel && !state.strong.has(item.id)) box.classList.add('pm-faded');
-        if (state.strong.has(item.id)) box.classList.add('pm-active');
+        if (state.strong.has(item.id)) box.classList.add('is-selected');
         box.addEventListener('click', e => { e.stopPropagation(); api.select(item.id); });
-        const shine = document.createElement('span');
-        shine.className = 'overlay-box-shine';
-        box.appendChild(shine);
+        if (item.name) {
+          const lbl = document.createElement('span');
+          lbl.className = 'plotmap-block-label';
+          lbl.textContent = item.name;
+          box.appendChild(lbl);
+        }
         layer.appendChild(box);
         return;
       }
@@ -317,7 +476,10 @@
     if (dim) dim.style.opacity = anySel ? '0.45' : '0';
 
     const selSvg = root.querySelector('.plotmap-sel-layer');
-    if (selSvg) selSvg.innerHTML = anySel ? buildSelectionSvg(items, strong, soft, vb) : '';
+    if (selSvg) {
+      selSvg.innerHTML = anySel ? buildSelectionSvg(items, strong, soft, vb, current.uid + 's') : '';
+      if (anySel) fitBlockLabels(selSvg);
+    }
 
     buildHtmlLayer(root.querySelector('.plotmap-selection-layer'), items, vb, { strong, soft });
 
@@ -339,6 +501,7 @@
 
     const vbRaw = viewBoxFor(options.mapId, options.mode, options);
     const vb = parseViewBox(vbRaw, options.width, options.height);
+    const uid = 'u' + (++uidSeq);
 
     const root = document.createElement('div');
     root.className = 'plotmap-overlay-root plotmap-map-stage';
@@ -346,25 +509,24 @@
     root.style.width = (options.width || container.clientWidth || 0) + 'px';
     root.style.height = (options.height || container.clientHeight || 0) + 'px';
 
-    // 1. idle svg
+    // 1. idle svg — the hero layer (glass roads + 3D blocks, always on)
     const svg = document.createElementNS(SVG_NS, 'svg');
     svg.setAttribute('class', 'plotmap-road-layer');
     svg.setAttribute('viewBox', vbRaw);
     svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-    svg.innerHTML = '<defs><filter id="plotmapRoadGlow" x="-20%" y="-40%" width="140%" height="180%"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>'
-      + buildIdleSvg(items, vb);
+    svg.innerHTML = buildIdleSvg(items, vb, uid);
 
     // 2. dim veil
     const veil = document.createElement('div');
     veil.className = 'pm-dim-veil';
 
-    // 3. selection svg (premium render, above the veil)
+    // 3. selection svg (premium re-render of selected items, above the veil)
     const selSvg = document.createElementNS(SVG_NS, 'svg');
     selSvg.setAttribute('class', 'plotmap-sel-layer');
     selSvg.setAttribute('viewBox', vbRaw);
     selSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
-    // 4. fitted html layer (pins / boxes / labels / sel label)
+    // 4. fitted html layer (pins / plot boxes / labels / sel label)
     const selectionLayer = document.createElement('div');
     selectionLayer.className = 'plotmap-selection-layer';
     const w = Number(options.width) || vb[2], h = Number(options.height) || vb[3];
@@ -383,8 +545,9 @@
     });
     container.appendChild(root);
 
-    current = { root, container, mapId: options.mapId, mode: options.mode, items, vb, selId: null, groupKey: null, strong: new Set() };
+    current = { root, container, mapId: options.mapId, mode: options.mode, items, vb, uid, selId: null, groupKey: null, strong: new Set() };
     applyState();
+    fitBlockLabels(svg);
     return root;
   }
 

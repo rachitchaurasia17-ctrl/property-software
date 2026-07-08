@@ -36,17 +36,47 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
     </div>
   </div>
 
-  <!-- Account & plan (owner-only, read-only view of this dealer's status) -->
+  <!-- Account & billing (owner-only). Manual billing — no payment gateway. -->
   <section class="pm-card-xl" id="account-plan-card" style="display:none;margin-bottom:16px;">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
       <div>
-        <div class="pm-card-h">Account &amp; plan</div>
-        <div class="pm-card-sub">Your PlotMap account status. Billing is handled manually by your provider.</div>
+        <div class="pm-card-h">Account &amp; billing</div>
+        <div class="pm-card-sub">Manual billing — no automatic payments. Suspension/expiry is enforced by your provider (Supabase RLS).</div>
       </div>
-      <span id="account-status-chip" class="pm-chip" style="font-weight:700;"></span>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span id="account-status-chip" class="pm-chip" style="font-weight:700;"></span>
+        <button type="button" class="pm-btn pm-btn-secondary sm" id="account-edit-btn">Edit billing</button>
+      </div>
     </div>
     <div class="pm-grid cols-4" id="account-plan-grid" style="margin-top:14px;"></div>
+    <div id="account-billing-extra" style="margin-top:12px;font-size:13px;color:var(--pm-text-sec);display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 20px;"></div>
     <div id="account-plan-note" style="font-size:12.5px;color:var(--pm-text-mut);margin-top:12px;"></div>
+
+    <!-- Owner-editable manual billing record (hidden until Edit) -->
+    <form class="pm-form" id="account-edit-form" style="display:none;margin-top:16px;border-top:1px solid var(--pm-border-subtle);padding-top:16px;">
+      <div class="pm-grid cols-3">
+        <div class="fld"><label>Account status</label>
+          <select id="acc-status"><option value="active">Active</option><option value="suspended">Suspended</option><option value="expired">Expired</option></select>
+        </div>
+        <div class="fld"><label>Subscription</label>
+          <select id="acc-sub"><option value="trial">Trial</option><option value="paid">Paid</option></select>
+        </div>
+        <div class="fld"><label>Plan</label><input id="acc-plan" type="text" placeholder="e.g. founding"></div>
+        <div class="fld"><label>Trial ends</label><input id="acc-trial-end" type="date"></div>
+        <div class="fld"><label>Expiry date (paid)</label><input id="acc-expiry" type="date"></div>
+        <div class="fld"><label>Renewal reminder</label><input id="acc-renewal" type="date"></div>
+        <div class="fld"><label>Payment</label>
+          <select id="acc-paid"><option value="false">Unpaid</option><option value="true">Paid</option></select>
+        </div>
+        <div class="fld"><label>Payment proof link</label><input id="acc-proof" type="text" placeholder="https://… (receipt / drive link)"></div>
+        <div class="fld" style="grid-column:1/-1;"><label>Payment notes</label><input id="acc-notes" type="text" placeholder="e.g. UPI ref, amount, date"></div>
+      </div>
+      <div style="font-size:12px;color:var(--pm-text-mut);margin-top:10px;">This is your manual billing record. It does not process payments and is not the security boundary — a suspended/expired account is only truly blocked once your provider's Supabase RLS enforces it (Codex-gated).</div>
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <button type="submit" class="pm-btn pm-btn-primary">Save billing</button>
+        <button type="button" class="pm-btn pm-btn-secondary" id="account-edit-cancel">Cancel</button>
+      </div>
+    </form>
   </section>
 
   <!-- Today's client activity -->
@@ -615,44 +645,95 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// Account & plan card — owner-only, read-only. Reads this dealer's own plan
-// state (PMFoundation.getPlanState) which is dealer-scoped; no cross-dealer
-// data, no writes, no billing actions (billing is manual, provider-side).
+// Account & billing — owner-only. Reads this dealer's own plan/billing state
+// (dealer-scoped, no cross-dealer data). Owner may record the MANUAL billing
+// details here; this is NOT the security boundary — real suspension/expiry
+// enforcement is Supabase RLS (Codex). No payment gateway.
 document.addEventListener('DOMContentLoaded', () => {
-  if (!window.PMFoundation || typeof window.PMFoundation.getPlanState !== 'function') return;
-  const isOwner = !window.PMFoundation.currentUserCan || window.PMFoundation.currentUserCan('billing.manage');
-  if (!isOwner) return;
-  let plan;
-  try { plan = window.PMFoundation.getPlanState(); } catch (e) { return; }
-  if (!plan) return;
+  if (!window.PMFoundation || typeof window.PMFoundation.getAccountGate !== 'function') return;
+  const canManageBilling = !window.PMFoundation.currentUserCan || window.PMFoundation.currentUserCan('billing.manage');
+  if (!canManageBilling) return;
   const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]);
-  const status = plan.trialExpired ? 'expired' : (plan.accountStatus === 'active' ? plan.subscriptionStatus : plan.accountStatus);
-  const STATUS_STYLE = {
-    active:   { c:'#1F5E47', bg:'#E7F0EB' },
-    trial:    { c:'#8A6224', bg:'#FBF3E4' },
-    suspended:{ c:'#b0532c', bg:'#F7E7E0' },
-    expired:  { c:'#b0532c', bg:'#F7E7E0' }
-  };
-  const st = STATUS_STYLE[status] || STATUS_STYLE.trial;
-  const chip = document.getElementById('account-status-chip');
-  chip.textContent = String(status || 'trial').replace(/^\w/, m => m.toUpperCase());
-  chip.style.color = st.c; chip.style.background = st.bg;
   const fmtDate = (v) => v ? new Date(v).toLocaleDateString([], { day:'numeric', month:'short', year:'numeric' }) : '—';
-  const cells = [
-    { k: 'Plan', v: plan.planCode || 'founding' },
-    { k: 'Trial ends', v: fmtDate(plan.trialEnd) },
-    { k: 'Seats', v: plan.seatLimit },
-    { k: 'Limits', v: plan.maxProperties + ' props · ' + plan.maxMaps + ' maps' }
-  ];
-  document.getElementById('account-plan-grid').innerHTML = cells.map(c => `
-    <div style="background:#fff;border:1px solid var(--pm-border);border-radius:14px;padding:14px 16px;">
-      <div style="font-size:12.5px;color:var(--pm-text-sec);font-weight:600;">${esc(c.k)}</div>
-      <div class="pm-serif" style="font-size:22px;font-weight:600;margin-top:4px;line-height:1;">${esc(c.v)}</div>
-    </div>`).join('');
-  document.getElementById('account-plan-note').textContent = plan.active
-    ? 'Account active. To change plan or seats, contact your PlotMap provider.'
-    : 'This account is ' + (plan.trialExpired ? 'past its trial end' : plan.accountStatus) + '. Contact your PlotMap provider to reactivate.';
-  document.getElementById('account-plan-card').style.display = 'block';
+  const toInputDate = (v) => { if (!v) return ''; const d = new Date(v); return isNaN(d) ? '' : d.toISOString().slice(0,10); };
+  const STATUS_STYLE = {
+    active:{ c:'#1F5E47', bg:'#E7F0EB' }, trial:{ c:'#8A6224', bg:'#FBF3E4' },
+    suspended:{ c:'#b0532c', bg:'#F7E7E0' }, expired:{ c:'#b0532c', bg:'#F7E7E0' }
+  };
+
+  function paint() {
+    let gate, plan;
+    try { gate = window.PMFoundation.getAccountGate(); plan = gate.plan; } catch (e) { return; }
+    if (!gate) return;
+    const st = STATUS_STYLE[gate.status] || STATUS_STYLE.trial;
+    const chip = document.getElementById('account-status-chip');
+    chip.textContent = String(gate.status || 'trial').replace(/^\w/, m => m.toUpperCase());
+    chip.style.color = st.c; chip.style.background = st.bg;
+
+    const cells = [
+      { k: 'Plan', v: plan.planCode || 'founding' },
+      { k: plan.subscriptionStatus === 'trial' ? 'Trial ends' : 'Expiry', v: fmtDate(plan.subscriptionStatus === 'trial' ? plan.trialEnd : plan.expiryDate) },
+      { k: 'Seats', v: plan.seatLimit },
+      { k: 'Limits', v: plan.maxProperties + ' props · ' + plan.maxMaps + ' maps' }
+    ];
+    document.getElementById('account-plan-grid').innerHTML = cells.map(c => `
+      <div style="background:#fff;border:1px solid var(--pm-border);border-radius:14px;padding:14px 16px;">
+        <div style="font-size:12.5px;color:var(--pm-text-sec);font-weight:600;">${esc(c.k)}</div>
+        <div class="pm-serif" style="font-size:22px;font-weight:600;margin-top:4px;line-height:1;">${esc(c.v)}</div>
+      </div>`).join('');
+
+    const extra = [
+      { k: 'Payment', v: plan.paid ? 'Paid' : 'Unpaid' },
+      { k: 'Renewal reminder', v: fmtDate(plan.renewalReminder) },
+      plan.paymentProofLink ? { k: 'Proof', v: '<a href="' + esc(plan.paymentProofLink) + '" target="_blank" rel="noopener" style="color:var(--pm-emerald);font-weight:700;">View proof</a>', raw: true } : null,
+      plan.paymentNotes ? { k: 'Notes', v: esc(plan.paymentNotes) } : null
+    ].filter(Boolean);
+    document.getElementById('account-billing-extra').innerHTML = extra.map(c =>
+      `<div><span style="color:var(--pm-text-mut);font-weight:600;">${esc(c.k)}:</span> ${c.raw ? c.v : esc(c.v)}</div>`).join('');
+
+    document.getElementById('account-plan-note').textContent = gate.message
+      || 'Account active. Record payments below; changes here are a manual record only.';
+    document.getElementById('account-plan-card').style.display = 'block';
+  }
+
+  // Edit form wiring
+  const form = document.getElementById('account-edit-form');
+  document.getElementById('account-edit-btn').addEventListener('click', () => {
+    let plan; try { plan = window.PMFoundation.getPlanState(); } catch (e) { return; }
+    document.getElementById('acc-status').value = plan.accountStatus || 'active';
+    document.getElementById('acc-sub').value = plan.subscriptionStatus === 'trial' ? 'trial' : 'paid';
+    document.getElementById('acc-plan').value = plan.planCode || 'founding';
+    document.getElementById('acc-trial-end').value = toInputDate(plan.trialEnd);
+    document.getElementById('acc-expiry').value = toInputDate(plan.expiryDate);
+    document.getElementById('acc-renewal').value = toInputDate(plan.renewalReminder);
+    document.getElementById('acc-paid').value = plan.paid ? 'true' : 'false';
+    document.getElementById('acc-proof').value = plan.paymentProofLink || '';
+    document.getElementById('acc-notes').value = plan.paymentNotes || '';
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  });
+  document.getElementById('account-edit-cancel').addEventListener('click', () => { form.style.display = 'none'; });
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const isoOrNull = (id) => { const v = document.getElementById(id).value; return v ? new Date(v).toISOString() : null; };
+    try {
+      window.PMFoundation.saveDealerSettings({
+        accountStatus: document.getElementById('acc-status').value,
+        subscriptionStatus: document.getElementById('acc-sub').value === 'trial' ? 'trial' : 'active',
+        planCode: document.getElementById('acc-plan').value.trim() || 'founding',
+        trialEnd: isoOrNull('acc-trial-end'),
+        expiryDate: isoOrNull('acc-expiry'),
+        renewalReminder: isoOrNull('acc-renewal'),
+        paid: document.getElementById('acc-paid').value === 'true',
+        paymentProofLink: document.getElementById('acc-proof').value.trim(),
+        paymentNotes: document.getElementById('acc-notes').value.trim()
+      });
+    } catch (err) { alert('Could not save billing: ' + (err && err.message ? err.message : 'error')); return; }
+    form.style.display = 'none';
+    paint();
+    if (window.PMNav && typeof window.PMNav.render === 'function') window.PMNav.render('dashboard'); // refresh banner
+  });
+
+  paint();
 });
 </script>
 </body>

@@ -1,4 +1,6 @@
-/* PlotMap production overlays: SVG/CSS layers above untouched proof maps. */
+/* PlotMap premium overlays: SVG/CSS layers above untouched proof maps.
+   Visual language — electric-cyan glass roads + true 3D raised blocks.
+   The base map image is never edited; everything here floats above it. */
 .plotmap-map-stage{position:absolute;left:0;top:0;pointer-events:none;}
 .plotmap-base-map{position:absolute;left:0;top:0;}
 .plotmap-overlay-root{overflow:visible;z-index:8;}
@@ -6,36 +8,90 @@
 .plotmap-road-layer{pointer-events:none;}
 .plotmap-selection-layer{pointer-events:none;}
 
+/* ── Roads: raised glass light strips (shadow → body → core) ── */
 .plotmap-road .road-shadow,
 .plotmap-road .road-body,
 .plotmap-road .road-core,
+.plotmap-road .road-flow,
 .plotmap-road .road-hit{fill:none;stroke-linecap:round;stroke-linejoin:round;}
-.road-shadow{stroke:rgba(0,24,52,.36);stroke-width:9;filter:blur(2.5px);transform:translateY(3px);opacity:.58;}
-.road-body{stroke:rgba(31,190,246,.62);stroke-width:6.5;filter:url(#plotmapRoadGlow) drop-shadow(0 0 5px rgba(27,188,255,.4));opacity:.76;}
-.road-core{stroke:rgba(242,253,255,.92);stroke-width:2.2;filter:drop-shadow(0 0 3px rgba(255,255,255,.58)) drop-shadow(0 0 6px rgba(0,178,255,.45));}
-.road-hit{stroke:rgba(0,0,0,0);stroke-width:18;pointer-events:stroke;cursor:pointer;}
+.road-shadow{stroke:rgba(0,20,45,.45);stroke-width:10;filter:blur(4px);transform:translateY(3.5px);opacity:.7;}
+.road-body{stroke:rgba(28,190,255,.78);stroke-width:7;filter:drop-shadow(0 0 6px rgba(0,200,255,.85)) drop-shadow(0 0 14px rgba(0,120,255,.55));}
+.road-core{stroke:rgba(245,255,255,.98);stroke-width:2.4;filter:drop-shadow(0 0 4px rgba(255,255,255,.9)) drop-shadow(0 0 11px rgba(0,210,255,.85));}
+.road-hit{stroke:rgba(0,0,0,0);stroke-width:24;pointer-events:stroke;cursor:pointer;}
 
-.plotmap-shape{pointer-events:visiblePainted;cursor:pointer;stroke-linejoin:round;transition:opacity .18s ease,filter .18s ease;}
-.plotmap-shape-sector{fill:rgba(168,127,31,.07);stroke:rgba(217,169,65,.62);stroke-width:1.8;filter:drop-shadow(0 4px 7px rgba(37,28,9,.14));}
-.plotmap-shape-block{fill:rgba(255,213,104,.09);stroke:rgba(219,173,67,.7);stroke-width:1.8;filter:drop-shadow(0 4px 7px rgba(38,27,8,.13));}
-.plotmap-shape-landmark{fill:rgba(255,199,76,.08);stroke:rgba(219,165,48,.78);stroke-width:2;filter:drop-shadow(0 0 5px rgba(246,181,45,.18));}
-.plotmap-shape:hover{opacity:.96;filter:drop-shadow(0 6px 10px rgba(32,24,8,.18)) drop-shadow(0 0 7px rgba(255,220,120,.22));}
+/* Selected road: brighter glass + a slow light-flow pulse */
+.pm-road-active .road-body{stroke:rgba(50,215,255,.92);stroke-width:9;filter:drop-shadow(0 0 8px rgba(0,210,255,.95)) drop-shadow(0 0 20px rgba(0,130,255,.7));}
+.pm-road-active .road-core{stroke:#FFFFFF;stroke-width:3.2;}
+/* A single elongated light streak that glides along the road — a flowing
+   comet of light, never dots. One streak travels the full dash period. */
+.road-flow{stroke:rgba(255,255,255,.96);stroke-width:3.4;stroke-linecap:round;stroke-dasharray:30 150;opacity:.92;filter:drop-shadow(0 0 6px rgba(255,255,255,.95)) drop-shadow(0 0 13px rgba(0,215,255,.95));animation:pm-flowdash 2.4s linear infinite;pointer-events:none;}
 
+/* ── 3D blocks (SVG groups built by the engine) ── */
+.pm-block3d{animation:pm-block-in .55s cubic-bezier(.2,.8,.3,1) both;}
+.pm-block3d .pm-block-hit{fill:rgba(0,0,0,0);stroke:none;pointer-events:visiblePainted;cursor:pointer;}
+.pm-block3d .pm-block-hit:focus-visible{outline:none;stroke:rgba(255,255,255,.9);stroke-width:2;}
+.pm-block-label{fill:#FFFFFF;font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-weight:800;letter-spacing:.04em;paint-order:stroke;stroke:rgba(18,12,2,.5);stroke-linejoin:round;pointer-events:none;user-select:none;}
+/* Selected slab pops up out of the screen, then settles exactly on its path
+   (translate-only, so final geometry stays pixel-aligned to the SVG). */
+.pm-block3d-active{animation:pm-block-pop .44s cubic-bezier(.2,.9,.25,1) both;filter:saturate(1.16) brightness(1.08);}
+@keyframes pm-block-pop{0%{opacity:.25;transform:translateY(13px);}55%{transform:translateY(-4px);}100%{opacity:1;transform:translateY(0);}}
+
+/* Entrance — subtle lift-in, no bounce */
+@keyframes pm-block-in{from{opacity:0;transform:translateY(9px);}to{opacity:1;transform:none;}}
+@keyframes pm-road-in{from{opacity:0;}to{opacity:1;}}
+.plotmap-road{animation:pm-road-in .7s ease both;}
+@media (prefers-reduced-motion:reduce){
+  .pm-block3d,.pm-block3d-active,.plotmap-road{animation:none;}
+  .road-flow{animation:none;}
+}
+
+/* ── HTML rect blocks (plot-tool rectangles): real raised slabs ── */
+.plotmap-block{
+  --block-top:#FFD34F;--block-mid:#E19A10;--block-side:#7C4A04;--block-glow:rgba(255,190,45,.42);--lift:10px;
+  position:absolute;border:1px solid rgba(255,255,255,.55);border-radius:10px;padding:0;
+  background:linear-gradient(145deg,rgba(255,255,255,.45),transparent 28%),linear-gradient(160deg,var(--block-top),var(--block-mid) 62%,var(--block-side));
+  box-shadow:0 calc(var(--lift) + 6px) 18px rgba(0,0,0,.36),0 0 18px var(--block-glow),inset 0 2px 4px rgba(255,255,255,.65),inset 0 -9px 15px rgba(0,0,0,.28);
+  transform:perspective(900px) rotateX(10deg) translateY(calc(var(--lift) * -1));
+  transform-origin:center bottom;pointer-events:auto;cursor:pointer;
+  transition:transform .18s ease,box-shadow .18s ease,filter .18s ease;
+}
+.plotmap-block::before{content:"";position:absolute;left:5px;right:5px;top:5px;height:38%;border-radius:8px 8px 4px 4px;background:linear-gradient(180deg,rgba(255,255,255,.52),rgba(255,255,255,.08));pointer-events:none;}
+.plotmap-block::after{content:"";position:absolute;inset:7px;border-radius:7px;border:1px solid rgba(255,255,255,.35);box-shadow:inset 0 1px 2px rgba(255,255,255,.45),inset 0 -1px 2px rgba(0,0,0,.2);pointer-events:none;}
+.plotmap-block.is-selected{
+  transform:perspective(900px) rotateX(10deg) translateY(calc((var(--lift) + 5px) * -1));
+  filter:saturate(1.15) brightness(1.08);
+  box-shadow:0 calc(var(--lift) + 12px) 24px rgba(0,0,0,.42),0 0 24px var(--block-glow),inset 0 2px 5px rgba(255,255,255,.72),inset 0 -10px 16px rgba(0,0,0,.3);
+}
+.plotmap-block.pm-faded{opacity:.25;transition:opacity .4s ease;}
+.plotmap-block-label{position:absolute;inset:0;display:grid;place-items:center;padding:6px;color:#fff;text-align:center;font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-weight:800;font-size:clamp(10px,1vw,16px);line-height:1.1;text-shadow:0 1px 2px rgba(0,0,0,.65),0 0 8px rgba(0,0,0,.35);pointer-events:none;}
+
+/* Premium block palettes */
+.block-gold{--block-top:#FFD34F;--block-mid:#E19A10;--block-side:#7C4A04;--block-glow:rgba(255,190,45,.45);}
+.block-magenta{--block-top:#FF4FA3;--block-mid:#D31368;--block-side:#6D0735;--block-glow:rgba(255,45,145,.45);}
+.block-purple{--block-top:#9B5CFF;--block-mid:#6B27C7;--block-side:#35115F;--block-glow:rgba(155,92,255,.42);}
+.block-teal{--block-top:#3FF2D0;--block-mid:#079E91;--block-side:#04534F;--block-glow:rgba(40,235,210,.38);}
+.block-emerald{--block-top:#79EF65;--block-mid:#2CA83C;--block-side:#0D541B;--block-glow:rgba(90,230,80,.38);}
+.block-blue{--block-top:#4AA8FF;--block-mid:#145CC8;--block-side:#082A68;--block-glow:rgba(55,150,255,.42);}
+.block-orange{--block-top:#FF9847;--block-mid:#DF5614;--block-side:#6B2108;--block-glow:rgba(255,130,40,.42);}
+.block-cyan{--block-top:#53E8FF;--block-mid:#0FA8D8;--block-side:#065C7A;--block-glow:rgba(60,220,255,.42);}
+.block-ruby{--block-top:#FF6052;--block-mid:#CC251D;--block-side:#68100D;--block-glow:rgba(255,80,70,.42);}
+
+/* Legacy classes kept for older cached markup (superseded by .plotmap-block) */
 .selected-house,.selected-school{position:absolute;border:none;background:transparent;padding:0;pointer-events:auto;cursor:pointer;transform-origin:center bottom;}
-.selected-house{border-radius:7px;background:linear-gradient(145deg,rgba(255,241,150,.4),rgba(255,174,22,.18));box-shadow:0 0 8px rgba(255,220,85,.6),0 8px 16px rgba(0,0,0,.22),inset 0 1px 2px rgba(255,255,255,.6),inset 0 -4px 8px rgba(110,60,0,.16);border:1.8px solid rgba(255,226,100,.92);transform:perspective(900px) rotateX(6deg) translateY(-4px);backdrop-filter:saturate(1.15) brightness(1.05);}
-.selected-school{border-radius:10px;background:rgba(255,190,45,.13);box-shadow:0 0 9px rgba(255,220,90,.55),0 10px 18px rgba(0,0,0,.2),inset 0 1px 2px rgba(255,255,255,.45);border:2.2px solid rgba(255,210,65,.95);transform:perspective(900px) rotateX(4deg) translateY(-4px);}
 .overlay-box-shine{position:absolute;inset:4px;border-radius:5px;border:1px solid rgba(255,255,255,.42);background:linear-gradient(135deg,rgba(255,255,255,.42),transparent 48%);pointer-events:none;}
 
-.map-pin{position:absolute;width:26px;height:26px;transform:translate(-50%,-104%) rotate(-45deg);border-radius:50% 50% 50% 0;background:linear-gradient(145deg,#57D7FF,#0077E6 60%,#004EA8);border:2.5px solid #fff;box-shadow:0 0 8px rgba(0,190,255,.7),0 9px 16px rgba(0,0,0,.3);pointer-events:auto;cursor:pointer;z-index:7;transition:transform .18s ease,width .2s ease,height .2s ease;}
+/* ── Pins: small modern blue gradient pins ── */
+.map-pin{position:absolute;width:24px;height:24px;transform:translate(-50%,-104%) rotate(-45deg);border-radius:50% 50% 50% 0;background:linear-gradient(145deg,#61D8FF,#087EE8 65%,#034A9C);border:2px solid #fff;box-shadow:0 0 8px rgba(0,190,255,.75),0 10px 18px rgba(0,0,0,.32);pointer-events:auto;cursor:pointer;z-index:7;transition:transform .18s ease,width .2s ease,height .2s ease;animation:pm-pindrop .45s cubic-bezier(.2,.8,.3,1) both;}
 .map-pin span{position:absolute;left:50%;top:50%;width:7px;height:7px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);}
 @media (hover:hover){.map-pin:hover{transform:translate(-50%,-112%) rotate(-45deg);}}
+@keyframes pm-pindrop{from{opacity:0;transform:translate(-50%,-150%) rotate(-45deg);}to{opacity:1;transform:translate(-50%,-104%) rotate(-45deg);}}
 
 .overlay-info-card{position:absolute;min-width:168px;max-width:220px;z-index:12;display:flex;flex-direction:column;gap:4px;padding:12px 14px;border:1px solid rgba(255,255,255,.15);border-radius:12px;background:rgba(22,53,106,.85);backdrop-filter:blur(12px);box-shadow:0 14px 32px rgba(6,14,32,.35);color:#FBF6EA;pointer-events:auto;font-family:'Plus Jakarta Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
 .overlay-info-card b{font-family:'Fraunces',serif;font-size:16px;font-weight:560;letter-spacing:-.2px;line-height:1.15;}
 .overlay-info-card span{font-size:12.5px;color:rgba(251,246,234,.75);text-transform:capitalize;font-weight:550;}
 
-/* ---------- interactive selection (design-handoff language) ---------- */
-@keyframes pm-flowdash{to{stroke-dashoffset:-70;}}
+/* ---------- interactive selection ---------- */
+@keyframes pm-flowdash{to{stroke-dashoffset:-180;}}
 @keyframes pm-ringpulse{0%{transform:translate(-50%,-50%) scale(.55);opacity:.9;}100%{transform:translate(-50%,-50%) scale(1.7);opacity:0;}}
 @keyframes pm-poplabel{from{opacity:0;transform:translate(-50%,-130%) scale(.94);}to{opacity:1;transform:translate(-50%,-112%) scale(1);}}
 @keyframes pm-panelin{from{transform:translateX(26px);opacity:.3;}to{transform:translateX(0);opacity:1;}}
@@ -44,21 +100,20 @@
 .pm-dim-veil{position:absolute;inset:-2%;background:#241C10;opacity:0;transition:opacity .5s ease;pointer-events:none;z-index:2;}
 .plotmap-road-layer{position:relative;z-index:1;}
 .plotmap-sel-layer{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:3;}
+.plotmap-sel-layer .road-hit,.plotmap-sel-layer .pm-block-hit{pointer-events:stroke;}
+.plotmap-sel-layer .pm-block-hit{pointer-events:visiblePainted;}
 .plotmap-selection-layer{z-index:4;}
 
-.pm-has-selection .plotmap-shape,
+.pm-has-selection .pm-block3d,
 .pm-has-selection .plotmap-road .road-body,
 .pm-has-selection .plotmap-road .road-core,
-.pm-has-selection .plotmap-road .road-shadow{opacity:.16;transition:opacity .4s ease;}
+.pm-has-selection .plotmap-road .road-shadow{opacity:.14;transition:opacity .4s ease;}
 
 .pm-pinwrap{position:absolute;width:0;height:0;pointer-events:none;transition:opacity .4s ease;}
 .pm-pinwrap .map-pin{left:0;top:0;}
 .pm-pinwrap.pm-faded{opacity:.3;}
 .pm-pin-ring{position:absolute;left:0;top:0;width:38px;height:38px;border:2px solid #A87F1F;border-radius:50%;animation:pm-ringpulse 1.7s ease-out infinite;pointer-events:none;}
-.map-pin.pm-pin-active{width:32px;height:32px;box-shadow:0 0 10px rgba(0,190,255,.9),0 12px 22px rgba(0,0,0,.35);}
-.selected-house.pm-faded,.selected-school.pm-faded{opacity:.25;transition:opacity .4s ease;}
-.selected-house.pm-active{background:linear-gradient(145deg,rgba(255,241,150,.62),rgba(255,174,22,.28));border-color:rgba(255,226,100,.98);border-width:2px;box-shadow:0 0 10px rgba(255,220,85,.95),0 0 24px rgba(255,175,30,.55),0 14px 24px rgba(0,0,0,.38),inset 0 1px 3px rgba(255,255,255,.75),inset 0 -5px 10px rgba(110,60,0,.25);transform:perspective(900px) rotateX(8deg) translateY(-8px);backdrop-filter:saturate(1.2) brightness(1.08);}
-.selected-school.pm-active{background:rgba(255,190,45,.16);border-color:rgba(255,210,65,1);border-width:3px;box-shadow:0 0 14px rgba(255,220,90,1),0 0 34px rgba(255,165,0,.72),0 18px 30px rgba(0,0,0,.35);transform:perspective(900px) rotateX(5deg) translateY(-6px);}
+.map-pin.pm-pin-active{width:30px;height:30px;box-shadow:0 0 10px rgba(0,190,255,.9),0 12px 22px rgba(0,0,0,.35);}
 
 .pm-label-chip{position:absolute;transform:translate(-50%,-50%);pointer-events:none;z-index:5;transition:opacity .4s ease;}
 .pm-label-chip.pm-faded{opacity:.3;}
