@@ -42,22 +42,26 @@ Bucket: **`property-photos`** (private).
 
 ## Required bucket / policy SQL (draft — Codex must review + apply)
 
-`supabase/migrations/20260707_storage_photo_policies_draft.sql`:
+`supabase/migrations/20260708_phase5_property_photo_storage_policies.sql`:
 - **ACTIVE (safe):** create the **private** `property-photos` bucket (idempotent).
-- **COMMENTED (Codex):**
-  - Staff write (insert/update/delete) confined to their own dealer folder.
-  - Staff read of their own dealer's objects.
-  - `plotmap_client_photo_url(object_path)` security-definer RPC returning a
-    short-lived **signed URL** ONLY when the object's property is client-visible
-    + not deleted for that dealer.
+- Staff write (insert/update/delete) is confined to property editors/managers/
+  owners in their own dealer folder for an existing property.
+- Staff read is confined to authenticated members of the same dealer.
+- Client-safe allow/list helper RPCs support a future signed-URL broker.
 - No anon/public object read. No `using(true)`. No destructive ops.
+
+Client Presentation still needs a server-side signed-URL broker or Edge
+Function before Storage photos are shown to clients. The broker must keep any
+service-role key server-side, call the client-safe helper, and return short-lived
+signed URLs only for allowed paths.
 
 ## Codex audit checklist
 
 - [ ] Bucket is private; no public policy; no anon object read.
 - [ ] Staff write/read limited to `(storage.foldername(name))[2] = plotmap_current_dealer_id()`.
-- [ ] `plotmap_client_photo_url` returns a URL only for client-visible,
-      non-deleted properties of that dealer; null otherwise.
+- [ ] Signed-URL broker returns URLs only for paths allowed by
+      `plotmap_client_property_photo_allowed` /
+      `plotmap_client_property_photo_objects`.
 - [ ] No service-role key path in the frontend.
 - [ ] Additive/idempotent; no destructive ops; no RLS weakening elsewhere.
 
@@ -66,8 +70,8 @@ Bucket: **`property-photos`** (private).
 - [ ] Dealer A staff cannot upload into dealer B's folder (RLS rejects).
 - [ ] Dealer A staff cannot read/list dealer B's objects.
 - [ ] Anon cannot GET an object path directly.
-- [ ] `plotmap_client_photo_url` resolves a client-visible photo; returns null
-      for a hidden/archived/internal property.
+- [ ] Signed-URL broker resolves a client-visible photo; returns null for a
+      hidden/archived/internal property.
 - [ ] Client Presentation shows photos only for client-visible properties.
 - [ ] Upload of a >5 MB or non-image file is rejected client-side (and would be
       rejected server-side by content limits Codex sets).

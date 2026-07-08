@@ -22,12 +22,17 @@ Before applying:
 
 ## Phase 5 Property Photos
 
-Decision: SAFE DRAFT TO COMMIT, NOT approved to fully launch yet.
+Decision: PHASE 5 SQL REVIEWED. Safe to apply for private, authenticated
+admin-side uploads after the Phase 5 run order and checks. Not approved as a
+full client-photo launch until a server-side signed-URL broker is built and
+verified.
 
 The draft creates a private `property-photos` bucket, limits object writes to
-authenticated property editors in their own dealer path, enforces:
-`dealers/<dealer_id>/properties/<property_id>/<file>`, and restricts file types
-to JPG/PNG/WebP up to 5 MB.
+authenticated property editors/managers/owners in their own dealer path for an
+existing property, enforces:
+`dealers/<dealer_id>/properties/<property_id>/<file>`, restricts file types to
+JPG/PNG/WebP up to 5 MB, and adds client-safe helper RPCs for future signed URL
+serving.
 
 Before enabling `storageEnabled`:
 - Ensure uploads happen only after the property has a real saved ID.
