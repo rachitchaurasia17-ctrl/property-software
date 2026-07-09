@@ -1622,3 +1622,44 @@ img { max-width: 100%; display: block; }
   .pm-main { padding: 20px 16px 32px; }
   .pm-page-header h1 { font-size: 26px; }
 }
+
+/* ═══════════════════════════════════════
+   GOLDEN DEALER SUITE — premium hero, sections, quick actions
+   Stitch structure, PlotMap emerald/gold palette (more visible).
+   ═══════════════════════════════════════ */
+.pm-hero {
+  position: relative; overflow: hidden;
+  border-radius: var(--pm-radius-xl);
+  padding: 32px 34px; margin-bottom: 24px;
+  background: linear-gradient(135deg, #1F5E47 0%, #276F55 52%, #2E8B66 100%);
+  box-shadow: 0 18px 44px rgba(31,94,71,.22);
+  color: #fff;
+}
+.pm-hero::after {
+  content: ''; position: absolute; right: -70px; top: -90px;
+  width: 320px; height: 320px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(230,198,132,.36), transparent 62%);
+  pointer-events: none;
+}
+.pm-hero-row { position: relative; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+.pm-hero-kicker { font-size: 11.5px; letter-spacing: .16em; text-transform: uppercase; font-weight: 800; color: #C6E4D6; }
+.pm-hero-title { font-family: 'Fraunces', Georgia, serif; font-size: 42px; font-weight: 500; letter-spacing: -.01em; line-height: 1.04; margin: 10px 0 0; color: #fff; }
+.pm-hero-sub { font-size: 15px; color: #DDEDE5; margin-top: 9px; max-width: 54ch; line-height: 1.5; }
+.pm-hero-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+.pm-hero-chip { align-self: flex-start; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.34); color: #fff; font-weight: 700; font-size: 12px; padding: 7px 13px; border-radius: var(--pm-radius-pill); cursor: pointer; white-space: nowrap; }
+.pm-hero-chip:hover { background: rgba(255,255,255,.26); }
+.pm-btn-light { background: #fff; color: var(--pm-emerald); font-weight: 700; border: none; }
+.pm-btn-light:hover { background: #F0F6F2; color: var(--pm-emerald); }
+.pm-btn-onhero { background: rgba(255,255,255,.14); color: #fff; border: 1px solid rgba(255,255,255,.36); }
+.pm-btn-onhero:hover { background: rgba(255,255,255,.24); color: #fff; }
+
+.pm-section-title { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; font-weight: 800; color: var(--pm-text-mut); margin: 4px 0 12px; }
+
+/* Premium quick-action card (Stitch bento) */
+.pm-quick { display: flex; flex-direction: column; gap: 13px; align-items: flex-start; text-align: left; width: 100%; font: inherit; background: var(--pm-bg-card); border: 1px solid var(--pm-border); border-radius: var(--pm-radius-md); padding: 20px; cursor: pointer; text-decoration: none; color: inherit; box-shadow: var(--pm-shadow-xs); transition: transform .16s, border-color .16s, box-shadow .16s; }
+.pm-quick:hover { transform: translateY(-3px); border-color: var(--pm-border-dark); box-shadow: var(--pm-shadow-md); }
+.pm-quick .qic { width: 46px; height: 46px; border-radius: 13px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; flex: none; }
+.pm-quick .qlbl { font-size: 16px; font-weight: 800; color: var(--pm-text); line-height: 1.2; }
+.pm-quick .qhint { font-size: 12.5px; color: var(--pm-text-mut); font-weight: 500; }
+
+.pm-hide { display: none !important; }

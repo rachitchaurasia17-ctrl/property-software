@@ -44,51 +44,50 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
 <header id="pm-topbar"></header>
 
 <main class="pm-main">
-  <div class="pm-page-header">
-    <div>
-      <h1 id="greeting" class="pm-serif">Welcome.</h1>
-      <div class="sub" id="date-line">Your work table for today.</div>
-    </div>
-    <button type="button" class="pm-btn pm-btn-primary" id="hdr-add-client">+ Add Client</button>
-  </div>
-
-  <!-- Quick actions — the staff work table: everything you need, one tap away -->
-  <div class="pm-grid cols-4" style="margin-bottom:22px;">
-    <button type="button" class="tw-action" id="act-add-client">
-      <span class="ic" style="background:#E7F0EB;color:var(--pm-emerald);">+</span>
-      <span class="lbl">Add Client</span>
-    </button>
-    <button type="button" class="tw-action" id="act-add-property">
-      <span class="ic" style="background:#F3EAD8;color:var(--pm-gold);">+</span>
-      <span class="lbl">Add Property</span>
-    </button>
-    <a class="tw-action" href="/admin/properties.html">
-      <span class="ic" style="background:#E9EFF4;color:var(--pm-blue);">▤</span>
-      <span class="lbl">Open Properties</span>
-    </a>
-    <a class="tw-action" href="/admin/map-studio.html">
-      <span class="ic" style="background:#EDEAF2;color:var(--pm-purple);">◈</span>
-      <span class="lbl">Open Map Studio</span>
-    </a>
-  </div>
-
-  <!-- Work table: My clients + Map Studio helper -->
-  <div class="pm-grid" style="grid-template-columns:1.55fr 1fr;gap:18px;align-items:start;">
-    <div class="pm-card-xl">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-        <div class="pm-card-h">My clients</div>
-        <div class="pm-card-sub" id="clients-count"></div>
-      </div>
-      <div id="clients-list"></div>
-    </div>
-
-    <div style="display:flex;flex-direction:column;gap:18px;">
-      <div class="pm-card-xl">
-        <div class="pm-card-h" style="margin-bottom:3px;">Map Studio</div>
-        <div class="pm-card-sub" style="margin-bottom:14px;">Draw roads and mark plots yourself — no designer needed.</div>
-        <a class="pm-btn pm-btn-primary" href="/admin/map-studio.html" style="width:100%;text-align:center;">Open Map Studio →</a>
+  <!-- Hero — Stitch structure, PlotMap emerald palette -->
+  <section class="pm-hero">
+    <div class="pm-hero-row">
+      <div>
+        <div class="pm-hero-kicker" id="date-line">Your work table for today</div>
+        <h1 class="pm-hero-title" id="greeting">Welcome.</h1>
+        <div class="pm-hero-sub">Add clients, list properties, and mark them on the map — everything in one place.</div>
+        <div class="pm-hero-actions">
+          <button type="button" class="pm-btn pm-btn-light" id="hdr-add-client">+ Add Client</button>
+          <a class="pm-btn pm-btn-onhero" href="/admin/properties.html">Open Properties</a>
+        </div>
       </div>
     </div>
+  </section>
+
+  <!-- Do next — the staff work table -->
+  <div class="pm-section-title">Do next</div>
+  <div class="pm-grid cols-4" style="margin-bottom:26px;">
+    <button type="button" class="pm-quick" id="act-add-client">
+      <div class="qic" style="background:var(--pm-emerald-light);color:var(--pm-emerald);">＋</div>
+      <div><div class="qlbl">Add Client</div><div class="qhint">Add to your book</div></div>
+    </button>
+    <button type="button" class="pm-quick" id="act-add-property">
+      <div class="qic" style="background:var(--pm-gold-light);color:var(--pm-gold);">＋</div>
+      <div><div class="qlbl">Add Property</div><div class="qhint">List a new plot</div></div>
+    </button>
+    <a class="pm-quick" href="/admin/properties.html">
+      <div class="qic" style="background:var(--pm-blue-light);color:var(--pm-blue);">▤</div>
+      <div><div class="qlbl">Open Properties</div><div class="qhint">Manage your inventory</div></div>
+    </a>
+    <a class="pm-quick" href="/admin/map-studio.html">
+      <div class="qic" style="background:var(--pm-purple-light);color:var(--pm-purple);">◈</div>
+      <div><div class="qlbl">Open Map Studio</div><div class="qhint">Mark roads &amp; plots</div></div>
+    </a>
+  </div>
+
+  <!-- My clients -->
+  <div class="pm-section-title">My clients</div>
+  <div class="pm-card-xl">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div class="pm-card-h">Your book</div>
+      <div class="pm-card-sub" id="clients-count"></div>
+    </div>
+    <div id="clients-list"></div>
   </div>
 
   <!-- These feeds are still computed by JS but kept off the simple work table. -->
@@ -208,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const now = new Date();
-  document.getElementById('date-line').textContent = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' — your work table for today.';
+  document.getElementById('date-line').textContent = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()];
 
   const crm = window.CRM;
   const scoped = () => (crm.getScopedCRM ? crm.getScopedCRM() : crm.getCRM());

@@ -26,18 +26,21 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
 <header id="pm-topbar"></header>
 
 <main class="pm-main">
-  <div class="pm-page-header">
-    <div>
-      <h1 id="greeting">Good morning.</h1>
-      <div class="sub" id="date-line">Your PlotMap activity at a glance.</div>
+  <!-- Hero briefing — Stitch structure, PlotMap emerald palette -->
+  <section class="pm-hero">
+    <div class="pm-hero-row">
+      <div>
+        <div class="pm-hero-kicker" id="date-line">Your business at a glance</div>
+        <h1 class="pm-hero-title" id="greeting">Good morning.</h1>
+        <div class="pm-hero-sub">Everything your property business needs — in one calm view.</div>
+        <div class="pm-hero-actions">
+          <a class="pm-btn pm-btn-light" href="/app/plotmap/" target="_blank" rel="noopener">Open Client Presentation →</a>
+          <a class="pm-btn pm-btn-onhero" href="/admin/properties.html">+ Add Property</a>
+        </div>
+      </div>
+      <span id="owner-account-chip" class="pm-hero-chip" style="display:none;" title="Account status — open Account &amp; billing">Trial</span>
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-      <span id="owner-account-chip" class="pm-chip" style="display:none;font-weight:700;cursor:pointer;" title="Account status — open Account & billing">Trial</span>
-      <a class="pm-btn pm-btn-primary" href="/app/plotmap/" target="_blank" rel="noopener">Open Client Presentation</a>
-      <a class="pm-btn pm-btn-secondary" href="/admin/properties.html">+ Add Property</a>
-      <a class="pm-btn pm-btn-secondary" href="/admin/map-studio.html">Open Map Studio</a>
-    </div>
-  </div>
+  </section>
 
   <!-- Attention data still computed (JS fills #attention-list) but kept OFF the
        calm dashboard — property readiness / issues live in Property Insights. -->
@@ -90,29 +93,29 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
     </form>
   </section>
 
-  <!-- Today's client activity -->
-  <div class="pm-grid cols-4" style="margin-bottom:20px;" id="stat-cards"></div>
+  <!-- Business snapshot -->
+  <div class="pm-section-title">Today at a glance</div>
+  <div class="pm-grid cols-4" style="margin-bottom:26px;" id="stat-cards"></div>
 
-  <!-- Quick actions — the calm dashboard's clear "what to do next" -->
-  <div style="margin-bottom:18px;">
-    <div class="pm-grid cols-4">
-      <a href="/admin/properties.html" class="pm-action-card">
-        <div class="ic" style="background:var(--pm-gold-light);color:var(--pm-gold);">＋</div>
-        <div class="txt">Add Property</div>
-      </a>
-      <a href="/app/plotmap/" target="_blank" rel="noopener" class="pm-action-card">
-        <div class="ic" style="background:var(--pm-emerald-light);color:var(--pm-emerald);">▶</div>
-        <div class="txt">Open Client Presentation</div>
-      </a>
-      <a href="/admin/map-studio.html" class="pm-action-card">
-        <div class="ic" style="background:var(--pm-purple-light);color:var(--pm-purple);">◈</div>
-        <div class="txt">Open Map Studio</div>
-      </a>
-      <a href="/admin/team.html" class="pm-action-card">
-        <div class="ic" style="background:var(--pm-blue-light);color:var(--pm-blue);">＋</div>
-        <div class="txt">Add Client</div>
-      </a>
-    </div>
+  <!-- Do next -->
+  <div class="pm-section-title">Do next</div>
+  <div class="pm-grid cols-4" style="margin-bottom:24px;">
+    <a href="/admin/properties.html" class="pm-quick">
+      <div class="qic" style="background:var(--pm-gold-light);color:var(--pm-gold);">＋</div>
+      <div><div class="qlbl">Add Property</div><div class="qhint">List a new plot to show</div></div>
+    </a>
+    <a href="/app/plotmap/" target="_blank" rel="noopener" class="pm-quick">
+      <div class="qic" style="background:var(--pm-emerald-light);color:var(--pm-emerald);">▶</div>
+      <div><div class="qlbl">Client Presentation</div><div class="qhint">Walk a buyer through the map</div></div>
+    </a>
+    <a href="/admin/map-studio.html" class="pm-quick">
+      <div class="qic" style="background:var(--pm-purple-light);color:var(--pm-purple);">◈</div>
+      <div><div class="qlbl">Map Studio</div><div class="qhint">Mark roads, blocks &amp; plots</div></div>
+    </a>
+    <a href="/admin/team.html" class="pm-quick">
+      <div class="qic" style="background:var(--pm-blue-light);color:var(--pm-blue);">＋</div>
+      <div><div class="qlbl">Add Client</div><div class="qhint">Grow your client book</div></div>
+    </a>
   </div>
 
   <!-- Data still computed by JS but kept OFF the calm dashboard.

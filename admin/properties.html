@@ -97,7 +97,9 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  window.PMNav.render('properties');
+  // Force the Team Workspace nav so opening Properties stays inside the workspace
+  // context (Workspace / Properties / Map Studio) — never flips to the dealer bar.
+  window.PMNav.render('properties', 'team');
   const crm = window.CRM;
 
   function esc(v) {
