@@ -125,7 +125,7 @@
     section: 'master', mapMode: 'original', sectorMapMode: 'original', showProps: false,
     activeCats: new Set(), displayCatId: null, selectedIds: new Set(), itemOpen: false,
     propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, activePinId: null,
-    filters: emptyFilters(),
+    filters: emptyFilters(), propSearch: '', openFilter: null,
     secQ: '', secArea: 'all',
     lightbox: null, present: false, drawerOpen: false, galleryOpen: false, mapModal: null
   };
@@ -1141,7 +1141,7 @@
       });
     }
   }
-  function resetPlan(extra) { return Object.assign({ section: 'master', mapMode: 'original', sectorMapMode: 'original', showProps: false, activeCats: new Set(), displayCatId: null, selectedIds: new Set(), previewIdx: 0, itemOpen: false, propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, activePinId: null, areaMenuOpen: false, filters: emptyFilters(), secQ: '', secArea: 'all', drawerOpen: false }, extra || {}); }
+  function resetPlan(extra) { return Object.assign({ section: 'master', mapMode: 'original', sectorMapMode: 'original', showProps: false, activeCats: new Set(), displayCatId: null, selectedIds: new Set(), previewIdx: 0, itemOpen: false, propView: 'browse', selectedId: null, previewId: null, sectorBlock: null, sectorFrom: null, activePinId: null, areaMenuOpen: false, filters: emptyFilters(), propSearch: '', openFilter: null, secQ: '', secArea: 'all', drawerOpen: false }, extra || {}); }
 
   /* ---------- AREA SELECT ---------- */
   const slugify = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -1504,6 +1504,12 @@
     return browseHTML();
   }
   function matchProp(p) {
+    const q = (state.propSearch || '').trim().toLowerCase();
+    if (q) {
+      const hay = [p.title, p.name, p.area, p.block, p.sector, p.plotNumber, p.size, p.plotType, p.roadFacing]
+        .filter(Boolean).join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
     const f = state.filters;
     const areaFilter = f.area || new Set();
     const size = f.size || new Set();
@@ -1522,17 +1528,34 @@
     const list = allClientProperties().filter(matchProp);
     const filterKeys = FILTER_KEYS.filter(k => DS.filters && DS.filters[k]);
     const active = FILTER_KEYS.reduce((n, k) => n + ((state.filters[k] && state.filters[k].size) || 0), 0);
-    const grp = (key) => { const g = DS.filters[key], s = state.filters[key] || new Set(); return `<div class="fgroup"><div class="fglabel">${g.label}</div><div class="fchips">${g.values.map(v => { const val = v.val || v, lab = v.label || v; const on = s.has(val); return `<button class="fchip ${on ? 'on' : ''}" data-fk="${key}" data-fv="${esc(val)}">${esc(lab)}</button>`; }).join('')}</div></div>`; };
+    const activeAll = active + (state.propSearch ? 1 : 0);
+    // Filter pills (design: compact dropdown pills, opening a values panel below).
+    const pill = (key) => {
+      const g = DS.filters[key]; const cnt = (state.filters[key] && state.filters[key].size) || 0;
+      const open = state.openFilter === key;
+      return `<button class="prop-fpill ${cnt || open ? 'on' : ''}" data-fpill="${key}">${esc(g.label)}${cnt ? `<span class="cnt">${cnt}</span>` : ''}<span class="car">▾</span></button>`;
+    };
+    const panel = () => {
+      const key = state.openFilter; if (!key || !DS.filters[key]) return '';
+      const g = DS.filters[key], s = state.filters[key] || new Set();
+      return `<div class="prop-fpanel"><div class="fchips">${g.values.map(v => { const val = v.val || v, lab = v.label || v; const on = s.has(val); return `<button class="fchip ${on ? 'on' : ''}" data-fk="${key}" data-fv="${esc(val)}">${esc(lab)}</button>`; }).join('')}</div></div>`;
+    };
+    const subtitle = total ? `${total} propert${total === 1 ? 'y' : 'ies'} to explore` : 'Browse available plots, sectors and locations.';
     // Honest, guiding empty states: none published yet vs. filtered-to-empty.
     const emptyBlock = total === 0
       ? `<div class="empty" style="background:#fff;border:1px solid #EBE1CC;border-radius:18px;padding:60px 40px;margin-top:24px;text-align:center;"><div style="font-size:36px;margin-bottom:12px;">🗺️</div><div style="font-size:18px;font-weight:700;color:#0B1A36;">Properties coming soon</div><div style="font-size:14px;margin-top:6px;color:#6B6456;">Your dealer is preparing the plots for this area — explore the masterplan and sector maps in the meantime.</div></div>`
-      : `<div class="empty" style="background:#fff;border:1px solid #EBE1CC;border-radius:18px;padding:60px 40px;margin-top:24px;text-align:center;"><div style="font-size:36px;margin-bottom:12px;">🔍</div><div style="font-size:18px;font-weight:700;color:#0B1A36;">No properties match</div><div style="font-size:14px;margin-top:6px;color:#6B6456;">Try adjusting your filters to see more results.</div><button class="btn-ghost" id="clearF2" style="margin:6px auto 0;height:42px;padding:0 18px">Clear all filters</button></div>`;
+      : `<div class="empty" style="background:#fff;border:1px solid #EBE1CC;border-radius:18px;padding:60px 40px;margin-top:24px;text-align:center;"><div style="font-size:36px;margin-bottom:12px;">🔍</div><div style="font-size:18px;font-weight:700;color:#0B1A36;">No properties match</div><div style="font-size:14px;margin-top:6px;color:#6B6456;">Try a different search or clear the filters.</div><button class="btn-ghost" id="clearF2" style="margin:6px auto 0;height:42px;padding:0 18px">Clear filters</button></div>`;
     return `<div class="full-in">
       <div class="props-head"><div>
         <div class="serif props-title">Properties</div>
-        <div class="props-sub">Browse available plots, sectors and locations.</div>
+        <div class="props-sub">${esc(subtitle)}</div>
       </div></div>
-      <div class="filters">${filterKeys.map(grp).join('')}${active ? '<button class="clear-all" id="clearF">Clear all filters</button>' : ''}</div>
+      <div class="prop-toolbar">
+        <div class="prop-search"><span class="ic">⌕</span><input id="propSearch" type="text" placeholder="Search area, sector or block…" value="${esc(state.propSearch || '')}"></div>
+        ${filterKeys.map(pill).join('')}
+        ${activeAll ? '<button class="prop-clear" id="clearF">Clear</button>' : ''}
+      </div>
+      ${panel()}
       ${list.length ? `<div class="grid-cards prop-grid">${list.map(cardHTML).join('')}</div>` : emptyBlock}
     </div>`;
   }
@@ -1542,15 +1565,15 @@
       ? `<img src="${esc(p.photos[0])}" alt="${esc(propertyTitle(p))}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">`
       : `<span class="ph-fill" style="background:${g};position:absolute;inset:0"></span><span class="ph-tex" style="position:absolute;inset:0"></span><span class="ph-cam"></span>`;
     const name = p.title || (p.plotNumber ? 'Plot ' + p.plotNumber : (p.block || 'Property'));
+    // Design layout: area·block (kicker) / name / size·type — three clean lines.
+    const areaLine = [p.area, p.block].filter(Boolean).join(' · ');
     const sizeLine = [p.size, p.plotType].filter(Boolean).join(' · ');
-    const blockLine = [p.block, p.plotNumber ? 'Plot ' + p.plotNumber : ''].filter(Boolean).join(' · ');
     return `<div class="pcard pcard-clean" data-details-prop="${p.id}" role="button" tabindex="0">
       <div class="pc-hero">${hero}<span class="pc-status"><span class="pc-dot"></span>Available</span></div>
       <div class="pc-info">
-        <div class="pc-area">${esc(p.area || '')}</div>
+        <div class="pc-area">${esc(areaLine)}</div>
         <div class="pc-nm">${esc(name)}</div>
         <div class="pc-sz">${esc(sizeLine)}</div>
-        ${blockLine ? `<div class="pc-blk">${esc(blockLine)}</div>` : ''}
       </div></div>`;
   }
   function detailHTML() {
@@ -1808,6 +1831,9 @@
 
     // filters (multi-select)
     each('[data-fk]', b => b.addEventListener('click', () => { const k = b.getAttribute('data-fk'), v = b.getAttribute('data-fv'); const s = state.filters[k] || (state.filters[k] = new Set()); s.has(v) ? s.delete(v) : s.add(v); el('full').innerHTML = browseHTML(); bindPlan(); }));
+    each('[data-fpill]', b => b.addEventListener('click', () => { const k = b.getAttribute('data-fpill'); state.openFilter = state.openFilter === k ? null : k; el('full').innerHTML = browseHTML(); bindPlan(); }));
+    const propSearchEl = el('propSearch');
+    if (propSearchEl) propSearchEl.addEventListener('input', () => { state.propSearch = propSearchEl.value; el('full').innerHTML = browseHTML(); bindPlan(); const r = el('propSearch'); if (r) { r.focus(); r.setSelectionRange(r.value.length, r.value.length); } });
     on('clearF', clearFilters); on('clearF2', clearFilters);
 
     // sector hub
@@ -1837,7 +1863,7 @@
     setTimeout(() => focusBox(cx, cy, Math.max(x1 - x0, 600), Math.max(y1 - y0, 600), 1.5), 60);
   }
   function toggleProps() { state.showProps = !state.showProps; state.previewId = null; refreshControls(); updateMapOverlays(); if (state.showProps) focusProps(); else fit(); }
-  function clearFilters() { state.filters = emptyFilters(); render(); }
+  function clearFilters() { state.filters = emptyFilters(); state.propSearch = ''; state.openFilter = null; render(); }
 
   function selectItem(id, kind) {
     if (state.selectedIds.has(id)) {
