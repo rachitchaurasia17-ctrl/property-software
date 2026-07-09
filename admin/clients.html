@@ -17,13 +17,6 @@
 <script>
 if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
 </script>
-<style>
-.mv-session { background:#fff;border:1px solid var(--pm-border);border-radius:18px;padding:20px 22px;margin-bottom:14px; }
-.mv-session-head { display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px; }
-.mv-step { display:flex;gap:12px;padding:9px 0;border-top:1px solid var(--pm-border-subtle);align-items:flex-start; }
-.mv-step .dot { width:8px;height:8px;border-radius:50%;background:var(--pm-emerald);margin-top:6px;flex:none; }
-.mv-step .t { font-size:12px;color:var(--pm-text-mut);font-weight:600;white-space:nowrap;width:58px; }
-</style>
 </head>
 <body class="pm-shell">
 
@@ -33,170 +26,110 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
   <div class="pm-page-header">
     <div>
       <h1>Client Details</h1>
-      <div class="sub" id="session-count">The clients your team is working with — records and recent activity.</div>
+      <div class="sub">Your client book — everyone your team is working with.</div>
     </div>
-    <div class="pm-filters" id="day-filters" style="margin:0;"></div>
+    <a class="pm-btn pm-btn-primary" href="/admin/team.html">+ Add Client</a>
   </div>
 
-  <!-- Client details — the client book the team maintains (synced from Team Workspace) -->
-  <section class="pm-card-xl" style="margin-bottom:18px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;flex-wrap:wrap;">
-      <div>
-        <div class="pm-card-h">Client details</div>
-        <div class="pm-card-sub">Client records your team adds and updates in the Team Workspace</div>
-      </div>
+  <div class="pm-grid cols-4" style="margin-bottom:18px;" id="client-kpis"></div>
+
+  <div class="pm-search" style="margin-bottom:14px;">
+    <span class="icon">○</span>
+    <input type="text" id="client-search" placeholder="Search clients by name, area, or phone…">
+  </div>
+
+  <section class="pm-card-xl">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;flex-wrap:wrap;">
+      <div class="pm-card-h">All clients</div>
       <div class="pm-card-sub" id="client-book-count"></div>
     </div>
     <div id="client-book"></div>
   </section>
-
-  <div class="pm-card-h" style="margin-bottom:10px;">Recent client activity</div>
-  <div id="sessions"></div>
 </main>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  window.PMNav.render('client-movement');
+  window.PMNav.render('client-details');
 
   const crm = window.CRM;
-  const data = crm.getCRM();
-  const events = Array.isArray(data.presentationEvents) ? data.presentationEvents : [];
-  const propById = Object.fromEntries((data.properties || []).map(p => [p.id, p]));
-
   const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   })[c]);
 
-  const EVENT_LABELS = {
-    presentation_opened: 'Opened the presentation',
-    map_opened: 'Opened a map',
-    area_viewed: 'Opened an area',
-    sector_viewed: 'Viewed a sector',
-    property_viewed: 'Viewed a property',
-    property_selected: 'Opened a property',
-    client_panel_opened: 'Opened property details',
-    overlay_selected: 'Clicked a map overlay',
-    original_proof_clicked: 'Opened original map proof',
-    sector_proof_clicked: 'Opened sector proof',
-    inventory_opened: 'Opened the inventory',
-    property_shared: 'Shared a property',
-    property_shared_whatsapp: 'Shared a property on WhatsApp',
-    brochure_shared: 'Shared a brochure',
-    followup_created_from_presentation: 'Follow-up created from presentation'
+  // Display-only label map — never changes stored status values (pipeline logic).
+  const STAGE_LABEL = { 'Not Answering': 'Follow up' };
+  const stageLabel = (s) => STAGE_LABEL[s] || s || 'New';
+  const STAGE_STYLE = {
+    'New': { c:'#3E6E96', bg:'#E9EFF4' }, 'Warm': { c:'#B07A2B', bg:'#F6ECD8' },
+    'Hot': { c:'#B0532C', bg:'#F6E2D8' }, 'Property Shared': { c:'#3E6E96', bg:'#E9EFF4' },
+    'Site Visit Planned': { c:'#6B4FA0', bg:'#EDEAF2' }, 'Site Visit Done': { c:'#6B4FA0', bg:'#EDEAF2' },
+    'Negotiation': { c:'#B07A2B', bg:'#F6ECD8' }, 'Closed': { c:'#1F5E47', bg:'#E7F0EB' },
+    'Not Answering': { c:'#8A6224', bg:'#FBF3E4' }
+  };
+  const stageStyle = (s) => STAGE_STYLE[s] || { c:'var(--pm-text-sec)', bg:'#F0ECE3' };
+  const AV = ['#1F5E47', '#3E6E96', '#A87C3D', '#6B4FA0', '#B0532C'];
+  const initialsOf = (n) => String(n || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?';
+  const avColor = (n) => AV[String(n || '').length % AV.length];
+
+  const clientsData = () => {
+    const s = crm.getScopedCRM ? crm.getScopedCRM() : crm.getCRM();
+    return Array.isArray(s.clients) ? s.clients : [];
   };
 
-  // Group Client Presentation events by session, newest session first.
-  const bySession = new Map();
-  events.forEach(e => {
-    const key = e.sessionId || 'no-session';
-    if (!bySession.has(key)) bySession.set(key, []);
-    bySession.get(key).push(e);
-  });
-  const sessions = [...bySession.entries()].map(([id, list]) => {
-    const sorted = [...list].sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
-    return { id, events: sorted, start: sorted[0].createdAt || '', end: sorted[sorted.length - 1].createdAt || '' };
-  }).sort((a, b) => String(b.start).localeCompare(String(a.start)));
+  let q = '';
 
-  // Day filter chips: All / Today / 7 days
-  const filtersEl = document.getElementById('day-filters');
-  let activeFilter = 'All';
-  const FILTERS = ['All', 'Today', 'Last 7 days'];
-
-  function withinFilter(session) {
-    if (activeFilter === 'All') return true;
-    const start = Date.parse(session.start) || 0;
-    const dayMs = 86400000;
-    if (activeFilter === 'Today') {
-      return String(session.start).slice(0, 10) === new Date().toISOString().slice(0, 10);
-    }
-    return Date.now() - start <= 7 * dayMs;
+  function renderKPIs(all) {
+    const active = all.filter(c => !/closed|lost/i.test(c.status || '')).length;
+    const followup = all.filter(c => c.status === 'Not Answering').length;
+    const week = all.filter(c => (Number(c.createdAt) || Number(c.lastActivityAt) || 0) > Date.now() - 7 * 86400000).length;
+    document.getElementById('client-kpis').innerHTML = [
+      { k: 'Total clients', v: all.length, c: 'var(--pm-text)' },
+      { k: 'Active', v: active, c: 'var(--pm-emerald)' },
+      { k: 'Need follow-up', v: followup, c: 'var(--pm-gold)' },
+      { k: 'New this week', v: week, c: 'var(--pm-blue)' }
+    ].map(s => `<div class="pm-stat-card"><div class="stat-label"><span>${s.k}</span></div><div class="stat-val" style="color:${s.c};">${s.v}</div></div>`).join('');
   }
 
-  function renderFilters() {
-    filtersEl.innerHTML = FILTERS.map(f =>
-      `<span class="pm-chip ${activeFilter === f ? 'active' : ''}" data-f="${f}">${f}</span>`).join('');
-    filtersEl.querySelectorAll('.pm-chip').forEach(chip => {
-      chip.addEventListener('click', () => { activeFilter = chip.dataset.f; renderFilters(); renderSessions(); });
-    });
+  function clientRow(c) {
+    const st = stageStyle(c.status);
+    const line = [c.interestedArea, c.propertyType, c.sizeRequirement, c.budgetRange].filter(Boolean).join(' · ');
+    const sub = [c.phone, c.leadSource ? 'via ' + c.leadSource : ''].filter(Boolean).join(' · ');
+    return `<div style="display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-top:1px solid var(--pm-border-subtle);">
+      <div style="flex:none;width:42px;height:42px;border-radius:12px;background:${avColor(c.name)};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;">${esc(initialsOf(c.name))}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:15px;font-weight:700;">${esc(c.name || 'Unknown')}</div>
+        <div style="font-size:12.5px;color:var(--pm-text-mut);margin-top:2px;">${esc(line || '—')}</div>
+        ${sub ? `<div style="font-size:12px;color:var(--pm-text-mut);margin-top:2px;">${esc(sub)}</div>` : ''}
+        ${c.notes ? `<div style="font-size:12px;color:var(--pm-text-sec);margin-top:5px;">${esc(c.notes)}</div>` : ''}
+      </div>
+      <span class="pm-chip" style="white-space:nowrap;color:${st.c};background:${st.bg};font-weight:700;">${esc(stageLabel(c.status))}</span>
+    </div>`;
   }
 
-  function stepDetail(e) {
-    const prop = e.propertyId && propById[e.propertyId];
-    return [prop ? (prop.title || prop.name) : null, e.area || null, e.sector || null]
-      .filter(Boolean).join(' · ');
-  }
-
-  function renderSessions() {
-    const el = document.getElementById('sessions');
-    const visible = sessions.filter(withinFilter);
-    document.getElementById('session-count').textContent = visible.length
-      ? visible.length + ' client session' + (visible.length === 1 ? '' : 's') + ' captured from Client Presentation.'
-      : 'How clients move through your presentation — session by session.';
-
-    if (visible.length === 0) {
-      el.innerHTML = '<div class="pm-card-xl"><div class="pm-empty"><div class="title">No client activity yet</div><div class="desc">No client activity yet. Open Client Presentation to start tracking.</div></div></div>';
-      return;
-    }
-
-    el.innerHTML = visible.slice(0, 30).map(s => {
-      const start = s.start ? new Date(s.start) : null;
-      const dateLabel = start
-        ? start.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ' + start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        : 'Unknown time';
-      const areas = [...new Set(s.events.map(e => e.area).filter(Boolean))];
-      const steps = s.events.slice(0, 25).map(e => {
-        const t = e.createdAt ? new Date(e.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-        const detail = stepDetail(e);
-        return `<div class="mv-step">
-          <span class="t">${esc(t)}</span>
-          <span class="dot"></span>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:14px;font-weight:700;">${esc(EVENT_LABELS[e.eventType] || e.eventType)}</div>
-            ${detail ? `<div style="font-size:12.5px;color:var(--pm-text-mut);">${esc(detail)}</div>` : ''}
-          </div>
-        </div>`;
-      }).join('');
-      const more = s.events.length > 25 ? `<div style="font-size:12.5px;color:var(--pm-text-mut);padding-top:8px;">+ ${s.events.length - 25} more steps in this session</div>` : '';
-      return `<section class="mv-session">
-        <div class="mv-session-head">
-          <div style="font-size:16px;font-weight:800;">${esc(dateLabel)}</div>
-          <div style="font-size:12.5px;color:var(--pm-text-mut);font-weight:600;">${s.events.length} step${s.events.length === 1 ? '' : 's'}${areas.length ? ' · ' + esc(areas.join(', ')) : ''}</div>
-        </div>
-        ${steps}${more}
-      </section>`;
-    }).join('');
-  }
-
-  // ---- Client details book (from CRM clients the team maintains) ----
-  function renderClientBook() {
-    const scoped = crm.getScopedCRM ? crm.getScopedCRM() : data;
-    const clients = Array.isArray(scoped.clients) ? scoped.clients : [];
-    const sorted = [...clients].sort((a, b) => (Number(b.lastActivityAt) || 0) - (Number(a.lastActivityAt) || 0));
-    document.getElementById('client-book-count').textContent = clients.length
-      ? clients.length + ' client' + (clients.length === 1 ? '' : 's') : '';
+  function render() {
+    const all = clientsData();
+    renderKPIs(all);
+    const list = q
+      ? all.filter(c => (String(c.name || '') + ' ' + String(c.interestedArea || '') + ' ' + String(c.phone || '')).toLowerCase().includes(q))
+      : all;
+    const sorted = [...list].sort((a, b) => (Number(b.lastActivityAt) || 0) - (Number(a.lastActivityAt) || 0));
+    document.getElementById('client-book-count').textContent = all.length
+      ? (q ? sorted.length + ' of ' + all.length : all.length + ' client' + (all.length === 1 ? '' : 's'))
+      : '';
     const el = document.getElementById('client-book');
-    if (!sorted.length) {
-      el.innerHTML = '<div class="pm-empty"><div class="title">No client records yet</div><div class="desc">Client details your team adds in the Team Workspace appear here.</div></div>';
+    if (!all.length) {
+      el.innerHTML = '<div class="pm-empty"><div class="title">No clients yet</div><div class="desc">Add your first client in the Team Workspace — they show up here for the whole team.</div><a class="pm-btn pm-btn-primary" style="margin-top:14px;" href="/admin/team.html">+ Add Client</a></div>';
       return;
     }
-    el.innerHTML = sorted.map(c => {
-      const line = [c.interestedArea, c.propertyType, c.sizeRequirement, c.budgetRange].filter(Boolean).join(' · ');
-      const sub = [c.phone, c.leadSource ? 'via ' + c.leadSource : ''].filter(Boolean).join(' · ');
-      return `<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:13px 0;border-top:1px solid var(--pm-border-subtle);">
-        <div style="min-width:0;">
-          <div style="font-size:14.5px;font-weight:700;">${esc(c.name || 'Unknown')}</div>
-          <div style="font-size:12.5px;color:var(--pm-text-mut);margin-top:2px;">${esc(line || '—')}</div>
-          ${sub ? `<div style="font-size:12px;color:var(--pm-text-mut);margin-top:2px;">${esc(sub)}</div>` : ''}
-          ${c.notes ? `<div style="font-size:12px;color:var(--pm-text-sec);margin-top:4px;">${esc(c.notes)}</div>` : ''}
-        </div>
-        <span class="pm-chip" style="white-space:nowrap;">${esc(c.status || 'New')}</span>
-      </div>`;
-    }).join('');
+    if (!sorted.length) {
+      el.innerHTML = '<div class="pm-empty"><div class="title">No clients match</div><div class="desc">Try a different name, area, or phone number.</div></div>';
+      return;
+    }
+    el.innerHTML = sorted.map(clientRow).join('');
   }
 
-  renderClientBook();
-  renderFilters();
-  renderSessions();
+  document.getElementById('client-search').addEventListener('input', (e) => { q = e.target.value.toLowerCase().trim(); render(); });
+  render();
 });
 </script>
 </body>

@@ -52,10 +52,7 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
     <button type="button" class="pm-btn pm-btn-primary" id="hdr-add-client">+ Add Client</button>
   </div>
 
-  <!-- This week -->
-  <div class="pm-grid cols-4" style="margin-bottom:18px;" id="week-stats"></div>
-
-  <!-- Quick actions -->
+  <!-- Quick actions — the staff work table: everything you need, one tap away -->
   <div class="pm-grid cols-4" style="margin-bottom:22px;">
     <button type="button" class="tw-action" id="act-add-client">
       <span class="ic" style="background:#E7F0EB;color:var(--pm-emerald);">+</span>
@@ -65,13 +62,17 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
       <span class="ic" style="background:#F3EAD8;color:var(--pm-gold);">+</span>
       <span class="lbl">Add Property</span>
     </button>
+    <a class="tw-action" href="/admin/properties.html">
+      <span class="ic" style="background:#E9EFF4;color:var(--pm-blue);">▤</span>
+      <span class="lbl">Open Properties</span>
+    </a>
     <a class="tw-action" href="/admin/map-studio.html">
       <span class="ic" style="background:#EDEAF2;color:var(--pm-purple);">◈</span>
       <span class="lbl">Open Map Studio</span>
     </a>
   </div>
 
-  <!-- Work table: My clients + Recent activity / Map Studio -->
+  <!-- Work table: My clients + Map Studio helper -->
   <div class="pm-grid" style="grid-template-columns:1.55fr 1fr;gap:18px;align-items:start;">
     <div class="pm-card-xl">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
@@ -83,16 +84,15 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
 
     <div style="display:flex;flex-direction:column;gap:18px;">
       <div class="pm-card-xl">
-        <div class="pm-card-h" style="margin-bottom:6px;">Recent activity</div>
-        <div id="activity-feed"></div>
-      </div>
-      <div class="pm-card-xl">
         <div class="pm-card-h" style="margin-bottom:3px;">Map Studio</div>
         <div class="pm-card-sub" style="margin-bottom:14px;">Draw roads and mark plots yourself — no designer needed.</div>
         <a class="pm-btn pm-btn-primary" href="/admin/map-studio.html" style="width:100%;text-align:center;">Open Map Studio →</a>
       </div>
     </div>
   </div>
+
+  <!-- These feeds are still computed by JS but kept off the simple work table. -->
+  <div style="display:none;"><div id="week-stats"></div><div id="activity-feed"></div></div>
 
   <!-- Team management — only for owner/managers (team.manage). Hidden for staff. -->
   <div class="pm-card-xl" id="team-manage-card" style="display:none;margin-top:18px;">
@@ -154,7 +154,7 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
           <select id="cl-status">
             <option>New</option><option>Warm</option><option>Property Shared</option>
             <option>Site Visit Planned</option><option>Site Visit Done</option>
-            <option>Negotiation</option><option>Closed</option><option>Not Answering</option>
+            <option>Negotiation</option><option>Closed</option><option value="Not Answering">Follow up</option>
           </select>
         </div>
       </div>
@@ -234,6 +234,9 @@ document.addEventListener('DOMContentLoaded', () => {
     'Not Answering':{ c:'#8A6224', bg:'#FBF3E4' }
   };
   const stageStyle = (s) => STAGE_COLORS[s] || { c:'var(--pm-text-sec)', bg:'#F0ECE3' };
+  // Display-only label map — keeps stored status values intact for pipeline logic.
+  const STAGE_LABEL = { 'Not Answering': 'Follow up' };
+  const stageLabel = (s) => STAGE_LABEL[s] || s || 'New';
   const AV_COLORS = ['#1F5E47','#3E6E96','#A87C3D','#6B4FA0','#B0532C'];
   const initialsOf = (name) => String(name || '?').trim().split(/\s+/).slice(0,2).map(w => w[0] || '').join('').toUpperCase() || '?';
   const avColor = (name) => AV_COLORS[(String(name||'').length) % AV_COLORS.length];
@@ -280,7 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="font-size:14.5px;font-weight:700;">${esc(c.name || 'Unknown')}</div>
             <div style="font-size:12px;color:var(--pm-text-mut);margin-top:1px;">${esc(meta || '—')}</div>
           </div>
-          <span class="tw-badge" style="color:${st.c};background:${st.bg};">${esc(c.status || 'New')}</span>
+          <span class="tw-badge" style="color:${st.c};background:${st.bg};">${esc(stageLabel(c.status))}</span>
           <button class="pm-btn pm-btn-secondary sm" type="button" data-update-client="${esc(c.id)}">Update</button>
         </div>`;
       }).join('');

@@ -203,7 +203,6 @@ input::placeholder{color:#B9AE94;}
     <button class="mapbtn" id="btnMapPick"><span class="sq"></span><span id="mapPickName">Pick a map</span><span class="car">▾</span></button>
     <div style="flex:1"></div>
     <div class="tabs">
-      <button id="tabPresent">Client Presentation</button>
       <button id="tabStudio" class="on">Map Studio</button>
     </div>
   </div>
@@ -950,7 +949,6 @@ input::placeholder{color:#B9AE94;}
 
   /* ---------- boot ---------- */
   document.getElementById('btnMapPick').onclick = () => { S.picker = { q: '' }; renderModals(); };
-  document.getElementById('tabPresent').onclick = () => { window.location.href = '/app/plotmap/'; };
   document.getElementById('tabStudio').onclick = () => { S.view = 'hub'; render(); };
   if (Store) Store.subscribe(() => { /* remote updates: refresh quietly when idle */ });
   (function applyQueryBootstrap() {

@@ -39,11 +39,10 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
     </div>
   </div>
 
-  <!-- Needs attention today — the owner's daily action list -->
-  <div class="pm-card-xl" id="attention-card" style="margin-bottom:16px;">
-    <div class="pm-card-h">Needs your attention today</div>
-    <div class="pm-card-sub">The few things worth doing next — everything else is running.</div>
-    <div id="attention-list" style="margin-top:12px;"></div>
+  <!-- Attention data still computed (JS fills #attention-list) but kept OFF the
+       calm dashboard — property readiness / issues live in Property Insights. -->
+  <div id="attention-card" style="display:none;">
+    <div id="attention-list"></div>
   </div>
 
   <!-- Account & billing (owner-only). Manual billing — no payment gateway.
@@ -53,7 +52,7 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
       <div>
         <div class="pm-card-h">Account &amp; billing</div>
-        <div class="pm-card-sub">Manual billing — no automatic payments. Suspension/expiry is enforced by your provider (Supabase RLS).</div>
+        <div class="pm-card-sub">Manual billing — no automatic payments. Your account status is enforced securely on our servers.</div>
       </div>
       <div style="display:flex;align-items:center;gap:10px;">
         <span id="account-status-chip" class="pm-chip" style="font-weight:700;"></span>
@@ -83,7 +82,7 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
         <div class="fld"><label>Payment proof link</label><input id="acc-proof" type="text" placeholder="https://… (receipt / drive link)"></div>
         <div class="fld" style="grid-column:1/-1;"><label>Payment notes</label><input id="acc-notes" type="text" placeholder="e.g. UPI ref, amount, date"></div>
       </div>
-      <div style="font-size:12px;color:var(--pm-text-mut);margin-top:10px;">This is your manual billing record. It does not process payments and is not the security boundary — a suspended/expired account is only truly blocked once your provider's Supabase RLS enforces it (Codex-gated).</div>
+      <div style="font-size:12px;color:var(--pm-text-mut);margin-top:10px;">This is your manual billing record for your own reference. It does not process payments; your live account status is enforced securely on our servers.</div>
       <div style="display:flex;gap:10px;margin-top:14px;">
         <button type="submit" class="pm-btn pm-btn-primary">Save billing</button>
         <button type="button" class="pm-btn pm-btn-secondary" id="account-edit-cancel">Cancel</button>
@@ -94,80 +93,46 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
   <!-- Today's client activity -->
   <div class="pm-grid cols-4" style="margin-bottom:20px;" id="stat-cards"></div>
 
-  <!-- Property readiness — what's ready to show vs. what needs work -->
-  <div class="pm-card-xl" style="margin-bottom:16px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-      <div>
-        <div class="pm-card-h">Property readiness</div>
-        <div class="pm-card-sub">What's ready to show a client, and what still needs a photo, a map location, or sector proof.</div>
-      </div>
-      <a href="/admin/properties.html" class="pm-btn-ghost">Manage properties →</a>
-    </div>
-    <div class="pm-grid cols-4" id="readiness-cards" style="margin-top:14px;"></div>
-  </div>
-
-  <!-- Hot areas + Most viewed properties -->
-  <div class="pm-grid cols-2" style="margin-bottom:16px;align-items:start;">
-    <div class="pm-card-xl">
-      <div class="pm-card-h">Hot areas</div>
-      <div class="pm-card-sub">Where clients spend attention in Client Presentation</div>
-      <div id="hot-areas"></div>
-    </div>
-    <div class="pm-card-xl">
-      <div class="pm-card-h">Most viewed properties</div>
-      <div class="pm-card-sub">Property attention from Client Presentation only</div>
-      <div id="top-properties"></div>
-    </div>
-  </div>
-
-  <!-- Recent client activity + Map Studio status -->
-  <div class="pm-grid wide-left" style="margin-bottom:16px;align-items:start;">
-    <div class="pm-card-xl">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-        <div>
-          <div class="pm-card-h">Recent client activity</div>
-          <div class="pm-card-sub">Latest presentation events, newest first</div>
-        </div>
-        <a href="/admin/clients.html" class="pm-btn-ghost">View all clients →</a>
-      </div>
-      <div id="movement-feed"></div>
-    </div>
-
-    <div style="display:grid;gap:16px;">
-      <div class="pm-card">
-        <div style="font-size:18px;font-weight:800;margin-bottom:4px;">Map Studio</div>
-        <div style="font-size:13px;color:var(--pm-text-mut);margin-bottom:14px;">Publishing status</div>
-        <div id="studio-status"></div>
-      </div>
-      <div class="pm-card">
-        <div style="font-size:18px;font-weight:800;margin-bottom:4px;">Sync</div>
-        <div style="font-size:13px;color:var(--pm-text-mut);margin-bottom:14px;">Device / cloud status</div>
-        <div id="sync-status"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Quick actions -->
+  <!-- Quick actions — the calm dashboard's clear "what to do next" -->
   <div style="margin-bottom:18px;">
-    <div style="font-size:20px;font-weight:800;margin-bottom:14px;">Quick actions</div>
     <div class="pm-grid cols-4">
       <a href="/admin/properties.html" class="pm-action-card">
-        <div class="ic" style="background:#F3EAD8;color:var(--pm-gold);">＋</div>
+        <div class="ic" style="background:var(--pm-gold-light);color:var(--pm-gold);">＋</div>
         <div class="txt">Add Property</div>
       </a>
       <a href="/app/plotmap/" target="_blank" rel="noopener" class="pm-action-card">
-        <div class="ic" style="background:#E7F0EB;color:var(--pm-emerald);">▶</div>
+        <div class="ic" style="background:var(--pm-emerald-light);color:var(--pm-emerald);">▶</div>
         <div class="txt">Open Client Presentation</div>
       </a>
       <a href="/admin/map-studio.html" class="pm-action-card">
-        <div class="ic" style="background:#EDEAF2;color:var(--pm-purple);">◈</div>
+        <div class="ic" style="background:var(--pm-purple-light);color:var(--pm-purple);">◈</div>
         <div class="txt">Open Map Studio</div>
       </a>
       <a href="/admin/team.html" class="pm-action-card">
-        <div class="ic" style="background:#E8EEF5;color:var(--pm-blue);">＋</div>
+        <div class="ic" style="background:var(--pm-blue-light);color:var(--pm-blue);">＋</div>
         <div class="txt">Add Client</div>
       </a>
     </div>
+  </div>
+
+  <!-- Data still computed by JS but kept OFF the calm dashboard.
+       Readiness lives in Property Insights; hot areas in Area Intelligence. -->
+  <div style="display:none;">
+    <div id="readiness-cards"></div>
+    <div id="hot-areas"></div>
+    <div id="top-properties"></div>
+  </div>
+
+  <!-- Publishing status — a useful, positive nudge (drafts waiting to go live).
+       Activity/sync feeds are still computed by JS but kept off the dashboard. -->
+  <div class="pm-card" style="margin-bottom:16px;">
+    <div style="font-size:18px;font-weight:800;margin-bottom:4px;">Ready to publish</div>
+    <div style="font-size:13px;color:var(--pm-text-mut);margin-bottom:14px;">Map markings waiting to go live for clients</div>
+    <div id="studio-status"></div>
+  </div>
+  <div style="display:none;">
+    <div id="movement-feed"></div>
+    <div id="sync-status"></div>
   </div>
 
   <details class="pm-owner-drawer" style="margin-bottom:18px;">
@@ -189,7 +154,7 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
           <div class="fld"><label>Client presentation title</label><input id="dealer-presentation-title" type="text" maxlength="60" placeholder="e.g. Our Property Portfolio"></div>
           <div class="fld"><label>Client presentation tagline</label><input id="dealer-presentation-tagline" type="text" maxlength="90" placeholder="Shown under the title"></div>
           <div class="fld"><label>Default share message</label><input id="dealer-share-message" type="text" maxlength="200" placeholder="Sent with WhatsApp shares"></div>
-          <div class="fld"><label>Storage bucket</label><input id="dealer-photo-bucket" type="text" placeholder="property-photos"></div>
+          <div class="fld"><label>Photo storage folder</label><input id="dealer-photo-bucket" type="text" placeholder="property-photos"></div>
           <button class="pm-btn pm-btn-primary full" type="submit">Save settings</button>
           <div id="dealer-settings-saved" style="font-size:12.5px;color:var(--pm-emerald);margin-top:8px;"></div>
         </form>
@@ -229,36 +194,28 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
           <div id="dealer-backup-status" style="font-size:12.5px;color:var(--pm-text-mut);"></div>
         </div>
       </div>
+      <div class="pm-card" style="grid-column:1/-1;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
+          <div>
+            <div class="pm-card-h">Client share links</div>
+            <div class="pm-card-sub">Safe links that open only the public Client Presentation — no internal data, ever</div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <select id="share-map-select" style="height:40px;border:1px solid var(--pm-border);border-radius:10px;padding:0 10px;font-size:13.5px;background:#fff;"><option value="">Whole presentation</option></select>
+            <input id="share-expiry" type="date" title="Optional expiry" style="height:40px;border:1px solid var(--pm-border);border-radius:10px;padding:0 10px;font-size:13.5px;background:#fff;">
+            <button class="pm-btn pm-btn-primary" type="button" id="share-create">Create share link</button>
+          </div>
+        </div>
+        <div id="share-links-list"></div>
+        <div style="font-size:12.5px;color:var(--pm-text-mut);margin-top:10px;">
+          A disabled link still opens the safe public presentation (which never contains internal data); full revocation applies as your account backend rolls out.
+        </div>
+      </div>
     </div>
   </details>
 
-  <div class="pm-card-xl" style="margin-bottom:18px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
-      <div>
-        <div class="pm-card-h">Client share links</div>
-        <div class="pm-card-sub">Safe links that open only the public Client Presentation — no admin data, ever</div>
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-        <select id="share-map-select" style="height:40px;border:1px solid var(--pm-border);border-radius:10px;padding:0 10px;font-size:13.5px;background:#fff;"><option value="">Whole presentation</option></select>
-        <input id="share-expiry" type="date" title="Optional expiry" style="height:40px;border:1px solid var(--pm-border);border-radius:10px;padding:0 10px;font-size:13.5px;background:#fff;">
-        <button class="pm-btn pm-btn-primary" type="button" id="share-create">Create share link</button>
-      </div>
-    </div>
-    <div id="share-links-list"></div>
-    <div style="font-size:12.5px;color:var(--pm-text-mut);margin-top:10px;">
-      Disable a link and it stops resolving once the SaaS foundation migration is live. Until then, disabling is recorded and queued — the link still opens the public presentation (which never contains internal data).
-    </div>
-  </div>
-
-  <div class="pm-card-xl">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-      <div>
-        <div class="pm-card-h">Recent audit activity</div>
-        <div class="pm-card-sub">Important owner and team actions for this dealer</div>
-      </div>
-    </div>
-    <div id="audit-feed"></div>
-  </div>
+  <!-- Audit feed still computed by JS (#audit-feed) but kept OFF the dealer dashboard. -->
+  <div style="display:none;"><div id="audit-feed"></div></div>
 </main>
 
 <script>
@@ -282,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const now = new Date();
   document.getElementById('date-line').textContent =
-    days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' — client presentation activity at a glance.';
+    days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + '.';
 
   // ---- Today's client activity (Client Presentation events only) ----
   const todayStr = now.toISOString().slice(0, 10);

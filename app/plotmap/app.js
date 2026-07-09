@@ -1117,7 +1117,9 @@
     }
   }
   function sectorPinCardHTML(p) {
-    const rows = [['Type', PIN_LABELS[p.type] || p.type], ['Size', p.size], ['Block', p.block], ['Road facing', p.roadFacing], ['Status', p.status]].filter(r => r[1]);
+    // Client-safe only: never surface a raw internal status (sold/hold/internal…).
+    const safeStatus = /^(available|highlighted|ready|open)/i.test(String(p.status || '')) ? 'Available' : null;
+    const rows = [['Type', PIN_LABELS[p.type] || p.type], ['Size', p.size], ['Block', p.block], ['Road facing', p.roadFacing], ['Status', safeStatus]].filter(r => r[1]);
     return `<div class="spin-card" id="spinCard">
       <button class="spin-card-x" data-spinclose aria-label="Close">×</button>
       <div class="spin-card-title">${esc(p.title || 'Property')}</div>
@@ -1816,7 +1818,7 @@
     on('backBrowse', () => { Object.assign(state, { propView: 'browse', selectedId: null }); render(); });
     on('backToProperty', () => { Object.assign(state, { section: 'props', propView: 'detail' }); builtSig = ''; render(); });
     on('backToSectors', () => { Object.assign(state, { section: 'sectors', propView: 'browse', selectedId: null, sectorBlock: null }); render(); });
-    on('areaContext', () => showAreaContext(state.selectedId));
+    on('areaContext', () => openMapModal('area', state.selectedId));
     on('sendLater', () => { window.logEvent('brochure_shared', { area: state.areaId || null, propertyId: state.selectedId || null, metadata: { source: 'send_details_later' } }); toast('Saved — share the details whenever you like.'); });
 
     on('lbScrim', () => { state.lightbox = null; render(); });

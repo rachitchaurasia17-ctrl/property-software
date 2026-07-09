@@ -200,10 +200,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('p-desc').value = prop ? (prop.description || '') : '';
     document.getElementById('p-photos').value = prop && Array.isArray(prop.photos) ? prop.photos.join(', ') : '';
     document.getElementById('p-visible').checked = prop ? prop.clientVisible !== false : true;
-    if (window.PMFoundation) {
-      const storagePath = window.PMFoundation.photoFolderForProperty((prop && prop.id) || 'draft');
-      document.getElementById('p-photo-storage-note').textContent = 'Storage folder: ' + storagePath;
-    }
     if (window.PMPhotoManager) window.PMPhotoManager.reset(prop);
     formCard.style.display = 'block';
     formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -355,12 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const mapLine = pin
         ? `<div class="size" style="color:#1F5E47;">On map: ${esc(mapTitle(pin.mapId))}</div>`
-        : `<div class="size" style="color:#8A6224;">Not placed on a map — use Map Studio → tap “+ Add Property”.</div>`;
-      const mapSupport = `
-        <div class="size" style="margin-top:4px;color:#6B6456;">
-          ${masterMap ? `Client map: ${esc(masterMap.displayName || masterMap.title || p.area)}` : 'Client map: area-linked'}
-          ${sectorMap ? ` · Sector map: ${esc(sectorMap.displayName || sectorMap.title)}` : ''}
-        </div>`;
+        : `<div class="size" style="color:#8A6224;">Not placed on a map yet — add it in Map Studio.</div>`;
 
       return `<div class="pm-prop-card">
         <div class="hero" style="${photo}">
@@ -373,8 +364,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="size">${esc(p.type || '-')} · ${esc(p.size || p.plotSize || '-')}${p.facing ? ' · ' + esc(p.facing) : ''}</div>
           <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;">${hints.map(h => `<span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:${h.bg};color:${h.c};">${esc(h.t)}</span>`).join('')}</div>
           ${mapLine}
-          ${mapSupport}
-          ${window.PMFoundation ? `<div class="size" style="margin-top:4px;color:#6B6456;">Photo folder: ${esc(window.PMFoundation.photoFolderForProperty(p.id))}</div>` : ''}
           ${p.description ? `<div class="size" style="margin-top:8px;color:#4E4A40;">${esc(p.description)}</div>` : ''}
           <div class="actions">
             <button onclick="editProp('${esc(p.id)}')">Edit</button>
@@ -553,9 +542,9 @@ window.PMPhotoManager = (function () {
             body: file
           });
           if (!res.ok) {
-            const hint = (res.status === 400 || res.status === 404) ? ' Storage bucket/policies may not be live yet.'
-              : (res.status === 401 || res.status === 403) ? ' Not permitted — check Storage RLS.' : '';
-            setStatus('Upload failed for ' + file.name + ' (' + res.status + ').' + hint + ' Your other photos are unaffected.');
+            const hint = (res.status === 400 || res.status === 404) ? ' Photo upload isn’t switched on for your account yet.'
+              : (res.status === 401 || res.status === 403) ? ' You don’t have permission to upload here.' : '';
+            setStatus('Upload failed for ' + file.name + '.' + hint + ' Your other photos are unaffected.');
             renderManager(); return;
           }
           storagePaths.push(path); done++;
@@ -563,7 +552,7 @@ window.PMPhotoManager = (function () {
           setStatus('Upload error (network). Your saved photos are unaffected.'); renderManager(); return;
         }
       }
-      setStatus('Uploaded ' + done + ' file(s). Saved with the property. Client display needs signed URLs (see handoff).');
+      setStatus('Uploaded ' + done + ' photo(s) and saved them with this property.');
       fileInput.value = ''; $('p-photo-selected').innerHTML = ''; renderManager();
     });
   });

@@ -11,7 +11,7 @@
   const DEALER_NAV = [
     { key: 'dashboard', label: 'Dashboard', href: '/admin/owner.html' },
     { key: 'area-intelligence', label: 'Area Intelligence', href: '/admin/area-intelligence.html' },
-    { key: 'client-movement', label: 'Client Details', href: '/admin/clients.html' },
+    { key: 'client-details', label: 'Client Details', href: '/admin/clients.html' },
     { key: 'property-insights', label: 'Property Insights', href: '/admin/property-insights.html' }
   ];
 
@@ -127,7 +127,11 @@
       if (!window.PMFoundation || typeof window.PMFoundation.getAccountGate !== 'function') return;
       const gate = window.PMFoundation.getAccountGate();
       const existing = document.getElementById('pm-account-banner');
-      if (!gate || (gate.level !== 'blocked' && gate.level !== 'warning')) {
+      // Only surface a banner for a truly blocked account (suspended / expired).
+      // Trial countdowns / "trial ends in N days" (warning level) are intentionally
+      // NOT shown in the normal product experience — gating LOGIC is unchanged;
+      // real enforcement stays with Supabase RLS.
+      if (!gate || gate.level !== 'blocked') {
         if (existing) existing.remove();
         return;
       }
