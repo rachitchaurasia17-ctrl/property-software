@@ -25,6 +25,9 @@
     <script src="/admin/core/supabase-sync.js"></script>
     <script>
       if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: "team" });
+      // Trial-analytics: Map Studio renders no PMNav topbar, so record the
+      // page-open usage event directly (once per pageview).
+      if (window.PMEventTracker) window.PMEventTracker.trackProductEvent('map_studio_opened', {});
     </script>
     <style>
       html,
@@ -1511,7 +1514,7 @@
              let tColor = lum > 160 ? '#111111' : '#FFFFFF';
              let tStroke = lum > 160 ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)';
              
-             html += '<text x="' + cx + '" y="' + (cy - lift) + '" font-family="sans-serif" font-size="40" font-weight="900" fill="' + tColor + '" stroke="' + tStroke + '" stroke-width="3" text-anchor="middle" dominant-baseline="middle" style="pointer-events:none; filter:drop-shadow(0px 2px 4px rgba(0,0,0,0.3));">' + esc(it.name) + '</text>';
+             html += '<text x="' + cx + '" y="' + (cy - lift) + '" font-family="sans-serif" font-size="40" font-weight="900" fill="#000000" stroke="rgba(255,255,255,0.6)" stroke-width="2" text-anchor="middle" dominant-baseline="middle" style="pointer-events:none;">' + esc(it.name) + '</text>';
           }
 
           // Hit area
@@ -1545,7 +1548,7 @@
             if (it.kind === 'block' && it.pts && it.pts.length > 2) {
               if (it.transparent) {
                  const d = 'M' + it.pts.map(p=>p.join(',')).join('L') + 'Z';
-                 let polyHtml = '<path d="' + d + '" fill="' + rgba(col, 0.45) + '" stroke="' + col + '" stroke-width="4" stroke-linejoin="round" data-hit="' + esc(it.id) + '" style="cursor:pointer;' + (isStrong ? 'filter:drop-shadow(0 0 5px ' + rgba(col, 0.6) + ')' : '') + '" />';
+                 let polyHtml = '<path d="' + d + '" fill="none" stroke="' + col + '" stroke-width="4" stroke-linejoin="round" data-hit="' + esc(it.id) + '" style="cursor:pointer;' + (isStrong ? 'filter:drop-shadow(0 0 5px ' + rgba(col, 0.6) + ')' : '') + '" />';
                  if (it.name && it.name.trim() !== '' && it.name.toLowerCase() !== 'untitled') {
                     let cx = 0, cy = 0;
                     it.pts.forEach(p => { cx += p[0]; cy += p[1]; });
@@ -1567,7 +1570,7 @@
                  mid += blockHtml;
                  
                  // Extract hit area for the block so it sits above the background rect
-                 const topStr = it.pts.map(p => [p[0], p[1] - 40].join(',')).join(' ');
+                 const topStr = it.pts.map(p => [p[0], p[1] - 22].join(',')).join(' ');
                  hits += '<polygon points="' + topStr + '" fill="rgba(0,0,0,0)" stroke="rgba(0,0,0,0)" style="cursor:pointer" data-hit="' + esc(it.id) + '"/>';
                  
                  return; // Handled exclusively via render3DBlockHTML
@@ -2155,14 +2158,14 @@
             + '</div></div></div>';
 
           document.getElementById('backHub').onclick = () => { S.view = 'hub'; render(); };
-          document.getElementById('mgAddProp').onclick = () => { window.location.href = 'properties.html#add'; };
+          document.getElementById('mgAddProp').onclick = () => { S.picker = {}; renderModals(); };
           root().querySelectorAll('[data-edit]').forEach(b => b.onclick = () => {
             const c = cards[+b.dataset.edit];
             if (c.isMaster) { S.mapId = c.map.id; S.view = 'masterplan'; S.mSel = null; S.mGroup = null; }
             else { S.sectorMapId = c.map.id; S.view = 'sector'; S.tool = 'select'; S.active = null; S.pts = []; S.secStep = 'mark'; }
             render();
           });
-          root().querySelectorAll('[data-addp]').forEach(b => b.onclick = () => { window.location.href = 'properties.html#add'; });
+          root().querySelectorAll('[data-addp]').forEach(b => b.onclick = () => { S.picker = {}; renderModals(); });
         }
 
         /* ---------- publish / confirm modals ---------- */
