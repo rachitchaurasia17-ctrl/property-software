@@ -249,8 +249,8 @@
   }
 
   // ---------- access gate ----------
-  // Server-side truth: the phase-4 admin RPC refuses everyone who is not an
-  // active platform admin. A normal dealer is redirected to their dashboard;
+  // Server-side truth: the 20260710 developer-control RPC refuses everyone
+  // who is not an active platform admin. A normal dealer is redirected away;
   // on local dev (mock session) we show the locked shell instead so the
   // developer can see the page structure — still with ZERO data.
   async function gate() {
@@ -259,16 +259,16 @@
       window.location.replace(window.PMAuth.buildLoginRedirect('/admin/developer.html', 'missing_session'));
       return false;
     }
-    const probe = await rpc('plotmap_admin_list_dealer_accounts', {});
+    const probe = await rpc('plotmap_admin_dealer_directory', {});
     if (probe.ok) return true;
+    if (probe.status === 404) {
+      showLocked('Developer control migration required. Apply supabase/migrations/20260710_developer_control_and_trial_analytics_draft.sql after security approval, then reload this page.');
+      return false;
+    }
     if (window.PMAuth.isLocalDev()) {
       showLocked('This machine is signed in with a local dev/mock session. The server refused the platform-admin probe ('
         + (probe.message || ('HTTP ' + probe.status))
         + '), so no dealer data can load here. Sign in as the platform admin on the deployed site.');
-      return false;
-    }
-    if (probe.status === 404) {
-      showLocked('The platform-admin RPCs are not installed on this Supabase project (phase 4 migration missing).');
       return false;
     }
     // signed-in but not a platform admin — send them to their own home
@@ -278,19 +278,15 @@
 
   // ---------- data loads ----------
   async function loadDealers() {
-    // richer directory first (new migration), fall back to phase-4 list
-    let r = await rpc('plotmap_admin_dealer_directory', {});
-    if (r.status === 404) {
-      state.flags.directoryRpc = false;
-      r = await rpc('plotmap_admin_list_dealer_accounts', {});
-    }
+    const r = await rpc('plotmap_admin_dealer_directory', {});
+    if (r.status === 404) throw new Error('Developer control migration required.');
     if (!r.ok) throw new Error('dealer list failed: ' + (r.message || r.status));
     state.dealers = Array.isArray(r.data) ? r.data : [];
   }
 
   async function loadUsage() {
     const r = await rpc('plotmap_admin_dealer_usage', {});
-    if (r.status === 404) { state.flags.usageRpc = false; state.usage = {}; return; }
+    if (r.status === 404) throw new Error('Developer control migration required.');
     if (!r.ok) { state.usage = {}; return; }
     state.usage = {};
     (r.data || []).forEach(row => { state.usage[row.dealer_id] = row; });
@@ -304,6 +300,9 @@
     state.flags.trialRpc = t.status !== 404;
     const p = await rpc('plotmap_admin_set_dealer_passcode', { p_dealer_id: '', p_login_email: '', p_passcode: '' });
     state.flags.passcodeRpc = p.status !== 404;
+    if (!state.flags.trialRpc || !state.flags.passcodeRpc) {
+      throw new Error('Developer control migration required.');
+    }
   }
 
   // ---------- rendering ----------
@@ -639,10 +638,10 @@
     try {
       const allowed = await gate();
       if (!allowed) return;
-      $('app').style.display = '';
-      document.documentElement.style.visibility = '';
       await probeOptionalRpcs();
       await refresh();
+      $('app').style.display = '';
+      document.documentElement.style.visibility = '';
     } catch (err) {
       showLocked('Could not load developer data: ' + (err && err.message ? err.message : 'unknown error'));
     }

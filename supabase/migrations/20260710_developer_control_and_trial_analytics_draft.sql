@@ -93,6 +93,9 @@ create table if not exists public.dealer_passcodes (
   updated_at timestamptz not null default timezone('utc'::text, now())
 );
 
+create unique index if not exists dealer_passcodes_login_email_unique_idx
+  on public.dealer_passcodes (lower(login_email));
+
 alter table public.dealer_passcodes enable row level security;
 -- Intentionally NO policies and NO grants: deny-all. Only the SECURITY
 -- DEFINER functions below may touch this table.
@@ -126,14 +129,20 @@ begin
   return query
   select
     pc.dealer_id,
-    case when public.plotmap_dealer_is_active(pc.dealer_id) then pc.login_email else null end,
+    case when public.plotmap_dealer_is_active(pc.dealer_id) then lower(p.email) else null end,
     case when public.plotmap_dealer_is_active(pc.dealer_id) then 'ok' else 'blocked' end
   from public.dealer_passcodes pc
+  join public.profiles p
+    on lower(p.email) = lower(pc.login_email)
+   and p.dealer_id = pc.dealer_id
+   and p.role = 'owner'
+   and p.status = 'active'
   where pc.passcode_hash = crypt(trim(p_passcode), pc.passcode_hash)
   limit 1;
 end;
 $$;
 
+revoke all on function public.plotmap_passcode_login(text) from public, anon, authenticated;
 grant execute on function public.plotmap_passcode_login(text) to anon, authenticated;
 
 -- ---------- 4. provider-only passcode management ----------
@@ -159,6 +168,16 @@ begin
   end if;
   if p_login_email is null or position('@' in p_login_email) = 0 then
     raise exception 'valid login email required';
+  end if;
+  if not exists (
+    select 1
+    from public.profiles p
+    where lower(p.email) = lower(trim(p_login_email))
+      and p.dealer_id = p_dealer_id
+      and p.role = 'owner'
+      and p.status = 'active'
+  ) then
+    raise exception 'login email must belong to an active owner profile for this dealer';
   end if;
   -- passcodes must be unique across dealers, or login could resolve the
   -- wrong dealer
@@ -191,6 +210,7 @@ begin
 end;
 $$;
 
+revoke all on function public.plotmap_admin_set_dealer_passcode(text, text, text) from public, anon, authenticated;
 grant execute on function public.plotmap_admin_set_dealer_passcode(text, text, text) to authenticated;
 
 -- ---------- 5. provider-only dealer directory ----------
@@ -231,6 +251,7 @@ begin
 end;
 $$;
 
+revoke all on function public.plotmap_admin_upsert_dealer_directory(text, text, text, text, text, text) from public, anon, authenticated;
 grant execute on function public.plotmap_admin_upsert_dealer_directory(text, text, text, text, text, text) to authenticated;
 
 -- Trial details: phase-4 plotmap_admin_set_dealer_account covers status /
@@ -273,6 +294,7 @@ begin
 end;
 $$;
 
+revoke all on function public.plotmap_admin_set_dealer_trial(text, timestamptz, timestamptz, text) from public, anon, authenticated;
 grant execute on function public.plotmap_admin_set_dealer_trial(text, timestamptz, timestamptz, text) to authenticated;
 
 -- Directory listing: phase-4 plotmap_admin_list_dealer_accounts stays
@@ -336,6 +358,7 @@ begin
 end;
 $$;
 
+revoke all on function public.plotmap_admin_dealer_directory() from public, anon, authenticated;
 grant execute on function public.plotmap_admin_dealer_directory() to authenticated;
 
 -- ---------- 6. provider-only trial usage aggregates ----------
@@ -399,6 +422,7 @@ begin
 end;
 $$;
 
+revoke all on function public.plotmap_admin_dealer_usage() from public, anon, authenticated;
 grant execute on function public.plotmap_admin_dealer_usage() to authenticated;
 
 -- Per-dealer event-type breakdown for the trial summary drawer.
@@ -427,6 +451,7 @@ begin
 end;
 $$;
 
+revoke all on function public.plotmap_admin_dealer_event_breakdown(text, integer) from public, anon, authenticated;
 grant execute on function public.plotmap_admin_dealer_event_breakdown(text, integer) to authenticated;
 
 -- ============================================================
