@@ -65,7 +65,12 @@
 
   function currentDealerId(data) {
     const dealer = currentDealer(data);
-    return dealer && dealer.id ? dealer.id : localStorage.getItem('plotmap_dealer_id') || 'dealer-demo';
+    if (dealer && dealer.id) return dealer.id;
+    const selected = localStorage.getItem('plotmap_dealer_id');
+    if (selected) return selected;
+    // production admin: fail closed instead of scoping into the demo tenant
+    const localDev = window.PMAuth && typeof window.PMAuth.isLocalDev === 'function' && window.PMAuth.isLocalDev();
+    return localDev ? 'dealer-demo' : '__unresolved__';
   }
 
   function scopedRows(data, key) {

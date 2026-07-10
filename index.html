@@ -308,7 +308,9 @@
         </div>
         <input id="auth-email" type="email" autocomplete="email" placeholder="Email address" required>
         <input id="auth-password" type="password" autocomplete="current-password" placeholder="Password" required>
+        <input id="auth-passcode" type="password" autocomplete="off" placeholder="Dealer passcode" style="display:none;">
         <button id="auth-submit" type="submit">Continue</button>
+        <button type="button" id="auth-mode-toggle" style="width:100%;margin-top:10px;border:none;background:transparent;color:#1F5E47;font-size:13px;font-weight:700;cursor:pointer;">Have a passcode? Sign in with passcode</button>
         <div id="auth-status" style="margin-top:12px; font-size:13px; color:#9A4A2C; font-weight:600; min-height:16px;"></div>
       </form>
     </div>
@@ -386,6 +388,55 @@
       }
     }
 
+    // ── Passcode sign-in mode ──
+    // The passcode is verified SERVER-SIDE by the SECURITY DEFINER RPC
+    // plotmap_passcode_login (bcrypt hash compare in Postgres; the hash
+    // table is deny-all). On a match for an ACTIVE dealer the RPC returns
+    // that dealer's login email, and the same passcode completes a normal
+    // Supabase password sign-in — so the session, profile, role and RLS
+    // scoping are identical to email login. Nothing about the passcode is
+    // stored client-side.
+    let authMode = 'email';
+    const modeToggle = document.getElementById('auth-mode-toggle');
+    function setAuthMode(mode) {
+      authMode = mode;
+      const emailEl = document.getElementById('auth-email');
+      const passEl = document.getElementById('auth-password');
+      const codeEl = document.getElementById('auth-passcode');
+      const isCode = mode === 'passcode';
+      emailEl.style.display = isCode ? 'none' : '';
+      passEl.style.display = isCode ? 'none' : '';
+      codeEl.style.display = isCode ? '' : 'none';
+      emailEl.required = !isCode;
+      passEl.required = !isCode;
+      codeEl.required = isCode;
+      modeToggle.textContent = isCode ? 'Use email & password instead' : 'Have a passcode? Sign in with passcode';
+      document.getElementById('auth-status').textContent = '';
+      (isCode ? codeEl : emailEl).focus();
+    }
+    modeToggle.addEventListener('click', () => setAuthMode(authMode === 'passcode' ? 'email' : 'passcode'));
+
+    async function resolvePasscode(passcode) {
+      const res = await fetch(window.PMAuth.SUPABASE_URL + '/rest/v1/rpc/plotmap_passcode_login', {
+        method: 'POST',
+        headers: {
+          apikey: window.PMAuth.SUPABASE_KEY,
+          Authorization: 'Bearer ' + window.PMAuth.SUPABASE_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ p_passcode: passcode })
+      });
+      if (res.status === 404) throw new Error('Passcode sign-in is not enabled on this server yet — use email & password.');
+      if (!res.ok) throw new Error('Could not verify the passcode. Please try again.');
+      const rows = await res.json().catch(() => []);
+      const row = Array.isArray(rows) ? rows[0] : null;
+      if (!row) throw new Error('Invalid passcode.');
+      if (row.status !== 'ok' || !row.login_email) {
+        throw new Error('This account is currently suspended or its trial has ended. Please contact your PlotMap provider.');
+      }
+      return row;
+    }
+
     document.getElementById('auth-form').addEventListener('submit', async event => {
       event.preventDefault();
       const status = document.getElementById('auth-status');
@@ -394,9 +445,18 @@
       status.style.color = '#5F6B61';
       submit.disabled = true;
       try {
-        const email = document.getElementById('auth-email').value.trim();
-        const password = document.getElementById('auth-password').value;
-        await window.PMAuth.signIn(email, password);
+        if (authMode === 'passcode') {
+          const passcode = document.getElementById('auth-passcode').value.trim();
+          if (passcode.length < 8) throw new Error('Invalid passcode.');
+          const resolved = await resolvePasscode(passcode);
+          await window.PMAuth.signIn(resolved.login_email, passcode).catch(() => {
+            throw new Error('Passcode accepted, but account sign-in failed. Contact your PlotMap provider.');
+          });
+        } else {
+          const email = document.getElementById('auth-email').value.trim();
+          const password = document.getElementById('auth-password').value;
+          await window.PMAuth.signIn(email, password);
+        }
         const profile = await window.PMAuth.getCurrentProfile();
         if (!profile) throw new Error('No admin profile found for this account.');
 

@@ -1120,11 +1120,11 @@
     // Client-safe only: never surface a raw internal status (sold/hold/internal…).
     const safeStatus = /^(available|highlighted|ready|open)/i.test(String(p.status || '')) ? 'Available' : null;
     const rows = [['Type', PIN_LABELS[p.type] || p.type], ['Size', p.size], ['Block', p.block], ['Road facing', p.roadFacing], ['Status', safeStatus]].filter(r => r[1]);
+    // p.notes is an admin-entered internal field — never rendered client-side.
     return `<div class="spin-card" id="spinCard">
       <button class="spin-card-x" data-spinclose aria-label="Close">×</button>
       <div class="spin-card-title">${esc(p.title || 'Property')}</div>
-      ${rows.map(([k, v]) => `<div class="spin-card-row"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('')}
-      ${p.notes ? `<div class="spin-card-notes">${esc(p.notes)}</div>` : ''}</div>`;
+      ${rows.map(([k, v]) => `<div class="spin-card-row"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('')}</div>`;
   }
 
   /* ====================== RENDER ROOT ====================== */
@@ -2091,6 +2091,8 @@
     const link = location.origin + '/app/plotmap/?property=' + encodeURIComponent(p.id) + (clientDealerId ? '&dealerId=' + encodeURIComponent(clientDealerId) : '');
     const msg = (dealerBranding.shareMessage ? dealerBranding.shareMessage + '\n\n' : '') + details.join('\n') + '\n\nView on the live map: ' + link + '\n\n— ' + brand;
     window.logEvent('brochure_shared', { area: state.areaId || null, propertyId: id, metadata: { source: 'whatsapp' } });
+    // explicit WhatsApp event so trial analytics can count shares precisely
+    window.logEvent('property_shared_whatsapp', { area: state.areaId || null, propertyId: id, metadata: { source: 'whatsapp' } });
     window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank', 'noopener');
   }
   function toast(msg) { let t = el('toast'); if (!t) { t = document.createElement('div'); t.id = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.style.opacity = '1'; clearTimeout(t._h); t._h = setTimeout(() => t.style.opacity = '0', 1900); }

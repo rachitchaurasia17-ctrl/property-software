@@ -13,11 +13,25 @@
   function nowIso() { return new Date().toISOString(); }
   function generateId() { return 'ovl-' + Math.random().toString(36).slice(2, 11); }
   function currentDealerId() {
+    // Same multi-dealer rule as the data adapter: profile mirror first;
+    // the demo tenant is only a valid default on local dev or the public
+    // Client Presentation, never on production admin pages (overlays
+    // created pre-resolution must not be stamped into dealer-demo).
+    const isProdAdmin = (() => {
+      try {
+        const local = window.PMAuth && typeof window.PMAuth.isLocalDev === 'function'
+          ? window.PMAuth.isLocalDev()
+          : /^(localhost|127\.0\.0\.1|::1)$/.test(String(location.hostname || '').toLowerCase());
+        return !local && /^\/admin\//i.test(location.pathname || '');
+      } catch (e) { return false; }
+    })();
+    const fallback = isProdAdmin ? '__unresolved__' : 'dealer-demo';
     if (window.PMDataAdapter && typeof window.PMDataAdapter.getCurrentDealerId === 'function') {
-      return window.PMDataAdapter.getCurrentDealerId() || 'dealer-demo';
+      const fromAdapter = window.PMDataAdapter.getCurrentDealerId();
+      if (fromAdapter) return fromAdapter;
     }
-    try { return localStorage.getItem('plotmap_dealer_id') || 'dealer-demo'; } catch (e) {}
-    return 'dealer-demo';
+    try { return localStorage.getItem('plotmap_dealer_id') || fallback; } catch (e) {}
+    return fallback;
   }
 
   function load() {
@@ -220,13 +234,26 @@
     enqueueSeedOverrides(mapId, store.seedOverrides[mapId]);
   }
 
+  // Every client-facing text field on an overlay, flattened for leak checks
+  // (name + sub + all drawer row cells) — not just the name.
+  function clientText(it) {
+    const parts = [it.name, it.sub];
+    if (Array.isArray(it.rows)) {
+      it.rows.forEach(r => {
+        if (Array.isArray(r)) r.forEach(cell => parts.push(cell));
+        else parts.push(r);
+      });
+    }
+    return parts.filter(Boolean).map(String).join(' \n ');
+  }
+
   // Client Presentation reads ONLY through this: published + visible + leak-safe.
   function publishedForClient(mapId) {
     return list(mapId).filter(it =>
       it.status === 'published' &&
       it.clientVisible !== false &&
       !it.deleted &&
-      !LEAK_RE.test(String(it.name || '')) &&
+      !LEAK_RE.test(clientText(it)) &&
       (it.d || it.at || (it.paths && it.paths.length) || (it.pts && it.pts.length))
     );
   }

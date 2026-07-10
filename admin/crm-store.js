@@ -71,7 +71,13 @@
       try { localStorage.setItem('plotmap_dealer_id', dealer.id); } catch (err) {}
       return dealer.id;
     }
-    return selected || DEFAULT_DEALER_ID;
+    if (selected) return selected;
+    // Admin pages in production must never fall back to the demo tenant —
+    // fail closed with a sentinel that matches no real records until the
+    // authenticated profile mirror (plotmap_dealer_id) is written.
+    // Local dev and the public Client Presentation keep the demo default.
+    if (isLocalDev() || !/^\/admin\//i.test(location.pathname || '')) return DEFAULT_DEALER_ID;
+    return '__unresolved__';
   }
 
   function isLocalDev() {

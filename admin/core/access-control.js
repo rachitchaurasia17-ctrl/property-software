@@ -200,7 +200,54 @@
           role: normalizeRole(profile && profile.role)
         });
       }
+      // Trial-analytics: one dealer_login usage event per browser session.
+      if (window.PMEventTracker && typeof window.PMEventTracker.trackProductEvent === 'function') {
+        window.PMEventTracker.trackProductEvent('dealer_login', {
+          metadata: { role: normalizeRole(profile && profile.role) }
+        });
+      }
     } catch (err) {}
+  }
+
+  // Server-truth dealer gate. plotmap_dealer_is_active (SECURITY DEFINER,
+  // phase 2/4) evaluates account_status + trial/expiry in Supabase — the
+  // same predicate RLS uses to reject suspended/expired dealer writes.
+  // Returns true/false, or null when the answer is unknown (offline,
+  // timeout, RPC missing) — null must NOT block (offline grace handles it).
+  // Cached per session for 5 minutes so navigation stays fast.
+  async function fetchDealerActiveFromServer(dealerId) {
+    if (!dealerId || !window.PMAuth || !window.PMAuth.SUPABASE_URL) return null;
+    const CACHE_KEY = 'plotmap_dealer_active_v1';
+    try {
+      const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null');
+      if (cached && cached.dealerId === dealerId && Date.now() - cached.at < 5 * 60 * 1000) {
+        return cached.active;
+      }
+    } catch (err) {}
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(window.PMAuth.SUPABASE_URL + '/rest/v1/rpc/plotmap_dealer_is_active', {
+        method: 'POST',
+        headers: {
+          apikey: window.PMAuth.SUPABASE_KEY,
+          Authorization: 'Bearer ' + window.PMAuth.SUPABASE_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ p_dealer_id: dealerId }),
+        signal: controller.signal
+      });
+      clearTimeout(timer);
+      if (!res.ok) return null;
+      const active = await res.json();
+      if (active !== true && active !== false) return null;
+      try {
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify({ dealerId, active, at: Date.now() }));
+      } catch (err) {}
+      return active;
+    } catch (err) {
+      return null;
+    }
   }
 
   function guardPage(options) {
@@ -251,16 +298,41 @@
       }
       window.PMAuth.applyLegacyRole(authResult.profile);
       auditLoginOnce(profile);
+      // Server-truth account gate: plotmap_dealer_is_active evaluates
+      // account_status + trial/expiry inside Supabase, so a suspended or
+      // expired dealer is blocked even with stale/edited localStorage.
+      // Unknown (offline / timeout) never blocks — offline grace below
+      // handles that. Skipped on local dev (mock sessions, local dealers).
+      if (!window.PMAuth.isLocalDev()) {
+        const serverActive = await fetchDealerActiveFromServer(profile.dealer_id);
+        if (serverActive === false) {
+          renderBlockedScreen();
+          return { ok: false, reason: 'dealer_inactive_server', profile };
+        }
+      }
       const data = window.PMDataAdapter ? window.PMDataAdapter.getData() : null;
+      const localDealer = data && window.PMDataAdapter ? window.PMDataAdapter.getCurrentDealer(data) : null;
+      const localUser = data && window.PMDataAdapter ? window.PMDataAdapter.getCurrentUser(data) : null;
+      const freshTs = new Date().toISOString();
       // The Supabase profile already passed the role/scope gates above; the
       // local check below only validates dealer trial/status + offline grace,
       // so require plain staff rank here (legacy roleRequired hints like
       // 'owner' on insights pages would wrongly block scope-granted teams).
+      // A fresh browser holds no local dealer/user rows for a real Supabase
+      // profile yet — synthesize them from the verified profile so first
+      // login is not wrongly blocked as 'missing_dealer'; when local records
+      // DO exist their suspended/expired state is still enforced.
       const result = canAccessRoute(Object.assign({}, routeOptions, {
         data,
         roleRequired: routeIsOwnerOnly ? 'owner' : 'team',
-        dealer: data && window.PMDataAdapter ? window.PMDataAdapter.getCurrentDealer(data) : null,
-        user: data && window.PMDataAdapter ? window.PMDataAdapter.getCurrentUser(data) : null
+        dealer: localDealer || { id: profile.dealer_id, status: 'active' },
+        user: localUser || {
+          id: profile.id,
+          role: normalizeRole(profile.role),
+          status: 'active',
+          lastAccessCheck: freshTs,
+          lastLogin: freshTs
+        }
       }));
       if (!result.ok) {
         renderBlockedScreen();

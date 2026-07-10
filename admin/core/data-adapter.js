@@ -220,7 +220,15 @@
     const item = Object.assign({}, record || {});
     if (!item.id) item.id = generateId(entityType.slice(0, 3));
     if (isDealerScopedEntity(entityType)) {
-      item.dealerId = item.dealerId || (options && options.dealerId) || getCurrentDealerId(data) || DEFAULT_DEALER_ID;
+      // Fallback order matters for multi-dealer safety: the authenticated
+      // profile mirror (plotmap_dealer_id) outranks the demo default, and
+      // in production-admin nothing may silently land in the demo tenant —
+      // '__unresolved__' fails closed (RLS rejects it server-side too).
+      let lsDealer = null;
+      try { lsDealer = localStorage.getItem('plotmap_dealer_id'); } catch (err) {}
+      const prodAdmin = !isLocalDev() && /^\/admin\//i.test(location.pathname || '');
+      item.dealerId = item.dealerId || (options && options.dealerId) || getCurrentDealerId(data)
+        || lsDealer || (prodAdmin ? '__unresolved__' : DEFAULT_DEALER_ID);
     }
     item.updatedAt = nowIso();
     if (!item.createdAt) item.createdAt = item.updatedAt;

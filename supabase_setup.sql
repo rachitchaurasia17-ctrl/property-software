@@ -1,8 +1,22 @@
 -- ============================================================
--- PlotMap — Supabase setup
+-- ⛔ RETIRED — DO NOT RUN. Kept for historical reference only.
+--
+-- This file predates the security hardening. Re-running it would
+-- RE-CREATE the permissive using(true)/with check(true) anon
+-- read/write policies on crm_records / map_overlays /
+-- prebuilt_maps / presentation_events (permissive RLS policies are
+-- OR-ed, so the hardened policies would NOT protect you).
+-- Superseded by: supabase_security_patch.sql + supabase/migrations/*.
+-- The guard below makes any accidental run fail immediately.
+-- ============================================================
+do $$ begin
+  raise exception 'supabase_setup.sql is RETIRED — do not run. Use supabase_security_patch.sql + supabase/migrations/ instead.';
+end $$;
+
+-- ============================================================
+-- PlotMap — Supabase setup (ORIGINAL, RETIRED — see guard above)
 -- Run ONCE in your Supabase Dashboard -> SQL Editor
 -- Project: czmkfmkmgqlienmdihul
--- Safe to re-run (idempotent).
 --
 -- Part 1 keeps the original A/B/C/D highlight-set table.
 -- Part 2 adds the real SaaS persistence tables:

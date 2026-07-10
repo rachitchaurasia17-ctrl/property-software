@@ -1,6 +1,6 @@
 # Active Routes
 
-Updated: 2026-07-06 (repo cleanup + product consolidation pass)
+Updated: 2026-07-10 (developer control + trial analytics pass)
 
 ## Public
 
@@ -23,6 +23,12 @@ Updated: 2026-07-06 (repo cleanup + product consolidation pass)
 | `/admin/property-insights.html` | Property-level presentation activity + inventory health | owner | Keep — nav cleaned |
 | `/admin/team.html` | Team workspace (team users land here after Dealer Login) | team+ | Keep — cleaned |
 | `/admin/access-expired.html` | Blocked/expired screen used by the auth guard | public shell | Keep |
+
+## Platform / Developer (server-gated, never in dealer nav)
+
+| Route | Purpose | Role | Decision |
+| --- | --- | --- | --- |
+| `/admin/developer.html` | Developer Control — all dealers, account/trial state, passcode management, trial usage analytics. Data only via `plotmap_admin_*` RPCs (`platform_admins` gate, phase 4); non-admins are redirected and receive no data. Not linked from any nav. | platform admin | Keep — **new** (2026-07-10) |
 
 ## Redirects (retired surfaces — load no data, no auth needed)
 

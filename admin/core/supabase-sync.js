@@ -63,7 +63,13 @@
       const dealer = data && Array.isArray(data.dealers) ? data.dealers[0] : null;
       if (dealer && dealer.id) return dealer.id;
     }
-    return 'dealer-demo';
+    // Admin routes must NEVER fall back to the demo tenant: a signed-in
+    // dealer whose id has not resolved yet would otherwise pull/stamp
+    // dealer-demo data (multi-dealer corruption). Null = skip sync until
+    // the profile mirror (plotmap_dealer_id) is written by guardPage.
+    // The public Client Presentation keeps the demo tenant as its
+    // intentional default for bare /app/plotmap/ visits.
+    return isAdminRoute() ? null : 'dealer-demo';
   }
 
   async function authToken() {
@@ -173,6 +179,8 @@
       const groups = {};
       pending.forEach(item => {
         if (activeDealerId && item && item.dealerId && item.dealerId !== activeDealerId) return;
+        // never push rows that would land with no dealer scope
+        if (!activeDealerId && !(item && item.dealerId) && !(item && item.payload && item.payload.dealerId)) return;
         const table = tableFor(item.entityType);
         if (!table || unavailable.has(table)) return;
         (groups[table] = groups[table] || []).push(item);
@@ -291,6 +299,7 @@
     if (!window.CRM) return;
     const since = pullStamps().crm_records || '1970-01-01T00:00:00Z';
     const dealerId = resolveCurrentDealerId();
+    if (!dealerId) return;
     const table = isAdminRoute() ? 'crm_records' : CLIENT_SAFE_PROPERTIES_VIEW;
     if (unavailable.has(table)) return;
     const result = isAdminRoute()
@@ -319,16 +328,27 @@
         return;
       }
       if (!Array.isArray(data.properties)) data.properties = [];
-      mergeById(data.properties, [Object.assign({}, row, {
+      // Client route: strip to the known client-safe column set BEFORE the
+      // row touches localStorage — client safety must not depend on the
+      // server view never gaining a sensitive column.
+      mergeById(data.properties, [{
         id: row.id,
+        dealerId: row.dealer_id || '',
+        title: row.title || '',
+        area: row.area || '',
         plotNumber: row.plot_number || '',
         block: row.block || '',
         blockId: row.block_id || row.blockId || '',
+        size: row.size || '',
+        facing: row.facing || '',
         roadWidth: row.road_width || '',
+        description: row.description || '',
         propertyType: row.property_type || '',
+        tags: row.tags || null,
         internalStatus: row.internal_status || 'Available',
+        updatedAt: row.updated_at,
         syncStatus: 'synced'
-      })], true);
+      }], true);
     });
     window.CRM.saveCRM(data);
     setPullStamp('crm_records', latest);
@@ -338,6 +358,7 @@
     if (unavailable.has('presentation_events') || !window.CRM || !isAdminRoute()) return;
     const since = pullStamps().presentation_events || '1970-01-01T00:00:00Z';
     const dealerId = resolveCurrentDealerId();
+    if (!dealerId) return;
     const result = await rest('presentation_events?select=*&dealer_id=eq.' + encodeURIComponent(dealerId) + '&created_at=gt.' + encodeURIComponent(since) + '&order=created_at.asc&limit=1000', { method: 'GET' });
     if (result.missing || result.forbidden || !result.data || !result.data.length) return;
     const data = window.CRM.getCRM();
@@ -369,6 +390,7 @@
     if (unavailable.has('map_overlays') || !window.PMOverlayStore) return;
     const since = pullStamps().map_overlays || '1970-01-01T00:00:00Z';
     const dealerId = resolveCurrentDealerId();
+    if (!dealerId) return;
     const result = isAdminRoute()
       ? await rest('map_overlays?select=*&dealer_id=eq.' + encodeURIComponent(dealerId) + '&updated_at=gt.' + encodeURIComponent(since) + '&order=updated_at.asc&limit=500', { method: 'GET' })
       : await callRpc('plotmap_client_overlays', { p_dealer_id: dealerId });

@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Developer Control — PlotMap</title>
+<!--
+  PLATFORM-ADMIN-ONLY SURFACE.
+  This page is intentionally NOT linked from any dealer nav (nav.js),
+  the Team Workspace, or the Client Presentation. The page shell is
+  static (this is a static host), so the real gate is SERVER-SIDE:
+  every byte of data on this page comes from plotmap_admin_* RPCs that
+  raise 'platform admin required' unless the signed-in profile is in
+  public.platform_admins (phase 4). A normal dealer opening this URL is
+  redirected away after the server refuses the probe call; even with
+  the redirect bypassed there is nothing to see — no data renders.
+  This page never loads the dealer CRM store and never writes dealer
+  analytics events.
+-->
+<script src="/admin/core/auth.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html { visibility: hidden; }
+  body { margin: 0; font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif; background: #F5EFE2; color: #1C1E1B; }
+  a { color: inherit; }
+  .top { display: flex; align-items: center; gap: 14px; padding: 18px 28px; border-bottom: 1px solid #E8DFC9; background: #FFFDF8; }
+  .top .ring { width: 15px; height: 15px; border-radius: 50%; border: 3px solid #1F5E47; }
+  .top b { font-size: 16px; letter-spacing: -0.01em; }
+  .top .tag { font-size: 10.5px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #8A3B1E; background: #F7E7E0; border: 1px solid #E4B7A5; padding: 4px 10px; border-radius: 999px; }
+  .top .sp { flex: 1; }
+  .top button, .top a.btn { border: 1px solid #E8DFC9; background: #fff; color: #5F6B61; font-size: 13px; font-weight: 700; padding: 8px 14px; border-radius: 10px; cursor: pointer; text-decoration: none; }
+  main { max-width: 1240px; margin: 0 auto; padding: 26px 28px 80px; }
+  h1 { font-size: 26px; font-weight: 600; letter-spacing: -0.01em; margin: 6px 0 4px; }
+  .sub { font-size: 14px; color: #6B7268; margin-bottom: 20px; }
+  .banner { border-radius: 14px; padding: 13px 18px; font-size: 13.5px; font-weight: 600; margin: 0 0 18px; line-height: 1.55; }
+  .banner.warn { background: #FBF3E4; border: 1px solid #E8D9BE; color: #8A6224; }
+  .banner.err { background: #F7E7E0; border: 1px solid #E4B7A5; color: #8A3B1E; }
+  .banner.ok { background: #E7F0EB; border: 1px solid #BFD8CC; color: #1F5E47; }
+  .banner code { background: rgba(0,0,0,.05); padding: 1px 6px; border-radius: 6px; font-size: 12px; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 22px; }
+  .stat { background: #fff; border: 1px solid #E8DFC9; border-radius: 16px; padding: 15px 17px; }
+  .stat .k { font-size: 12px; font-weight: 700; color: #8A7C60; letter-spacing: 0.04em; text-transform: uppercase; }
+  .stat .v { font-size: 27px; font-weight: 650; margin-top: 6px; }
+  .card { background: #fff; border: 1px solid #E8DFC9; border-radius: 18px; padding: 20px 22px; margin-bottom: 20px; }
+  .card h2 { margin: 0 0 4px; font-size: 17px; }
+  .card .hint { font-size: 13px; color: #6B7268; margin-bottom: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th { text-align: left; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #8A7C60; padding: 8px 10px; border-bottom: 1px solid #E8DFC9; }
+  td { padding: 11px 10px; border-bottom: 1px solid #F1EADB; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .dname { font-weight: 700; }
+  .dmeta { font-size: 12px; color: #8A8371; margin-top: 2px; }
+  .chip { display: inline-block; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 999px; letter-spacing: 0.03em; }
+  .chip.active { background: #E7F0EB; color: #1F5E47; }
+  .chip.trial { background: #F6ECD8; color: #A87C3D; }
+  .chip.suspended { background: #F7E7E0; color: #8A3B1E; }
+  .chip.expired { background: #ECECEC; color: #5F5F5F; }
+  .chip.strong { background: #E7F0EB; color: #1F5E47; }
+  .chip.medium { background: #F6ECD8; color: #A87C3D; }
+  .chip.low { background: #ECECEC; color: #5F5F5F; }
+  .rowbtns { display: flex; flex-wrap: wrap; gap: 6px; }
+  .rowbtns button { border: 1px solid #E8DFC9; background: #FAF8F3; color: #4A5450; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 8px; cursor: pointer; }
+  .rowbtns button:hover { border-color: #1F5E47; color: #1F5E47; }
+  .rowbtns button.danger:hover { border-color: #9A4A2C; color: #9A4A2C; }
+  form.create { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  form.create label { font-size: 12px; font-weight: 700; color: #6B7268; display: flex; flex-direction: column; gap: 5px; }
+  form.create input, form.create select { height: 40px; border-radius: 10px; border: 1px solid #E8DFC9; background: #FAF8F3; padding: 0 12px; font-size: 14px; font-family: inherit; color: #1C1E1B; outline: none; }
+  form.create input:focus, form.create select:focus { border-color: #1F5E47; background: #fff; }
+  .form-actions { grid-column: 1 / -1; display: flex; gap: 10px; align-items: center; }
+  .btn-primary { border: none; background: #1F5E47; color: #fff; font-weight: 700; font-size: 14px; padding: 11px 20px; border-radius: 10px; cursor: pointer; }
+  .btn-primary:disabled { opacity: .6; cursor: default; }
+  .btn-ghost { border: 1px solid #E8DFC9; background: #fff; color: #5F6B61; font-weight: 700; font-size: 13px; padding: 10px 16px; border-radius: 10px; cursor: pointer; }
+  .steplog { font-size: 12.5px; font-family: ui-monospace, Consolas, monospace; background: #FAF8F3; border: 1px solid #E8DFC9; border-radius: 10px; padding: 12px 14px; margin-top: 12px; white-space: pre-wrap; display: none; }
+  dialog { border: 1px solid #E8DFC9; border-radius: 18px; padding: 24px; max-width: 560px; width: calc(100% - 40px); box-shadow: 0 30px 70px rgba(60,45,15,.25); }
+  dialog::backdrop { background: rgba(28,30,27,.45); }
+  dialog h3 { margin: 0 0 6px; font-size: 17px; }
+  dialog .hint { font-size: 13px; color: #6B7268; margin-bottom: 14px; }
+  dialog label { font-size: 12px; font-weight: 700; color: #6B7268; display: block; margin: 10px 0 4px; }
+  dialog input, dialog textarea { width: 100%; border-radius: 10px; border: 1px solid #E8DFC9; background: #FAF8F3; padding: 10px 12px; font-size: 14px; font-family: inherit; color: #1C1E1B; outline: none; }
+  dialog textarea { min-height: 90px; resize: vertical; }
+  dialog .actions { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; }
+  .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 12px 0; }
+  .summary-grid .cell { background: #FAF8F3; border: 1px solid #EDE6D5; border-radius: 12px; padding: 10px 12px; }
+  .summary-grid .cell .k { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: #8A7C60; }
+  .summary-grid .cell .v { font-size: 19px; font-weight: 650; margin-top: 4px; }
+  .locked { max-width: 620px; margin: 80px auto; text-align: center; background: #fff; border: 1px solid #E8DFC9; border-radius: 20px; padding: 40px 36px; }
+  .locked h1 { font-size: 24px; }
+  .muted { color: #8A8371; }
+  @media (max-width: 900px) { .grid, form.create, .summary-grid { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+
+<div id="app" style="display:none;">
+  <header class="top">
+    <span class="ring" aria-hidden="true"></span>
+    <b>PlotMap</b>
+    <span class="tag">Developer Control</span>
+    <span class="sp"></span>
+    <a class="btn" href="/admin/owner.html">Dealer dashboard</a>
+    <button id="btn-refresh" type="button">Refresh</button>
+    <button id="btn-signout" type="button">Sign out</button>
+  </header>
+
+  <main>
+    <h1>Dealer control &amp; trial analytics</h1>
+    <div class="sub">Platform-admin view of every dealer account, trial state and real usage. Dealers never see this page; every number below comes from admin-only RPCs.</div>
+
+    <div id="migration-banner"></div>
+
+    <div class="grid" id="kpis"></div>
+
+    <section class="card">
+      <h2>All dealers</h2>
+      <div class="hint">Account + trial + usage per dealer. Usage columns come from <code>presentation_events</code> aggregated server-side.</div>
+      <div style="overflow-x:auto;"><table>
+        <thead><tr>
+          <th>Dealer</th><th>Status</th><th>Trial</th><th>Last active</th>
+          <th>Sessions</th><th>Presentation opens</th><th>WhatsApp shares</th><th>Usage</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="dealer-rows"><tr><td colspan="9" class="muted">Loading dealers…</td></tr></tbody>
+      </table></div>
+    </section>
+
+    <section class="card">
+      <h2>Create dealer</h2>
+      <div class="hint">Fills <code>dealer_settings</code> (account + trial) via the phase-4 admin RPC, then directory fields and the passcode via the new RPCs. Steps that need the pending migration are reported honestly — nothing is faked. The dealer's Supabase auth user + profile row are a one-time manual step (see the onboarding checklist below).</div>
+      <form class="create" id="create-form">
+        <label>Dealer ID (slug) <input id="c-dealer-id" placeholder="dealer-sharma-realty" required pattern="[a-z0-9][a-z0-9-]{2,40}"></label>
+        <label>Business name <input id="c-business" placeholder="Sharma Realty" required></label>
+        <label>Owner name <input id="c-owner" placeholder="Rohit Sharma"></label>
+        <label>Owner phone (optional) <input id="c-phone" placeholder="+91…"></label>
+        <label>Primary area (optional) <input id="c-area" placeholder="New Chandigarh"></label>
+        <label>Status
+          <select id="c-status">
+            <option value="trial">Trial</option>
+            <option value="active">Active (paid)</option>
+          </select>
+        </label>
+        <label>Trial start <input id="c-trial-start" type="date"></label>
+        <label>Trial end <input id="c-trial-end" type="date"></label>
+        <label>Login email (for passcode login) <input id="c-email" type="email" placeholder="dealer@business.com"></label>
+        <label style="grid-column: span 2;">Passcode (min 8 chars)
+          <input id="c-passcode" autocomplete="off" placeholder="Click Generate →">
+        </label>
+        <label style="align-self:end;"><button type="button" class="btn-ghost" id="btn-gen-passcode" style="height:40px;">Generate passcode</button></label>
+        <div class="form-actions">
+          <button class="btn-primary" type="submit" id="c-submit">Create dealer</button>
+          <span class="muted" style="font-size:12.5px;">The passcode is shown once here and stored only as a bcrypt hash server-side.</span>
+        </div>
+      </form>
+      <div class="steplog" id="create-log"></div>
+    </section>
+
+    <section class="card">
+      <h2>Onboarding checklist (manual, one-time per dealer)</h2>
+      <div class="hint" style="margin-bottom:0;">
+        1. Supabase Dashboard → Authentication → <b>Add user</b>: the login email above, password = the passcode, auto-confirm ON.<br>
+        2. SQL editor → insert the profile row:
+        <code>insert into public.profiles (id, email, role, dealer_id, status) values ('&lt;auth-user-uuid&gt;', '&lt;login email&gt;', 'owner', '&lt;dealer-id&gt;', 'active');</code><br>
+        3. Create the dealer here (form above). 4. Hand the dealer their passcode — they sign in with it on the landing page.<br>
+        <span class="muted">Passcode reset: set a new one here, then update the auth user's password to the same value in the Dashboard.</span>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="locked" style="display:none;">
+  <div class="locked">
+    <h1>Developer access required</h1>
+    <p class="muted" id="locked-reason" style="font-size:14px; line-height:1.6;"></p>
+    <p><a href="/" style="font-weight:700; color:#1F5E47;">← Back to PlotMap</a></p>
+  </div>
+</div>
+
+<!-- per-dealer dialogs -->
+<dialog id="dlg-trial">
+  <h3>Trial &amp; account</h3>
+  <div class="hint" id="dlg-trial-dealer"></div>
+  <label>Trial start</label><input id="t-start" type="date">
+  <label>Trial end</label><input id="t-end" type="date">
+  <label>Payment notes (provider-only)</label><textarea id="t-paynotes" placeholder="e.g. Paid ₹X on …, UPI ref …"></textarea>
+  <label>Developer notes (trial feedback / onboarding)</label><textarea id="t-devnotes" placeholder="e.g. Called on day 3 — wants sector maps for Mullanpur."></textarea>
+  <div class="actions">
+    <button class="btn-ghost" type="button" data-close>Cancel</button>
+    <button class="btn-primary" type="button" id="t-save">Save</button>
+  </div>
+  <div class="steplog" id="t-log"></div>
+</dialog>
+
+<dialog id="dlg-passcode">
+  <h3>Set / reset passcode</h3>
+  <div class="hint" id="dlg-pass-dealer"></div>
+  <label>Login email</label><input id="p-email" type="email" placeholder="dealer@business.com">
+  <label>New passcode (min 8 chars)</label>
+  <div style="display:flex; gap:8px;">
+    <input id="p-passcode" autocomplete="off" style="flex:1;">
+    <button class="btn-ghost" type="button" id="p-gen">Generate</button>
+  </div>
+  <div class="hint" style="margin-top:10px;">Stored server-side as a bcrypt hash only. <b>Also set the same value as the auth user's password</b> in Supabase Dashboard → Authentication, or the final sign-in step will fail.</div>
+  <div class="actions">
+    <button class="btn-ghost" type="button" data-close>Cancel</button>
+    <button class="btn-primary" type="button" id="p-save">Save passcode</button>
+  </div>
+  <div class="steplog" id="p-log"></div>
+</dialog>
+
+<dialog id="dlg-summary">
+  <h3 id="s-title">Trial summary</h3>
+  <div class="hint" id="s-sub"></div>
+  <div class="summary-grid" id="s-cells"></div>
+  <div id="s-breakdown" class="hint" style="margin-top:4px;"></div>
+  <label>Sales feedback notes (saved to developer notes)</label>
+  <textarea id="s-notes"></textarea>
+  <div class="actions">
+    <button class="btn-ghost" type="button" data-close>Close</button>
+    <button class="btn-primary" type="button" id="s-save">Save notes</button>
+  </div>
+  <div class="steplog" id="s-log"></div>
+</dialog>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const state = { dealers: [], usage: {}, flags: { directoryRpc: true, usageRpc: true, trialRpc: true, passcodeRpc: true } };
+
+  async function rpc(name, payload) {
+    const token = await window.PMAuth.getAccessToken().catch(() => null);
+    const res = await fetch(window.PMAuth.SUPABASE_URL + '/rest/v1/rpc/' + name, {
+      method: 'POST',
+      headers: {
+        apikey: window.PMAuth.SUPABASE_KEY,
+        Authorization: 'Bearer ' + (token || window.PMAuth.SUPABASE_KEY),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload || {})
+    });
+    const data = await res.json().catch(() => null);
+    return { status: res.status, ok: res.ok, data, message: data && data.message ? data.message : '' };
+  }
+
+  function showLocked(reason) {
+    $('locked-reason').textContent = reason;
+    $('locked').style.display = '';
+    $('app').style.display = 'none';
+    document.documentElement.style.visibility = '';
+  }
+
+  // ---------- access gate ----------
+  // Server-side truth: the phase-4 admin RPC refuses everyone who is not an
+  // active platform admin. A normal dealer is redirected to their dashboard;
+  // on local dev (mock session) we show the locked shell instead so the
+  // developer can see the page structure — still with ZERO data.
+  async function gate() {
+    const session = await window.PMAuth.getSession();
+    if (!session) {
+      window.location.replace(window.PMAuth.buildLoginRedirect('/admin/developer.html', 'missing_session'));
+      return false;
+    }
+    const probe = await rpc('plotmap_admin_list_dealer_accounts', {});
+    if (probe.ok) return true;
+    if (window.PMAuth.isLocalDev()) {
+      showLocked('This machine is signed in with a local dev/mock session. The server refused the platform-admin probe ('
+        + (probe.message || ('HTTP ' + probe.status))
+        + '), so no dealer data can load here. Sign in as the platform admin on the deployed site.');
+      return false;
+    }
+    if (probe.status === 404) {
+      showLocked('The platform-admin RPCs are not installed on this Supabase project (phase 4 migration missing).');
+      return false;
+    }
+    // signed-in but not a platform admin — send them to their own home
+    window.location.replace('/admin/owner.html?denied=platform_admin');
+    return false;
+  }
+
+  // ---------- data loads ----------
+  async function loadDealers() {
+    // richer directory first (new migration), fall back to phase-4 list
+    let r = await rpc('plotmap_admin_dealer_directory', {});
+    if (r.status === 404) {
+      state.flags.directoryRpc = false;
+      r = await rpc('plotmap_admin_list_dealer_accounts', {});
+    }
+    if (!r.ok) throw new Error('dealer list failed: ' + (r.message || r.status));
+    state.dealers = Array.isArray(r.data) ? r.data : [];
+  }
+
+  async function loadUsage() {
+    const r = await rpc('plotmap_admin_dealer_usage', {});
+    if (r.status === 404) { state.flags.usageRpc = false; state.usage = {}; return; }
+    if (!r.ok) { state.usage = {}; return; }
+    state.usage = {};
+    (r.data || []).forEach(row => { state.usage[row.dealer_id] = row; });
+  }
+
+  async function probeOptionalRpcs() {
+    // detect (without side effects) whether the new admin RPCs exist:
+    // an invalid-arg call returns 400 from the function body (exists) vs
+    // 404 from PostgREST (missing).
+    const t = await rpc('plotmap_admin_set_dealer_trial', { p_dealer_id: '' });
+    state.flags.trialRpc = t.status !== 404;
+    const p = await rpc('plotmap_admin_set_dealer_passcode', { p_dealer_id: '', p_login_email: '', p_passcode: '' });
+    state.flags.passcodeRpc = p.status !== 404;
+  }
+
+  // ---------- rendering ----------
+  function usageStrength(u) {
+    if (!u) return { label: 'Low', cls: 'low', score: 0 };
+    const score = Number(u.sessions || 0) * 2
+      + Number(u.active_days || 0) * 3
+      + Number(u.presentation_opens || 0) * 2
+      + Number(u.whatsapp_shares || 0) * 4
+      + Number(u.property_opens || 0)
+      + Number(u.map_opens || 0);
+    if (score >= 60) return { label: 'Strong', cls: 'strong', score };
+    if (score >= 20) return { label: 'Medium', cls: 'medium', score };
+    return { label: 'Low', cls: 'low', score };
+  }
+
+  function fmtDate(v) {
+    if (!v) return '—';
+    const d = new Date(v);
+    return isNaN(d) ? '—' : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  function fmtWhen(v) {
+    if (!v) return '—';
+    const d = new Date(v);
+    if (isNaN(d)) return '—';
+    const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+    if (days <= 0) return 'today';
+    if (days === 1) return 'yesterday';
+    return days + ' days ago';
+  }
+
+  function statusChip(d) {
+    const acc = d.account_status || 'active';
+    if (acc === 'suspended') return '<span class="chip suspended">Suspended</span>';
+    if (acc === 'expired') return '<span class="chip expired">Expired</span>';
+    if ((d.subscription_status || 'trial') === 'trial') {
+      const over = d.trial_end && new Date(d.trial_end).getTime() < Date.now();
+      return over ? '<span class="chip expired">Trial ended</span>' : '<span class="chip trial">Trial</span>';
+    }
+    return '<span class="chip active">Active</span>';
+  }
+
+  function renderBanner() {
+    const missing = [];
+    if (!state.flags.directoryRpc) missing.push('dealer directory fields (owner name/phone/area, developer notes, passcode state)');
+    if (!state.flags.usageRpc) missing.push('cross-dealer usage analytics');
+    if (!state.flags.trialRpc) missing.push('trial start/notes editing');
+    if (!state.flags.passcodeRpc) missing.push('passcode set/reset');
+    $('migration-banner').innerHTML = missing.length
+      ? '<div class="banner warn">⚠ Backend migration pending — these features are disabled until you apply '
+        + '<code>supabase/migrations/20260710_developer_control_and_trial_analytics_draft.sql</code> (review first): '
+        + esc(missing.join(' · ')) + '. Nothing below is faked; unavailable numbers show as “—”.</div>'
+      : '<div class="banner ok">✓ All developer-control RPCs are installed. Every number on this page is live from Supabase.</div>';
+  }
+
+  function renderKpis() {
+    const total = state.dealers.length;
+    const active = state.dealers.filter(d => (d.account_status || 'active') === 'active' && (d.subscription_status || 'trial') !== 'trial').length;
+    const trial = state.dealers.filter(d => (d.account_status || 'active') === 'active' && (d.subscription_status || 'trial') === 'trial').length;
+    const blocked = state.dealers.filter(d => ['suspended', 'expired'].includes(d.account_status)).length;
+    const cells = [
+      ['Dealers', total], ['On trial', trial], ['Paid / active', active], ['Suspended / expired', blocked]
+    ];
+    $('kpis').innerHTML = cells.map(c => '<div class="stat"><div class="k">' + c[0] + '</div><div class="v">' + c[1] + '</div></div>').join('');
+  }
+
+  function renderRows() {
+    const rows = state.dealers.map(d => {
+      const u = state.usage[d.dealer_id];
+      const s = usageStrength(u);
+      const usageCell = state.flags.usageRpc
+        ? '<span class="chip ' + s.cls + '">' + s.label + '</span>'
+        : '<span class="muted">—</span>';
+      return '<tr>'
+        + '<td><div class="dname">' + esc(d.brand_name || d.dealer_id) + '</div>'
+        +   '<div class="dmeta">' + esc(d.dealer_id) + (d.owner_name ? ' · ' + esc(d.owner_name) : '') + (d.owner_phone ? ' · ' + esc(d.owner_phone) : '')
+        +   (state.flags.directoryRpc ? (d.has_passcode ? ' · passcode ✓' : ' · no passcode') : '') + '</div></td>'
+        + '<td>' + statusChip(d) + '</td>'
+        + '<td style="white-space:nowrap;">' + fmtDate(d.trial_start) + ' → ' + fmtDate(d.trial_end) + '</td>'
+        + '<td>' + (u ? fmtWhen(u.last_active) : '—') + '</td>'
+        + '<td>' + (u ? Number(u.sessions || 0) : '—') + '</td>'
+        + '<td>' + (u ? Number(u.presentation_opens || 0) : '—') + '</td>'
+        + '<td>' + (u ? Number(u.whatsapp_shares || 0) : '—') + '</td>'
+        + '<td>' + usageCell + '</td>'
+        + '<td><div class="rowbtns">'
+        +   '<button data-act="summary" data-id="' + esc(d.dealer_id) + '">Summary</button>'
+        +   '<button data-act="trial" data-id="' + esc(d.dealer_id) + '">Trial…</button>'
+        +   '<button data-act="passcode" data-id="' + esc(d.dealer_id) + '">Passcode…</button>'
+        +   ((d.account_status || 'active') === 'active'
+              ? '<button class="danger" data-act="suspend" data-id="' + esc(d.dealer_id) + '">Suspend</button>'
+              : '<button data-act="activate" data-id="' + esc(d.dealer_id) + '">Activate</button>')
+        +   ((d.account_status || 'active') !== 'expired'
+              ? '<button class="danger" data-act="expire" data-id="' + esc(d.dealer_id) + '">Expire</button>' : '')
+        + '</div></td>'
+        + '</tr>';
+    });
+    $('dealer-rows').innerHTML = rows.join('') || '<tr><td colspan="9" class="muted">No dealers found in dealer_settings yet.</td></tr>';
+  }
+
+  function renderAll() { renderBanner(); renderKpis(); renderRows(); }
+
+  async function refresh() {
+    await Promise.all([loadDealers(), loadUsage()]);
+    renderAll();
+  }
+
+  // ---------- helpers ----------
+  function generatePasscode() {
+    const alphabet = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    const bytes = new Uint8Array(12);
+    crypto.getRandomValues(bytes);
+    return [...bytes].map(b => alphabet[b % alphabet.length]).join('');
+  }
+  function log(el, msg, append) {
+    el.style.display = 'block';
+    el.textContent = (append && el.textContent ? el.textContent + '\n' : '') + msg;
+  }
+  function dealerById(id) { return state.dealers.find(d => d.dealer_id === id) || null; }
+  function isoOrNull(dateInputValue, endOfDay) {
+    if (!dateInputValue) return null;
+    return dateInputValue + (endOfDay ? 'T23:59:59Z' : 'T00:00:00Z');
+  }
+
+  // ---------- account status actions ----------
+  async function setAccountStatus(dealerId, status) {
+    const verb = status === 'active' ? 'Activate' : status === 'suspended' ? 'Suspend' : 'Expire';
+    if (!confirm(verb + ' dealer "' + dealerId + '"? '
+      + (status === 'active' ? 'They regain full access.' : 'Their dashboard, writes and Client Presentation are blocked server-side.'))) return;
+    const r = await rpc('plotmap_admin_set_dealer_account', { p_dealer_id: dealerId, p_account_status: status });
+    if (!r.ok) { alert('Failed: ' + (r.message || r.status)); return; }
+    await refresh();
+  }
+
+  // ---------- dialogs ----------
+  let dlgDealerId = null;
+  document.querySelectorAll('dialog [data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
+
+  function openTrialDialog(id) {
+    const d = dealerById(id); if (!d) return;
+    dlgDealerId = id;
+    $('dlg-trial-dealer').textContent = (d.brand_name || id) + ' · ' + id;
+    $('t-start').value = d.trial_start ? String(d.trial_start).slice(0, 10) : '';
+    $('t-end').value = d.trial_end ? String(d.trial_end).slice(0, 10) : '';
+    $('t-paynotes').value = d.payment_notes || '';
+    $('t-devnotes').value = d.developer_notes || '';
+    $('t-devnotes').disabled = !state.flags.trialRpc;
+    $('t-log').style.display = 'none'; $('t-log').textContent = '';
+    $('dlg-trial').showModal();
+  }
+
+  $('t-save').addEventListener('click', async () => {
+    const id = dlgDealerId; if (!id) return;
+    const logEl = $('t-log');
+    // trial end + payment notes ride on the phase-4 RPC (live today)
+    const r1 = await rpc('plotmap_admin_set_dealer_account', {
+      p_dealer_id: id,
+      p_account_status: (dealerById(id) || {}).account_status || 'active',
+      p_trial_end: isoOrNull($('t-end').value, true),
+      p_payment_notes: $('t-paynotes').value || null
+    });
+    log(logEl, (r1.ok ? '✓' : '✗') + ' trial end + payment notes: ' + (r1.ok ? 'saved' : (r1.message || r1.status)));
+    if (state.flags.trialRpc) {
+      const r2 = await rpc('plotmap_admin_set_dealer_trial', {
+        p_dealer_id: id,
+        p_trial_start: isoOrNull($('t-start').value, false),
+        p_developer_notes: $('t-devnotes').value || null
+      });
+      log(logEl, (r2.ok ? '✓' : '✗') + ' trial start + developer notes: ' + (r2.ok ? 'saved' : (r2.message || r2.status)), true);
+    } else {
+      log(logEl, '– trial start / developer notes skipped: migration 20260710 not applied', true);
+    }
+    await refresh();
+  });
+
+  function openPasscodeDialog(id) {
+    const d = dealerById(id); if (!d) return;
+    dlgDealerId = id;
+    $('dlg-pass-dealer').textContent = (d.brand_name || id) + ' · ' + id;
+    $('p-email').value = d.login_email || '';
+    $('p-passcode').value = '';
+    $('p-log').style.display = 'none'; $('p-log').textContent = '';
+    if (!state.flags.passcodeRpc) {
+      log($('p-log'), 'Passcode RPC not installed — apply migration 20260710 first.');
+    }
+    $('dlg-passcode').showModal();
+  }
+  $('p-gen').addEventListener('click', () => { $('p-passcode').value = generatePasscode(); });
+  $('p-save').addEventListener('click', async () => {
+    const id = dlgDealerId; if (!id) return;
+    if (!state.flags.passcodeRpc) { log($('p-log'), 'Cannot save: migration 20260710 not applied.'); return; }
+    const email = $('p-email').value.trim();
+    const code = $('p-passcode').value.trim();
+    if (!email || code.length < 8) { log($('p-log'), 'Need a login email and a passcode of at least 8 characters.'); return; }
+    const r = await rpc('plotmap_admin_set_dealer_passcode', { p_dealer_id: id, p_login_email: email, p_passcode: code });
+    log($('p-log'), r.ok
+      ? '✓ Passcode hash saved. REMEMBER: set the same value as the auth user password in Supabase Dashboard → Authentication.'
+      : '✗ ' + (r.message || r.status));
+    if (r.ok) await refresh();
+  });
+
+  async function openSummaryDialog(id) {
+    const d = dealerById(id); if (!d) return;
+    dlgDealerId = id;
+    const u = state.usage[id];
+    const s = usageStrength(u);
+    $('s-title').textContent = 'Trial summary — ' + (d.brand_name || id);
+    const trialDays = d.trial_start ? Math.max(0, Math.floor((Date.now() - new Date(d.trial_start).getTime()) / 86400000)) : null;
+    $('s-sub').innerHTML = esc(id) + ' · ' + statusChip(d)
+      + (trialDays !== null ? ' · day ' + trialDays + ' of trial' : ' · trial start not set')
+      + ' · usage strength: <span class="chip ' + s.cls + '">' + s.label + '</span>';
+    const cells = state.flags.usageRpc && u ? [
+      ['Last active', fmtWhen(u.last_active)],
+      ['Sessions', Number(u.sessions || 0)],
+      ['Active days', Number(u.active_days || 0)],
+      ['Logins', Number(u.logins || 0)],
+      ['Presentation opens', Number(u.presentation_opens || 0)],
+      ['Property opens', Number(u.property_opens || 0)],
+      ['Map opens', Number(u.map_opens || 0)],
+      ['WhatsApp shares', Number(u.whatsapp_shares || 0)],
+      ['Map Studio opens', Number(u.studio_opens || 0)],
+      ['Dashboard opens', Number(u.dashboard_opens || 0)],
+      ['Properties page', Number(u.properties_page_opens || 0)],
+      ['Total events', Number(u.total_events || 0)]
+    ] : [['Usage', state.flags.usageRpc ? 'No events recorded yet' : 'Migration 20260710 pending']];
+    $('s-cells').innerHTML = cells.map(c => '<div class="cell"><div class="k">' + esc(c[0]) + '</div><div class="v">' + esc(c[1]) + '</div></div>').join('');
+    $('s-breakdown').textContent = '';
+    $('s-notes').value = d.developer_notes || '';
+    $('s-notes').disabled = !state.flags.trialRpc;
+    $('s-log').style.display = 'none'; $('s-log').textContent = '';
+    $('dlg-summary').showModal();
+    if (state.flags.usageRpc) {
+      const br = await rpc('plotmap_admin_dealer_event_breakdown', { p_dealer_id: id, p_days: 30 });
+      if (br.ok && Array.isArray(br.data) && br.data.length) {
+        $('s-breakdown').innerHTML = '<b>Last 30 days by feature:</b> '
+          + br.data.slice(0, 10).map(row => esc(row.event_type) + ' × ' + Number(row.events)).join(' · ');
+      }
+    }
+  }
+  $('s-save').addEventListener('click', async () => {
+    const id = dlgDealerId; if (!id) return;
+    if (!state.flags.trialRpc) { log($('s-log'), 'Cannot save: migration 20260710 not applied.'); return; }
+    const r = await rpc('plotmap_admin_set_dealer_trial', { p_dealer_id: id, p_developer_notes: $('s-notes').value || null });
+    log($('s-log'), r.ok ? '✓ Notes saved.' : '✗ ' + (r.message || r.status));
+    if (r.ok) await refresh();
+  });
+
+  // ---------- create dealer ----------
+  $('btn-gen-passcode').addEventListener('click', () => { $('c-passcode').value = generatePasscode(); });
+  $('create-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const logEl = $('create-log');
+    logEl.textContent = ''; logEl.style.display = 'block';
+    $('c-submit').disabled = true;
+    try {
+      const dealerId = $('c-dealer-id').value.trim().toLowerCase();
+      const status = $('c-status').value;
+      const r1 = await rpc('plotmap_admin_set_dealer_account', {
+        p_dealer_id: dealerId,
+        p_account_status: 'active',
+        p_subscription_status: status === 'trial' ? 'trial' : 'active',
+        p_trial_end: isoOrNull($('c-trial-end').value, true)
+      });
+      log(logEl, (r1.ok ? '✓' : '✗') + ' dealer account (dealer_settings): ' + (r1.ok ? 'created/updated' : (r1.message || r1.status)), true);
+      if (!r1.ok) throw new Error('account step failed');
+
+      if (state.flags.directoryRpc) {
+        const r2 = await rpc('plotmap_admin_upsert_dealer_directory', {
+          p_dealer_id: dealerId,
+          p_business_name: $('c-business').value.trim() || null,
+          p_owner_name: $('c-owner').value.trim() || null,
+          p_owner_phone: $('c-phone').value.trim() || null,
+          p_primary_area: $('c-area').value.trim() || null
+        });
+        log(logEl, (r2.ok ? '✓' : '✗') + ' directory fields: ' + (r2.ok ? 'saved' : (r2.message || r2.status)), true);
+      } else {
+        log(logEl, '– directory fields (owner name/phone/area) skipped: migration 20260710 not applied', true);
+      }
+
+      if (state.flags.trialRpc && $('c-trial-start').value) {
+        const r3 = await rpc('plotmap_admin_set_dealer_trial', {
+          p_dealer_id: dealerId,
+          p_trial_start: isoOrNull($('c-trial-start').value, false)
+        });
+        log(logEl, (r3.ok ? '✓' : '✗') + ' trial start: ' + (r3.ok ? 'saved' : (r3.message || r3.status)), true);
+      } else if ($('c-trial-start').value) {
+        log(logEl, '– trial start skipped: migration 20260710 not applied', true);
+      }
+
+      const email = $('c-email').value.trim();
+      const code = $('c-passcode').value.trim();
+      if (email && code.length >= 8) {
+        if (state.flags.passcodeRpc) {
+          const r4 = await rpc('plotmap_admin_set_dealer_passcode', { p_dealer_id: dealerId, p_login_email: email, p_passcode: code });
+          log(logEl, (r4.ok ? '✓' : '✗') + ' passcode hash: ' + (r4.ok ? 'stored (bcrypt)' : (r4.message || r4.status)), true);
+          if (r4.ok) log(logEl, '→ Now create the auth user (email above, password = this passcode) + profile row — see the onboarding checklist.', true);
+        } else {
+          log(logEl, '– passcode skipped: migration 20260710 not applied', true);
+        }
+      } else if (email || code) {
+        log(logEl, '– passcode skipped: need both a login email and a passcode of ≥ 8 chars', true);
+      }
+      await refresh();
+      log(logEl, 'Done.', true);
+    } catch (err) {
+      log(logEl, '✗ ' + (err && err.message ? err.message : 'failed'), true);
+    } finally {
+      $('c-submit').disabled = false;
+    }
+  });
+
+  // ---------- table actions ----------
+  $('dealer-rows').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    const id = btn.getAttribute('data-id');
+    const act = btn.getAttribute('data-act');
+    if (act === 'suspend') setAccountStatus(id, 'suspended');
+    else if (act === 'activate') setAccountStatus(id, 'active');
+    else if (act === 'expire') setAccountStatus(id, 'expired');
+    else if (act === 'trial') openTrialDialog(id);
+    else if (act === 'passcode') openPasscodeDialog(id);
+    else if (act === 'summary') openSummaryDialog(id);
+  });
+
+  $('btn-refresh').addEventListener('click', refresh);
+  $('btn-signout').addEventListener('click', async () => {
+    await window.PMAuth.signOut().catch(() => {});
+    window.location.replace('/');
+  });
+
+  // ---------- boot ----------
+  (async () => {
+    try {
+      const allowed = await gate();
+      if (!allowed) return;
+      $('app').style.display = '';
+      document.documentElement.style.visibility = '';
+      await probeOptionalRpcs();
+      await refresh();
+    } catch (err) {
+      showLocked('Could not load developer data: ' + (err && err.message ? err.message : 'unknown error'));
+    }
+  })();
+})();
+</script>
+</body>
+</html>

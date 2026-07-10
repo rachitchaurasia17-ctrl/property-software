@@ -62,6 +62,19 @@
     return role === 'team' ? teamNavItems() : DEALER_NAV;
   }
 
+  // Trial-analytics: one usage event per admin pageview (owner.html calls
+  // render twice — banner refresh — so dedupe with a module flag).
+  let pageOpenTracked = false;
+  function trackPageOpenOnce(active) {
+    if (pageOpenTracked) return;
+    pageOpenTracked = true;
+    try {
+      if (window.PMEventTracker && typeof window.PMEventTracker.trackAdminPageOpen === 'function') {
+        window.PMEventTracker.trackAdminPageOpen(active);
+      }
+    } catch (err) {}
+  }
+
   // render(active, navRole?)
   // `navRole` lets a page force which nav SET renders ('team' | 'dealer'),
   // independent of the signed-in role. The Team Workspace forces the team nav
@@ -69,6 +82,7 @@
   // the dealer intelligence bar. The brand + role chip still reflect the real
   // role, so an owner can click the logo to return to their dashboard.
   function render(active, navRole) {
+    trackPageOpenOnce(active);
     const host = document.getElementById('pm-topbar');
     if (!host) return;
     const role = currentRole();

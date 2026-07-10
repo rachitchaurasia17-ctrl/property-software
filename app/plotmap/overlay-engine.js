@@ -409,8 +409,20 @@
       try {
         const data = window.CRM.getCRM();
         const pIds = String(item.propertyId).split(',').map(x => x.trim()).filter(Boolean);
+        // Client-safe gate: only client-visible, Available, current-dealer
+        // properties may surface in the client drawer — a Sold/Hidden/
+        // archived or foreign-dealer property linked to an overlay must
+        // not render its details.
+        const activeDealerId = (() => {
+          try { return localStorage.getItem('plotmap_dealer_id') || ''; } catch (e) { return ''; }
+        })();
+        const clientSafeProp = (x) => x
+          && x.clientVisible !== false
+          && !x.archived
+          && (!x.internalStatus || x.internalStatus === 'Available')
+          && (!activeDealerId || !x.dealerId || x.dealerId === activeDealerId);
         pIds.forEach((pid, idx) => {
-          const prop = (data.properties || []).find(x => x.id === pid);
+          const prop = (data.properties || []).find(x => x.id === pid && clientSafeProp(x));
           if (prop) {
             const prefix = pIds.length > 1 ? `Property ${idx + 1} ` : '';
             if (prop.title || prop.propertyCode) rows.push([prefix + 'Name', prop.title || prop.propertyCode]);

@@ -10,6 +10,7 @@
 <script src="/admin/crm-data.js"></script>
 <script src="/admin/core/data-adapter.js"></script>
 <script src="/admin/core/sync-queue.js"></script>
+<script src="/admin/core/event-tracker.js"></script>
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
 <script src="/admin/core/overlay-store.js"></script>
@@ -220,7 +221,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('p-editing').value = '';
   }
   document.getElementById('btn-toggle-add').addEventListener('click', () => {
-    if (formCard.style.display === 'none') openForm(null); else closeForm();
+    if (formCard.style.display === 'none') {
+      openForm(null);
+      if (window.PMEventTracker) window.PMEventTracker.trackProductEvent('property_add_clicked', {});
+    } else closeForm();
   });
   document.getElementById('form-cancel').addEventListener('click', closeForm);
 
@@ -427,6 +431,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!limit.ok) { alert(limit.message); return; }
       }
       crm.addProperty(fields);
+      if (window.PMEventTracker) window.PMEventTracker.trackProductEvent('property_added', {});
     }
     closeForm();
     renderProps();
