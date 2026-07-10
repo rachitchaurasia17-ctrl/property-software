@@ -254,6 +254,18 @@
     applyLegacyRole(cachedProfile);
   }
 
+  // Auto-mock session for local development so login is not required
+  if (isLocalDev()) {
+    if (!readSession()) {
+      writeSession({ access_token: 'mock_local_token', refresh_token: 'mock_local_refresh', expires_at: Math.floor(Date.now() / 1000) + 360000, user: { id: 'user-owner-demo' } });
+    }
+    if (!readJson(PROFILE_KEY)) {
+      writeJson(PROFILE_KEY, { id: 'user-owner-demo', email: 'local@demo.com', role: 'owner', dealer_id: 'dealer-demo', status: 'active' });
+    }
+    const prof = readJson(PROFILE_KEY);
+    if (prof) applyLegacyRole(prof);
+  }
+
   window.PMAuth = {
     SUPABASE_URL,
     SUPABASE_KEY,

@@ -18,15 +18,15 @@
 
   /* ---------- premium block palette (bold, not dull) ---------- */
   const PALETTE = {
-    gold:    { top: '#FFD34F', mid: '#E19A10', side: '#7C4A04', glow: 'rgba(255,190,45,.5)' },
-    magenta: { top: '#FF4FA3', mid: '#D31368', side: '#6D0735', glow: 'rgba(255,45,145,.48)' },
-    purple:  { top: '#9B5CFF', mid: '#6B27C7', side: '#35115F', glow: 'rgba(155,92,255,.46)' },
-    teal:    { top: '#3FF2D0', mid: '#079E91', side: '#04534F', glow: 'rgba(40,235,210,.42)' },
-    emerald: { top: '#79EF65', mid: '#2CA83C', side: '#0D541B', glow: 'rgba(90,230,80,.42)' },
-    blue:    { top: '#4AA8FF', mid: '#145CC8', side: '#082A68', glow: 'rgba(55,150,255,.46)' },
-    orange:  { top: '#FF9847', mid: '#DF5614', side: '#6B2108', glow: 'rgba(255,130,40,.46)' },
-    cyan:    { top: '#53E8FF', mid: '#0FA8D8', side: '#065C7A', glow: 'rgba(60,220,255,.46)' },
-    ruby:    { top: '#FF6052', mid: '#CC251D', side: '#68100D', glow: 'rgba(255,80,70,.46)' }
+    gold:    { top: '#FFD34F', mid: '#E19A10', side: '#7C4A04', glow: 'rgba(255,190,45,.5)', text: '#111111' },
+    magenta: { top: '#FF4FA3', mid: '#D31368', side: '#6D0735', glow: 'rgba(255,45,145,.48)', text: '#FFFFFF' },
+    purple:  { top: '#9B5CFF', mid: '#6B27C7', side: '#35115F', glow: 'rgba(155,92,255,.46)', text: '#FFFFFF' },
+    teal:    { top: '#3FF2D0', mid: '#079E91', side: '#04534F', glow: 'rgba(40,235,210,.42)', text: '#111111' },
+    emerald: { top: '#79EF65', mid: '#2CA83C', side: '#0D541B', glow: 'rgba(90,230,80,.42)', text: '#111111' },
+    blue:    { top: '#4AA8FF', mid: '#145CC8', side: '#082A68', glow: 'rgba(55,150,255,.46)', text: '#FFFFFF' },
+    orange:  { top: '#FF9847', mid: '#DF5614', side: '#6B2108', glow: 'rgba(255,130,40,.46)', text: '#111111' },
+    cyan:    { top: '#53E8FF', mid: '#0FA8D8', side: '#065C7A', glow: 'rgba(60,220,255,.46)', text: '#111111' },
+    ruby:    { top: '#FF6052', mid: '#CC251D', side: '#68100D', glow: 'rgba(255,80,70,.46)', text: '#FFFFFF' }
   };
   const PALETTE_KEYS = Object.keys(PALETTE);
   // Legacy store color names → palette families.
@@ -203,7 +203,9 @@
         //     slab reads as truly extruded (dark grounding = "out of screen")
         for (let k = 0; k <= wallSteps; k++) {
           const t = k / wallSteps;
-          html += '<path d="' + d + '" fill="' + mix(pal.side, pal.mid, 0.04 + 0.66 * t) + '" fill-opacity="' + wallOpacity + '" transform="translate(0 ' + (-eLift * t).toFixed(2) + ')" style="pointer-events:none"/>';
+          html += '<path d="' + d + '" fill="' + mix(pal.side, pal.mid, 0.04 + 0.66 * t) + '" fill-opacity="' + wallOpacity + '" '
+            + 'stroke="rgba(0,0,0,0.75)" stroke-width="1.5" stroke-linejoin="round" '
+            + 'transform="translate(0 ' + (-eLift * t).toFixed(2) + ')" style="pointer-events:none"/>';
         }
       }
       // 3 · top face: bright gradient + light edge + color glow. Glass panels
@@ -224,7 +226,9 @@
     // 7 · fitted label on the face (sized after mount via fitBlockLabels)
     if (item.name && !o.noLabel) {
       const c = centroidOf(item, o.vb || [0, 0, 1, 1]);
-      html += '<text class="pm-block-label' + (glass ? ' pm-glass-label' : '') + '" data-fit="1" x="' + c[0].toFixed(1) + '" y="' + (c[1] - eLift).toFixed(1) + '" text-anchor="middle" dominant-baseline="middle">' + esc(item.name) + '</text>';
+      const tColor = pal.text || '#FFFFFF';
+      const tStroke = tColor === '#111111' ? 'rgba(255,255,255,0.7)' : 'rgba(18,12,2,0.5)';
+      html += '<text class="pm-block-label' + (glass ? ' pm-glass-label' : '') + '" data-fit="1" x="' + c[0].toFixed(1) + '" y="' + (c[1] - eLift).toFixed(1) + '" text-anchor="middle" dominant-baseline="middle" style="fill:' + tColor + ';stroke:' + tStroke + ';">' + esc(item.name) + '</text>';
     }
     html += '</g>';
     return html;
@@ -404,14 +408,19 @@
     if (item.propertyId && window.CRM) {
       try {
         const data = window.CRM.getCRM();
-        const prop = (data.properties || []).find(x => x.id === item.propertyId);
-        if (prop) {
-          if (prop.area) rows.push(['Area', prop.area]);
-          if (prop.block || prop.sector) rows.push(['Block', prop.block || prop.sector]);
-          if (prop.plotSize || prop.size) rows.push(['Size', prop.plotSize || prop.size]);
-          if (prop.facing) rows.push(['Facing', prop.facing]);
-          if (prop.roadWidth) rows.push(['Road width', prop.roadWidth]);
-        }
+        const pIds = String(item.propertyId).split(',').map(x => x.trim()).filter(Boolean);
+        pIds.forEach((pid, idx) => {
+          const prop = (data.properties || []).find(x => x.id === pid);
+          if (prop) {
+            const prefix = pIds.length > 1 ? `Property ${idx + 1} ` : '';
+            if (prop.title || prop.propertyCode) rows.push([prefix + 'Name', prop.title || prop.propertyCode]);
+            if (prop.area) rows.push([prefix + 'Area', prop.area]);
+            if (prop.block || prop.sector) rows.push([prefix + 'Block', prop.block || prop.sector]);
+            if (prop.plotSize || prop.size) rows.push([prefix + 'Size', prop.plotSize || prop.size]);
+            if (prop.facing) rows.push([prefix + 'Facing', prop.facing]);
+            if (prop.roadWidth) rows.push([prefix + 'Road width', prop.roadWidth]);
+          }
+        });
       } catch (e) {}
     }
     return rows;

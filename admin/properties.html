@@ -97,6 +97,14 @@ if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+  if (window.location.hash === '#add') {
+    setTimeout(() => {
+      const btn = document.getElementById('btn-toggle-add');
+      if (btn) btn.click();
+      window.history.replaceState(null, '', 'properties.html');
+    }, 50);
+  }
+
   // Force the Team Workspace nav so opening Properties stays inside the workspace
   // context (Workspace / Properties / Map Studio) — never flips to the dealer bar.
   window.PMNav.render('properties', 'team');
