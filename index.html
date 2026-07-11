@@ -499,11 +499,48 @@
       const rows = await res.json().catch(() => []);
       const row = Array.isArray(rows) ? rows[0] : null;
       if (!row || !row.request_id || !row.lookup_token) throw new Error('Invalid access code.');
-      sessionStorage.setItem('plotmap_activation_request', JSON.stringify({
+      // localStorage (not session) so the pending screen survives the dealer
+      // closing the laptop while the developer processes the request. The
+      // lookup token is high-entropy and single-purpose: it can only reveal
+      // this one request's status, never data.
+      localStorage.setItem('plotmap_activation_request', JSON.stringify({
         requestId: row.request_id,
         lookupToken: row.lookup_token
       }));
       return row;
+    }
+
+    function readStoredActivationRequest() {
+      try {
+        const raw = localStorage.getItem('plotmap_activation_request')
+          || sessionStorage.getItem('plotmap_activation_request');
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (parsed && parsed.requestId && parsed.lookupToken) return parsed;
+      } catch (err) {}
+      return null;
+    }
+
+    function clearStoredActivationRequest() {
+      try { localStorage.removeItem('plotmap_activation_request'); } catch (err) {}
+      try { sessionStorage.removeItem('plotmap_activation_request'); } catch (err) {}
+    }
+
+    async function checkActivationRequestStatus(stored) {
+      const res = await fetch(window.PMAuth.SUPABASE_URL + '/rest/v1/rpc/plotmap_activation_request_status', {
+        method: 'POST',
+        headers: {
+          apikey: window.PMAuth.SUPABASE_KEY,
+          Authorization: 'Bearer ' + window.PMAuth.SUPABASE_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          p_request_id: stored.requestId,
+          p_lookup_token: stored.lookupToken
+        })
+      });
+      if (!res.ok) return null;
+      const rows = await res.json().catch(() => []);
+      return Array.isArray(rows) && rows[0] ? rows[0] : null;
     }
 
     const doors = document.querySelector('.doors');
@@ -512,6 +549,9 @@
     function revealDoors() {
       if (accessGate) accessGate.style.display = 'none';
       if (doors) doors.style.display = 'grid';
+      // Approved dealer device: allow the email & password mode again so
+      // team members (who have no dealer passcode) can sign in here.
+      modeToggle.style.display = '';
     }
     async function verifyGatewayDevice(dealerId) {
       if (!window.PMDeviceAccess) return { ok: false, statusText: 'migration_required' };
@@ -521,11 +561,41 @@
       });
     }
 
+    // Signed-in redirect flow (?next= / ?reason=) must keep the login form
+    // reachable — the platform admin and staff deep links land here signed
+    // out and have no dealer passcode. This shows only the auth form (email
+    // mode allowed), never the doors; every workspace behind it still
+    // enforces the approved-device + role gates server-side.
+    if (nextTarget || params.get('reason')) {
+      setAuthMode('email');
+      modeToggle.style.display = '';
+      openAuth();
+    }
+
+    // Resume a pending in-person activation: poll the status RPC (needs BOTH
+    // the request id and the stored lookup token). Approved → this device was
+    // approved by the developer alongside the request; stamp the dealer and
+    // re-check the device gate. Rejected/expired → clear and start over.
+    const storedActivation = readStoredActivationRequest();
+    if (storedActivation) {
+      const statusRow = await checkActivationRequestStatus(storedActivation).catch(() => null);
+      if (statusRow && statusRow.status === 'approved' && statusRow.dealer_id) {
+        localStorage.setItem('plotmap_dealer_id', statusRow.dealer_id);
+        clearStoredActivationRequest();
+      } else if (statusRow && statusRow.status === 'pending') {
+        if (gatewayStatus) gatewayStatus.textContent = 'Activation request pending. Ask the developer to approve this device.';
+      } else if (statusRow && (statusRow.status === 'rejected' || statusRow.status === 'expired')) {
+        clearStoredActivationRequest();
+        if (gatewayStatus) gatewayStatus.textContent = 'Activation request was ' + statusRow.status + '. Contact your PlotMap provider for a new code.';
+      }
+    }
+
     const storedDealerId = window.PMDeviceAccess && window.PMDeviceAccess.resolveDealerId('');
     if (storedDealerId) {
       const gate = await verifyGatewayDevice(storedDealerId).catch(() => ({ ok: false, statusText: 'error' }));
       if (gate.ok) revealDoors();
       else if (gatewayStatus && gate.statusText === 'pending') gatewayStatus.textContent = 'Device approval is pending with the developer.';
+      else if (gatewayStatus && gate.statusText === 'blocked') gatewayStatus.textContent = 'This dealer account is suspended or its trial has ended.';
     }
 
     document.getElementById('gateway-submit').addEventListener('click', async () => {

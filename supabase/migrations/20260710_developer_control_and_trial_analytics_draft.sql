@@ -56,7 +56,7 @@ create or replace function public.plotmap_guard_dealer_settings_account_columns(
 returns trigger
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 begin
   if tg_op = 'UPDATE'
@@ -180,7 +180,7 @@ create or replace function public.plotmap_submit_activation_request(
 returns table (request_id uuid, lookup_token text, status text)
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_code public.dealer_access_codes%rowtype;
@@ -256,7 +256,7 @@ create or replace function public.plotmap_activation_request_status(
 returns table (status text, dealer_id text)
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 begin
   perform pg_sleep(0.15);
@@ -286,7 +286,7 @@ create or replace function public.plotmap_admin_create_activation_code(
 returns uuid
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_id uuid;
@@ -573,7 +573,7 @@ create or replace function public.plotmap_device_status(
 returns table (status text, dealer_id text)
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_device public.dealer_devices%rowtype;
@@ -597,10 +597,25 @@ begin
     from public.dealer_devices d
     where d.dealer_id = p_dealer_id
       and d.device_token_hash = crypt(trim(p_device_token), d.device_token_hash)
-    order by d.created_at desc
+    order by
+      case d.status when 'approved' then 0 when 'pending' then 1 else 2 end,
+      d.created_at desc
     limit 1;
 
   if not found then
+    -- Cap pending registrations per dealer: anyone who learns a dealer_id
+    -- could otherwise flood dealer_devices (and the developer panel) with
+    -- junk rows. 10 concurrent pending devices is far beyond any real
+    -- in-person onboarding.
+    if (
+      select count(*)
+      from public.dealer_devices x
+      where x.dealer_id = p_dealer_id
+        and x.status = 'pending'
+    ) >= 10 then
+      return query select 'blocked'::text, p_dealer_id;
+      return;
+    end if;
     insert into public.dealer_devices (
       dealer_id,
       device_token_hash,
@@ -642,7 +657,7 @@ create or replace function public.plotmap_device_is_approved(
 returns boolean
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_id uuid;
@@ -817,7 +832,70 @@ grant execute on function public.plotmap_record_device_presentation_event(
 ) to anon, authenticated;
 revoke execute on function public.plotmap_record_presentation_event(
   text, text, text, text, text, text, text, text, jsonb, text, timestamptz
-) from anon;
+) from public, anon;
+
+-- With anon revoked above, the phase-2 event RPC now only serves signed-in
+-- staff on admin surfaces. Scope it: a staff session may only write usage
+-- events for its OWN dealer (platform admin exempt). Body otherwise
+-- identical to 20260707a; this closes cross-dealer event injection by a
+-- signed-in dealer of another account.
+create or replace function public.plotmap_record_presentation_event(
+  p_dealer_id text,
+  p_session_id text,
+  p_event_type text,
+  p_area text default null,
+  p_sector text default null,
+  p_map_id text default null,
+  p_property_id text default null,
+  p_client_id text default null,
+  p_metadata jsonb default '{}'::jsonb,
+  p_event_id text default null,
+  p_created_at timestamptz default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_event_id text := coalesce(nullif(p_event_id, ''), 'pevt-' || replace(gen_random_uuid()::text, '-', ''));
+  v_metadata jsonb := jsonb_set(coalesce(p_metadata, '{}'::jsonb), '{source}', '"client_presentation"', true);
+begin
+  if auth.uid() is null then
+    raise exception 'sign in required';
+  end if;
+  if not public.plotmap_is_platform_admin() and not exists (
+    select 1
+    from public.profiles p
+    where p.id = auth.uid()
+      and p.dealer_id = p_dealer_id
+      and p.status = 'active'
+  ) then
+    raise exception 'staff profile for this dealer required';
+  end if;
+  if not public.plotmap_dealer_is_active(p_dealer_id) then
+    raise exception 'unknown or inactive dealer';
+  end if;
+
+  insert into public.presentation_events
+    (id, dealer_id, session_id, event_type, area, sector, map_id, property_id, client_id, metadata, created_at)
+  values
+    (
+      v_event_id,
+      p_dealer_id,
+      coalesce(p_session_id, ''),
+      coalesce(nullif(p_event_type, ''), 'unknown'),
+      p_area,
+      p_sector,
+      p_map_id,
+      p_property_id,
+      p_client_id,
+      v_metadata,
+      coalesce(p_created_at, timezone('utc'::text, now()))
+    )
+  on conflict (id) do nothing;
+end;
+$$;
 
 create or replace function public.plotmap_admin_list_dealer_devices()
 returns table (
@@ -1023,7 +1101,7 @@ returns table (dealer_id text, login_email text, status text)
 language plpgsql
 stable
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 begin
   -- constant work-factor damping for online brute force
@@ -1061,7 +1139,7 @@ create or replace function public.plotmap_admin_set_dealer_passcode(
 returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 begin
   if not public.plotmap_is_platform_admin() then
@@ -1363,7 +1441,7 @@ returns table (event_type text, events bigint, last_seen timestamptz)
 language plpgsql
 stable
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 begin
   if not public.plotmap_is_platform_admin() then

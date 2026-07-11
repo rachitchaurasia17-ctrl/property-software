@@ -244,13 +244,24 @@
     document.body.innerHTML = '';
     return;
   }
-  const deviceGate = await window.PMDeviceAccess.requireApproved(clientDealerId || 'dealer-demo', {
-    message: 'Device approval required. This PlotMap presentation is available only on an approved dealer device.',
-    deviceLabel: 'Client Presentation device'
-  });
-  if (!deviceGate.ok) return;
-  clientDealerId = deviceGate.dealerId || clientDealerId || 'dealer-demo';
-  try { localStorage.setItem('plotmap_dealer_id', clientDealerId); } catch (e) {}
+  // Device lock. With no dealer context at all we block WITHOUT calling the
+  // status RPC — probing Supabase with a guessed dealer id would register
+  // junk pending devices. Local dev (file:// / localhost) keeps the pure
+  // local demo working; every deployed host requires an approved device.
+  const isLocalHost = /^(localhost|127\.|0\.0\.0\.0)/.test(location.hostname || '') || location.protocol === 'file:';
+  if (!clientDealerId && !isLocalHost) {
+    window.PMDeviceAccess.renderBlocked('Device approval required. Open PlotMap on your approved dealer device, starting from the main PlotMap page.');
+    return;
+  }
+  if (clientDealerId) {
+    const deviceGate = await window.PMDeviceAccess.requireApproved(clientDealerId, {
+      message: 'Device approval required. This PlotMap presentation is available only on an approved dealer device.',
+      deviceLabel: 'Client Presentation device'
+    });
+    if (!deviceGate.ok) return;
+    clientDealerId = deviceGate.dealerId || clientDealerId;
+    try { localStorage.setItem('plotmap_dealer_id', clientDealerId); } catch (e) {}
+  }
 
   /* --- Dealer branding (client-safe subset of dealer settings) ---
      Reads the local store only; whitelisted display fields — never contact
@@ -2101,7 +2112,10 @@
       p.area ? 'Area: ' + p.area : '',
       p.description || ''
     ].filter(Boolean);
-    const msg = (dealerBranding.shareMessage ? dealerBranding.shareMessage + '\n\n' : '') + details.join('\n') + '\n\nShared from an approved PlotMap dealer device.\n\n- ' + brand;
+    // Buyer-facing text only: property facts + dealer branding. Never a
+    // PlotMap link — buyers see the presentation in person on the dealer's
+    // approved device; they must not be able to open the app themselves.
+    const msg = (dealerBranding.shareMessage ? dealerBranding.shareMessage + '\n\n' : '') + details.join('\n') + '\n\n- ' + brand;
     window.logEvent('brochure_shared', { area: state.areaId || null, propertyId: id, metadata: { source: 'whatsapp' } });
     // explicit WhatsApp event so trial analytics can count shares precisely
     window.logEvent('property_shared_whatsapp', { area: state.areaId || null, propertyId: id, metadata: { source: 'whatsapp' } });
@@ -2130,9 +2144,9 @@
   await shareLinkReady;
   await useDataset(state.areaId);
   
-  if (supabase) {
+  if (supabase && clientDealerId) {
     const { data } = await supabase.rpc('plotmap_client_maps_for_device', {
-      p_dealer_id: clientDealerId || 'dealer-demo',
+      p_dealer_id: clientDealerId,
       p_device_token: window.PMDeviceAccess.getToken()
     });
     if (data) state.prebuiltMaps = data;

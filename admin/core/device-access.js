@@ -62,8 +62,12 @@
   }
 
   async function getStatus(dealerId, options) {
-    const id = dealerId || resolveDealerId('dealer-demo');
-    if (!id) return { ok: false, statusText: 'unknown', dealerId: '' };
+    // No implicit dealer fallback: calling the status RPC with a guessed
+    // dealer id would register junk pending devices server-side. Callers
+    // must know the dealer (passcode login, activation approval, or an
+    // explicit ?dealerId= handoff stores it).
+    const id = dealerId || resolveDealerId('');
+    if (!id) return { ok: false, statusText: 'no_dealer', dealerId: '' };
     const result = await rpc('plotmap_device_status', {
       p_dealer_id: id,
       p_device_token: getToken(),

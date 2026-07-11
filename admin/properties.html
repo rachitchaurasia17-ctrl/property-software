@@ -269,16 +269,15 @@ document.addEventListener('DOMContentLoaded', () => {
   window.sharePropWhatsapp = function(id) {
     const prop = liveProps().find(x => x.id === id);
     if (!prop) return;
-    if (window.PMFoundation) {
-      window.PMFoundation.createShareLink({ label: prop.title || prop.name || 'Property', targetType: 'property', targetId: prop.id, propertyId: prop.id, view: 'detail' });
-    }
+    // Property facts only — never a live PlotMap link. Buyers see the map in
+    // person on the dealer's approved device; PlotMap is not a buyer app.
     const safeBits = [
       prop.title || 'Property',
       [prop.area, prop.sector || prop.block].filter(Boolean).join(' · '),
       prop.size || '',
       prop.description || ''
     ].filter(Boolean);
-    const msg = safeBits.join('\n') + '\n\nView on map: ' + clientHrefForProperty(id, 'detail');
+    const msg = safeBits.join('\n');
     window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank', 'noopener');
   };
 

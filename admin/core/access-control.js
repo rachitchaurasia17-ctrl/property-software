@@ -261,6 +261,41 @@
     });
   }
 
+  // Server-verified platform-admin check (phase 4 SECURITY DEFINER function,
+  // evaluates auth.uid() against platform_admins). The developer manages
+  // dealer devices, so the dealer device lock must never lock THEM out of
+  // admin surfaces. Unknown/error → false (fail closed to the device gate).
+  async function fetchIsPlatformAdmin() {
+    const CACHE_KEY = 'plotmap_platform_admin_v1';
+    try {
+      const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null');
+      if (cached && Date.now() - cached.at < 5 * 60 * 1000) return cached.isAdmin === true;
+    } catch (err) {}
+    try {
+      const token = await window.PMAuth.getAccessToken().catch(() => null);
+      if (!token) return false;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(window.PMAuth.SUPABASE_URL + '/rest/v1/rpc/plotmap_is_platform_admin', {
+        method: 'POST',
+        headers: {
+          apikey: window.PMAuth.SUPABASE_KEY,
+          Authorization: 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({}),
+        signal: controller.signal
+      });
+      clearTimeout(timer);
+      if (!res.ok) return false;
+      const isAdmin = (await res.json()) === true;
+      try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ isAdmin, at: Date.now() })); } catch (err) {}
+      return isAdmin;
+    } catch (err) {
+      return false;
+    }
+  }
+
   function guardPage(options) {
     if (!/^\/admin\//i.test(location.pathname || '')) {
       return canAccessRoute(options || {});
@@ -320,19 +355,25 @@
           renderBlockedScreen();
           return { ok: false, reason: 'dealer_inactive_server', profile };
         }
-        const deviceAccess = await ensureDeviceAccessRuntime();
-        const deviceGate = deviceAccess && await deviceAccess.requireApproved(profile.dealer_id, {
-          render: false,
-          authenticated: true,
-          deviceLabel: 'PlotMap admin device'
-        });
-        if (!deviceGate || !deviceGate.ok) {
-          if (deviceAccess && typeof deviceAccess.renderBlocked === 'function') {
-            deviceAccess.renderBlocked('Device approval required. PlotMap admin tools are available only on an approved dealer device.');
-          } else {
-            renderBlockedScreen();
+        // Approved-device gate for dealer staff. The platform admin (the
+        // developer who approves devices) bypasses it — server-verified,
+        // never trusted from localStorage.
+        const isPlatformAdmin = await fetchIsPlatformAdmin();
+        if (!isPlatformAdmin) {
+          const deviceAccess = await ensureDeviceAccessRuntime();
+          const deviceGate = deviceAccess && await deviceAccess.requireApproved(profile.dealer_id, {
+            render: false,
+            authenticated: true,
+            deviceLabel: 'PlotMap admin device'
+          });
+          if (!deviceGate || !deviceGate.ok) {
+            if (deviceAccess && typeof deviceAccess.renderBlocked === 'function') {
+              deviceAccess.renderBlocked('Device approval required. PlotMap admin tools are available only on an approved dealer device.');
+            } else {
+              renderBlockedScreen();
+            }
+            return { ok: false, reason: 'device_not_approved', profile };
           }
-          return { ok: false, reason: 'device_not_approved', profile };
         }
       }
       const data = window.PMDataAdapter ? window.PMDataAdapter.getData() : null;
