@@ -83,6 +83,380 @@ begin
 end;
 $$;
 
+-- ---------- 2. access gateway activation requests ----------
+-- 8-digit activation/access codes create pending requests only. They do NOT
+-- create Supabase Auth sessions, approve dealers, or unlock admin routes.
+-- Fully automated approval needs an Edge Function/server layer to create or
+-- update the real Auth user with a service-role key kept off the frontend.
+create table if not exists public.dealer_access_codes (
+  id uuid primary key default gen_random_uuid(),
+  label text,
+  code_hash text not null,
+  status text not null default 'active' check (status in ('active', 'disabled', 'expired')),
+  max_uses integer not null default 1 check (max_uses between 1 and 100),
+  use_count integer not null default 0 check (use_count >= 0),
+  expires_at timestamptz,
+  created_by uuid,
+  created_at timestamptz not null default timezone('utc'::text, now()),
+  updated_at timestamptz not null default timezone('utc'::text, now())
+);
+
+create table if not exists public.dealer_activation_requests (
+  id uuid primary key default gen_random_uuid(),
+  access_code_id uuid references public.dealer_access_codes(id) on delete set null,
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected', 'expired')),
+  dealer_id text references public.dealer_settings(dealer_id) on delete set null,
+  requested_business_name text,
+  requested_owner_name text,
+  requested_owner_phone text,
+  requested_primary_area text,
+  device_label text,
+  approved_by uuid,
+  approved_at timestamptz,
+  rejected_by uuid,
+  rejected_at timestamptz,
+  developer_notes text,
+  created_at timestamptz not null default timezone('utc'::text, now()),
+  updated_at timestamptz not null default timezone('utc'::text, now())
+);
+
+create index if not exists dealer_activation_requests_status_idx
+  on public.dealer_activation_requests (status, created_at desc);
+
+create index if not exists dealer_activation_requests_dealer_idx
+  on public.dealer_activation_requests (dealer_id, created_at desc);
+
+alter table public.dealer_access_codes enable row level security;
+alter table public.dealer_activation_requests enable row level security;
+revoke all on public.dealer_access_codes from anon, authenticated;
+revoke all on public.dealer_activation_requests from anon, authenticated;
+
+create or replace function public.plotmap_submit_activation_request(
+  p_access_code text,
+  p_business_name text default null,
+  p_owner_name text default null,
+  p_owner_phone text default null,
+  p_primary_area text default null,
+  p_device_label text default null
+)
+returns table (request_id uuid, status text)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_code public.dealer_access_codes%rowtype;
+  v_request_id uuid;
+begin
+  perform pg_sleep(0.25);
+
+  if p_access_code is null or trim(p_access_code) !~ '^\d{8}$' then
+    return;
+  end if;
+
+  select *
+    into v_code
+    from public.dealer_access_codes c
+    where c.status = 'active'
+      and (c.expires_at is null or c.expires_at > timezone('utc'::text, now()))
+      and c.use_count < c.max_uses
+      and c.code_hash = crypt(trim(p_access_code), c.code_hash)
+    order by c.created_at asc
+    limit 1;
+
+  if not found then
+    return;
+  end if;
+
+  insert into public.dealer_activation_requests (
+    access_code_id,
+    requested_business_name,
+    requested_owner_name,
+    requested_owner_phone,
+    requested_primary_area,
+    device_label
+  )
+  values (
+    v_code.id,
+    nullif(left(trim(coalesce(p_business_name, '')), 160), ''),
+    nullif(left(trim(coalesce(p_owner_name, '')), 120), ''),
+    nullif(left(trim(coalesce(p_owner_phone, '')), 40), ''),
+    nullif(left(trim(coalesce(p_primary_area, '')), 120), ''),
+    nullif(left(trim(coalesce(p_device_label, '')), 160), '')
+  )
+  returning id into v_request_id;
+
+  update public.dealer_access_codes
+     set use_count = use_count + 1,
+         updated_at = timezone('utc'::text, now())
+   where id = v_code.id;
+
+  return query select v_request_id, 'pending'::text;
+end;
+$$;
+
+revoke all on function public.plotmap_submit_activation_request(text, text, text, text, text, text)
+  from public, anon, authenticated;
+grant execute on function public.plotmap_submit_activation_request(text, text, text, text, text, text)
+  to anon, authenticated;
+
+create or replace function public.plotmap_activation_request_status(p_request_id uuid)
+returns table (status text)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select r.status
+  from public.dealer_activation_requests r
+  where r.id = p_request_id;
+$$;
+
+revoke all on function public.plotmap_activation_request_status(uuid)
+  from public, anon, authenticated;
+grant execute on function public.plotmap_activation_request_status(uuid)
+  to anon, authenticated;
+
+create or replace function public.plotmap_admin_create_activation_code(
+  p_access_code text,
+  p_label text default null,
+  p_max_uses integer default 1,
+  p_expires_at timestamptz default null
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid;
+begin
+  if not public.plotmap_is_platform_admin() then
+    raise exception 'platform admin required';
+  end if;
+  if p_access_code is null or trim(p_access_code) !~ '^\d{8}$' then
+    raise exception 'activation code must be exactly 8 digits';
+  end if;
+  if coalesce(p_max_uses, 1) < 1 or coalesce(p_max_uses, 1) > 100 then
+    raise exception 'max uses must be between 1 and 100';
+  end if;
+  if exists (
+    select 1
+    from public.dealer_access_codes c
+    where c.status = 'active'
+      and (c.expires_at is null or c.expires_at > timezone('utc'::text, now()))
+      and c.code_hash = crypt(trim(p_access_code), c.code_hash)
+  ) then
+    raise exception 'activation code already active';
+  end if;
+
+  insert into public.dealer_access_codes (
+    label,
+    code_hash,
+    max_uses,
+    expires_at,
+    created_by
+  )
+  values (
+    nullif(left(trim(coalesce(p_label, '')), 160), ''),
+    crypt(trim(p_access_code), gen_salt('bf', 10)),
+    coalesce(p_max_uses, 1),
+    p_expires_at,
+    auth.uid()
+  )
+  returning id into v_id;
+
+  insert into public.audit_logs (dealer_id, actor_profile_id, actor_role, action_type, entity_type, entity_id, metadata)
+  values ('platform', auth.uid(), public.plotmap_current_role(), 'dealer_activation_code_created',
+          'dealer_access_codes', v_id::text, jsonb_build_object('label', p_label, 'maxUses', p_max_uses));
+
+  return v_id;
+end;
+$$;
+
+revoke all on function public.plotmap_admin_create_activation_code(text, text, integer, timestamptz)
+  from public, anon, authenticated;
+grant execute on function public.plotmap_admin_create_activation_code(text, text, integer, timestamptz)
+  to authenticated;
+
+create or replace function public.plotmap_admin_list_activation_requests()
+returns table (
+  id uuid,
+  status text,
+  dealer_id text,
+  requested_business_name text,
+  requested_owner_name text,
+  requested_owner_phone text,
+  requested_primary_area text,
+  device_label text,
+  developer_notes text,
+  created_at timestamptz,
+  updated_at timestamptz
+)
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+begin
+  if not public.plotmap_is_platform_admin() then
+    raise exception 'platform admin required';
+  end if;
+
+  return query
+  select
+    r.id,
+    r.status,
+    r.dealer_id,
+    r.requested_business_name,
+    r.requested_owner_name,
+    r.requested_owner_phone,
+    r.requested_primary_area,
+    r.device_label,
+    r.developer_notes,
+    r.created_at,
+    r.updated_at
+  from public.dealer_activation_requests r
+  order by r.created_at desc;
+end;
+$$;
+
+revoke all on function public.plotmap_admin_list_activation_requests()
+  from public, anon, authenticated;
+grant execute on function public.plotmap_admin_list_activation_requests()
+  to authenticated;
+
+create or replace function public.plotmap_admin_approve_activation_request(
+  p_request_id uuid,
+  p_dealer_id text,
+  p_business_name text default null,
+  p_owner_name text default null,
+  p_owner_phone text default null,
+  p_primary_area text default null,
+  p_developer_notes text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_request public.dealer_activation_requests%rowtype;
+begin
+  if not public.plotmap_is_platform_admin() then
+    raise exception 'platform admin required';
+  end if;
+  if p_request_id is null then
+    raise exception 'request id required';
+  end if;
+  if p_dealer_id is null or trim(p_dealer_id) = '' then
+    raise exception 'dealer id required';
+  end if;
+
+  select *
+    into v_request
+    from public.dealer_activation_requests
+    where id = p_request_id
+      and status = 'pending'
+    for update;
+
+  if not found then
+    raise exception 'pending activation request not found';
+  end if;
+
+  if exists (
+    select 1
+    from public.dealer_settings d
+    where d.dealer_id = p_dealer_id
+      and not public.plotmap_dealer_is_active(d.dealer_id)
+  ) then
+    raise exception 'dealer is suspended or expired; reactivate through account controls first';
+  end if;
+
+  insert into public.dealer_settings (
+    dealer_id,
+    brand_name,
+    owner_name,
+    owner_phone,
+    primary_area,
+    developer_notes,
+    account_status,
+    subscription_status,
+    updated_at
+  )
+  values (
+    p_dealer_id,
+    coalesce(nullif(p_business_name, ''), v_request.requested_business_name),
+    coalesce(nullif(p_owner_name, ''), v_request.requested_owner_name),
+    coalesce(nullif(p_owner_phone, ''), v_request.requested_owner_phone),
+    coalesce(nullif(p_primary_area, ''), v_request.requested_primary_area),
+    p_developer_notes,
+    'active',
+    'trial',
+    timezone('utc'::text, now())
+  )
+  on conflict (dealer_id) do update set
+    brand_name = coalesce(excluded.brand_name, public.dealer_settings.brand_name),
+    owner_name = coalesce(excluded.owner_name, public.dealer_settings.owner_name),
+    owner_phone = coalesce(excluded.owner_phone, public.dealer_settings.owner_phone),
+    primary_area = coalesce(excluded.primary_area, public.dealer_settings.primary_area),
+    developer_notes = coalesce(excluded.developer_notes, public.dealer_settings.developer_notes),
+    updated_at = timezone('utc'::text, now());
+
+  update public.dealer_activation_requests
+     set status = 'approved',
+         dealer_id = p_dealer_id,
+         approved_by = auth.uid(),
+         approved_at = timezone('utc'::text, now()),
+         developer_notes = coalesce(p_developer_notes, developer_notes),
+         updated_at = timezone('utc'::text, now())
+   where id = p_request_id;
+
+  insert into public.audit_logs (dealer_id, actor_profile_id, actor_role, action_type, entity_type, entity_id, metadata)
+  values (p_dealer_id, auth.uid(), public.plotmap_current_role(), 'dealer_activation_approved',
+          'dealer_activation_requests', p_request_id::text, '{}'::jsonb);
+end;
+$$;
+
+revoke all on function public.plotmap_admin_approve_activation_request(uuid, text, text, text, text, text, text)
+  from public, anon, authenticated;
+grant execute on function public.plotmap_admin_approve_activation_request(uuid, text, text, text, text, text, text)
+  to authenticated;
+
+create or replace function public.plotmap_admin_reject_activation_request(
+  p_request_id uuid,
+  p_developer_notes text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.plotmap_is_platform_admin() then
+    raise exception 'platform admin required';
+  end if;
+
+  update public.dealer_activation_requests
+     set status = 'rejected',
+         rejected_by = auth.uid(),
+         rejected_at = timezone('utc'::text, now()),
+         developer_notes = coalesce(p_developer_notes, developer_notes),
+         updated_at = timezone('utc'::text, now())
+   where id = p_request_id
+     and status = 'pending';
+
+  if not found then
+    raise exception 'pending activation request not found';
+  end if;
+end;
+$$;
+
+revoke all on function public.plotmap_admin_reject_activation_request(uuid, text)
+  from public, anon, authenticated;
+grant execute on function public.plotmap_admin_reject_activation_request(uuid, text)
+  to authenticated;
+
 -- ---------- 2. dealer passcodes (deny-all table, RPC access only) ----------
 create table if not exists public.dealer_passcodes (
   dealer_id text primary key references public.dealer_settings(dealer_id) on delete cascade,
@@ -466,17 +840,25 @@ grant execute on function public.plotmap_admin_dealer_event_breakdown(text, inte
 --    (Your profile row must exist and have role 'owner'.)
 --
 -- B. Creating a dealer (until an edge function automates it):
---    1. Supabase Dashboard -> Authentication -> Add user:
+--    1. Optional access gateway: developer creates an 8-digit activation
+--       code with plotmap_admin_create_activation_code. The dealer submits
+--       it through plotmap_submit_activation_request, which creates only a
+--       pending request. It does NOT approve access or create a session.
+--    2. Developer approves the pending request with
+--       plotmap_admin_approve_activation_request. Approval creates/updates
+--       dealer_settings only; it does NOT create a Supabase Auth user.
+--    3. Supabase Dashboard -> Authentication -> Add user:
 --       email = <dealer login email>, password = <the passcode>,
 --       auto-confirm ON.
---    2. SQL editor: insert the profile row for that auth user:
+--    4. SQL editor: insert the profile row for that auth user:
 --         insert into public.profiles (id, email, role, dealer_id, status)
 --         values ('<auth user uuid>', '<login email>', 'owner', '<dealer-id>', 'active');
---    3. In /admin/developer.html: "Create dealer" fills dealer_settings
---       (account/trial via plotmap_admin_set_dealer_account, directory via
---       plotmap_admin_upsert_dealer_directory) and stores the passcode
---       hash via plotmap_admin_set_dealer_passcode.
+--    5. Store the passcode hash via plotmap_admin_set_dealer_passcode.
 --    The dealer then signs in with ONLY the passcode on the landing page.
+--
+--    Production automation: replace steps 3-5 with an Edge Function that
+--    runs with the service role server-side, creates/updates the Auth user,
+--    writes the profile, stores the passcode hash, and returns no secrets.
 --
 -- C. Passcode reset: developer sets a new passcode in the panel
 --    (updates the hash), then updates the auth user's password to the
