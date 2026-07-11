@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="/admin/core/auth.js"></script>
+<script src="/admin/core/device-access.js?v=1"></script>
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; min-height: 100%; }
@@ -187,6 +188,35 @@
     margin: 22px auto 0; color: #8A7C60; font-size: 12.5px; line-height: 1.5; text-align: center;
   }
 
+  .access-gate {
+    margin: 0 auto 22px;
+    max-width: 520px;
+    width: 100%;
+    background: #FFFDF8;
+    border: 1px solid #E8DFC9;
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 2px 4px rgba(120,90,30,.04), 0 24px 52px rgba(120,90,30,.12);
+  }
+  .access-gate h2 {
+    font-family: 'Fraunces', Georgia, serif;
+    margin: 0 0 8px;
+    font-size: 24px;
+    font-weight: 500;
+    color: #1C2B22;
+  }
+  .access-gate p { margin: 0 0 16px; color: #5F6B61; line-height: 1.55; font-size: 14px; }
+  .access-gate input {
+    width: 100%; height: 48px; margin-bottom: 12px;
+    border-radius: 13px; border: 1px solid #E8DFC9; background: #FAF8F3;
+    padding: 0 15px; font-size: 15px; color: #1C1E1B; outline: none;
+  }
+  .access-gate button {
+    width: 100%; height: 48px; border-radius: 13px; border: none;
+    background: #1F5E47; color: #fff; font-weight: 700; font-size: 15px; cursor: pointer;
+  }
+  .access-gate .status { margin-top: 12px; min-height: 17px; color: #8A6224; font-size: 13px; font-weight: 700; }
+
   /* ── Dealer login form ── */
   #auth-shell {
     margin: 20px auto 0;
@@ -265,7 +295,15 @@
       <p class="lead">The whole property business — presented on a living map, run from one calm, premium command system.</p>
     </section>
 
-    <div class="doors" aria-label="PlotMap entry options">
+    <div id="access-gate" class="access-gate">
+      <h2>Enter dealer passcode</h2>
+      <p>This PlotMap workspace opens only on an approved dealer device. New devices are sent to the developer for approval.</p>
+      <input id="gateway-passcode" type="password" inputmode="numeric" autocomplete="off" placeholder="8-digit dealer passcode">
+      <button id="gateway-submit" type="button">Continue</button>
+      <div id="gateway-status" class="status"></div>
+    </div>
+
+    <div class="doors" aria-label="PlotMap entry options" style="display:none;">
       <a class="door client" href="/app/plotmap/">
         <span class="door-top">
           <span class="door-ic" aria-hidden="true">◑</span>
@@ -315,7 +353,7 @@
       </form>
     </div>
 
-    <p class="footnote">Team Workspace signs in the first time, then this device remembers you.<br>The client map stays separate — and client-safe — at /app/plotmap/.</p>
+    <p class="footnote">Approved dealer devices unlock Client Presentation, Dealer Login and Team Workspace.<br>New devices stay pending until the developer approves them.</p>
   </div>
 </main>
 
@@ -334,7 +372,9 @@
 
   function openAuth() {
     document.getElementById('auth-shell').style.display = 'block';
-    document.getElementById('auth-email').focus();
+    const code = document.getElementById('auth-passcode');
+    const email = document.getElementById('auth-email');
+    (code && code.style.display !== 'none' ? code : email).focus();
     // Scroll into view if needed
     document.getElementById('auth-shell').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -415,6 +455,8 @@
       (isCode ? codeEl : emailEl).focus();
     }
     modeToggle.addEventListener('click', () => setAuthMode(authMode === 'passcode' ? 'email' : 'passcode'));
+    setAuthMode('passcode');
+    modeToggle.style.display = 'none';
 
     async function resolvePasscode(passcode) {
       const res = await fetch(window.PMAuth.SUPABASE_URL + '/rest/v1/rpc/plotmap_passcode_login', {
@@ -436,6 +478,91 @@
       }
       return row;
     }
+
+    async function submitActivationRequest(accessCode) {
+      const res = await fetch(window.PMAuth.SUPABASE_URL + '/rest/v1/rpc/plotmap_submit_activation_request', {
+        method: 'POST',
+        headers: {
+          apikey: window.PMAuth.SUPABASE_KEY,
+          Authorization: 'Bearer ' + window.PMAuth.SUPABASE_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          p_access_code: accessCode,
+          p_device_token: window.PMDeviceAccess ? window.PMDeviceAccess.getToken() : '',
+          p_device_label: 'PlotMap dealer device',
+          p_browser_info: navigator.userAgent || ''
+        })
+      });
+      if (res.status === 404) throw new Error('Developer control migration required.');
+      if (!res.ok) throw new Error('Could not submit activation request.');
+      const rows = await res.json().catch(() => []);
+      const row = Array.isArray(rows) ? rows[0] : null;
+      if (!row || !row.request_id || !row.lookup_token) throw new Error('Invalid access code.');
+      sessionStorage.setItem('plotmap_activation_request', JSON.stringify({
+        requestId: row.request_id,
+        lookupToken: row.lookup_token
+      }));
+      return row;
+    }
+
+    const doors = document.querySelector('.doors');
+    const accessGate = document.getElementById('access-gate');
+    const gatewayStatus = document.getElementById('gateway-status');
+    function revealDoors() {
+      if (accessGate) accessGate.style.display = 'none';
+      if (doors) doors.style.display = 'grid';
+    }
+    async function verifyGatewayDevice(dealerId) {
+      if (!window.PMDeviceAccess) return { ok: false, statusText: 'migration_required' };
+      return window.PMDeviceAccess.requireApproved(dealerId, {
+        render: false,
+        deviceLabel: 'PlotMap dealer device'
+      });
+    }
+
+    const storedDealerId = window.PMDeviceAccess && window.PMDeviceAccess.resolveDealerId('');
+    if (storedDealerId) {
+      const gate = await verifyGatewayDevice(storedDealerId).catch(() => ({ ok: false, statusText: 'error' }));
+      if (gate.ok) revealDoors();
+      else if (gatewayStatus && gate.statusText === 'pending') gatewayStatus.textContent = 'Device approval is pending with the developer.';
+    }
+
+    document.getElementById('gateway-submit').addEventListener('click', async () => {
+      const submit = document.getElementById('gateway-submit');
+      const input = document.getElementById('gateway-passcode');
+      const passcode = (input && input.value || '').trim();
+      gatewayStatus.textContent = 'Checking access...';
+      submit.disabled = true;
+      try {
+        let resolved = null;
+        try {
+          resolved = await resolvePasscode(passcode);
+        } catch (error) {
+          if (/^\d{8}$/.test(passcode)) {
+            await submitActivationRequest(passcode);
+            gatewayStatus.textContent = 'Activation request sent. Ask the developer to approve this device.';
+            return;
+          }
+          throw error;
+        }
+        if (!resolved.dealer_id) throw new Error('This dealer account is not active.');
+        localStorage.setItem('plotmap_dealer_id', resolved.dealer_id);
+        const gate = await verifyGatewayDevice(resolved.dealer_id);
+        if (gate.ok) {
+          gatewayStatus.textContent = '';
+          revealDoors();
+          return;
+        }
+        gatewayStatus.textContent = gate.statusText === 'pending'
+          ? 'Device approval pending. Ask the developer to approve this laptop.'
+          : 'Device approval required. Ask the developer to approve this laptop.';
+      } catch (error) {
+        gatewayStatus.textContent = error.message || 'Could not verify access.';
+      } finally {
+        submit.disabled = false;
+      }
+    });
 
     document.getElementById('auth-form').addEventListener('submit', async event => {
       event.preventDefault();
@@ -459,6 +586,12 @@
         }
         const profile = await window.PMAuth.getCurrentProfile();
         if (!profile) throw new Error('No admin profile found for this account.');
+        const gate = await verifyGatewayDevice(profile.dealer_id || localStorage.getItem('plotmap_dealer_id') || '');
+        if (!gate.ok) {
+          throw new Error(gate.statusText === 'pending'
+            ? 'Device approval pending. Ask the developer to approve this laptop.'
+            : 'Device approval required before opening PlotMap.');
+        }
 
         let dest = nextTarget;
         if (!dest) {

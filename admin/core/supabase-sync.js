@@ -198,7 +198,7 @@
             for (const [rowId, it] of byId) {
               const row = rowFor(it);
               try {
-                const single = await callRpc('plotmap_record_presentation_event', {
+                const payload = {
                   p_dealer_id: row.dealer_id,
                   p_session_id: row.session_id,
                   p_event_type: row.event_type,
@@ -210,7 +210,16 @@
                   p_metadata: row.metadata || {},
                   p_event_id: row.id,
                   p_created_at: row.created_at
-                }, { prefer: 'return=minimal' });
+                };
+                const rpcName = isAdminRoute()
+                  ? 'plotmap_record_presentation_event'
+                  : 'plotmap_record_device_presentation_event';
+                if (!isAdminRoute()) {
+                  payload.p_device_token = window.PMDeviceAccess && window.PMDeviceAccess.getToken
+                    ? window.PMDeviceAccess.getToken()
+                    : '';
+                }
+                const single = await callRpc(rpcName, payload, { prefer: 'return=minimal' });
                 rowOutcome.set(rowId, !!single.ok);
               } catch (err) {
                 rowOutcome.set(rowId, false);
@@ -304,7 +313,10 @@
     if (unavailable.has(table)) return;
     const result = isAdminRoute()
       ? await rest('crm_records?select=*&dealer_id=eq.' + encodeURIComponent(dealerId) + '&updated_at=gt.' + encodeURIComponent(since) + '&order=updated_at.asc&limit=500', { method: 'GET' })
-      : await callRpc('plotmap_client_properties', { p_dealer_id: dealerId });
+      : await callRpc('plotmap_client_properties_for_device', {
+          p_dealer_id: dealerId,
+          p_device_token: window.PMDeviceAccess && window.PMDeviceAccess.getToken ? window.PMDeviceAccess.getToken() : ''
+        });
     if (result.missing || result.forbidden || !result.data || !result.data.length) return;
     const data = window.CRM.getCRM();
     let latest = since;
@@ -393,7 +405,10 @@
     if (!dealerId) return;
     const result = isAdminRoute()
       ? await rest('map_overlays?select=*&dealer_id=eq.' + encodeURIComponent(dealerId) + '&updated_at=gt.' + encodeURIComponent(since) + '&order=updated_at.asc&limit=500', { method: 'GET' })
-      : await callRpc('plotmap_client_overlays', { p_dealer_id: dealerId });
+      : await callRpc('plotmap_client_overlays_for_device', {
+          p_dealer_id: dealerId,
+          p_device_token: window.PMDeviceAccess && window.PMDeviceAccess.getToken ? window.PMDeviceAccess.getToken() : ''
+        });
     if (result.missing || result.forbidden || !result.data || !result.data.length) return;
     let latest = since;
     const rows = result.data.map(row => {

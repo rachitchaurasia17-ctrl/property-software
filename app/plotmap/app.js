@@ -239,6 +239,19 @@
       return localStorage.getItem('plotmap_dealer_id') || '';
     }
   })();
+
+  if (!window.PMDeviceAccess) {
+    document.body.innerHTML = '';
+    return;
+  }
+  const deviceGate = await window.PMDeviceAccess.requireApproved(clientDealerId || 'dealer-demo', {
+    message: 'Device approval required. This PlotMap presentation is available only on an approved dealer device.',
+    deviceLabel: 'Client Presentation device'
+  });
+  if (!deviceGate.ok) return;
+  clientDealerId = deviceGate.dealerId || clientDealerId || 'dealer-demo';
+  try { localStorage.setItem('plotmap_dealer_id', clientDealerId); } catch (e) {}
+
   /* --- Dealer branding (client-safe subset of dealer settings) ---
      Reads the local store only; whitelisted display fields — never contact
      lists, billing, team, plan, or any internal settings. */
@@ -2088,8 +2101,7 @@
       p.area ? 'Area: ' + p.area : '',
       p.description || ''
     ].filter(Boolean);
-    const link = location.origin + '/app/plotmap/?property=' + encodeURIComponent(p.id) + (clientDealerId ? '&dealerId=' + encodeURIComponent(clientDealerId) : '');
-    const msg = (dealerBranding.shareMessage ? dealerBranding.shareMessage + '\n\n' : '') + details.join('\n') + '\n\nView on the live map: ' + link + '\n\n— ' + brand;
+    const msg = (dealerBranding.shareMessage ? dealerBranding.shareMessage + '\n\n' : '') + details.join('\n') + '\n\nShared from an approved PlotMap dealer device.\n\n- ' + brand;
     window.logEvent('brochure_shared', { area: state.areaId || null, propertyId: id, metadata: { source: 'whatsapp' } });
     // explicit WhatsApp event so trial analytics can count shares precisely
     window.logEvent('property_shared_whatsapp', { area: state.areaId || null, propertyId: id, metadata: { source: 'whatsapp' } });
@@ -2119,7 +2131,10 @@
   await useDataset(state.areaId);
   
   if (supabase) {
-    const { data } = await supabase.rpc('plotmap_client_maps', { p_dealer_id: clientDealerId || 'dealer-demo' });
+    const { data } = await supabase.rpc('plotmap_client_maps_for_device', {
+      p_dealer_id: clientDealerId || 'dealer-demo',
+      p_device_token: window.PMDeviceAccess.getToken()
+    });
     if (data) state.prebuiltMaps = data;
   }
   

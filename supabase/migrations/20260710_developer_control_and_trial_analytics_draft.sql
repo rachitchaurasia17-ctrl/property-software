@@ -4,7 +4,7 @@
 -- Apply manually in the Supabase SQL editor AFTER review.
 --
 -- Why this migration is required (cannot be done frontend-only):
---   1. Passcode login: a static frontend shipping only the publishable
+--   1. Device-gated passcode login: a static frontend shipping only the publishable
 --      anon key can never verify a secret safely — any check in JS is
 --      readable by the client. Verification must happen server-side in
 --      a SECURITY DEFINER function against a bcrypt hash, and the only
@@ -13,6 +13,9 @@
 --      dealer. This file stores hashes + resolves passcode -> dealer;
 --      the auth user itself is created once by the provider (see the
 --      onboarding notes at the bottom).
+--      The dealer device is separately approved through dealer_devices;
+--      Client Presentation and dealer routes must provide the locally
+--      stored device token to RPCs, while the database stores only hashes.
 --   2. Cross-dealer trial analytics: staff RLS scopes presentation_events
 --      SELECT to the caller's own dealer. The developer needs aggregates
 --      across ALL dealers -> platform-admin-gated SECURITY DEFINER RPCs.
@@ -40,7 +43,9 @@ alter table public.dealer_settings
   add column if not exists owner_name text,
   add column if not exists owner_phone text,
   add column if not exists primary_area text,
-  add column if not exists developer_notes text;
+  add column if not exists developer_notes text,
+  add column if not exists max_devices_allowed integer not null default 1
+    check (max_devices_allowed between 1 and 20);
 
 -- Extend the phase-4 provider-only column guard so a dealer cannot edit
 -- developer_notes (their own row is UPDATE-able under "plotmap dealer
@@ -75,6 +80,7 @@ begin
        or new.max_maps is distinct from old.max_maps
        or new.max_properties is distinct from old.max_properties
        or new.max_team_members is distinct from old.max_team_members
+       or new.max_devices_allowed is distinct from old.max_devices_allowed
      ) then
     raise exception 'account, storage, and plan columns are provider-only';
   end if;
@@ -104,6 +110,7 @@ create table if not exists public.dealer_access_codes (
 create table if not exists public.dealer_activation_requests (
   id uuid primary key default gen_random_uuid(),
   access_code_id uuid references public.dealer_access_codes(id) on delete set null,
+  lookup_token_hash text not null,
   status text not null default 'pending' check (status in ('pending', 'approved', 'rejected', 'expired')),
   dealer_id text references public.dealer_settings(dealer_id) on delete set null,
   requested_business_name text,
@@ -111,6 +118,8 @@ create table if not exists public.dealer_activation_requests (
   requested_owner_phone text,
   requested_primary_area text,
   device_label text,
+  device_token_hash text,
+  browser_info text,
   approved_by uuid,
   approved_at timestamptz,
   rejected_by uuid,
@@ -126,20 +135,49 @@ create index if not exists dealer_activation_requests_status_idx
 create index if not exists dealer_activation_requests_dealer_idx
   on public.dealer_activation_requests (dealer_id, created_at desc);
 
+-- Approved dealer devices. The frontend stores the opaque device token
+-- locally; Postgres stores only crypt() hashes and never returns them.
+create table if not exists public.dealer_devices (
+  id uuid primary key default gen_random_uuid(),
+  dealer_id text not null references public.dealer_settings(dealer_id) on delete cascade,
+  device_token_hash text not null,
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected', 'revoked')),
+  device_label text,
+  browser_info text,
+  first_seen timestamptz not null default timezone('utc'::text, now()),
+  last_seen timestamptz not null default timezone('utc'::text, now()),
+  approved_at timestamptz,
+  approved_by uuid,
+  rejected_at timestamptz,
+  rejected_by uuid,
+  revoked_at timestamptz,
+  revoked_by uuid,
+  developer_notes text,
+  created_at timestamptz not null default timezone('utc'::text, now()),
+  updated_at timestamptz not null default timezone('utc'::text, now())
+);
+
+create index if not exists dealer_devices_dealer_status_idx
+  on public.dealer_devices (dealer_id, status, updated_at desc);
+
 alter table public.dealer_access_codes enable row level security;
 alter table public.dealer_activation_requests enable row level security;
-revoke all on public.dealer_access_codes from anon, authenticated;
-revoke all on public.dealer_activation_requests from anon, authenticated;
+alter table public.dealer_devices enable row level security;
+revoke all on public.dealer_access_codes from public, anon, authenticated;
+revoke all on public.dealer_activation_requests from public, anon, authenticated;
+revoke all on public.dealer_devices from public, anon, authenticated;
 
 create or replace function public.plotmap_submit_activation_request(
   p_access_code text,
+  p_device_token text,
   p_business_name text default null,
   p_owner_name text default null,
   p_owner_phone text default null,
   p_primary_area text default null,
-  p_device_label text default null
+  p_device_label text default null,
+  p_browser_info text default null
 )
-returns table (request_id uuid, status text)
+returns table (request_id uuid, lookup_token text, status text)
 language plpgsql
 security definer
 set search_path = public
@@ -147,10 +185,14 @@ as $$
 declare
   v_code public.dealer_access_codes%rowtype;
   v_request_id uuid;
+  v_lookup_token text := encode(gen_random_bytes(24), 'hex');
 begin
   perform pg_sleep(0.25);
 
   if p_access_code is null or trim(p_access_code) !~ '^\d{8}$' then
+    return;
+  end if;
+  if p_device_token is null or length(trim(p_device_token)) < 32 then
     return;
   end if;
 
@@ -162,7 +204,8 @@ begin
       and c.use_count < c.max_uses
       and c.code_hash = crypt(trim(p_access_code), c.code_hash)
     order by c.created_at asc
-    limit 1;
+    limit 1
+    for update;
 
   if not found then
     return;
@@ -170,19 +213,25 @@ begin
 
   insert into public.dealer_activation_requests (
     access_code_id,
+    lookup_token_hash,
     requested_business_name,
     requested_owner_name,
     requested_owner_phone,
     requested_primary_area,
-    device_label
+    device_label,
+    device_token_hash,
+    browser_info
   )
   values (
     v_code.id,
+    crypt(v_lookup_token, gen_salt('bf', 10)),
     nullif(left(trim(coalesce(p_business_name, '')), 160), ''),
     nullif(left(trim(coalesce(p_owner_name, '')), 120), ''),
     nullif(left(trim(coalesce(p_owner_phone, '')), 40), ''),
     nullif(left(trim(coalesce(p_primary_area, '')), 120), ''),
-    nullif(left(trim(coalesce(p_device_label, '')), 160), '')
+    nullif(left(trim(coalesce(p_device_label, '')), 160), ''),
+    crypt(trim(p_device_token), gen_salt('bf', 10)),
+    nullif(left(trim(coalesce(p_browser_info, '')), 240), '')
   )
   returning id into v_request_id;
 
@@ -191,30 +240,41 @@ begin
          updated_at = timezone('utc'::text, now())
    where id = v_code.id;
 
-  return query select v_request_id, 'pending'::text;
+  return query select v_request_id, v_lookup_token, 'pending'::text;
 end;
 $$;
 
-revoke all on function public.plotmap_submit_activation_request(text, text, text, text, text, text)
+revoke all on function public.plotmap_submit_activation_request(text, text, text, text, text, text, text, text)
   from public, anon, authenticated;
-grant execute on function public.plotmap_submit_activation_request(text, text, text, text, text, text)
+grant execute on function public.plotmap_submit_activation_request(text, text, text, text, text, text, text, text)
   to anon, authenticated;
 
-create or replace function public.plotmap_activation_request_status(p_request_id uuid)
-returns table (status text)
-language sql
-stable
+create or replace function public.plotmap_activation_request_status(
+  p_request_id uuid,
+  p_lookup_token text
+)
+returns table (status text, dealer_id text)
+language plpgsql
 security definer
 set search_path = public
 as $$
-  select r.status
+begin
+  perform pg_sleep(0.15);
+  if p_request_id is null or p_lookup_token is null or length(trim(p_lookup_token)) < 32 then
+    return;
+  end if;
+
+  return query
+  select r.status, case when r.status = 'approved' then r.dealer_id else null end
   from public.dealer_activation_requests r
-  where r.id = p_request_id;
+  where r.id = p_request_id
+    and r.lookup_token_hash = crypt(trim(p_lookup_token), r.lookup_token_hash);
+end;
 $$;
 
-revoke all on function public.plotmap_activation_request_status(uuid)
+revoke all on function public.plotmap_activation_request_status(uuid, text)
   from public, anon, authenticated;
-grant execute on function public.plotmap_activation_request_status(uuid)
+grant execute on function public.plotmap_activation_request_status(uuid, text)
   to anon, authenticated;
 
 create or replace function public.plotmap_admin_create_activation_code(
@@ -289,6 +349,7 @@ returns table (
   requested_owner_phone text,
   requested_primary_area text,
   device_label text,
+  browser_info text,
   developer_notes text,
   created_at timestamptz,
   updated_at timestamptz
@@ -313,6 +374,7 @@ begin
     r.requested_owner_phone,
     r.requested_primary_area,
     r.device_label,
+    r.browser_info,
     r.developer_notes,
     r.created_at,
     r.updated_at
@@ -342,6 +404,8 @@ set search_path = public
 as $$
 declare
   v_request public.dealer_activation_requests%rowtype;
+  v_max_devices integer;
+  v_approved_devices integer;
 begin
   if not public.plotmap_is_platform_admin() then
     raise exception 'platform admin required';
@@ -371,6 +435,9 @@ begin
       and not public.plotmap_dealer_is_active(d.dealer_id)
   ) then
     raise exception 'dealer is suspended or expired; reactivate through account controls first';
+  end if;
+  if v_request.device_token_hash is null then
+    raise exception 'activation request has no device token';
   end if;
 
   insert into public.dealer_settings (
@@ -402,6 +469,45 @@ begin
     primary_area = coalesce(excluded.primary_area, public.dealer_settings.primary_area),
     developer_notes = coalesce(excluded.developer_notes, public.dealer_settings.developer_notes),
     updated_at = timezone('utc'::text, now());
+
+  select coalesce(max_devices_allowed, 1)
+    into v_max_devices
+    from public.dealer_settings
+    where dealer_id = p_dealer_id
+    for update;
+
+  select count(*)
+    into v_approved_devices
+    from public.dealer_devices
+    where dealer_id = p_dealer_id
+      and status = 'approved';
+
+  if v_approved_devices >= v_max_devices then
+    raise exception 'dealer has reached approved device limit';
+  end if;
+
+  insert into public.dealer_devices (
+    dealer_id,
+    device_token_hash,
+    status,
+    device_label,
+    browser_info,
+    approved_by,
+    approved_at,
+    developer_notes,
+    updated_at
+  )
+  values (
+    p_dealer_id,
+    v_request.device_token_hash,
+    'approved',
+    v_request.device_label,
+    v_request.browser_info,
+    auth.uid(),
+    timezone('utc'::text, now()),
+    p_developer_notes,
+    timezone('utc'::text, now())
+  );
 
   update public.dealer_activation_requests
      set status = 'approved',
@@ -457,6 +563,433 @@ revoke all on function public.plotmap_admin_reject_activation_request(uuid, text
 grant execute on function public.plotmap_admin_reject_activation_request(uuid, text)
   to authenticated;
 
+-- ---------- 3. approved-device gate ----------
+create or replace function public.plotmap_device_status(
+  p_dealer_id text,
+  p_device_token text,
+  p_device_label text default null,
+  p_browser_info text default null
+)
+returns table (status text, dealer_id text)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_device public.dealer_devices%rowtype;
+begin
+  perform pg_sleep(0.12);
+  if p_dealer_id is null or trim(p_dealer_id) = '' then
+    return query select 'unknown'::text, null::text;
+    return;
+  end if;
+  if p_device_token is null or length(trim(p_device_token)) < 32 then
+    return query select 'unknown'::text, null::text;
+    return;
+  end if;
+  if not public.plotmap_dealer_is_active(p_dealer_id) then
+    return query select 'blocked'::text, p_dealer_id;
+    return;
+  end if;
+
+  select *
+    into v_device
+    from public.dealer_devices d
+    where d.dealer_id = p_dealer_id
+      and d.device_token_hash = crypt(trim(p_device_token), d.device_token_hash)
+    order by d.created_at desc
+    limit 1;
+
+  if not found then
+    insert into public.dealer_devices (
+      dealer_id,
+      device_token_hash,
+      status,
+      device_label,
+      browser_info
+    )
+    values (
+      p_dealer_id,
+      crypt(trim(p_device_token), gen_salt('bf', 10)),
+      'pending',
+      nullif(left(trim(coalesce(p_device_label, '')), 160), ''),
+      nullif(left(trim(coalesce(p_browser_info, '')), 240), '')
+    )
+    returning * into v_device;
+  else
+    update public.dealer_devices
+       set last_seen = timezone('utc'::text, now()),
+           device_label = coalesce(nullif(left(trim(coalesce(p_device_label, '')), 160), ''), device_label),
+           browser_info = coalesce(nullif(left(trim(coalesce(p_browser_info, '')), 240), ''), browser_info),
+           updated_at = timezone('utc'::text, now())
+     where id = v_device.id
+     returning * into v_device;
+  end if;
+
+  return query select v_device.status, v_device.dealer_id;
+end;
+$$;
+
+revoke all on function public.plotmap_device_status(text, text, text, text)
+  from public, anon, authenticated;
+grant execute on function public.plotmap_device_status(text, text, text, text)
+  to anon, authenticated;
+
+create or replace function public.plotmap_device_is_approved(
+  p_dealer_id text,
+  p_device_token text
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid;
+begin
+  if p_dealer_id is null or trim(p_dealer_id) = '' then
+    return false;
+  end if;
+  if p_device_token is null or length(trim(p_device_token)) < 32 then
+    return false;
+  end if;
+  if not public.plotmap_dealer_is_active(p_dealer_id) then
+    return false;
+  end if;
+
+  select d.id
+    into v_id
+    from public.dealer_devices d
+    where d.dealer_id = p_dealer_id
+      and d.status = 'approved'
+      and d.device_token_hash = crypt(trim(p_device_token), d.device_token_hash)
+    order by d.approved_at desc nulls last, d.created_at desc
+    limit 1;
+
+  if not found then
+    return false;
+  end if;
+
+  update public.dealer_devices
+     set last_seen = timezone('utc'::text, now()),
+         updated_at = timezone('utc'::text, now())
+   where id = v_id;
+
+  return true;
+end;
+$$;
+
+revoke all on function public.plotmap_device_is_approved(text, text)
+  from public, anon, authenticated;
+grant execute on function public.plotmap_device_is_approved(text, text)
+  to anon, authenticated;
+
+create or replace function public.plotmap_client_properties_for_device(
+  p_dealer_id text,
+  p_device_token text
+)
+returns setof public.client_safe_properties
+language sql
+security definer
+set search_path = public
+as $$
+  with allowed as (
+    select public.plotmap_device_is_approved(p_dealer_id, p_device_token) as ok
+  )
+  select c.*
+  from public.client_safe_properties c
+  cross join allowed
+  where c.dealer_id = p_dealer_id
+    and allowed.ok;
+$$;
+
+create or replace function public.plotmap_client_maps_for_device(
+  p_dealer_id text,
+  p_device_token text
+)
+returns setof public.prebuilt_maps
+language sql
+security definer
+set search_path = public
+as $$
+  with allowed as (
+    select public.plotmap_device_is_approved(p_dealer_id, p_device_token) as ok
+  )
+  select m.*
+  from public.prebuilt_maps m
+  cross join allowed
+  where m.dealer_id = p_dealer_id
+    and m.status = 'published'
+    and m.client_visible = true
+    and allowed.ok
+  order by m.created_at asc;
+$$;
+
+create or replace function public.plotmap_client_overlays_for_device(
+  p_dealer_id text,
+  p_device_token text
+)
+returns setof public.map_overlays
+language sql
+security definer
+set search_path = public
+as $$
+  with allowed as (
+    select public.plotmap_device_is_approved(p_dealer_id, p_device_token) as ok
+  )
+  select o.*
+  from public.map_overlays o
+  cross join allowed
+  where o.dealer_id = p_dealer_id
+    and o.status = 'published'
+    and o.client_visible = true
+    and o.deleted = false
+    and allowed.ok
+  order by o.updated_at asc;
+$$;
+
+revoke all on function public.plotmap_client_properties_for_device(text, text) from public, anon, authenticated;
+revoke all on function public.plotmap_client_maps_for_device(text, text) from public, anon, authenticated;
+revoke all on function public.plotmap_client_overlays_for_device(text, text) from public, anon, authenticated;
+grant execute on function public.plotmap_client_properties_for_device(text, text) to anon, authenticated;
+grant execute on function public.plotmap_client_maps_for_device(text, text) to anon, authenticated;
+grant execute on function public.plotmap_client_overlays_for_device(text, text) to anon, authenticated;
+
+-- Hold the older Phase-2 public presentation RPCs closed once this
+-- migration is applied. The updated frontend calls the *_for_device
+-- functions above. This is what makes device approval backend-enforced.
+revoke execute on function public.plotmap_client_properties(text) from public, anon, authenticated;
+revoke execute on function public.plotmap_client_maps(text) from public, anon, authenticated;
+revoke execute on function public.plotmap_client_overlays(text) from public, anon, authenticated;
+
+create or replace function public.plotmap_record_device_presentation_event(
+  p_dealer_id text,
+  p_device_token text,
+  p_session_id text,
+  p_event_type text,
+  p_area text default null,
+  p_sector text default null,
+  p_map_id text default null,
+  p_property_id text default null,
+  p_client_id text default null,
+  p_metadata jsonb default '{}'::jsonb,
+  p_event_id text default null,
+  p_created_at timestamptz default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_event_id text := coalesce(nullif(p_event_id, ''), 'pevt-' || replace(gen_random_uuid()::text, '-', ''));
+  v_metadata jsonb := jsonb_set(coalesce(p_metadata, '{}'::jsonb), '{source}', '"client_presentation"', true);
+begin
+  if not public.plotmap_device_is_approved(p_dealer_id, p_device_token) then
+    raise exception 'approved dealer device required';
+  end if;
+
+  insert into public.presentation_events
+    (id, dealer_id, session_id, event_type, area, sector, map_id, property_id, client_id, metadata, created_at)
+  values
+    (
+      v_event_id,
+      p_dealer_id,
+      coalesce(p_session_id, ''),
+      coalesce(nullif(p_event_type, ''), 'unknown'),
+      p_area,
+      p_sector,
+      p_map_id,
+      p_property_id,
+      p_client_id,
+      v_metadata,
+      coalesce(p_created_at, timezone('utc'::text, now()))
+    )
+  on conflict (id) do nothing;
+end;
+$$;
+
+revoke all on function public.plotmap_record_device_presentation_event(
+  text, text, text, text, text, text, text, text, text, jsonb, text, timestamptz
+) from public, anon, authenticated;
+grant execute on function public.plotmap_record_device_presentation_event(
+  text, text, text, text, text, text, text, text, text, jsonb, text, timestamptz
+) to anon, authenticated;
+revoke execute on function public.plotmap_record_presentation_event(
+  text, text, text, text, text, text, text, text, jsonb, text, timestamptz
+) from anon;
+
+create or replace function public.plotmap_admin_list_dealer_devices()
+returns table (
+  id uuid,
+  dealer_id text,
+  dealer_name text,
+  status text,
+  device_label text,
+  browser_info text,
+  first_seen timestamptz,
+  last_seen timestamptz,
+  approved_at timestamptz,
+  approved_by uuid,
+  max_devices_allowed integer,
+  approved_device_count bigint,
+  developer_notes text
+)
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+begin
+  if not public.plotmap_is_platform_admin() then
+    raise exception 'platform admin required';
+  end if;
+
+  return query
+  select
+    d.id,
+    d.dealer_id,
+    s.brand_name,
+    d.status,
+    d.device_label,
+    d.browser_info,
+    d.first_seen,
+    d.last_seen,
+    d.approved_at,
+    d.approved_by,
+    coalesce(s.max_devices_allowed, 1),
+    (
+      select count(*)
+      from public.dealer_devices x
+      where x.dealer_id = d.dealer_id
+        and x.status = 'approved'
+    ) as approved_device_count,
+    d.developer_notes
+  from public.dealer_devices d
+  join public.dealer_settings s on s.dealer_id = d.dealer_id
+  order by
+    case d.status when 'pending' then 0 when 'approved' then 1 else 2 end,
+    d.updated_at desc;
+end;
+$$;
+
+revoke all on function public.plotmap_admin_list_dealer_devices() from public, anon, authenticated;
+grant execute on function public.plotmap_admin_list_dealer_devices() to authenticated;
+
+create or replace function public.plotmap_admin_set_dealer_device_limit(
+  p_dealer_id text,
+  p_max_devices_allowed integer
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.plotmap_is_platform_admin() then
+    raise exception 'platform admin required';
+  end if;
+  if p_dealer_id is null or trim(p_dealer_id) = '' then
+    raise exception 'dealer id required';
+  end if;
+  if p_max_devices_allowed is null or p_max_devices_allowed < 1 or p_max_devices_allowed > 20 then
+    raise exception 'device limit must be between 1 and 20';
+  end if;
+
+  update public.dealer_settings
+     set max_devices_allowed = p_max_devices_allowed,
+         updated_at = timezone('utc'::text, now())
+   where dealer_id = p_dealer_id;
+
+  if not found then
+    raise exception 'unknown dealer';
+  end if;
+
+  insert into public.audit_logs (dealer_id, actor_profile_id, actor_role, action_type, entity_type, entity_id, metadata)
+  values (p_dealer_id, auth.uid(), public.plotmap_current_role(), 'dealer_device_limit_updated',
+          'dealer_settings', p_dealer_id, jsonb_build_object('maxDevicesAllowed', p_max_devices_allowed));
+end;
+$$;
+
+revoke all on function public.plotmap_admin_set_dealer_device_limit(text, integer) from public, anon, authenticated;
+grant execute on function public.plotmap_admin_set_dealer_device_limit(text, integer) to authenticated;
+
+create or replace function public.plotmap_admin_set_device_status(
+  p_device_id uuid,
+  p_status text,
+  p_developer_notes text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_device public.dealer_devices%rowtype;
+  v_max_devices integer;
+  v_approved_devices integer;
+begin
+  if not public.plotmap_is_platform_admin() then
+    raise exception 'platform admin required';
+  end if;
+  if p_device_id is null then
+    raise exception 'device id required';
+  end if;
+  if p_status not in ('approved', 'rejected', 'revoked') then
+    raise exception 'unsupported device status';
+  end if;
+
+  select *
+    into v_device
+    from public.dealer_devices
+    where id = p_device_id
+    for update;
+
+  if not found then
+    raise exception 'device not found';
+  end if;
+  if not public.plotmap_dealer_is_active(v_device.dealer_id) then
+    raise exception 'dealer is suspended or expired';
+  end if;
+
+  if p_status = 'approved' then
+    select coalesce(max_devices_allowed, 1)
+      into v_max_devices
+      from public.dealer_settings
+      where dealer_id = v_device.dealer_id
+      for update;
+    select count(*)
+      into v_approved_devices
+      from public.dealer_devices
+      where dealer_id = v_device.dealer_id
+        and status = 'approved'
+        and id <> p_device_id;
+    if v_approved_devices >= v_max_devices then
+      raise exception 'dealer has reached approved device limit';
+    end if;
+  end if;
+
+  update public.dealer_devices
+     set status = p_status,
+         approved_by = case when p_status = 'approved' then auth.uid() else approved_by end,
+         approved_at = case when p_status = 'approved' then timezone('utc'::text, now()) else approved_at end,
+         rejected_by = case when p_status = 'rejected' then auth.uid() else rejected_by end,
+         rejected_at = case when p_status = 'rejected' then timezone('utc'::text, now()) else rejected_at end,
+         revoked_by = case when p_status = 'revoked' then auth.uid() else revoked_by end,
+         revoked_at = case when p_status = 'revoked' then timezone('utc'::text, now()) else revoked_at end,
+         developer_notes = coalesce(p_developer_notes, developer_notes),
+         updated_at = timezone('utc'::text, now())
+   where id = p_device_id;
+
+  insert into public.audit_logs (dealer_id, actor_profile_id, actor_role, action_type, entity_type, entity_id, metadata)
+  values (v_device.dealer_id, auth.uid(), public.plotmap_current_role(), 'dealer_device_' || p_status,
+          'dealer_devices', p_device_id::text, '{}'::jsonb);
+end;
+$$;
+
+revoke all on function public.plotmap_admin_set_device_status(uuid, text, text) from public, anon, authenticated;
+grant execute on function public.plotmap_admin_set_device_status(uuid, text, text) to authenticated;
+
 -- ---------- 2. dealer passcodes (deny-all table, RPC access only) ----------
 create table if not exists public.dealer_passcodes (
   dealer_id text primary key references public.dealer_settings(dealer_id) on delete cascade,
@@ -473,7 +1006,7 @@ create unique index if not exists dealer_passcodes_login_email_unique_idx
 alter table public.dealer_passcodes enable row level security;
 -- Intentionally NO policies and NO grants: deny-all. Only the SECURITY
 -- DEFINER functions below may touch this table.
-revoke all on public.dealer_passcodes from anon, authenticated;
+revoke all on public.dealer_passcodes from public, anon, authenticated;
 
 -- ---------- 3. passcode -> dealer resolution (public, pre-auth) ----------
 -- Called by the landing page BEFORE any session exists. Returns at most
@@ -690,6 +1223,10 @@ returns table (
   plan_code text,
   paid boolean,
   storage_enabled boolean,
+  max_devices_allowed integer,
+  approved_device_count bigint,
+  pending_device_count bigint,
+  last_device_seen timestamptz,
   has_passcode boolean,
   login_email text,
   is_active boolean,
@@ -722,6 +1259,24 @@ begin
     d.plan_code,
     d.paid,
     d.storage_enabled,
+    coalesce(d.max_devices_allowed, 1),
+    (
+      select count(*)
+      from public.dealer_devices dev
+      where dev.dealer_id = d.dealer_id
+        and dev.status = 'approved'
+    ) as approved_device_count,
+    (
+      select count(*)
+      from public.dealer_devices dev
+      where dev.dealer_id = d.dealer_id
+        and dev.status = 'pending'
+    ) as pending_device_count,
+    (
+      select max(dev.last_seen)
+      from public.dealer_devices dev
+      where dev.dealer_id = d.dealer_id
+    ) as last_device_seen,
     (pc.dealer_id is not null) as has_passcode,
     pc.login_email,
     public.plotmap_dealer_is_active(d.dealer_id) as is_active,

@@ -117,9 +117,20 @@
       <div style="overflow-x:auto;"><table>
         <thead><tr>
           <th>Dealer</th><th>Status</th><th>Trial</th><th>Last active</th>
-          <th>Sessions</th><th>Presentation opens</th><th>WhatsApp shares</th><th>Usage</th><th>Actions</th>
+          <th>Sessions</th><th>Presentation opens</th><th>WhatsApp shares</th><th>Devices</th><th>Usage</th><th>Actions</th>
         </tr></thead>
-        <tbody id="dealer-rows"><tr><td colspan="9" class="muted">Loading dealers…</td></tr></tbody>
+        <tbody id="dealer-rows"><tr><td colspan="10" class="muted">Loading dealers...</td></tr></tbody>
+      </table></div>
+    </section>
+
+    <section class="card">
+      <h2>Dealer devices</h2>
+      <div class="hint">Approved devices can open Client Presentation and admin workspaces. New devices stay pending until approved here.</div>
+      <div style="overflow-x:auto;"><table>
+        <thead><tr>
+          <th>Dealer</th><th>Status</th><th>Device</th><th>Last seen</th><th>Limit</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="device-rows"><tr><td colspan="6" class="muted">Loading devices...</td></tr></tbody>
       </table></div>
     </section>
 
@@ -224,7 +235,7 @@
 (function () {
   const $ = (id) => document.getElementById(id);
   const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-  const state = { dealers: [], usage: {}, flags: { directoryRpc: true, usageRpc: true, trialRpc: true, passcodeRpc: true } };
+  const state = { dealers: [], devices: [], usage: {}, flags: { directoryRpc: true, usageRpc: true, trialRpc: true, passcodeRpc: true, devicesRpc: true } };
 
   async function rpc(name, payload) {
     const token = await window.PMAuth.getAccessToken().catch(() => null);
@@ -295,6 +306,13 @@
     (r.data || []).forEach(row => { state.usage[row.dealer_id] = row; });
   }
 
+  async function loadDevices() {
+    const r = await rpc('plotmap_admin_list_dealer_devices', {});
+    if (r.status === 404) throw new Error('Developer control migration required.');
+    if (!r.ok) { state.devices = []; return; }
+    state.devices = Array.isArray(r.data) ? r.data : [];
+  }
+
   async function probeOptionalRpcs() {
     // detect (without side effects) whether the new admin RPCs exist:
     // an invalid-arg call returns 400 from the function body (exists) vs
@@ -303,7 +321,9 @@
     state.flags.trialRpc = t.status !== 404;
     const p = await rpc('plotmap_admin_set_dealer_passcode', { p_dealer_id: '', p_login_email: '', p_passcode: '' });
     state.flags.passcodeRpc = p.status !== 404;
-    if (!state.flags.trialRpc || !state.flags.passcodeRpc) {
+    const d = await rpc('plotmap_admin_list_dealer_devices', {});
+    state.flags.devicesRpc = d.status !== 404;
+    if (!state.flags.trialRpc || !state.flags.passcodeRpc || !state.flags.devicesRpc) {
       throw new Error('Developer control migration required.');
     }
   }
@@ -354,6 +374,7 @@
     if (!state.flags.usageRpc) missing.push('cross-dealer usage analytics');
     if (!state.flags.trialRpc) missing.push('trial start/notes editing');
     if (!state.flags.passcodeRpc) missing.push('passcode set/reset');
+    if (!state.flags.devicesRpc) missing.push('approved device controls');
     $('migration-banner').innerHTML = missing.length
       ? '<div class="banner warn">⚠ Backend migration pending — these features are disabled until you apply '
         + '<code>supabase/migrations/20260710_developer_control_and_trial_analytics_draft.sql</code> (review first): '
@@ -389,6 +410,8 @@
         + '<td>' + (u ? Number(u.sessions || 0) : '—') + '</td>'
         + '<td>' + (u ? Number(u.presentation_opens || 0) : '—') + '</td>'
         + '<td>' + (u ? Number(u.whatsapp_shares || 0) : '—') + '</td>'
+        + '<td>' + Number(d.approved_device_count || 0) + '/' + Number(d.max_devices_allowed || 1)
+        +   (Number(d.pending_device_count || 0) ? ' · ' + Number(d.pending_device_count || 0) + ' pending' : '') + '</td>'
         + '<td>' + usageCell + '</td>'
         + '<td><div class="rowbtns">'
         +   '<button data-act="summary" data-id="' + esc(d.dealer_id) + '">Summary</button>'
@@ -402,13 +425,38 @@
         + '</div></td>'
         + '</tr>';
     });
-    $('dealer-rows').innerHTML = rows.join('') || '<tr><td colspan="9" class="muted">No dealers found in dealer_settings yet.</td></tr>';
+    $('dealer-rows').innerHTML = rows.join('') || '<tr><td colspan="10" class="muted">No dealers found in dealer_settings yet.</td></tr>';
   }
 
-  function renderAll() { renderBanner(); renderKpis(); renderRows(); }
+  function deviceChip(status) {
+    if (status === 'approved') return '<span class="chip active">Approved</span>';
+    if (status === 'pending') return '<span class="chip trial">Pending</span>';
+    return '<span class="chip expired">' + esc(status || 'Unknown') + '</span>';
+  }
+
+  function renderDevices() {
+    const rows = state.devices.map(d => '<tr>'
+      + '<td><div class="dname">' + esc(d.dealer_name || d.dealer_id) + '</div><div class="dmeta">' + esc(d.dealer_id) + '</div></td>'
+      + '<td>' + deviceChip(d.status) + '</td>'
+      + '<td><div>' + esc(d.device_label || 'Dealer device') + '</div><div class="dmeta">' + esc(d.browser_info || '') + '</div></td>'
+      + '<td>' + fmtWhen(d.last_seen) + '</td>'
+      + '<td>' + Number(d.approved_device_count || 0) + '/' + Number(d.max_devices_allowed || 1) + '</td>'
+      + '<td><div class="rowbtns">'
+      + (d.status === 'approved'
+        ? '<button class="danger" data-device-act="revoked" data-device-id="' + esc(d.id) + '">Revoke</button>'
+        : '<button data-device-act="approved" data-device-id="' + esc(d.id) + '">Approve</button>')
+      + (d.status === 'pending'
+        ? '<button class="danger" data-device-act="rejected" data-device-id="' + esc(d.id) + '">Reject</button>'
+        : '')
+      + '</div></td>'
+      + '</tr>');
+    $('device-rows').innerHTML = rows.join('') || '<tr><td colspan="6" class="muted">No device requests yet.</td></tr>';
+  }
+
+  function renderAll() { renderBanner(); renderKpis(); renderRows(); renderDevices(); }
 
   async function refresh() {
-    await Promise.all([loadDealers(), loadUsage()]);
+    await Promise.all([loadDealers(), loadUsage(), loadDevices()]);
     renderAll();
   }
 
@@ -628,6 +676,22 @@
     else if (act === 'trial') openTrialDialog(id);
     else if (act === 'passcode') openPasscodeDialog(id);
     else if (act === 'summary') openSummaryDialog(id);
+  });
+
+  $('device-rows').addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-device-act]');
+    if (!btn) return;
+    const id = btn.getAttribute('data-device-id');
+    const status = btn.getAttribute('data-device-act');
+    const label = status === 'approved' ? 'Approve' : status === 'rejected' ? 'Reject' : 'Revoke';
+    if (!confirm(label + ' this dealer device?')) return;
+    btn.disabled = true;
+    const r = await rpc('plotmap_admin_set_device_status', {
+      p_device_id: id,
+      p_status: status
+    });
+    if (!r.ok) alert('Failed: ' + (r.message || r.status));
+    await refresh();
   });
 
   $('btn-refresh').addEventListener('click', refresh);

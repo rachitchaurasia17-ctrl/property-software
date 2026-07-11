@@ -250,6 +250,17 @@
     }
   }
 
+  function ensureDeviceAccessRuntime() {
+    if (window.PMDeviceAccess) return Promise.resolve(window.PMDeviceAccess);
+    return new Promise(resolve => {
+      const script = document.createElement('script');
+      script.src = '/admin/core/device-access.js?v=1';
+      script.onload = () => resolve(window.PMDeviceAccess || null);
+      script.onerror = () => resolve(null);
+      document.head.appendChild(script);
+    });
+  }
+
   function guardPage(options) {
     if (!/^\/admin\//i.test(location.pathname || '')) {
       return canAccessRoute(options || {});
@@ -308,6 +319,20 @@
         if (serverActive === false) {
           renderBlockedScreen();
           return { ok: false, reason: 'dealer_inactive_server', profile };
+        }
+        const deviceAccess = await ensureDeviceAccessRuntime();
+        const deviceGate = deviceAccess && await deviceAccess.requireApproved(profile.dealer_id, {
+          render: false,
+          authenticated: true,
+          deviceLabel: 'PlotMap admin device'
+        });
+        if (!deviceGate || !deviceGate.ok) {
+          if (deviceAccess && typeof deviceAccess.renderBlocked === 'function') {
+            deviceAccess.renderBlocked('Device approval required. PlotMap admin tools are available only on an approved dealer device.');
+          } else {
+            renderBlockedScreen();
+          }
+          return { ok: false, reason: 'device_not_approved', profile };
         }
       }
       const data = window.PMDataAdapter ? window.PMDataAdapter.getData() : null;
