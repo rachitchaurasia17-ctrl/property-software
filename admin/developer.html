@@ -211,6 +211,27 @@
   </div>
 </div>
 
+<!-- Dedicated developer login. Platform admins sign in here with email &
+     password — this screen is never shown to normal dealers, and the dealer
+     root page never shows this form. Access to the data below is enforced
+     server-side by the platform-admin RPCs regardless. -->
+<div id="dev-login" style="display:none;">
+  <div class="locked" style="max-width:420px;">
+    <div style="width:52px;height:52px;border-radius:16px;border:1px solid #D7C7A4;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;color:#1F5E47;font-weight:800;">PM</div>
+    <h1 style="font-size:22px;">Developer sign in</h1>
+    <p class="muted" style="font-size:13.5px;line-height:1.55;margin-bottom:18px;">Platform-admin access only. Sign in with your developer account.</p>
+    <form id="dev-login-form" style="text-align:left;">
+      <input id="dev-email" type="email" autocomplete="email" placeholder="Developer email" required
+        style="width:100%;height:46px;margin-bottom:11px;border-radius:12px;border:1px solid #E8DFC9;background:#FAF8F3;padding:0 14px;font-size:14.5px;color:#1C1E1B;outline:none;">
+      <input id="dev-password" type="password" autocomplete="current-password" placeholder="Password" required
+        style="width:100%;height:46px;margin-bottom:14px;border-radius:12px;border:1px solid #E8DFC9;background:#FAF8F3;padding:0 14px;font-size:14.5px;color:#1C1E1B;outline:none;">
+      <button class="btn-primary" type="submit" id="dev-login-submit" style="width:100%;height:46px;">Sign in</button>
+      <div id="dev-login-status" style="margin-top:12px;font-size:13px;color:#9A4A2C;font-weight:600;min-height:16px;text-align:center;"></div>
+    </form>
+    <p style="margin-top:16px;"><a href="/" style="font-weight:700;color:#1F5E47;font-size:13px;">← Back to PlotMap</a></p>
+  </div>
+</div>
+
 <!-- per-dealer dialogs -->
 <dialog id="dlg-trial">
   <h3>Trial &amp; account</h3>
@@ -301,19 +322,34 @@
   function showLocked(reason) {
     $('locked-reason').textContent = reason;
     $('locked').style.display = '';
+    $('dev-login').style.display = 'none';
     $('app').style.display = 'none';
     document.documentElement.style.visibility = '';
   }
 
+  // Dedicated developer login. Shown INSTEAD of bouncing to the dealer root,
+  // so the dealer landing page never carries a developer email/password form
+  // and normal dealers never see it. This device is NOT device-gated: the
+  // platform-admin RPCs below are the real, server-side gate.
+  function showDevLogin(message) {
+    $('dev-login').style.display = '';
+    $('locked').style.display = 'none';
+    $('app').style.display = 'none';
+    const s = $('dev-login-status');
+    if (s) s.textContent = message || '';
+    document.documentElement.style.visibility = '';
+    setTimeout(() => { try { $('dev-email').focus(); } catch (e) {} }, 40);
+  }
+
   // ---------- access gate ----------
   // Server-side truth: the 20260710 developer-control RPC refuses everyone
-  // who is not an active platform admin. A normal dealer is redirected away;
-  // on local dev (mock session) we show the locked shell instead so the
-  // developer can see the page structure — still with ZERO data.
+  // who is not an active platform admin. No session → the dedicated developer
+  // login above (never the dealer root). On local dev (mock session) we show
+  // the locked shell so the structure is visible — still with ZERO data.
   async function gate() {
     const session = await window.PMAuth.getSession();
     if (!session) {
-      window.location.replace(window.PMAuth.buildLoginRedirect('/admin/developer.html', 'missing_session'));
+      showDevLogin();
       return false;
     }
     const probe = await rpc('plotmap_admin_dealer_directory', {});
@@ -328,8 +364,10 @@
         + '), so no dealer data can load here. Sign in as the platform admin on the deployed site.');
       return false;
     }
-    // signed-in but not a platform admin — send them to their own home
-    window.location.replace('/admin/owner.html?denied=platform_admin');
+    // signed-in but not a platform admin — offer the developer login so the
+    // right account can sign in (a normal dealer simply cannot get past it).
+    await window.PMAuth.signOut().catch(() => {});
+    showDevLogin('That account is not a platform admin. Sign in with your developer account.');
     return false;
   }
 
@@ -880,18 +918,45 @@
   });
 
   // ---------- boot ----------
-  (async () => {
+  async function boot() {
     try {
       const allowed = await gate();
       if (!allowed) return;
       await probeOptionalRpcs();
       await refresh();
+      $('dev-login').style.display = 'none';
+      $('locked').style.display = 'none';
       $('app').style.display = '';
       document.documentElement.style.visibility = '';
     } catch (err) {
       showLocked('Could not load developer data: ' + (err && err.message ? err.message : 'unknown error'));
     }
-  })();
+  }
+
+  // Dedicated developer login → sign in, then run the same boot path.
+  $('dev-login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const status = $('dev-login-status');
+    const submit = $('dev-login-submit');
+    status.style.color = '#9A4A2C';
+    status.textContent = '';
+    submit.disabled = true;
+    try {
+      const email = $('dev-email').value.trim();
+      const password = $('dev-password').value;
+      await window.PMAuth.signIn(email, password);
+      status.style.color = '#1F5E47';
+      status.textContent = 'Signed in — loading…';
+      await boot();
+    } catch (err) {
+      status.style.color = '#9A4A2C';
+      status.textContent = (err && err.message) ? err.message : 'Sign in failed.';
+    } finally {
+      submit.disabled = false;
+    }
+  });
+
+  boot();
 })();
 </script>
 </body>

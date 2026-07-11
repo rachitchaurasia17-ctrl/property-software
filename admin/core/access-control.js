@@ -254,7 +254,7 @@
     if (window.PMDeviceAccess) return Promise.resolve(window.PMDeviceAccess);
     return new Promise(resolve => {
       const script = document.createElement('script');
-      script.src = '/admin/core/device-access.js?v=1';
+      script.src = '/admin/core/device-access.js?v=2';
       script.onload = () => resolve(window.PMDeviceAccess || null);
       script.onerror = () => resolve(null);
       document.head.appendChild(script);
@@ -368,7 +368,7 @@
           });
           if (!deviceGate || !deviceGate.ok) {
             if (deviceAccess && typeof deviceAccess.renderBlocked === 'function') {
-              deviceAccess.renderBlocked('Device approval required. PlotMap admin tools are available only on an approved dealer device.');
+              deviceAccess.renderBlocked('This device is not approved for this PlotMap workspace. Activate it from the main PlotMap page, then reopen this workspace.');
             } else {
               renderBlockedScreen();
             }

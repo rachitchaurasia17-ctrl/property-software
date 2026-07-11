@@ -229,38 +229,39 @@
   const zoneById = (id) => mapZones().find(z => z.id === id);
   const pinById = (id) => mapPins().find(p => p.id === id);
   const mapProperties = () => (DS.properties || []).filter(p => p && p.clientVisible !== false && areaMatchesActive(p.area) && p.id && p.plotNumber && p.blockId && blockById(p.blockId));
-  let clientDealerId = (() => {
+  // Access is bound to the APPROVED DEVICE, not the URL. The dealer id comes
+  // from local storage (written when this device was activated/approved). A
+  // ?dealerId / ?property in the URL may still choose what to SHOW, but grants
+  // no access on its own — so a shared link on an un-approved device is inert.
+  const isLocalHost = /^(localhost|127\.|0\.0\.0\.0)/.test(location.hostname || '') || location.protocol === 'file:';
+  let clientDealerId = '';
+  try { clientDealerId = localStorage.getItem('plotmap_dealer_id') || ''; } catch (e) {}
+  if (!clientDealerId && isLocalHost) {
+    // Local demo convenience only — never on a deployed host.
     try {
       const params = new URLSearchParams(location.search || '');
-      const dealerId = params.get('dealerId') || params.get('dealer');
-      if (dealerId) localStorage.setItem('plotmap_dealer_id', dealerId);
-      return dealerId || localStorage.getItem('plotmap_dealer_id') || '';
-    } catch (e) {
-      return localStorage.getItem('plotmap_dealer_id') || '';
-    }
-  })();
+      clientDealerId = params.get('dealerId') || params.get('dealer') || 'dealer-demo';
+    } catch (e) { clientDealerId = 'dealer-demo'; }
+  }
 
   if (!window.PMDeviceAccess) {
     document.body.innerHTML = '';
     return;
   }
-  // Device lock. With no dealer context at all we block WITHOUT calling the
-  // status RPC — probing Supabase with a guessed dealer id would register
-  // junk pending devices. Local dev (file:// / localhost) keeps the pure
-  // local demo working; every deployed host requires an approved device.
-  const isLocalHost = /^(localhost|127\.|0\.0\.0\.0)/.test(location.hostname || '') || location.protocol === 'file:';
-  if (!clientDealerId && !isLocalHost) {
-    window.PMDeviceAccess.renderBlocked('Device approval required. Open PlotMap on your approved dealer device, starting from the main PlotMap page.');
-    return;
-  }
-  if (clientDealerId) {
+  // Deployed hosts require an approved device before any map/property loads.
+  // Local dev (file:// / localhost) keeps the pure local demo and skips the
+  // server gate (mock session, local datasets).
+  if (!isLocalHost) {
+    if (!clientDealerId) {
+      window.PMDeviceAccess.renderBlocked('This device is not approved for this PlotMap workspace.');
+      return;
+    }
     const deviceGate = await window.PMDeviceAccess.requireApproved(clientDealerId, {
-      message: 'Device approval required. This PlotMap presentation is available only on an approved dealer device.',
+      message: 'This device is not approved for this PlotMap workspace.',
       deviceLabel: 'Client Presentation device'
     });
     if (!deviceGate.ok) return;
     clientDealerId = deviceGate.dealerId || clientDealerId;
-    try { localStorage.setItem('plotmap_dealer_id', clientDealerId); } catch (e) {}
   }
 
   /* --- Dealer branding (client-safe subset of dealer settings) ---

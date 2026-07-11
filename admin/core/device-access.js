@@ -22,15 +22,11 @@
     return token;
   }
 
+  // The dealer binding comes ONLY from local storage (written when the device
+  // was activated/approved or from the signed-in profile). It is never taken
+  // from the URL: a link alone must grant no access, and reading ?dealerId
+  // would let a shared URL silently register/steer a device.
   function resolveDealerId(fallback) {
-    try {
-      const params = new URLSearchParams(location.search || '');
-      const explicit = params.get('dealerId') || params.get('dealer');
-      if (explicit) {
-        localStorage.setItem('plotmap_dealer_id', explicit);
-        return explicit;
-      }
-    } catch (err) {}
     try {
       const stored = localStorage.getItem('plotmap_dealer_id');
       if (stored) return stored;
@@ -61,11 +57,29 @@
     return { ok: true, data: await res.json().catch(() => null) };
   }
 
+  // Read-only approval check used to GATE protected routes. Calls
+  // plotmap_device_is_approved, which never inserts a row — so merely loading
+  // a page (or opening a shared link) can never register a pending device.
+  // Pending requests are created ONLY through the explicit activation flow
+  // (plotmap_submit_activation_request). Returns { ok, statusText } where
+  // statusText is 'approved' | 'unapproved' | 'no_dealer' | 'migration_required' | 'error'.
+  async function isApproved(dealerId, options) {
+    const id = dealerId || resolveDealerId('');
+    if (!id) return { ok: false, statusText: 'no_dealer', dealerId: '' };
+    const result = await rpc('plotmap_device_is_approved', {
+      p_dealer_id: id,
+      p_device_token: getToken()
+    }, !!(options && options.authenticated));
+    if (!result.ok) {
+      return { ok: false, dealerId: id, statusText: result.migrationMissing ? 'migration_required' : 'error', migrationMissing: !!result.migrationMissing };
+    }
+    const approved = result.data === true;
+    return { ok: approved, dealerId: id, statusText: approved ? 'approved' : 'unapproved' };
+  }
+
+  // Detailed status (may INSERT a pending row) — kept for the developer/admin
+  // side only. Not used by the read-only route gate.
   async function getStatus(dealerId, options) {
-    // No implicit dealer fallback: calling the status RPC with a guessed
-    // dealer id would register junk pending devices server-side. Callers
-    // must know the dealer (passcode login, activation approval, or an
-    // explicit ?dealerId= handoff stores it).
     const id = dealerId || resolveDealerId('');
     if (!id) return { ok: false, statusText: 'no_dealer', dealerId: '' };
     const result = await rpc('plotmap_device_status', {
@@ -83,28 +97,29 @@
   }
 
   function renderBlocked(message) {
-    const text = message || 'Device approval required. This PlotMap workspace is available only on an approved dealer device.';
+    const text = message || 'This device is not approved for this PlotMap workspace.';
     document.body.innerHTML = '<main style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F5EFE2;color:#1C1E1B;font-family:Plus Jakarta Sans,Segoe UI,system-ui,sans-serif;padding:24px;">'
       + '<section style="max-width:540px;background:#FFFDF8;border:1px solid #E8DFC9;border-radius:20px;padding:32px;box-shadow:0 24px 52px rgba(120,90,30,.12);text-align:center;">'
       + '<div style="width:50px;height:50px;border-radius:16px;border:1px solid #D7C7A4;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;color:#1F5E47;font-weight:800;">PM</div>'
-      + '<h1 style="font-family:Fraunces,Georgia,serif;font-weight:500;font-size:26px;margin:0 0 10px;">Device approval required</h1>'
+      + '<h1 style="font-family:Fraunces,Georgia,serif;font-weight:500;font-size:26px;margin:0 0 10px;">Device not approved</h1>'
       + '<p style="margin:0;color:#5F6B61;line-height:1.55;font-size:14.5px;">' + text.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])) + '</p>'
-      + '<p style="margin:18px 0 0;color:#8A7C60;font-size:12.5px;">Open PlotMap on your registered dealer laptop, or ask the developer to approve this device.</p>'
+      + '<p style="margin:18px 0 0;color:#8A7C60;font-size:12.5px;">Open PlotMap on your approved dealer device, or activate this one from the main PlotMap page.</p>'
       + '</section></main>';
     document.documentElement.style.visibility = '';
   }
 
+  // Gate a protected route. Read-only (isApproved) — never registers a device.
   async function requireApproved(dealerId, options) {
-    const status = await getStatus(dealerId, options || {});
+    const status = await isApproved(dealerId, options || {});
     if (status.ok) return status;
     if (options && options.render !== false) {
       const msg = status.migrationMissing
-        ? 'Developer control migration required before device-locked access can open.'
-        : ((options && options.message) || 'This PlotMap presentation is available only on an approved dealer device.');
+        ? 'PlotMap is not fully configured on this server yet. Contact your provider.'
+        : ((options && options.message) || 'This device is not approved for this PlotMap workspace.');
       renderBlocked(msg);
     }
     return status;
   }
 
-  window.PMDeviceAccess = { getToken, resolveDealerId, getStatus, requireApproved, renderBlocked };
+  window.PMDeviceAccess = { getToken, resolveDealerId, isApproved, getStatus, requireApproved, renderBlocked };
 })();
