@@ -674,6 +674,35 @@
       window.PlotMapOverlayCapture.refresh({ container: l, mapId, mode: mode || kind });
     }
   }
+  // Base-map load state: the layer already has fixed pixel dimensions (no
+  // layout shift), but multi-MB masterplan PNGs can take seconds on slow
+  // networks — show a calm loading wash instead of a blank frame, and a safe
+  // retry chip if the asset fails. Never leaves a permanently blank map.
+  function wireBaseMapState(l) {
+    const img = l.querySelector('img.plotmap-base-map');
+    if (!img) { l.classList.remove('map-loading', 'map-failed'); return; }
+    l.classList.remove('map-failed');
+    const done = () => l.classList.remove('map-loading');
+    // Arm the error path BEFORE the cached-complete early exit so a failure
+    // is always caught, even when the src is swapped on an existing element.
+    img.addEventListener('error', () => {
+      done();
+      l.classList.add('map-failed');
+      if (window.logEvent) window.logEvent('asset_load_failure', { metadata: { kind: 'base-map', mapId: currentClientMapId() || null } });
+      if (!l.querySelector('.map-retry')) {
+        const chip = document.createElement('button');
+        chip.className = 'map-retry';
+        chip.type = 'button';
+        chip.textContent = 'Map could not load — tap to retry';
+        chip.addEventListener('click', () => { builtSig = ''; render(); });
+        l.appendChild(chip);
+      }
+    }, { once: true });
+    if (img.complete && img.naturalWidth) { done(); return; }
+    l.classList.add('map-loading');
+    img.addEventListener('load', done, { once: true });
+  }
+
   function buildMap() {
     const kind = mapKind(); const sig = [state.areaId, kind, state.sectorBlock || '', kind === 'sector' ? state.sectorMapMode : state.mapMode].join('|'); const fresh = sig !== builtSig;
     const l = layer(); if (!l) return;
@@ -705,20 +734,21 @@
     fetchCRMDrawings(currentClientMapId());
     if (kind === 'original') {
       const src = activeMasterSrc('original') || DS.assets.original;
-      l.innerHTML = `<img class="orig plotmap-base-map" src="${src}" alt="Official masterplan" style="width:${LW}px;height:${LH}px;max-width:none;">` + origSVG();
+      l.innerHTML = `<img class="orig plotmap-base-map" src="${src}" alt="Official masterplan" decoding="async" fetchpriority="high" style="width:${LW}px;height:${LH}px;max-width:none;">` + origSVG();
     }
     else if (kind === 'markings') {
       const src = activeMasterSrc('markings') || DS.assets.markings;
       const cls = activeMasterMap() ? 'orig' : 'orig-crop';
-      l.innerHTML = `<img class="${cls} plotmap-base-map" src="${src}" alt="3D masterplan" style="width:${LW}px;height:${LH}px;max-width:none;">` + origSVG();
+      l.innerHTML = `<img class="${cls} plotmap-base-map" src="${src}" alt="3D masterplan" decoding="async" fetchpriority="high" style="width:${LW}px;height:${LH}px;max-width:none;">` + origSVG();
     }
     else if (kind === 'sector') {
       const sectorAsset = sectorMode === 'easy'
         ? (toPublicAssetPath(sectorSm && sectorSm.easyMapSrc) || mapImage(sectorSm))
         : (toPublicAssetPath(sectorSm && sectorSm.originalMapSrc) || mapImage(sectorSm) || (DS && DS.assets && DS.assets.sector));
-      l.innerHTML = `<div class="sector-wrap" style="width:${LW}px;height:${LH}px"><img class="sector-img plotmap-base-map" src="${sectorAsset}" alt="Official sector map" loading="eager" decoding="async"></div><div id="sectorPinG"></div><div id="proofG"></div>`;
+      l.innerHTML = `<div class="sector-wrap" style="width:${LW}px;height:${LH}px"><img class="sector-img plotmap-base-map" src="${sectorAsset}" alt="Official sector map" loading="eager" decoding="async" fetchpriority="high"></div><div id="sectorPinG"></div><div id="proofG"></div>`;
     }
     else l.innerHTML = html;
+    wireBaseMapState(l);
     mountPlotMapOverlay(kind, sectorSm, sectorMode);
     if (fresh) {
       const openedMapId = kind === 'sector' ? (sectorSm && sectorSm.id) : currentClientMapId();
@@ -1201,7 +1231,30 @@
           ${a.live ? `<div style="display:flex;align-items:center;gap:7px;margin-top:12px"><span style="width:7px;height:7px;border-radius:50%;background:#B07A2B"></span><span style="font-size:13px;font-weight:600;color:#8A5E22;line-height:1.35">${esc(a.hook)}</span></div>` : `<div style="margin-top:12px"><span class="soon-tag">Coming soon</span></div>`}</div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:22px;padding-top:15px;border-top:1px solid #ECE2CD"><span style="font-size:13.5px;color:#5A554A;font-weight:600">${a.live ? (golden ? 'Live highlights · ready to show' : 'Proof map') : 'Map being prepared'}</span>${a.live ? '<span style="font-size:13px;color:#16356A;font-weight:730">Open →</span>' : ''}</div></button>`; }).join('')}</div></div>`;
   }
-  function bindAreaSelect() { document.querySelectorAll('.as-tile[data-area]').forEach(b => b.addEventListener('click', async () => { const a = PM.areas.find(x => x.id === b.getAttribute('data-area')); if (!a || !a.live) return; Object.assign(state, resetPlan({ space: 'plan', areaId: a.id })); await useDataset(a.id); window.logEvent('area_viewed', { area: a.id, metadata: { source: 'area_select' } }); builtSig = ''; render(); })); }
+  function bindAreaSelect() { document.querySelectorAll('.as-tile[data-area]').forEach(b => b.addEventListener('click', async () => { const a = PM.areas.find(x => x.id === b.getAttribute('data-area')); if (!a || !a.live) return; enterPlanHistory(); Object.assign(state, resetPlan({ space: 'plan', areaId: a.id })); await useDataset(a.id); window.logEvent('area_viewed', { area: a.id, metadata: { source: 'area_select' } }); builtSig = ''; render(); })); }
+
+  // ── Browser Back inside the presentation ──
+  // Opening a city pushes ONE history entry, so a buyer tapping the browser/
+  // tablet Back button returns to the city gallery instead of being thrown
+  // out of PlotMap entirely mid-presentation. A second Back (from the
+  // gallery) leaves the app normally. In-app navigation deeper than the
+  // gallery/map split intentionally does not spam the history stack.
+  let planHistoryArmed = false;
+  function enterPlanHistory() {
+    if (planHistoryArmed) return;
+    try {
+      history.pushState({ pmSpace: 'plan' }, '', location.pathname + location.search + location.hash);
+      planHistoryArmed = true;
+    } catch (e) {}
+  }
+  window.addEventListener('popstate', () => {
+    planHistoryArmed = false;
+    if (state.space === 'plan') {
+      Object.assign(state, resetPlan({ space: 'area' }));
+      builtSig = '';
+      render();
+    }
+  });
 
   /* ---------- PLAN SHELL ---------- */
   function planHTML() {
@@ -2035,6 +2088,7 @@
     const raw = safeCrmPropertyById(bootLink.propertyId);
     const targetAreaId = areaIdForName((raw && raw.area) || null) || state.areaId;
     if (state.areaId !== targetAreaId || state.space !== 'plan') {
+      enterPlanHistory();
       Object.assign(state, resetPlan({ space: 'plan', areaId: targetAreaId }));
       await useDataset(targetAreaId);
       render();

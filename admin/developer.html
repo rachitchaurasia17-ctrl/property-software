@@ -437,7 +437,10 @@
       return false;
     }
     const probe = await rpc('plotmap_admin_dealer_directory', {});
-    if (probe.ok) return true;
+    if (probe.ok) {
+      state._prefetchedDealers = Array.isArray(probe.data) ? probe.data : [];
+      return true;
+    }
     // Server unreachable — fail closed with an actionable, secret-free
     // message rather than crashing the boot or implying access was denied.
     if (probe.networkError) {
@@ -465,6 +468,13 @@
 
   // ---------- data loads ----------
   async function loadDealers() {
+    // gate() already fetched the directory as its access probe — reuse that
+    // response on first load instead of issuing the same RPC twice per boot.
+    if (state._prefetchedDealers) {
+      state.dealers = state._prefetchedDealers;
+      state._prefetchedDealers = null;
+      return;
+    }
     const r = await rpc('plotmap_admin_dealer_directory', {});
     if (r.status === 404) throw new Error('Developer control migration required.');
     if (!r.ok) throw new Error('dealer list failed: ' + (r.message || r.status));
@@ -494,18 +504,19 @@
   }
 
   async function probeOptionalRpcs() {
-    // detect (without side effects) whether the new admin RPCs exist:
-    // an invalid-arg call returns 400 from the function body (exists) vs
-    // 404 from PostgREST (missing).
-    const t = await rpc('plotmap_admin_set_dealer_trial', { p_dealer_id: '' });
+    // detect (without side effects) whether the write RPCs exist: an
+    // invalid-arg call returns 400 from the function body (exists) vs 404
+    // from PostgREST (missing). The two probes run in parallel. Devices and
+    // activation-request availability need no dedicated probe — their list
+    // loaders in refresh() already 404-throw / set flags, so probing them
+    // here only duplicated the same RPCs on every boot.
+    const [t, p] = await Promise.all([
+      rpc('plotmap_admin_set_dealer_trial', { p_dealer_id: '' }),
+      rpc('plotmap_admin_set_dealer_passcode', { p_dealer_id: '', p_login_email: '', p_passcode: '' })
+    ]);
     state.flags.trialRpc = t.status !== 404;
-    const p = await rpc('plotmap_admin_set_dealer_passcode', { p_dealer_id: '', p_login_email: '', p_passcode: '' });
     state.flags.passcodeRpc = p.status !== 404;
-    const d = await rpc('plotmap_admin_list_dealer_devices', {});
-    state.flags.devicesRpc = d.status !== 404;
-    const a = await rpc('plotmap_admin_list_activation_requests', {});
-    state.flags.activationRpc = a.status !== 404;
-    if (!state.flags.trialRpc || !state.flags.passcodeRpc || !state.flags.devicesRpc || !state.flags.activationRpc) {
+    if (!state.flags.trialRpc || !state.flags.passcodeRpc) {
       throw new Error('Developer control migration required.');
     }
   }

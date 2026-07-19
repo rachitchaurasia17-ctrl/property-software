@@ -1162,3 +1162,11 @@ body{font-family:'Plus Jakarta Sans','Plus Jakarta Sans',system-ui,sans-serif;co
 .seccard-clean .sec-body2{padding:13px 15px 14px;}
 .seccard-clean .sec-nm2{font-size:16px;font-weight:800;color:#23201A;}
 .seccard-clean .sec-meta2{font-size:12.5px;color:#9A9D96;margin-top:2px;font-weight:600;}
+
+/* ── Base-map loading / failure states (perf pass 2026-07-19) ──
+   Layer keeps its fixed dimensions, so these never shift layout. */
+.maplayer.map-loading { background: linear-gradient(110deg, #EFE9DB 40%, #F7F2E7 50%, #EFE9DB 60%); background-size: 200% 100%; animation: pmMapWash 1.1s linear infinite; }
+@keyframes pmMapWash { to { background-position: -200% 0; } }
+.maplayer.map-failed { background: #EFE9DB; }
+.map-retry { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); border: 1px solid #E4B7A5; background: #FFFDF8; color: #8A3B1E; font-weight: 700; font-size: 14px; padding: 12px 20px; border-radius: 12px; cursor: pointer; box-shadow: 0 10px 26px rgba(60,45,15,.18); z-index: 40; }
+.map-retry:hover { background: #FBF3E4; }

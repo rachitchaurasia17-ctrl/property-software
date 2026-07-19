@@ -4,13 +4,25 @@
     { "src": "app/plotmap/**", "use": "@vercel/static" },
     { "src": "maps/**", "use": "@vercel/static" },
     { "src": "normal maps/**", "use": "@vercel/static" },
-    { "src": "public/plotmap-assets/aerotropolis-original-web.jpg", "use": "@vercel/static" },
-    { "src": "public/plotmap-assets/aerotropolis-overlays.svg", "use": "@vercel/static" },
-    { "src": "public/plotmap-assets/markings.jpg", "use": "@vercel/static" },
-    { "src": "public/plotmap-assets/sector-map.jpg", "use": "@vercel/static" },
+    { "src": "public/plotmap-assets/**", "use": "@vercel/static" },
     { "src": "admin/**", "use": "@vercel/static" }
   ],
   "routes": [
+    {
+      "src": "/maps/(.*)",
+      "headers": { "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800" },
+      "continue": true
+    },
+    {
+      "src": "/normal(?: |%20)maps/(.*)",
+      "headers": { "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800" },
+      "continue": true
+    },
+    {
+      "src": "/public/plotmap-assets/(.*)",
+      "headers": { "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800" },
+      "continue": true
+    },
     { "handle": "filesystem" }
   ]
 }
