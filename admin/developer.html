@@ -89,6 +89,63 @@
   .muted { color: #8A8371; }
   @media (max-width: 900px) { .grid, form.create, .summary-grid { grid-template-columns: 1fr 1fr; } }
 </style>
+<!--
+  BOOT FAILSAFE — must stay ABOVE every other script on this page.
+
+  The rule `html { visibility: hidden; }` above hides the page until a boot
+  path decides what to show (anti-flash). That rule lives in a STYLESHEET, so
+  it can only be overridden by an INLINE `visibility: visible` — assigning
+  `element.style.visibility = ''` merely deletes the inline property and lets
+  the stylesheet win again, leaving a permanently blank page. That was the
+  production blank-screen defect; reveal() below is the single correct way to
+  un-hide this page, and nothing here may go back to the `= ''` form.
+
+  This block also guarantees the loading state ALWAYS resolves to one of:
+  developer login · authenticated Developer Control · safe error card.
+  It is deliberately dependency-free inline script so it still runs if
+  auth.js 404s or the main script fails to parse.
+-->
+<script>
+(function () {
+  var boot = window.PMDevBoot = { shown: false };
+
+  // The ONLY correct un-hide for this page (see comment above).
+  function reveal() { document.documentElement.style.visibility = 'visible'; }
+  boot.reveal = reveal;
+
+  // Show exactly one top-level view and reveal the page.
+  boot.showOnly = function (id) {
+    var views = ['app', 'locked', 'dev-login', 'boot-error'];
+    for (var i = 0; i < views.length; i++) {
+      var n = document.getElementById(views[i]);
+      if (n) n.style.display = (views[i] === id) ? '' : 'none';
+    }
+    boot.shown = true;
+    reveal();
+  };
+
+  // Safe terminal error state. Never renders tokens, raw Supabase errors or
+  // stack traces — technical detail goes to the console only.
+  boot.fail = function (detail) {
+    if (detail) { try { console.error('[Developer Control] boot failure:', detail); } catch (e) {} }
+    reveal();                 // never leave the visitor on a blank screen
+    if (boot.shown) return;   // a real view already rendered — keep it
+    boot.showOnly('boot-error');
+  };
+
+  window.addEventListener('error', function (e) {
+    boot.fail((e && e.message) || 'script error');
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    var r = e && e.reason;
+    boot.fail((r && (r.message || r)) || 'unhandled promise rejection');
+  });
+  // Last resort: a hung network call must not equal a blank page.
+  setTimeout(function () {
+    if (!boot.shown) boot.fail('boot did not resolve within 12 seconds');
+  }, 12000);
+})();
+</script>
 </head>
 <body>
 
@@ -211,6 +268,23 @@
   </div>
 </div>
 
+<!-- Safe terminal error state (see the boot failsafe in <head>). Deliberately
+     free of technical detail: no tokens, no raw Supabase errors, no stack
+     traces. Diagnostics go to the browser console only. -->
+<div id="boot-error" style="display:none;">
+  <div class="locked">
+    <h1>Developer Control could not be loaded</h1>
+    <p class="muted" style="font-size:14px; line-height:1.6;">
+      Refresh the page, or check the configuration if this keeps happening.<br>
+      Technical details have been logged to the browser console.
+    </p>
+    <p style="margin-top:20px;">
+      <button class="btn-primary" type="button" onclick="location.reload()">Refresh</button>
+    </p>
+    <p style="margin-top:14px;"><a href="/" style="font-weight:700; color:#1F5E47; font-size:13px;">← Back to PlotMap</a></p>
+  </div>
+</div>
+
 <!-- Dedicated developer login. Platform admins sign in here with email &
      password — this screen is never shown to normal dealers, and the dealer
      root page never shows this form. Access to the data below is enforced
@@ -301,30 +375,43 @@
   const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const state = { dealers: [], devices: [], requests: [], usage: {}, flags: { directoryRpc: true, usageRpc: true, trialRpc: true, passcodeRpc: true, devicesRpc: true, activationRpc: true } };
 
+  // Never throws. A network failure, DNS error, CORS rejection or timeout
+  // resolves to { ok:false, status:0, networkError:true } so callers can
+  // render a real state instead of crashing the boot into a blank page.
   async function rpc(name, payload) {
     const token = await window.PMAuth.getAccessToken().catch(() => null);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 7000);
-    const res = await fetch(window.PMAuth.SUPABASE_URL + '/rest/v1/rpc/' + name, {
-      method: 'POST',
-      headers: {
-        apikey: window.PMAuth.SUPABASE_KEY,
-        Authorization: 'Bearer ' + (token || window.PMAuth.SUPABASE_KEY),
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload || {}),
-      signal: controller.signal
-    }).finally(() => clearTimeout(timer));
-    const data = await res.json().catch(() => null);
-    return { status: res.status, ok: res.ok, data, message: data && data.message ? data.message : '' };
+    try {
+      const res = await fetch(window.PMAuth.SUPABASE_URL + '/rest/v1/rpc/' + name, {
+        method: 'POST',
+        headers: {
+          apikey: window.PMAuth.SUPABASE_KEY,
+          Authorization: 'Bearer ' + (token || window.PMAuth.SUPABASE_KEY),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload || {}),
+        signal: controller.signal
+      });
+      const data = await res.json().catch(() => null);
+      return { status: res.status, ok: res.ok, data, message: data && data.message ? data.message : '' };
+    } catch (err) {
+      console.error('[Developer Control] RPC "' + name + '" could not reach the server:', err);
+      return { status: 0, ok: false, data: null, message: '', networkError: true };
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
+  // All three view switches go through PMDevBoot.showOnly (declared in the
+  // <head> failsafe): it hides every sibling view, marks the boot resolved
+  // and reveals the page with an INLINE `visibility: visible`. Never assign
+  // `documentElement.style.visibility = ''` here — that deletes the inline
+  // override and the stylesheet's `html { visibility: hidden }` wins again,
+  // which is precisely how this page went blank in production.
   function showLocked(reason) {
     $('locked-reason').textContent = reason;
-    $('locked').style.display = '';
-    $('dev-login').style.display = 'none';
-    $('app').style.display = 'none';
-    document.documentElement.style.visibility = '';
+    window.PMDevBoot.showOnly('locked');
   }
 
   // Dedicated developer login. Shown INSTEAD of bouncing to the dealer root,
@@ -332,12 +419,9 @@
   // and normal dealers never see it. This device is NOT device-gated: the
   // platform-admin RPCs below are the real, server-side gate.
   function showDevLogin(message) {
-    $('dev-login').style.display = '';
-    $('locked').style.display = 'none';
-    $('app').style.display = 'none';
     const s = $('dev-login-status');
     if (s) s.textContent = message || '';
-    document.documentElement.style.visibility = '';
+    window.PMDevBoot.showOnly('dev-login');
     setTimeout(() => { try { $('dev-email').focus(); } catch (e) {} }, 40);
   }
 
@@ -354,14 +438,22 @@
     }
     const probe = await rpc('plotmap_admin_dealer_directory', {});
     if (probe.ok) return true;
+    // Server unreachable — fail closed with an actionable, secret-free
+    // message rather than crashing the boot or implying access was denied.
+    if (probe.networkError) {
+      showLocked('Could not reach the PlotMap server. Check your internet connection and refresh this page. (Details in the browser console.)');
+      return false;
+    }
     if (probe.status === 404) {
       showLocked('Developer control migration required. Apply supabase/migrations/20260710_developer_control_and_trial_analytics_draft.sql after security approval, then reload this page.');
       return false;
     }
     if (window.PMAuth.isLocalDev()) {
-      showLocked('This machine is signed in with a local dev/mock session. The server refused the platform-admin probe ('
-        + (probe.message || ('HTTP ' + probe.status))
-        + '), so no dealer data can load here. Sign in as the platform admin on the deployed site.');
+      // Local dev runs on a mock session that the server cannot accept. Keep
+      // the raw server reply in the console — never on screen.
+      console.warn('[Developer Control] platform-admin probe refused:', probe.status, probe.message || '');
+      showLocked('This machine is signed in with a local dev/mock session, so the server will not release any dealer data here. '
+        + 'Sign in as the platform admin on the deployed site. (Details in the browser console.)');
       return false;
     }
     // signed-in but not a platform admin — offer the developer login so the
@@ -914,7 +1006,9 @@
   $('btn-refresh').addEventListener('click', refresh);
   $('btn-signout').addEventListener('click', async () => {
     await window.PMAuth.signOut().catch(() => {});
-    window.location.replace('/');
+    // Return to the developer login form, not the dealer root — this is a
+    // platform-admin surface and the developer stays in it.
+    window.location.replace('/admin/developer.html');
   });
 
   // ---------- boot ----------
@@ -924,12 +1018,18 @@
       if (!allowed) return;
       await probeOptionalRpcs();
       await refresh();
-      $('dev-login').style.display = 'none';
-      $('locked').style.display = 'none';
-      $('app').style.display = '';
-      document.documentElement.style.visibility = '';
+      window.PMDevBoot.showOnly('app');
     } catch (err) {
-      showLocked('Could not load developer data: ' + (err && err.message ? err.message : 'unknown error'));
+      // The migration-required message is actionable and carries no secrets,
+      // so surface it. Everything else is reported generically — raw Supabase
+      // errors and stack traces stay in the console.
+      const msg = err && err.message ? String(err.message) : '';
+      console.error('[Developer Control] boot failed:', err);
+      if (/migration required/i.test(msg)) {
+        showLocked('Developer control migration required. Apply supabase/migrations/20260710_developer_control_and_trial_analytics_draft.sql after security approval, then reload this page.');
+      } else {
+        window.PMDevBoot.fail(err);
+      }
     }
   }
 
@@ -956,7 +1056,15 @@
     }
   });
 
-  boot();
+  // Any synchronous throw above (a renamed element, a missing dependency)
+  // is caught by the window 'error' listener installed in <head>, which
+  // reveals the page and renders the safe error card. This guard covers the
+  // boot kick-off itself so no path can end on a hidden, empty document.
+  try {
+    boot();
+  } catch (err) {
+    window.PMDevBoot.fail(err);
+  }
 })();
 </script>
 </body>
