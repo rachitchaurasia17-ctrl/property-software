@@ -13,7 +13,12 @@
     'insights_page_opened',
     'property_add_clicked',
     'property_added',
-    'admin_page_opened'
+    'admin_page_opened',
+    // Dealer 360 lifecycle + health events (admin surface)
+    'app_open',
+    'app_error',
+    'asset_load_failure',
+    'slow_operation'
   ]);
 
   const PRESENTATION_EVENTS = new Set([
@@ -31,7 +36,12 @@
     'map_opened',
     'property_viewed',
     'property_shared_whatsapp',
-    'overlay_selected'
+    'overlay_selected',
+    // Dealer 360 lifecycle + health events (presentation surface)
+    'app_open',
+    'app_error',
+    'asset_load_failure',
+    'slow_operation'
   ]);
 
   const BLOCKED_KEYS = new Set([
@@ -41,6 +51,63 @@
 
   function adapter() {
     return window.PMDataAdapter || null;
+  }
+
+  function isLocalDev() {
+    if (window.PMAuth && typeof window.PMAuth.isLocalDev === 'function') return window.PMAuth.isLocalDev();
+    const host = String(location.hostname || '').toLowerCase();
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host.endsWith('.local');
+  }
+
+  // ── app_open (Dealer 360 definition) ──
+  // "PlotMap opened N times" = a tab became active with NO activity in the
+  // previous 30 minutes. Route changes / refreshes inside the window do not
+  // count; developer.html never reaches this code (guarded in the track
+  // functions); local-dev events carry metadata.env='local' so aggregates
+  // can exclude them.
+  const APP_OPEN_GAP_MS = 30 * 60 * 1000;
+  const LAST_ACTIVITY_KEY = 'plotmap_last_activity';
+  let appOpenChecked = false;
+  function maybeMarkAppOpen(recordFn) {
+    try {
+      const now = Date.now();
+      const last = Number(localStorage.getItem(LAST_ACTIVITY_KEY) || 0);
+      localStorage.setItem(LAST_ACTIVITY_KEY, String(now));
+      if (appOpenChecked) return;
+      appOpenChecked = true;
+      if (last && now - last < APP_OPEN_GAP_MS) return;
+      recordFn();
+    } catch (err) {}
+  }
+
+  // metadata tag applied to every event so analytics can separate
+  // local-dev/test traffic from real dealer usage.
+  function envTag(metadata) {
+    return isLocalDev() ? Object.assign({}, metadata, { env: 'local' }) : metadata;
+  }
+
+  // ── safe error capture (rate-limited, message-capped) ──
+  // At most 3 app_error events per pageview; only a short sanitized code
+  // string is recorded — never stack traces, tokens or URLs with params.
+  let errorBudget = 3;
+  function installErrorCapture(trackFn) {
+    window.addEventListener('error', (e) => {
+      try {
+        if (errorBudget <= 0) return;
+        errorBudget -= 1;
+        const code = String((e && e.message) || 'script error').split('\n')[0].slice(0, 120);
+        trackFn('app_error', { metadata: { code } });
+      } catch (err) {}
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      try {
+        if (errorBudget <= 0) return;
+        errorBudget -= 1;
+        const r = e && e.reason;
+        const code = String((r && r.message) || r || 'unhandled rejection').split('\n')[0].slice(0, 120);
+        trackFn('app_error', { metadata: { code } });
+      } catch (err) {}
+    });
   }
 
   function sanitizeValue(value) {
@@ -69,8 +136,9 @@
       if (!data) return null;
       const dealer = adapter() ? adapter().getCurrentDealer(data) : (data.dealers && data.dealers[0]);
       const user = adapter() ? adapter().getCurrentUser(data) : (data.users && data.users[0]);
+      if (eventType !== 'app_open') maybeMarkAppOpen(() => trackPresentationEvent('app_open', {}));
       const safePayload = sanitizePayload(payload || {});
-      const metadata = Object.assign({ source: 'client_presentation' }, safePayload.metadata || {});
+      const metadata = envTag(Object.assign({ source: 'client_presentation' }, safePayload.metadata || {}));
       const event = {
         id: adapter() ? adapter().generateId('pevt') : `pevt-${Math.random().toString(36).slice(2, 11)}`,
         dealerId: safePayload.dealerId || (dealer && dealer.id) || null,
@@ -132,8 +200,9 @@
         sessionId = `as-${Math.random().toString(36).slice(2, 11)}`;
         sessionStorage.setItem('plotmap_admin_session', sessionId);
       }
+      if (eventType !== 'app_open') maybeMarkAppOpen(() => trackProductEvent('app_open', {}));
       const safePayload = sanitizePayload(payload || {});
-      const metadata = Object.assign({ surface: 'admin' }, safePayload.metadata || {});
+      const metadata = envTag(Object.assign({ surface: 'admin' }, safePayload.metadata || {}));
       const event = {
         id: adapter() ? adapter().generateId('pevt') : `pevt-${Math.random().toString(36).slice(2, 11)}`,
         dealerId,
@@ -187,6 +256,15 @@
   function trackAdminPageOpen(pageKey) {
     const eventType = PAGE_OPEN_EVENTS[pageKey] || 'admin_page_opened';
     return trackProductEvent(eventType, { metadata: { page: String(pageKey || 'unknown').slice(0, 60) } });
+  }
+
+  // Route-appropriate error capture: presentation errors flow through the
+  // presentation tracker, admin errors through the product tracker. The
+  // developer page is excluded inside trackProductEvent itself.
+  if (/^\/app\/plotmap\/?$/i.test(location.pathname || '')) {
+    installErrorCapture(trackPresentationEvent);
+  } else if (/^\/admin\//i.test(location.pathname || '')) {
+    installErrorCapture(trackProductEvent);
   }
 
   window.PMEventTracker = {
