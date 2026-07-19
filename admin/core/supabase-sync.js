@@ -227,7 +227,7 @@
             }
             items.forEach(it => {
               if (rowOutcome.get(rowFor(it).id)) window.PMSyncQueue.markSyncActionSynced(it.id);
-              else window.PMSyncQueue.markSyncActionRetrying(it.id);
+              else window.PMSyncQueue.markSyncActionFailed(it.id, 'Analytics sync unavailable');
             });
             continue;
           }

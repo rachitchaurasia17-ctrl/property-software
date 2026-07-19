@@ -45,8 +45,11 @@
   ]);
 
   const BLOCKED_KEYS = new Set([
-    'price', 'budget', 'ownerContact', 'sellerContact', 'commission', 'finance',
-    'internalNotes', 'notesInternal', 'notes', 'staffData'
+    'price', 'budget', 'ownercontact', 'sellercontact', 'commission', 'finance',
+    'internalnotes', 'notesinternal', 'notes', 'staffdata',
+    'token', 'accesstoken', 'refreshtoken', 'devicetoken', 'passcode',
+    'activationcode', 'accesscode', 'password', 'secret', 'authorization',
+    'apikey', 'cookie'
   ]);
 
   function adapter() {
@@ -114,7 +117,13 @@
     if (Array.isArray(value)) return value.map(sanitizeValue).slice(0, 30);
     if (value && typeof value === 'object') return sanitizePayload(value);
     if (typeof value === 'string') {
-      return value.replace(/(price|budget|commission|seller|owner contact|internal notes?|finance)/ig, '').slice(0, 300);
+      return value
+        .replace(/bearer\s+[a-z0-9._~+/-]{12,}/ig, '[redacted]')
+        .replace(/sb_secret_[a-z0-9_-]+/ig, '[redacted]')
+        .replace(/eyJ[a-z0-9_-]{10,}\.[a-z0-9_-]{10,}\.[a-z0-9_-]{8,}/ig, '[redacted]')
+        .replace(/(^|\D)\d{8}(?=\D|$)/g, '$1[redacted]')
+        .replace(/(price|budget|commission|seller|owner contact|internal notes?|finance|passcode|activation code|access code)/ig, '')
+        .slice(0, 300);
     }
     return value;
   }
@@ -122,7 +131,8 @@
   function sanitizePayload(payload) {
     const out = {};
     Object.keys(payload || {}).forEach(key => {
-      if (BLOCKED_KEYS.has(key)) return;
+      const normalizedKey = String(key).toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (BLOCKED_KEYS.has(normalizedKey)) return;
       out[key] = sanitizeValue(payload[key]);
     });
     return out;
@@ -149,6 +159,7 @@
         eventType,
         clientId: safePayload.clientId || null,
         propertyId: safePayload.propertyId || null,
+        mapId: safePayload.mapId || (safePayload.metadata && safePayload.metadata.mapId) || null,
         area: safePayload.area || null,
         sector: safePayload.sector || null,
         metadata,
@@ -213,6 +224,7 @@
         eventType,
         clientId: null,
         propertyId: safePayload.propertyId || null,
+        mapId: safePayload.mapId || (safePayload.metadata && safePayload.metadata.mapId) || null,
         area: safePayload.area || null,
         sector: safePayload.sector || null,
         metadata,

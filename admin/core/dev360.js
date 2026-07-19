@@ -14,7 +14,7 @@
   const cache = { d360: {}, events: {}, breakdown: {} };
   const list = { filter: 'all', sort: 'lastActive', q: '' };
   let drawerDealerId = null;
-  let timelineBefore = null;
+  let timelineCursor = null;
 
   const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const $ = (id) => document.getElementById(id);
@@ -241,7 +241,7 @@
 
   async function open360(dealerId) {
     drawerDealerId = dealerId;
-    timelineBefore = null;
+    timelineCursor = null;
     const d = (ctx.state.dealers || []).find(x => x.dealer_id === dealerId);
     if (!d || !drawerEl()) return;
     drawerEl().style.display = '';
@@ -337,7 +337,8 @@
     const types = $('d360-activity-filter').value;
     const r = await ctx.rpc('plotmap_admin_dealer_events', {
       p_dealer_id: drawerDealerId,
-      p_before: timelineBefore,
+      p_before: timelineCursor && timelineCursor.createdAt,
+      p_before_id: timelineCursor && timelineCursor.id,
       p_limit: 50,
       p_types: types === 'all' ? null
         : types === 'errors' ? ['app_error', 'asset_load_failure', 'slow_operation']
@@ -351,7 +352,7 @@
     const rows = (r.data || []).filter(ev => !(ev.metadata && ev.metadata.env === 'local'));
     const adminIncluded = $('d360-activity-admin').checked;
     const visible = adminIncluded ? rows : rows.filter(ev => !(ev.metadata && ev.metadata.surface === 'admin'));
-    if (!visible.length && !timelineBefore) {
+    if (!visible.length && !timelineCursor) {
       host.innerHTML = '<div class="muted" style="padding:12px 0;">No recorded activity' + (adminIncluded ? '' : ' (dealer surfaces)') + ' yet.</div>';
       return;
     }
@@ -369,12 +370,12 @@
         +   esc(ev.event_type) + (ev.property_id ? ' · property ' + esc(ev.property_id) : '') + (ev.session_id ? ' · session ' + esc(String(ev.session_id).slice(0, 12)) : '')
         + '</div></details>';
     });
-    if (timelineBefore) host.insertAdjacentHTML('beforeend', items.join(''));
+    if (timelineCursor) host.insertAdjacentHTML('beforeend', items.join(''));
     else host.innerHTML = items.join('');
     const last = rows[rows.length - 1];
     const more = $('d360-activity-more');
     if (rows.length >= 50 && last) {
-      timelineBefore = last.created_at;
+      timelineCursor = { createdAt: last.created_at, id: last.id };
       more.style.display = '';
     } else more.style.display = 'none';
   }
@@ -488,8 +489,8 @@
       const b = e.target.closest('button[data-tab]');
       if (b) switchTab(b.getAttribute('data-tab'));
     });
-    $('d360-activity-filter').addEventListener('change', () => { timelineBefore = null; renderActivityTab(); });
-    $('d360-activity-admin').addEventListener('change', () => { timelineBefore = null; renderActivityTab(); });
+    $('d360-activity-filter').addEventListener('change', () => { timelineCursor = null; renderActivityTab(); });
+    $('d360-activity-admin').addEventListener('change', () => { timelineCursor = null; renderActivityTab(); });
     $('d360-activity-more').addEventListener('click', renderActivityTab);
     dr.addEventListener('click', async (e) => {
       const devBtn = e.target.closest('button[data-devact]');
