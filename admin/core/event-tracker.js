@@ -132,11 +132,13 @@
     try {
       if (!PRESENTATION_EVENTS.has(eventType)) return null;
       if (!/^\/app\/plotmap\/?$/i.test(location.pathname || '')) return null;
+      // app_open must record and SAVE before this event snapshots the store,
+      // or the outer save clobbers it (read-modify-write on localStorage).
+      if (eventType !== 'app_open') maybeMarkAppOpen(() => trackPresentationEvent('app_open', {}));
       const data = adapter() ? adapter().getData() : (window.CRM && window.CRM.getCRM && window.CRM.getCRM());
       if (!data) return null;
       const dealer = adapter() ? adapter().getCurrentDealer(data) : (data.dealers && data.dealers[0]);
       const user = adapter() ? adapter().getCurrentUser(data) : (data.users && data.users[0]);
-      if (eventType !== 'app_open') maybeMarkAppOpen(() => trackPresentationEvent('app_open', {}));
       const safePayload = sanitizePayload(payload || {});
       const metadata = envTag(Object.assign({ source: 'client_presentation' }, safePayload.metadata || {}));
       const event = {
