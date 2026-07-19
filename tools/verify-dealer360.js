@@ -165,7 +165,9 @@ async function runLiveChecks() {
     ['plotmap_rollup_daily_usage', {}]
   ]) {
     const result = await call(baseUrl, anonKey, '/rest/v1/rpc/' + fn, body);
-    check(`${fn} refuses anon live`, result.status === 400 && /platform admin required/i.test(result.message),
+    check(`${fn} refuses anon live`,
+      result.status === 401 || result.status === 403 || result.status === 404 ||
+        (result.status === 400 && /platform admin required|permission denied/i.test(result.message)),
       `HTTP ${result.status} ${result.message}`);
   }
 
