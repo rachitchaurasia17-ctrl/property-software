@@ -6,8 +6,9 @@
 // dashboard SQL was not run), that table is marked unavailable for the
 // session and everything keeps working from localStorage.
 (function () {
-  const SUPABASE_URL = 'https://czmkfmkmgqlienmdihul.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_DGqcs0JaDVgzImUGGgg_FQ_Q_SkgnhX';
+  const runtimeSupabase = window.PMRuntimeConfig && window.PMRuntimeConfig.getSupabaseConfig();
+  const SUPABASE_URL = runtimeSupabase && runtimeSupabase.url;
+  const SUPABASE_KEY = runtimeSupabase && runtimeSupabase.key;
   const REST = SUPABASE_URL + '/rest/v1/';
   const PULL_STAMP_KEY = 'plotmap_supa_pull_v1';
   const DRAIN_INTERVAL_MS = 20000;

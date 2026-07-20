@@ -16,8 +16,8 @@ const PORT = process.env.PORT || 5173;
 const MIME = { '.html':'text/html', '.js':'text/javascript', '.json':'application/json',
   '.png':'image/png', '.jpg':'image/jpeg', '.css':'text/css', '.svg':'image/svg+xml' };
 
-function send(res, code, body, type='application/json') {
-  res.writeHead(code, { 'Content-Type': type, 'Access-Control-Allow-Origin': '*' });
+function send(res, code, body, type='application/json', headers={}) {
+  res.writeHead(code, { 'Content-Type': type, 'Access-Control-Allow-Origin': '*', ...headers });
   res.end(body);
 }
 
@@ -43,6 +43,16 @@ const server = http.createServer((req, res) => {
   if (pathname === '/api/maps') {
     try { return send(res, 200, fs.readFileSync(path.join(ROOT, 'maps', 'metadata', 'index.json'))); }
     catch { return send(res, 404, '[]'); }
+  }
+
+  if (pathname === '/config/runtime-env.js') {
+    const runtimeFile = path.join(ROOT, 'config', 'runtime-env.js');
+    const fallback = '(function (global) { global.env = Object.assign({}, global.env || {}); })(window);\n';
+    let body = fallback;
+    try { body = fs.readFileSync(runtimeFile); } catch (_) {}
+    return send(res, 200, body, 'text/javascript', {
+      'Cache-Control': 'no-store, max-age=0, must-revalidate'
+    });
   }
 
   if (pathname === '/') pathname = '/index.html';

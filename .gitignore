@@ -17,3 +17,4 @@ Thumbs.db
 .env.dealer360-staging.local
 .env*.local
 supabase/.temp/
+config/runtime-env.js

@@ -111,10 +111,11 @@
     else GEO = { viewBox: `0 0 ${IW} ${IH}`, cyan: [], red: [], black: [] };
   }
 
-  const supabaseUrl = (window.env && window.env.VITE_SUPABASE_URL) || 'https://czmkfmkmgqlienmdihul.supabase.co';
-  const supabaseKey = (window.env && window.env.VITE_SUPABASE_ANON_KEY) || 'sb_publishable_DGqcs0JaDVgzImUGGgg_FQ_Q_SkgnhX';
+  const runtimeSupabase = window.PMRuntimeConfig && window.PMRuntimeConfig.getSupabaseConfig();
+  const supabaseUrl = runtimeSupabase && runtimeSupabase.url;
+  const supabaseKey = runtimeSupabase && runtimeSupabase.key;
   if (!supabaseUrl || !supabaseKey) {
-    console.warn('PlotMap Auth [Dev Warning]: Supabase URL or Anon Key is not configured. Check your environment configuration (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY).');
+    console.warn('PlotMap Auth [Dev Warning]: shared Supabase runtime configuration is unavailable.');
   }
   const supabase = window.supabase ? window.supabase.createClient(supabaseUrl, supabaseKey) : null;
 

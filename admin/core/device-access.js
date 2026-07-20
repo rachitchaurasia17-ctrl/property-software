@@ -2,8 +2,9 @@
 // Stores only an opaque per-browser token locally. Supabase stores and
 // compares only crypt() hashes through SECURITY DEFINER RPCs.
 (function () {
-  const SUPABASE_URL = (window.PMAuth && window.PMAuth.SUPABASE_URL) || 'https://czmkfmkmgqlienmdihul.supabase.co';
-  const SUPABASE_KEY = (window.PMAuth && window.PMAuth.SUPABASE_KEY) || 'sb_publishable_DGqcs0JaDVgzImUGGgg_FQ_Q_SkgnhX';
+  const runtimeSupabase = window.PMRuntimeConfig && window.PMRuntimeConfig.getSupabaseConfig();
+  const SUPABASE_URL = runtimeSupabase && runtimeSupabase.url;
+  const SUPABASE_KEY = runtimeSupabase && runtimeSupabase.key;
   const TOKEN_KEY = 'plotmap_device_token_v1';
 
   function bytesToHex(bytes) {

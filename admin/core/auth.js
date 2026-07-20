@@ -1,12 +1,13 @@
 (function() {
-  const SUPABASE_URL = (window.env && window.env.VITE_SUPABASE_URL) || 'https://czmkfmkmgqlienmdihul.supabase.co';
-  const SUPABASE_KEY = (window.env && window.env.VITE_SUPABASE_ANON_KEY) || 'sb_publishable_DGqcs0JaDVgzImUGGgg_FQ_Q_SkgnhX';
+  const runtimeSupabase = window.PMRuntimeConfig && window.PMRuntimeConfig.getSupabaseConfig();
+  const SUPABASE_URL = runtimeSupabase && runtimeSupabase.url;
+  const SUPABASE_KEY = runtimeSupabase && runtimeSupabase.key;
   const SESSION_KEY = 'plotmap_supabase_session_v1';
   const PROFILE_KEY = 'plotmap_supabase_profile_v1';
   const REFRESH_SKEW_MS = 60000;
 
   if (!SUPABASE_URL || !SUPABASE_KEY) {
-    console.warn('PlotMap Auth [Dev Warning]: Supabase URL or Anon Key is missing. Check your environment configuration (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY).');
+    console.warn('PlotMap Auth [Dev Warning]: shared Supabase runtime configuration is unavailable.');
   }
 
   function isLocalDev() {

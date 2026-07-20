@@ -1,6 +1,9 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "node tools/generate-runtime-env.js",
   "builds": [
     { "src": "index.html", "use": "@vercel/static" },
+    { "src": "config/**", "use": "@vercel/static" },
     { "src": "app/plotmap/**", "use": "@vercel/static" },
     { "src": "maps/**", "use": "@vercel/static" },
     { "src": "normal maps/**", "use": "@vercel/static" },
@@ -8,6 +11,15 @@
     { "src": "admin/**", "use": "@vercel/static" }
   ],
   "routes": [
+    {
+      "src": "/config/runtime-env\\.js",
+      "headers": {
+        "Cache-Control": "no-store, max-age=0, must-revalidate",
+        "CDN-Cache-Control": "no-store",
+        "Vercel-CDN-Cache-Control": "no-store"
+      },
+      "continue": true
+    },
     {
       "src": "/maps/(.*)",
       "headers": { "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800" },
