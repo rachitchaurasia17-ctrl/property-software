@@ -13,3 +13,6 @@ public/plotmap-assets/processed/
 Thumbs.db
 
 .vercel
+
+.env.dealer360-staging.local
+.env*.local
