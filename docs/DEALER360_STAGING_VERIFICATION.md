@@ -5,22 +5,19 @@ Status: staging-only procedure. Do not point these steps, seeds, or test tools a
 ## 1. Create and identify staging
 
 1. Create a separate Supabase project named clearly as PlotMap staging.
-2. Record its project URL and publishable anon key. Do not obtain or use a service-role key for the verification tools.
+2. Record its project URL and publishable key. The verifier uses only this key for API requests; the private staging secret is presence-checked and never transmitted by the verifier.
 3. Confirm the staging project reference is different from `czmkfmkmgqlienmdihul`.
-4. Create these Auth users in Staging > Authentication > Users, with separate staging-only passwords:
-   - `plotmap.platform.staging@example.com`
-   - `plotmap.dealer-a.staging@example.com`
-   - `plotmap.dealer-b.staging@example.com`
+4. Create one platform-admin Auth user and two dealer Auth users, with private staging-only emails and passwords held only in the ignored env file.
 5. Keep the staging SQL editor open on the staging project and verify the project name before every script.
 
 ## 2. Build the prerequisite schema
 
-For a brand-new empty staging project only, run these two root scripts first:
+For a brand-new empty staging project only, run these two scripts first:
 
-1. `supabase_setup.sql`
+1. `supabase/staging/20260701_base_schema.sql`
 2. `supabase_security_patch.sql` immediately afterward
 
-`supabase_setup.sql` is retired for existing/production databases. It is used here only because it is the repository's sole creator of `prebuilt_maps`, `crm_records`, `map_overlays`, and `presentation_events`. Do not stop after it because its temporary policies are permissive.
+Never run `supabase_setup.sql`; its fail-closed guard intentionally rejects execution. The staging base schema creates only the required tables and indexes, enables RLS immediately, and creates no access policies. Do not stop before the security patch establishes the initial protected policy surface.
 
 Then run these existing migrations in this exact order:
 
@@ -40,9 +37,18 @@ Do not run these superseded/unrelated drafts for Dealer 360 staging:
 
 ## 3. Seed pre-migration fixtures
 
-Run:
+Run the staging seed helper. It loads the private env, verifies Git-ignore and the linked staging ref, supplies the real Auth UUID/email session settings, runs the tracked SQL, redacts subprocess diagnostics, and removes its temporary wrapper:
 
-`supabase/staging/20260719_dealer360_seed.sql`
+`node tools/run-dealer360-staging-seed.js`
+
+- `plotmap.staging_platform_admin_user_id`
+- `plotmap.staging_dealer_a_user_id`
+- `plotmap.staging_dealer_b_user_id`
+- `plotmap.staging_platform_admin_email`
+- `plotmap.staging_dealer_a_email`
+- `plotmap.staging_dealer_b_email`
+
+The seed rejects missing UUIDs and UUID/email mismatches.
 
 Expected fixtures:
 
@@ -53,6 +59,7 @@ Expected fixtures:
 - one property per dealer
 - 61 Dealer A events, including 60 `area_viewed` events with the exact same timestamp
 - one Dealer B event
+- one separate active rate-limit fixture dealer and approved device
 
 The raw staging device values are test fixtures, not production credentials. The database stores only bcrypt hashes.
 
@@ -62,6 +69,8 @@ Run only on the staging project:
 
 `supabase/migrations/20260719_dealer360_analytics_draft.sql`
 
+Then run `supabase/staging/20260719_dealer360_rate_seed.sql`. It creates 300 staging-only events with old client timestamps and fresh server ingestion timestamps for the isolated rate-limit dealer.
+
 Record:
 
 - complete SQL editor execution time
@@ -70,6 +79,8 @@ Record:
 - `presentation_events` row count before and after (must be unchanged)
 
 Post-apply SQL checks:
+
+The repeatable aggregate check is `supabase/staging/20260719_dealer360_post_checks.sql`. The detailed inspection queries are below.
 
 ```sql
 select count(*) from public.presentation_events;
@@ -127,11 +138,14 @@ Expected results:
 Set these as process environment variables without committing their values:
 
 - `SUPABASE_STAGING_URL`
-- `SUPABASE_STAGING_ANON_KEY`
+- `SUPABASE_STAGING_PUBLISHABLE_KEY`
+- `SUPABASE_STAGING_SECRET_KEY` (presence-checked only; never used for verifier HTTP requests)
+- `SUPABASE_PROJECT_REF`
+- `SUPABASE_DB_PASSWORD` (presence-checked only by the verifier)
 - `DEALER360_STAGING_CONFIRM=staging-only`
-- `DEALER360_STAGING_ADMIN_PASSWORD`
-- `DEALER360_STAGING_DEALER_A_PASSWORD`
-- `DEALER360_STAGING_DEALER_B_PASSWORD`
+- `PLATFORM_ADMIN_EMAIL`, `PLATFORM_ADMIN_PASSWORD`, `PLATFORM_ADMIN_USER_ID`
+- `DEALER_A_EMAIL`, `DEALER_A_PASSWORD`, `DEALER_A_USER_ID`
+- `DEALER_B_EMAIL`, `DEALER_B_PASSWORD`, `DEALER_B_USER_ID`
 
 Optional overrides exist for the three staging emails and two fixture device tokens; the defaults match the seed file.
 
@@ -139,7 +153,7 @@ Run the non-mutating security verifier against staging:
 
 ```powershell
 $env:SUPABASE_URL = $env:SUPABASE_STAGING_URL
-$env:SUPABASE_ANON_KEY = $env:SUPABASE_STAGING_ANON_KEY
+$env:SUPABASE_ANON_KEY = $env:SUPABASE_STAGING_PUBLISHABLE_KEY
 node tools/verify-dealer360.js
 ```
 
@@ -154,11 +168,16 @@ The staging suite verifies:
 - anonymous and normal-dealer platform analytics denial
 - platform-admin overview, Dealer 360 and property-stat access
 - Dealer A to Dealer B event injection denial
+- Dealer A to Dealer B raw-event read denial
+- Dealer A to Dealer B property-record read denial
+- approved-device token rejection against another active dealer
 - suspended Dealer B staff and device rejection
 - credential metadata rejection
+- oversized metadata rejection
 - unknown event-name rejection
 - duplicate event idempotency
 - two-page `(created_at, id)` cursor correctness across equal timestamps
+- server-ingestion-time rate limiting despite a backdated client timestamp
 - daily rollup execution
 - anonymous raw-event and rollup denial
 

@@ -1,23 +1,34 @@
 #!/usr/bin/env node
 /**
  * Destructive-to-fixtures, staging-only Dealer 360 live verification.
- * It creates two analytics events through RPCs and runs the daily rollup.
- * It never uses or accepts a service-role key.
+ * It creates test analytics events through RPCs and runs the daily rollup.
+ * The publishable key is the only key used for HTTP requests. The staging
+ * secret and database password are presence-checked but never transmitted.
  */
 
-const STAGING_URL = String(process.env.SUPABASE_STAGING_URL || '').replace(/\/$/, '');
-const ANON_KEY = process.env.SUPABASE_STAGING_ANON_KEY || '';
+const PROJECT_REF = process.env.SUPABASE_PROJECT_REF || '';
+const STAGING_URL = String(
+  process.env.SUPABASE_STAGING_URL || (PROJECT_REF ? `https://${PROJECT_REF}.supabase.co` : '')
+).replace(/\/$/, '');
+const ANON_KEY = process.env.SUPABASE_STAGING_PUBLISHABLE_KEY || process.env.SUPABASE_STAGING_ANON_KEY || '';
+const SECRET_KEY_PRESENT = Boolean(process.env.SUPABASE_STAGING_SECRET_KEY);
+const DB_PASSWORD_PRESENT = Boolean(process.env.SUPABASE_DB_PASSWORD);
 const CONFIRM = process.env.DEALER360_STAGING_CONFIRM || '';
-const ADMIN_EMAIL = process.env.DEALER360_STAGING_ADMIN_EMAIL || 'plotmap.platform.staging@example.com';
-const ADMIN_PASSWORD = process.env.DEALER360_STAGING_ADMIN_PASSWORD || '';
-const DEALER_A_EMAIL = process.env.DEALER360_STAGING_DEALER_A_EMAIL || 'plotmap.dealer-a.staging@example.com';
-const DEALER_A_PASSWORD = process.env.DEALER360_STAGING_DEALER_A_PASSWORD || '';
-const DEALER_B_EMAIL = process.env.DEALER360_STAGING_DEALER_B_EMAIL || 'plotmap.dealer-b.staging@example.com';
-const DEALER_B_PASSWORD = process.env.DEALER360_STAGING_DEALER_B_PASSWORD || '';
+const ADMIN_EMAIL = process.env.PLATFORM_ADMIN_EMAIL || process.env.DEALER360_STAGING_ADMIN_EMAIL || '';
+const ADMIN_PASSWORD = process.env.PLATFORM_ADMIN_PASSWORD || process.env.DEALER360_STAGING_ADMIN_PASSWORD || '';
+const ADMIN_USER_ID = process.env.PLATFORM_ADMIN_USER_ID || '';
+const DEALER_A_EMAIL = process.env.DEALER_A_EMAIL || process.env.DEALER360_STAGING_DEALER_A_EMAIL || '';
+const DEALER_A_PASSWORD = process.env.DEALER_A_PASSWORD || process.env.DEALER360_STAGING_DEALER_A_PASSWORD || '';
+const DEALER_A_USER_ID = process.env.DEALER_A_USER_ID || '';
+const DEALER_B_EMAIL = process.env.DEALER_B_EMAIL || process.env.DEALER360_STAGING_DEALER_B_EMAIL || '';
+const DEALER_B_PASSWORD = process.env.DEALER_B_PASSWORD || process.env.DEALER360_STAGING_DEALER_B_PASSWORD || '';
+const DEALER_B_USER_ID = process.env.DEALER_B_USER_ID || '';
 const DEALER_A = 'dealer-staging-a';
 const DEALER_B = 'dealer-staging-b';
+const DEALER_RATE = 'dealer-staging-rate';
 const DEVICE_A = process.env.DEALER360_STAGING_DEVICE_A || 'plotmap-staging-device-a-00000000000000000001';
 const DEVICE_B = process.env.DEALER360_STAGING_DEVICE_B || 'plotmap-staging-device-b-00000000000000000002';
+const DEVICE_RATE = process.env.DEALER360_STAGING_DEVICE_RATE || 'plotmap-staging-device-rate-00000000000000000003';
 const PRODUCTION_PROJECT_REF = 'czmkfmkmgqlienmdihul';
 
 const checks = [];
@@ -29,11 +40,23 @@ function check(name, ok, detail) {
 
 function requireSafeStagingConfig() {
   if (CONFIRM !== 'staging-only') throw new Error('Set DEALER360_STAGING_CONFIRM=staging-only.');
-  if (!STAGING_URL || !ANON_KEY) throw new Error('SUPABASE_STAGING_URL and SUPABASE_STAGING_ANON_KEY are required.');
-  if (STAGING_URL.includes(PRODUCTION_PROJECT_REF)) throw new Error('Refusing to run against the known production Supabase project.');
+  if (!PROJECT_REF || !STAGING_URL || !ANON_KEY) {
+    throw new Error('SUPABASE_PROJECT_REF, staging URL, and staging publishable key are required.');
+  }
+  if (!SECRET_KEY_PRESENT || !DB_PASSWORD_PRESENT) {
+    throw new Error('The private staging secret key and database password must be present for the staging workflow.');
+  }
+  const target = new URL(STAGING_URL);
+  if (target.protocol !== 'https:' || target.hostname !== `${PROJECT_REF}.supabase.co`) {
+    throw new Error('Staging URL does not exactly match SUPABASE_PROJECT_REF.');
+  }
+  if (PROJECT_REF === PRODUCTION_PROJECT_REF) throw new Error('Refusing to run against the known production Supabase project.');
   if (/service[_-]?role|sb_secret_/i.test(ANON_KEY)) throw new Error('Refusing a secret/service-role key. Use the staging publishable anon key.');
-  if (!ADMIN_PASSWORD || !DEALER_A_PASSWORD || !DEALER_B_PASSWORD) {
-    throw new Error('All three DEALER360_STAGING_*_PASSWORD variables are required.');
+  if (!ADMIN_EMAIL || !ADMIN_PASSWORD || !DEALER_A_EMAIL || !DEALER_A_PASSWORD || !DEALER_B_EMAIL || !DEALER_B_PASSWORD) {
+    throw new Error('All three staging user emails and passwords are required.');
+  }
+  if (!ADMIN_USER_ID || !DEALER_A_USER_ID || !DEALER_B_USER_ID) {
+    throw new Error('All three staging Auth user IDs are required.');
   }
 }
 
@@ -64,7 +87,7 @@ async function signIn(email, password) {
   if (!result.ok || !result.data || !result.data.access_token) {
     throw new Error(`Staging sign-in failed for ${email}: HTTP ${result.status} ${result.message}`);
   }
-  return result.data.access_token;
+  return { token: result.data.access_token, userId: result.data.user && result.data.user.id };
 }
 
 function rpc(name, body, bearer) {
@@ -82,14 +105,18 @@ function anonDenied(result) {
 
 async function run() {
   requireSafeStagingConfig();
-  console.log('Target:', new URL(STAGING_URL).host, '(staging confirmation accepted)');
+  console.log('Staging target identity verified.');
 
-  const [adminJwt, dealerAJwt, dealerBJwt] = await Promise.all([
+  const [adminAuth, dealerAAuth, dealerBAuth] = await Promise.all([
     signIn(ADMIN_EMAIL, ADMIN_PASSWORD),
     signIn(DEALER_A_EMAIL, DEALER_A_PASSWORD),
     signIn(DEALER_B_EMAIL, DEALER_B_PASSWORD)
   ]);
-  check('all staging Auth users sign in', true);
+  const adminJwt = adminAuth.token;
+  const dealerAJwt = dealerAAuth.token;
+  const dealerBJwt = dealerBAuth.token;
+  check('all staging Auth users sign in with expected UUIDs',
+    adminAuth.userId === ADMIN_USER_ID && dealerAAuth.userId === DEALER_A_USER_ID && dealerBAuth.userId === DEALER_B_USER_ID);
 
   const anonOverview = await rpc('plotmap_admin_platform_overview', {}, null);
   check('anon cannot read platform analytics', anonDenied(anonOverview),
@@ -98,6 +125,22 @@ async function run() {
   const dealerOverview = await rpc('plotmap_admin_platform_overview', {}, dealerAJwt);
   check('normal dealer cannot read platform analytics', denied(dealerOverview, /platform admin required/i),
     `HTTP ${dealerOverview.status}`);
+
+  const dealerCrossRead = await request(
+    `/rest/v1/presentation_events?dealer_id=eq.${encodeURIComponent(DEALER_B)}&select=id&limit=1`,
+    { method: 'GET', bearer: dealerAJwt }
+  );
+  check('Dealer A cannot read Dealer B raw events',
+    dealerCrossRead.ok && Array.isArray(dealerCrossRead.data) && dealerCrossRead.data.length === 0,
+    `HTTP ${dealerCrossRead.status}, rows ${Array.isArray(dealerCrossRead.data) ? dealerCrossRead.data.length : 'n/a'}`);
+
+  const dealerCrossPropertyRead = await request(
+    `/rest/v1/crm_records?dealer_id=eq.${encodeURIComponent(DEALER_B)}&select=id&limit=1`,
+    { method: 'GET', bearer: dealerAJwt }
+  );
+  check('Dealer A cannot read Dealer B property records',
+    dealerCrossPropertyRead.ok && Array.isArray(dealerCrossPropertyRead.data) && dealerCrossPropertyRead.data.length === 0,
+    `HTTP ${dealerCrossPropertyRead.status}, rows ${Array.isArray(dealerCrossPropertyRead.data) ? dealerCrossPropertyRead.data.length : 'n/a'}`);
 
   const adminOverview = await rpc('plotmap_admin_platform_overview', {}, adminJwt);
   check('platform admin can read platform overview', adminOverview.ok && adminOverview.data && Number(adminOverview.data.dealers) >= 3,
@@ -139,6 +182,17 @@ async function run() {
   check('suspended Dealer B approved device is rejected', denied(suspendedDevice, /approved dealer device required/i),
     `HTTP ${suspendedDevice.status} ${suspendedDevice.message}`);
 
+  const crossDealerDevice = await rpc('plotmap_record_device_presentation_event', {
+    p_dealer_id: DEALER_RATE,
+    p_device_token: DEVICE_A,
+    p_session_id: 'staging-cross-dealer-device',
+    p_event_type: 'app_open',
+    p_event_id: 'pevt-staging-cross-dealer-device-rejected'
+  }, null);
+  check('approved device token cannot cross into another active dealer',
+    denied(crossDealerDevice, /approved dealer device required/i),
+    `HTTP ${crossDealerDevice.status} ${crossDealerDevice.message}`);
+
   const secretMetadata = await rpc('plotmap_record_device_presentation_event', {
     p_dealer_id: DEALER_A,
     p_device_token: DEVICE_A,
@@ -149,6 +203,17 @@ async function run() {
   }, null);
   check('credential metadata is rejected', denied(secretMetadata, /sensitive analytics metadata rejected/i),
     `HTTP ${secretMetadata.status} ${secretMetadata.message}`);
+
+  const oversizedMetadata = await rpc('plotmap_record_device_presentation_event', {
+    p_dealer_id: DEALER_A,
+    p_device_token: DEVICE_A,
+    p_session_id: 'staging-oversized-rejection',
+    p_event_type: 'map_opened',
+    p_event_id: 'pevt-staging-oversized-rejected',
+    p_metadata: { name: 'x'.repeat(2100) }
+  }, null);
+  check('oversized metadata is rejected', denied(oversizedMetadata, /metadata too large/i),
+    `HTTP ${oversizedMetadata.status} ${oversizedMetadata.message}`);
 
   const unknownEvent = await rpc('plotmap_record_device_presentation_event', {
     p_dealer_id: DEALER_A,
@@ -210,6 +275,17 @@ async function run() {
   check('stable cursor pagination returns all equal-timestamp fixtures',
     page1.ok && page2.ok && rows1.length === 50 && rows2.length === 10 && overlap === 0,
     `pages ${rows1.length}+${rows2.length}, overlap ${overlap}`);
+
+  const rateLimited = await rpc('plotmap_record_device_presentation_event', {
+    p_dealer_id: DEALER_RATE,
+    p_device_token: DEVICE_RATE,
+    p_session_id: 'staging-rate-limit',
+    p_event_type: 'app_open',
+    p_event_id: 'pevt-staging-rate-rejected',
+    p_created_at: new Date(Date.now() - 47 * 60 * 60 * 1000).toISOString()
+  }, null);
+  check('rate limiting uses server-controlled ingestion time', denied(rateLimited, /event rate limit exceeded/i),
+    `HTTP ${rateLimited.status} ${rateLimited.message}`);
 
   const rollup = await rpc('plotmap_rollup_daily_usage', { p_days: 7 }, adminJwt);
   check('platform admin can run daily rollup', rollup.ok && rollup.data !== null && Number.isInteger(Number(rollup.data)),

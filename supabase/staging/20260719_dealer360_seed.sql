@@ -1,10 +1,8 @@
 -- PlotMap Dealer 360 staging fixtures.
 -- STAGING ONLY. Never run against the production Supabase project.
 --
--- Before running, create these three users in Staging > Authentication > Users:
---   plotmap.platform.staging@example.com
---   plotmap.dealer-a.staging@example.com
---   plotmap.dealer-b.staging@example.com
+-- Before running, create the three private staging Auth users and provide
+-- their UUIDs and emails through the documented PostgreSQL session settings.
 --
 -- Run after 20260710_developer_control_and_trial_analytics_draft.sql and
 -- before 20260719_dealer360_analytics_draft.sql. This intentionally creates
@@ -13,25 +11,23 @@
 
 do $seed$
 declare
-  v_admin_id uuid;
-  v_dealer_a_id uuid;
-  v_dealer_b_id uuid;
+  v_admin_id uuid := nullif(current_setting('plotmap.staging_platform_admin_user_id', true), '')::uuid;
+  v_dealer_a_id uuid := nullif(current_setting('plotmap.staging_dealer_a_user_id', true), '')::uuid;
+  v_dealer_b_id uuid := nullif(current_setting('plotmap.staging_dealer_b_user_id', true), '')::uuid;
+  v_admin_email text := nullif(current_setting('plotmap.staging_platform_admin_email', true), '');
+  v_dealer_a_email text := nullif(current_setting('plotmap.staging_dealer_a_email', true), '');
+  v_dealer_b_email text := nullif(current_setting('plotmap.staging_dealer_b_email', true), '');
   v_page_time timestamptz := date_trunc('second', now() - interval '2 hours');
 begin
-  select id into v_admin_id
-  from auth.users
-  where lower(email) = 'plotmap.platform.staging@example.com';
+  if v_admin_id is null or v_dealer_a_id is null or v_dealer_b_id is null
+     or v_admin_email is null or v_dealer_a_email is null or v_dealer_b_email is null then
+    raise exception 'Set all private staging Auth UUID and email session settings before running the seed';
+  end if;
 
-  select id into v_dealer_a_id
-  from auth.users
-  where lower(email) = 'plotmap.dealer-a.staging@example.com';
-
-  select id into v_dealer_b_id
-  from auth.users
-  where lower(email) = 'plotmap.dealer-b.staging@example.com';
-
-  if v_admin_id is null or v_dealer_a_id is null or v_dealer_b_id is null then
-    raise exception 'Create all three documented staging Auth users before running the seed';
+  if not exists (select 1 from auth.users where id = v_admin_id and lower(email) = lower(v_admin_email))
+     or not exists (select 1 from auth.users where id = v_dealer_a_id and lower(email) = lower(v_dealer_a_email))
+     or not exists (select 1 from auth.users where id = v_dealer_b_id and lower(email) = lower(v_dealer_b_email)) then
+    raise exception 'Private staging Auth UUIDs do not match the documented staging users';
   end if;
 
   insert into public.dealer_settings (
@@ -64,11 +60,21 @@ begin
     select 1 from public.dealer_settings where dealer_id = 'dealer-staging-b'
   );
 
+  insert into public.dealer_settings (
+    dealer_id, brand_name, account_status, subscription_status,
+    trial_start, trial_end, plan_code, paid, max_devices_allowed
+  )
+  select 'dealer-staging-rate', 'Dealer Rate-Limit Staging', 'active', 'trial',
+         now(), now() + interval '30 days', 'staging', false, 1
+  where not exists (
+    select 1 from public.dealer_settings where dealer_id = 'dealer-staging-rate'
+  );
+
   insert into public.profiles (id, email, role, dealer_id, status, display_name)
   values
-    (v_admin_id, 'plotmap.platform.staging@example.com', 'owner', 'dealer-staging-platform', 'active', 'Staging Platform Admin'),
-    (v_dealer_a_id, 'plotmap.dealer-a.staging@example.com', 'owner', 'dealer-staging-a', 'active', 'Dealer A Owner'),
-    (v_dealer_b_id, 'plotmap.dealer-b.staging@example.com', 'owner', 'dealer-staging-b', 'active', 'Dealer B Owner')
+    (v_admin_id, lower(v_admin_email), 'owner', 'dealer-staging-platform', 'active', 'Staging Platform Admin'),
+    (v_dealer_a_id, lower(v_dealer_a_email), 'owner', 'dealer-staging-a', 'active', 'Dealer A Owner'),
+    (v_dealer_b_id, lower(v_dealer_b_email), 'owner', 'dealer-staging-b', 'active', 'Dealer B Owner')
   on conflict (id) do update set
     email = excluded.email,
     role = excluded.role,
@@ -118,6 +124,24 @@ begin
   where not exists (
     select 1 from public.dealer_devices
     where dealer_id = 'dealer-staging-b' and device_label = 'Dealer B staging device'
+  );
+
+  insert into public.dealer_devices (
+    dealer_id, device_token_hash, status, device_label, browser_info,
+    approved_at, approved_by, developer_notes
+  )
+  select
+    'dealer-staging-rate',
+    crypt('plotmap-staging-device-rate-00000000000000000003', gen_salt('bf', 10)),
+    'approved',
+    'Rate-limit staging device',
+    'Dealer 360 automated staging fixture',
+    now(),
+    v_admin_id,
+    'STAGING ONLY - server-time rate-limit test'
+  where not exists (
+    select 1 from public.dealer_devices
+    where dealer_id = 'dealer-staging-rate' and device_label = 'Rate-limit staging device'
   );
 
   insert into public.crm_records (id, dealer_id, entity_type, payload, deleted, updated_at)
@@ -186,12 +210,12 @@ $seed$;
 
 select dealer_id, account_status, subscription_status, max_devices_allowed
 from public.dealer_settings
-where dealer_id in ('dealer-staging-platform', 'dealer-staging-a', 'dealer-staging-b')
+where dealer_id in ('dealer-staging-platform', 'dealer-staging-a', 'dealer-staging-b', 'dealer-staging-rate')
 order by dealer_id;
 
 select dealer_id, status, device_label
 from public.dealer_devices
-where dealer_id in ('dealer-staging-a', 'dealer-staging-b')
+where dealer_id in ('dealer-staging-a', 'dealer-staging-b', 'dealer-staging-rate')
 order by dealer_id;
 
 select dealer_id, count(*) as event_count
