@@ -1,40 +1,33 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "node tools/generate-runtime-env.js",
-  "builds": [
-    { "src": "index.html", "use": "@vercel/static" },
-    { "src": "config/**", "use": "@vercel/static" },
-    { "src": "app/plotmap/**", "use": "@vercel/static" },
-    { "src": "maps/**", "use": "@vercel/static" },
-    { "src": "normal maps/**", "use": "@vercel/static" },
-    { "src": "public/plotmap-assets/**", "use": "@vercel/static" },
-    { "src": "admin/**", "use": "@vercel/static" }
-  ],
-  "routes": [
+  "buildCommand": "node tools/build-dist.js",
+  "outputDirectory": "dist",
+  "headers": [
     {
-      "src": "/config/runtime-env\\.js",
-      "headers": {
-        "Cache-Control": "no-store, max-age=0, must-revalidate",
-        "CDN-Cache-Control": "no-store",
-        "Vercel-CDN-Cache-Control": "no-store"
-      },
-      "continue": true
+      "source": "/config/runtime-env.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, max-age=0, must-revalidate" },
+        { "key": "CDN-Cache-Control", "value": "no-store" },
+        { "key": "Vercel-CDN-Cache-Control", "value": "no-store" }
+      ]
     },
     {
-      "src": "/maps/(.*)",
-      "headers": { "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800" },
-      "continue": true
+      "source": "/maps/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }
+      ]
     },
     {
-      "src": "/normal(?: |%20)maps/(.*)",
-      "headers": { "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800" },
-      "continue": true
+      "source": "/normal maps/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }
+      ]
     },
     {
-      "src": "/public/plotmap-assets/(.*)",
-      "headers": { "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800" },
-      "continue": true
-    },
-    { "handle": "filesystem" }
+      "source": "/public/plotmap-assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }
+      ]
+    }
   ]
 }

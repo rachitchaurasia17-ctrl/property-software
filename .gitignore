@@ -18,3 +18,4 @@ Thumbs.db
 .env*.local
 supabase/.temp/
 config/runtime-env.js
+dist/

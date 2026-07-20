@@ -1,16 +1,21 @@
-# Dev-only image intermediates — never referenced by runtime code.
-# Excluding them cuts ~200 MB from every deployment upload.
-# (Verified: no app/admin file loads these paths; annotatedReference entries
-# in datasets/overlays.js are tracing metadata with no runtime consumer.)
+# Never upload environment/secret material to a deployment build.
+.env*
+*.local
+
+# The build runs tools/build-dist.js + tools/generate-runtime-env.js, so
+# tools/ MUST be uploaded (a previous ignore of tools/ was one of the two
+# root causes of the runtime-env.js 404). Everything below is not needed
+# to build or serve the app.
+dist
+docs
+supabase
+_design
+archive
+.agents
+node_modules
+
+# Dev-only image intermediates (also excluded from dist by build-dist.js).
 public/plotmap-assets/processed
 public/plotmap-assets/*-annotated-reference.png
 public/plotmap-assets/aerotropolis-easy-map-reference.png
 public/plotmap-assets/aerotropolis-original.png
-
-# Design handoffs, archives, tooling — not part of the served product.
-_design
-archive
-tools
-docs
-supabase
-.agents
