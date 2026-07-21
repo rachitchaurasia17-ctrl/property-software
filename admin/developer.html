@@ -1184,7 +1184,15 @@
       await boot();
     } catch (err) {
       status.style.color = '#9A4A2C';
-      status.textContent = (err && err.message) ? err.message : 'Sign in failed.';
+      // Never surface raw backend JSON/auth payloads to the user — map to a
+      // clean message; the technical detail goes to the console only.
+      const raw = String((err && err.message) || '');
+      console.warn('[Developer Control] sign-in failed:', raw);
+      status.textContent = /invalid_credentials|invalid login/i.test(raw)
+        ? 'Incorrect email or password.'
+        : /failed to fetch|network/i.test(raw)
+          ? 'Could not reach the server. Check your connection and try again.'
+          : 'Sign-in failed. Please try again.';
     } finally {
       submit.disabled = false;
     }

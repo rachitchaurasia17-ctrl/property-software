@@ -732,7 +732,17 @@
         }
         window.location.href = dest;
       } catch (error) {
-        status.textContent = error.message || 'Sign in failed.';
+        // Raw auth-service bodies (JSON) must never render to the user; our
+        // own thrown messages (device approval guidance) pass through.
+        const raw = String((error && error.message) || '');
+        console.warn('[PlotMap] sign-in failed:', raw);
+        status.textContent = /not approved/i.test(raw)
+          ? raw
+          : /invalid_credentials|invalid login/i.test(raw)
+            ? 'Incorrect email or password.'
+            : /failed to fetch|network/i.test(raw)
+              ? 'Could not reach the server. Check your connection and try again.'
+              : 'Sign-in failed. Please try again.';
         status.style.color = '#9A4A2C';
       } finally {
         submit.disabled = false;
