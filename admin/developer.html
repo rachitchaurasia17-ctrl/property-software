@@ -767,12 +767,23 @@
 
   function renderAll() {
     renderBanner();
-    if (window.PMDev360) {
-      // Dealer 360 takes over the dealer table + platform overview; the
-      // legacy KPI cards stay hidden (fallback below if dev360.js missing).
-      window.PMDev360.renderDealerTable();
-      window.PMDev360.renderPlatformOverview();
-    } else {
+    // Dealer 360 takes over the dealer table + platform overview when it is
+    // present AND initialized. If it is missing, not yet initialized, or its
+    // render throws, fall back to the built-in KPI cards + dealer table so a
+    // single optional-module failure never blanks Developer Control.
+    let dev360Rendered = false;
+    if (window.PMDev360 && typeof window.PMDev360.isReady === 'function' && window.PMDev360.isReady()) {
+      try {
+        window.PMDev360.renderDealerTable();
+        // Platform overview is async; a late rejection must stay non-fatal.
+        Promise.resolve(window.PMDev360.renderPlatformOverview())
+          .catch(err => console.error('[Developer Control] platform overview render failed (non-fatal):', err));
+        dev360Rendered = true;
+      } catch (err) {
+        console.error('[Developer Control] Dealer 360 view failed — using the built-in dealer table:', err);
+      }
+    }
+    if (!dev360Rendered) {
       const kpis = document.getElementById('kpis');
       if (kpis) kpis.style.display = '';
       const po = document.getElementById('platform-overview-card');
@@ -1141,18 +1152,21 @@
       const allowed = await gate();
       if (!allowed) return;
       await probeOptionalRpcs();
-      await refresh();
-      window.PMDevBoot.showOnly('app');
-      // Hand the Dealer 360 layer its context (shared rpc/state/helpers +
-      // the same action handlers, so drawer controls == table controls).
+      // Hand the Dealer 360 layer its context BEFORE the first render.
+      // refresh() calls renderAll(), which delegates the dealer table and
+      // platform overview to PMDev360; without init, the module's ctx is
+      // null and rendering throws — which previously killed the whole boot
+      // right after a successful platform-admin sign-in. init MUST precede
+      // refresh. (renderAll also degrades gracefully if this is skipped.)
       if (window.PMDev360) {
         window.PMDev360.init({
           rpc, state,
           fmtDate, fmtWhen, statusChip, usageStrength,
           refresh, handleAction
         });
-        renderAll();
       }
+      await refresh();
+      window.PMDevBoot.showOnly('app');
     } catch (err) {
       // The migration-required message is actionable and carries no secrets,
       // so surface it. Everything else is reported generically — raw Supabase

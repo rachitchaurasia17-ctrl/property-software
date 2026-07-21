@@ -79,6 +79,7 @@
 
   /* ────────────────────────── platform overview ────────────────────────── */
   async function renderPlatformOverview() {
+    if (!ctx) return;
     const host = $('platform-overview');
     if (!host) return;
     // Try the Stage-2 RPC once; fall back to client-side aggregation over
@@ -131,6 +132,7 @@
 
   /* ────────────────────────── dealer list (I13) ────────────────────────── */
   function filteredSortedDealers() {
+    if (!ctx) return [];
     const ds = (ctx.state.dealers || []).slice();
     const q = list.q.trim().toLowerCase();
     const wants = (d) => {
@@ -163,6 +165,7 @@
   }
 
   function renderDealerTable() {
+    if (!ctx) return;
     const tbody = $('dealer-rows');
     if (!tbody) return;
     const rows = filteredSortedDealers().map(d => {
@@ -529,6 +532,10 @@
       bindDrawer();
       bindTableOpen();
     },
+    // True once init() has supplied the shared context. developer.html checks
+    // this before delegating any render, so a render can never run against a
+    // null ctx (the boot-crash this guards against).
+    isReady() { return ctx !== null; },
     renderDealerTable,
     renderPlatformOverview,
     healthFor,
