@@ -22,6 +22,9 @@
 <script src="/config/supabase-config.js"></script>
 <script src="/admin/core/auth.js"></script>
 <script src="/admin/core/dev360.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; }
   html { visibility: hidden; }
@@ -105,6 +108,7 @@
   .muted { color: #8A8371; }
   @media (max-width: 900px) { .grid, form.create, .summary-grid { grid-template-columns: 1fr 1fr; } }
 </style>
+<link rel="stylesheet" href="/admin/developer-control.css">
 <!--
   BOOT FAILSAFE — must stay ABOVE every other script on this page.
 
@@ -166,33 +170,91 @@
 <body>
 
 <div id="app" style="display:none;">
-  <header class="top">
-    <span class="ring" aria-hidden="true"></span>
-    <b>PlotMap</b>
-    <span class="tag">Developer Control</span>
-    <span class="sp"></span>
-    <a class="btn" href="/admin/owner.html">Dealer dashboard</a>
-    <button id="btn-refresh" type="button">Refresh</button>
-    <button id="btn-signout" type="button">Sign out</button>
-  </header>
+  <aside id="rail" class="dev-rail" aria-label="Developer Control navigation">
+    <div class="rail-brand">
+      <span class="brand-mark" aria-hidden="true">P</span>
+      <span class="brand-copy">
+        <strong>PlotMap</strong>
+        <small>Developer Control</small>
+      </span>
+    </div>
 
-  <main>
-    <h1>Dealer control &amp; trial analytics</h1>
-    <div class="sub">Platform-admin view of every dealer account, trial state and real usage. Dealers never see this page; every number below comes from admin-only RPCs.</div>
+    <nav class="rail-nav">
+      <button type="button" data-dev-nav="overview" class="is-active">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2" y="2" width="7" height="7" rx="2"/><rect x="11" y="2" width="7" height="7" rx="2" opacity=".55"/><rect x="2" y="11" width="7" height="7" rx="2" opacity=".55"/><rect x="11" y="11" width="7" height="7" rx="2"/></svg>
+        <span>Platform Overview</span>
+      </button>
+      <button type="button" data-dev-nav="dealers">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="6.5" r="3.4"/><path d="M3.4 17c0-3.6 3-5.6 6.6-5.6s6.6 2 6.6 5.6" opacity=".55"/></svg>
+        <span>All Dealers</span>
+      </button>
+      <button type="button" data-dev-nav="dealer360">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="10" cy="10" r="2.6"/></svg>
+        <span>Dealer 360</span>
+      </button>
+      <button type="button" data-dev-nav="activations">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6.5 10.2l2.3 2.3 4.4-4.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Activation Requests</span>
+        <span id="activation-count" class="rail-count" hidden>0</span>
+      </button>
+      <button type="button" data-dev-nav="devices">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="3" width="14" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><line x1="7.5" y1="17" x2="12.5" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span>Dealer Devices</span>
+      </button>
+      <button type="button" data-dev-nav="create">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><line x1="3.5" y1="10" x2="16.5" y2="10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <span>Create Dealer</span>
+      </button>
+      <button type="button" data-dev-nav="controls">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><line x1="4" y1="6.5" x2="16" y2="6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="4" y1="13.5" x2="16" y2="13.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="13" cy="6.5" r="2.4" fill="#211d19" stroke="currentColor" stroke-width="2"/><circle cx="7" cy="13.5" r="2.4" fill="#211d19" stroke="currentColor" stroke-width="2"/></svg>
+        <span>Account Controls</span>
+      </button>
+    </nav>
+
+    <div class="rail-footer">
+      <span class="admin-avatar" aria-hidden="true">RC</span>
+      <span class="admin-copy"><strong>Platform Admin</strong><small>Root &middot; Developer</small></span>
+      <span class="rail-actions">
+        <a href="/admin/owner.html" title="Dealer dashboard" aria-label="Dealer dashboard">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 9.5 10 3l7 6.5v7a1 1 0 0 1-1 1h-4v-5H8v5H4a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+        </a>
+        <button id="btn-refresh" type="button" title="Refresh" aria-label="Refresh">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 7a6.5 6.5 0 1 0 .2 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M16 3v4h-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button id="btn-signout" type="button" title="Sign out" aria-label="Sign out">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8 3H4.5A1.5 1.5 0 0 0 3 4.5v11A1.5 1.5 0 0 0 4.5 17H8M12.5 6.5 16 10l-3.5 3.5M16 10H7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </span>
+    </div>
+  </aside>
+
+  <div class="dev-workspace">
+  <main class="dev-main">
+    <header class="dev-page-header">
+      <div>
+        <div class="dev-eyebrow" id="dev-eyebrow">Platform</div>
+        <h1 id="dev-page-title">Command Overview</h1>
+        <p id="dev-page-subtitle">The whole PlotMap platform at a glance - dealers, devices and live activity.</p>
+      </div>
+      <div class="dev-status-wrap">
+        <span class="system-status"><i aria-hidden="true"></i>Systems nominal</span>
+        <time id="dev-date"></time>
+      </div>
+    </header>
 
     <div id="migration-banner"></div>
 
-    <section class="card" id="platform-overview-card">
-      <h2>Platform overview</h2>
-      <div class="hint">Live platform-wide picture — visible only to the platform administrator.</div>
+    <section class="card overview-card" id="platform-overview-card" data-dev-section="overview">
+      <h2 class="sr-only">Platform overview</h2>
+      <div class="hint sr-only">Live platform-wide picture - visible only to the platform administrator.</div>
       <div id="platform-overview"><div class="muted">Loading…</div></div>
     </section>
 
-    <div class="grid" id="kpis" style="display:none;"></div>
+    <div class="grid" id="kpis" data-dev-section="overview" style="display:none;"></div>
 
-    <section class="card">
-      <h2>All dealers</h2>
-      <div class="hint">Click a dealer (or its Dealer 360 button) for the full intelligence view. Usage columns come from <code>presentation_events</code> aggregated server-side; health is computed from transparent signals shown on hover.</div>
+    <section class="card dealer-directory" data-dev-section="dealers" hidden>
+      <h2 class="sr-only">All dealers</h2>
+      <div class="hint sr-only">Dealer usage is aggregated server-side. Health uses the existing transparent signal model.</div>
       <div class="list-controls" id="dealer-list-controls">
         <button type="button" data-filter="all" class="on">All</button>
         <button type="button" data-filter="trial">Trial</button>
@@ -213,14 +275,27 @@
       </div>
       <div style="overflow-x:auto;"><table>
         <thead><tr>
-          <th>Dealer</th><th>Status</th><th>Trial</th><th>Last active</th>
-          <th>Sessions</th><th>Active days</th><th>Presentation opens</th><th>Devices</th><th>Health</th><th>Actions</th>
+          <th>Dealer</th><th>Area</th><th>Status</th><th>Trial ends</th><th>Last active</th>
+          <th>Sessions</th><th>Presentation</th><th>Devices</th><th>Health</th><th>Actions</th>
         </tr></thead>
         <tbody id="dealer-rows"><tr><td colspan="10" class="muted">Loading dealers...</td></tr></tbody>
       </table></div>
     </section>
 
-    <section class="card">
+    <section class="dealer360-section" id="dealer360-section" data-dev-section="dealer360" hidden>
+      <div id="d360-dealer-picker" class="dealer-picker" aria-label="Choose dealer"></div>
+      <div id="dealer360-empty" class="empty-state">
+        <span class="empty-icon" aria-hidden="true">
+          <svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="10" cy="10" r="2.6"/></svg>
+        </span>
+        <h2>Select a dealer</h2>
+        <p>Open a dealer from All Dealers to see their complete operational picture.</p>
+        <button class="btn-primary" type="button" data-go-dealers>Browse dealers</button>
+      </div>
+      <div id="dealer360-mount"></div>
+    </section>
+
+    <section class="card activation-section" data-dev-section="activations" hidden>
       <h2>Activation requests</h2>
       <div class="hint">In-person onboarding: generate an 8-digit activation code, the dealer enters it on their laptop at the PlotMap landing page, the request lands here. Approving a request creates/updates the dealer and approves that laptop in one step.</div>
       <form class="create" id="code-form" style="margin-bottom:16px;">
@@ -238,26 +313,16 @@
         </div>
       </form>
       <div class="steplog" id="code-log"></div>
-      <div style="overflow-x:auto;"><table>
-        <thead><tr>
-          <th>Requested</th><th>Status</th><th>Business / owner</th><th>Device</th><th>Actions</th>
-        </tr></thead>
-        <tbody id="request-rows"><tr><td colspan="5" class="muted">Loading activation requests...</td></tr></tbody>
-      </table></div>
+      <div id="request-rows" class="activation-request-list"><div class="muted">Loading activation requests...</div></div>
     </section>
 
-    <section class="card">
+    <section class="card devices-section" data-dev-section="devices" hidden>
       <h2>Dealer devices</h2>
       <div class="hint">Approved devices can open Client Presentation and admin workspaces. New devices stay pending until approved here. One subscription allows one approved device unless you raise the limit.</div>
-      <div style="overflow-x:auto;"><table>
-        <thead><tr>
-          <th>Dealer</th><th>Status</th><th>Device</th><th>Last seen</th><th>Limit</th><th>Actions</th>
-        </tr></thead>
-        <tbody id="device-rows"><tr><td colspan="6" class="muted">Loading devices...</td></tr></tbody>
-      </table></div>
+      <div id="device-rows" class="device-grid"><div class="muted">Loading devices...</div></div>
     </section>
 
-    <section class="card">
+    <section class="card create-dealer-section" data-dev-section="create" hidden>
       <h2>Create dealer</h2>
       <div class="hint">Fills <code>dealer_settings</code> (account + trial) via the phase-4 admin RPC, then directory fields and the passcode via the new RPCs. Steps that need the pending migration are reported honestly — nothing is faked. The dealer's Supabase auth user + profile row are a one-time manual step (see the onboarding checklist below).</div>
       <form class="create" id="create-form">
@@ -285,9 +350,22 @@
         </div>
       </form>
       <div class="steplog" id="create-log"></div>
+      <aside class="account-preview" aria-label="Dealer account preview">
+        <div class="account-preview-label">Account preview</div>
+        <div class="account-preview-identity">
+          <span id="preview-initial">D</span>
+          <div><strong id="preview-business">New dealer</strong><small id="preview-owner">Owner name</small></div>
+        </div>
+        <dl>
+          <div><dt>Area</dt><dd id="preview-area">Not set</dd></div>
+          <div><dt>Trial</dt><dd id="preview-trial">Dates not set</dd></div>
+          <div><dt>Email</dt><dd id="preview-email">Not set</dd></div>
+          <div><dt>Passcode</dt><dd id="preview-passcode">Not generated</dd></div>
+        </dl>
+      </aside>
     </section>
 
-    <section class="card">
+    <section class="card onboarding-section" data-dev-section="create" hidden>
       <h2>Onboarding checklist (manual, one-time per dealer)</h2>
       <div class="hint" style="margin-bottom:0;">
         1. Supabase Dashboard → Authentication → <b>Add user</b>: the login email above, password = the passcode, auto-confirm ON.<br>
@@ -297,7 +375,36 @@
         <span class="muted">Passcode reset: set a new one here, then update the auth user's password to the same value in the Dashboard.</span>
       </div>
     </section>
+
+    <section class="account-controls" data-dev-section="controls" hidden>
+      <div class="account-picker card">
+        <label for="account-control-dealer">Managing account</label>
+        <select id="account-control-dealer" aria-label="Dealer account"></select>
+        <span id="account-control-status" class="chip low">Select a dealer</span>
+      </div>
+      <div class="account-action-grid">
+        <article class="account-action-card">
+          <h2>Trial controls</h2>
+          <p>Review trial dates, payment notes and developer follow-up notes.</p>
+          <button type="button" class="btn-ghost" data-account-action="trial">Open trial controls</button>
+        </article>
+        <article class="account-action-card">
+          <h2>Reset passcode</h2>
+          <p>Issue a fresh owner passcode through the protected platform-admin RPC.</p>
+          <button type="button" class="btn-ghost" data-account-action="passcode">Reset passcode</button>
+        </article>
+        <article class="account-action-card account-action-danger">
+          <h2>Suspend or reactivate</h2>
+          <p>Block or restore this dealer's PlotMap access. The server rechecks your role.</p>
+          <div class="account-action-buttons">
+            <button type="button" class="btn-ghost danger" data-account-action="suspend">Suspend</button>
+            <button type="button" class="btn-primary" data-account-action="activate">Reactivate</button>
+          </div>
+        </article>
+      </div>
+    </section>
   </main>
+  </div>
 </div>
 
 <div id="locked" style="display:none;">
@@ -356,7 +463,7 @@
           <div class="hint" id="d360-sub" style="margin:4px 0 0;"></div>
         </div>
         <span style="flex:1;"></span>
-        <button class="btn-ghost" type="button" id="d360-close">Close ✕</button>
+        <button class="btn-ghost" type="button" id="d360-close">All dealers</button>
       </div>
       <div id="d360-health" style="margin-top:12px;"></div>
       <div id="d360-tabs">
@@ -466,6 +573,117 @@
   const $ = (id) => document.getElementById(id);
   const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const state = { dealers: [], devices: [], requests: [], usage: {}, flags: { directoryRpc: true, usageRpc: true, trialRpc: true, passcodeRpc: true, devicesRpc: true, activationRpc: true } };
+
+  const SECTION_META = {
+    overview: { eyebrow: 'Platform', title: 'Command Overview', subtitle: 'The whole PlotMap platform at a glance - dealers, devices and live activity.' },
+    dealers: { eyebrow: 'Accounts', title: 'All Dealers', subtitle: 'Every dealer on PlotMap, their status, usage and health.' },
+    dealer360: { eyebrow: 'Deep dive', title: 'Dealer 360', subtitle: 'The complete operational picture for a single dealer.' },
+    activations: { eyebrow: 'Security', title: 'Activation Requests', subtitle: 'Approve or reject devices asking to join a dealer workspace.' },
+    devices: { eyebrow: 'Security', title: 'Dealer Devices', subtitle: 'Every approved, pending, rejected and revoked device.' },
+    create: { eyebrow: 'Onboarding', title: 'Create Dealer', subtitle: 'Set up a new dealer account with a trial and login.' },
+    controls: { eyebrow: 'Management', title: 'Account Controls', subtitle: 'Extend trials, reset passcodes, suspend or reactivate dealers.' }
+  };
+
+  let activeSection = 'overview';
+  let activeDealer360 = '';
+
+  function showSection(name) {
+    const meta = SECTION_META[name] || SECTION_META.overview;
+    activeSection = SECTION_META[name] ? name : 'overview';
+    document.querySelectorAll('[data-dev-section]').forEach(node => {
+      node.hidden = node.getAttribute('data-dev-section') !== activeSection;
+    });
+    document.querySelectorAll('[data-dev-nav]').forEach(button => {
+      const on = button.getAttribute('data-dev-nav') === activeSection;
+      button.classList.toggle('is-active', on);
+      button.setAttribute('aria-current', on ? 'page' : 'false');
+    });
+    $('dev-eyebrow').textContent = meta.eyebrow;
+    $('dev-page-title').textContent = meta.title;
+    $('dev-page-subtitle').textContent = meta.subtitle;
+
+    if (activeSection === 'dealer360') {
+      const drawer = $('d360-drawer');
+      $('dealer360-empty').hidden = !!(drawer && drawer.style.display !== 'none');
+    }
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }
+
+  function initDeveloperShell() {
+    const drawer = $('d360-drawer');
+    const mount = $('dealer360-mount');
+    if (drawer && mount && drawer.parentElement !== mount) mount.appendChild(drawer);
+
+    document.querySelectorAll('[data-dev-nav]').forEach(button => {
+      button.addEventListener('click', () => showSection(button.getAttribute('data-dev-nav')));
+    });
+    const browse = document.querySelector('[data-go-dealers]');
+    if (browse) browse.addEventListener('click', () => showSection('dealers'));
+    const dealerPicker = $('d360-dealer-picker');
+    if (dealerPicker) dealerPicker.addEventListener('click', event => {
+      const button = event.target.closest('[data-d360-dealer]');
+      if (button && window.PMDev360) window.PMDev360.open360(button.getAttribute('data-d360-dealer'));
+    });
+
+    const date = new Date();
+    $('dev-date').textContent = date.toLocaleDateString(undefined, {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    });
+
+    const accountSelect = $('account-control-dealer');
+    if (accountSelect) accountSelect.addEventListener('change', renderAccountControls);
+    const accountControls = document.querySelector('.account-controls');
+    if (accountControls) accountControls.addEventListener('click', event => {
+      const button = event.target.closest('[data-account-action]');
+      if (!button || button.disabled) return;
+      const dealerId = accountSelect && accountSelect.value;
+      if (dealerId) handleAction(button.getAttribute('data-account-action'), dealerId);
+    });
+
+    const createForm = $('create-form');
+    if (createForm) createForm.addEventListener('input', renderCreatePreview);
+    renderCreatePreview();
+
+    showSection('overview');
+  }
+
+  function renderCreatePreview() {
+    const business = $('c-business').value.trim();
+    const owner = $('c-owner').value.trim();
+    const area = $('c-area').value.trim();
+    const email = $('c-email').value.trim();
+    const trialStart = $('c-trial-start').value;
+    const trialEnd = $('c-trial-end').value;
+    const passcodeReady = $('c-passcode').value.length >= 8;
+    $('preview-initial').textContent = (business || 'D').charAt(0).toUpperCase();
+    $('preview-business').textContent = business || 'New dealer';
+    $('preview-owner').textContent = owner || 'Owner name';
+    $('preview-area').textContent = area || 'Not set';
+    $('preview-trial').textContent = trialStart || trialEnd
+      ? (trialStart || 'Start not set') + ' - ' + (trialEnd || 'End not set')
+      : 'Dates not set';
+    $('preview-email').textContent = email || 'Not set';
+    $('preview-passcode').textContent = passcodeReady ? 'Ready to hash' : 'Not generated';
+  }
+
+  window.PMDeveloperUI = {
+    embeddedDealer360: true,
+    showSection,
+    openDealer360(dealerId) {
+      activeDealer360 = dealerId || '';
+      showSection('dealer360');
+      $('dealer360-empty').hidden = true;
+      document.querySelectorAll('[data-d360-dealer]').forEach(button => {
+        button.classList.toggle('is-active', button.getAttribute('data-d360-dealer') === dealerId);
+      });
+    },
+    closeDealer360() {
+      activeDealer360 = '';
+      showSection('dealers');
+    }
+  };
+
+  initDeveloperShell();
 
   // Never throws. A network failure, DNS error, CORS rejection or timeout
   // resolves to { ok:false, status:0, networkError:true } so callers can
@@ -679,6 +897,37 @@
     $('kpis').innerHTML = cells.map(c => '<div class="stat"><div class="k">' + c[0] + '</div><div class="v">' + c[1] + '</div></div>').join('');
   }
 
+  function renderAccountControls() {
+    const select = $('account-control-dealer');
+    const status = $('account-control-status');
+    if (!select || !status) return;
+    const previous = select.value;
+    select.innerHTML = state.dealers.map(d => '<option value="' + esc(d.dealer_id) + '">'
+      + esc(d.brand_name || d.dealer_id) + ' - ' + esc(d.owner_name || d.dealer_id) + '</option>').join('');
+    if (previous && state.dealers.some(d => d.dealer_id === previous)) select.value = previous;
+    const dealer = dealerById(select.value);
+    if (!dealer) {
+      status.className = 'account-status';
+      status.textContent = 'No dealers';
+    } else {
+      status.className = 'account-status';
+      status.innerHTML = statusChip(dealer);
+    }
+    document.querySelectorAll('[data-account-action]').forEach(button => {
+      const action = button.getAttribute('data-account-action');
+      const isActive = dealer && (dealer.account_status || 'active') === 'active';
+      button.disabled = !dealer || (action === 'suspend' && !isActive) || (action === 'activate' && isActive);
+    });
+  }
+
+  function renderDealerPicker() {
+    const picker = $('d360-dealer-picker');
+    if (!picker) return;
+    picker.innerHTML = state.dealers.map(d => '<button type="button" data-d360-dealer="' + esc(d.dealer_id) + '" class="' + (d.dealer_id === activeDealer360 ? 'is-active' : '') + '">'
+      + esc(d.brand_name || d.dealer_id) + '</button>').join('');
+    picker.hidden = state.dealers.length === 0;
+  }
+
   function renderRows() {
     const rows = state.dealers.map(d => {
       const u = state.usage[d.dealer_id];
@@ -690,12 +939,12 @@
         + '<td><div class="dname">' + esc(d.brand_name || d.dealer_id) + '</div>'
         +   '<div class="dmeta">' + esc(d.dealer_id) + (d.owner_name ? ' · ' + esc(d.owner_name) : '') + (d.owner_phone ? ' · ' + esc(d.owner_phone) : '')
         +   (state.flags.directoryRpc ? (d.has_passcode ? ' · passcode ✓' : ' · no passcode') : '') + '</div></td>'
+        + '<td>' + esc(d.primary_area || '—') + '</td>'
         + '<td>' + statusChip(d) + '</td>'
-        + '<td style="white-space:nowrap;">' + fmtDate(d.trial_start) + ' → ' + fmtDate(d.trial_end) + '</td>'
+        + '<td style="white-space:nowrap;">' + fmtDate(d.trial_end) + '<div class="dmeta">from ' + fmtDate(d.trial_start) + '</div></td>'
         + '<td>' + (u ? fmtWhen(u.last_active) : '—') + '</td>'
-        + '<td>' + (u ? Number(u.sessions || 0) : '—') + '</td>'
-        + '<td>' + (u ? Number(u.presentation_opens || 0) : '—') + '</td>'
-        + '<td>' + (u ? Number(u.whatsapp_shares || 0) : '—') + '</td>'
+        + '<td>' + (u ? Number(u.sessions || 0) + '<div class="dmeta">' + Number(u.active_days || 0) + ' active days</div>' : '—') + '</td>'
+        + '<td>' + (u ? Number(u.presentation_opens || 0) + '<div class="dmeta">' + Number(u.whatsapp_shares || 0) + ' shares</div>' : '—') + '</td>'
         + '<td>' + Number(d.approved_device_count || 0) + '/' + Number(d.max_devices_allowed || 1)
         +   (Number(d.pending_device_count || 0) ? ' · ' + Number(d.pending_device_count || 0) + ' pending' : '') + '</td>'
         + '<td>' + usageCell + '</td>'
@@ -721,23 +970,23 @@
   }
 
   function renderDevices() {
-    const rows = state.devices.map(d => '<tr>'
-      + '<td><div class="dname">' + esc(d.dealer_name || d.dealer_id) + '</div><div class="dmeta">' + esc(d.dealer_id) + '</div></td>'
-      + '<td>' + deviceChip(d.status) + '</td>'
-      + '<td><div>' + esc(d.device_label || 'Dealer device') + '</div><div class="dmeta">' + esc(d.browser_info || '') + '</div></td>'
-      + '<td>' + fmtWhen(d.last_seen) + '</td>'
-      + '<td>' + Number(d.approved_device_count || 0) + '/' + Number(d.max_devices_allowed || 1)
-      + ' <button data-limit-dealer="' + esc(d.dealer_id) + '" data-limit-current="' + Number(d.max_devices_allowed || 1) + '" style="border:1px solid #E8DFC9;background:#FAF8F3;color:#4A5450;font-size:11px;font-weight:700;padding:2px 8px;border-radius:7px;cursor:pointer;">Limit…</button></td>'
-      + '<td><div class="rowbtns">'
+    const rows = state.devices.map(d => '<article class="device-card">'
+      + '<div class="device-card-head"><span class="device-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><line x1="7.5" y1="17" x2="12.5" y2="17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>'
+      + '<div class="device-identity"><strong>' + esc(d.device_label || 'Dealer device') + '</strong><span>' + esc(d.dealer_name || d.dealer_id) + '</span></div>'
+      + deviceChip(d.status) + '</div>'
+      + '<div class="device-meta">' + esc(d.browser_info || d.id || 'Registered device') + '</div>'
+      + '<div class="device-facts"><span>Last seen <strong>' + fmtWhen(d.last_seen) + '</strong></span>'
+      + '<span>Limit <strong>' + Number(d.approved_device_count || 0) + '/' + Number(d.max_devices_allowed || 1) + '</strong> '
+      + '<button data-limit-dealer="' + esc(d.dealer_id) + '" data-limit-current="' + Number(d.max_devices_allowed || 1) + '">Change</button></span></div>'
+      + '<div class="rowbtns device-actions">'
       + (d.status === 'approved'
         ? '<button class="danger" data-device-act="revoked" data-device-id="' + esc(d.id) + '">Revoke</button>'
         : '<button data-device-act="approved" data-device-id="' + esc(d.id) + '">Approve</button>')
       + (d.status === 'pending'
         ? '<button class="danger" data-device-act="rejected" data-device-id="' + esc(d.id) + '">Reject</button>'
         : '')
-      + '</div></td>'
-      + '</tr>');
-    $('device-rows').innerHTML = rows.join('') || '<tr><td colspan="6" class="muted">No device requests yet.</td></tr>';
+      + '</div></article>');
+    $('device-rows').innerHTML = rows.join('') || '<div class="empty-state device-empty"><h2>No devices yet</h2><p>Approved and pending dealer devices will appear here.</p></div>';
   }
 
   function requestChip(status) {
@@ -748,21 +997,24 @@
   }
 
   function renderRequests() {
-    const rows = state.requests.map(r => '<tr>'
-      + '<td style="white-space:nowrap;">' + fmtWhen(r.created_at) + '<div class="dmeta">' + fmtDate(r.created_at) + '</div></td>'
-      + '<td>' + requestChip(r.status) + (r.dealer_id ? '<div class="dmeta">' + esc(r.dealer_id) + '</div>' : '') + '</td>'
-      + '<td><div class="dname">' + esc(r.requested_business_name || '—') + '</div>'
-      +   '<div class="dmeta">' + esc([r.requested_owner_name, r.requested_owner_phone, r.requested_primary_area].filter(Boolean).join(' · ') || 'No details from the device') + '</div>'
-      +   (r.developer_notes ? '<div class="dmeta">' + esc(r.developer_notes) + '</div>' : '') + '</td>'
-      + '<td><div>' + esc(r.device_label || 'Dealer device') + '</div><div class="dmeta">' + esc(r.browser_info || '') + '</div></td>'
-      + '<td><div class="rowbtns">'
+    const rows = state.requests.map(r => '<article class="activation-request-card">'
+      + '<div class="activation-request-main"><div class="activation-request-title"><strong>' + esc(r.requested_business_name || 'Unnamed dealer') + '</strong>' + requestChip(r.status) + '</div>'
+      + '<p>' + esc([r.requested_owner_name, r.requested_owner_phone, r.requested_primary_area].filter(Boolean).join(' · ') || 'No dealer details supplied') + '</p>'
+      + '<span>Requested ' + fmtWhen(r.created_at) + (r.dealer_id ? ' · ' + esc(r.dealer_id) : '') + '</span></div>'
+      + '<div class="activation-device"><small>DEVICE</small><strong>' + esc(r.device_label || 'Dealer device') + '</strong><span>' + esc(r.browser_info || 'Browser details unavailable') + '</span></div>'
+      + '<div class="rowbtns activation-request-actions">'
       + (r.status === 'pending'
-        ? '<button data-request-act="approve" data-request-id="' + esc(r.id) + '">Approve…</button>'
-          + '<button class="danger" data-request-act="reject" data-request-id="' + esc(r.id) + '">Reject</button>'
-        : '<span class="muted" style="font-size:12px;">' + fmtWhen(r.updated_at) + '</span>')
-      + '</div></td>'
-      + '</tr>');
-    $('request-rows').innerHTML = rows.join('') || '<tr><td colspan="5" class="muted">No activation requests yet. Generate a code above and have the dealer enter it on their laptop.</td></tr>';
+        ? '<button class="danger" data-request-act="reject" data-request-id="' + esc(r.id) + '">Reject</button>'
+          + '<button data-request-act="approve" data-request-id="' + esc(r.id) + '">Approve device</button>'
+        : '<span class="muted">Updated ' + fmtWhen(r.updated_at) + '</span>')
+      + '</div></article>');
+    $('request-rows').innerHTML = rows.join('') || '<div class="empty-state activation-empty"><span class="empty-icon" aria-hidden="true">✓</span><h2>All caught up</h2><p>No activation requests are waiting right now.</p></div>';
+    const pending = state.requests.filter(r => r.status === 'pending').length;
+    const count = $('activation-count');
+    if (count) {
+      count.textContent = String(pending);
+      count.hidden = pending === 0;
+    }
   }
 
   function renderAll() {
@@ -793,6 +1045,8 @@
     }
     renderDevices();
     renderRequests();
+    renderAccountControls();
+    renderDealerPicker();
   }
 
   // Shared action dispatcher — used by the dealer table AND the Dealer 360
@@ -952,7 +1206,10 @@
   });
 
   // ---------- create dealer ----------
-  $('btn-gen-passcode').addEventListener('click', () => { $('c-passcode').value = generatePasscode(); });
+  $('btn-gen-passcode').addEventListener('click', () => {
+    $('c-passcode').value = generatePasscode();
+    renderCreatePreview();
+  });
   $('create-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const logEl = $('create-log');

@@ -77,6 +77,26 @@
       ['Call and guide the first presentation']);
   }
 
+  function healthScoreFor(health, usage) {
+    const raw = ctx ? ctx.usageStrength(usage).score : 0;
+    const fixed = {
+      Suspended: 8,
+      Expired: 18,
+      'Not activated': 15,
+      'Activated but unused': 28,
+      Inactive: 24,
+      'At risk': 40,
+      'Highly engaged': 94,
+      'Presentation-ready': 84,
+      'Actively using': 72
+    }[health.state];
+    return fixed == null ? Math.min(65, Math.round(35 + raw / 4)) : fixed;
+  }
+
+  function healthScoreClass(score) {
+    return score >= 70 ? 'strong' : score >= 45 ? 'medium' : 'low';
+  }
+
   /* ────────────────────────── platform overview ────────────────────────── */
   async function renderPlatformOverview() {
     if (!ctx) return;
@@ -112,22 +132,52 @@
       engaged: ds.filter(d => healthFor(d, ctx.state.usage[d.dealer_id], devs.filter(x => x.dealer_id === d.dealer_id)).state === 'Highly engaged').length
     };
     const v = o || local;
-    const cells = [
-      ['Dealers', v.dealers], ['On trial', v.dealersTrial], ['Paid', v.dealersActivePlan],
-      ['Suspended/expired', v.dealersSuspended], ['Trials ending ≤7d', v.trialsEndingSoon],
-      ['Active 24h', v.activeDealers24h], ['Active 7d', v.activeDealers7d],
-      ['Devices approved', v.devicesApproved], ['Devices pending', v.devicesPending],
-      ['Presentation opens', v.presentationOpens],
-      ['At risk', o ? (local.atRisk) : local.atRisk], ['Highly engaged', o ? (local.engaged) : local.engaged]
-    ];
-    if (o) {
-      cells.push(['Properties (platform)', n(o.properties)], ['Map interactions', n(o.mapInteractions)], ['Errors 24h', n(o.errors24h)]);
-    }
+    const usageScores = ds.map(d => {
+      const usage = ctx.state.usage[d.dealer_id];
+      const health = healthFor(d, usage, devs.filter(x => x.dealer_id === d.dealer_id));
+      return healthScoreFor(health, usage);
+    });
+    const averageHealth = usageScores.length
+      ? Math.round(usageScores.reduce((sum, score) => sum + score, 0) / usageScores.length)
+      : 0;
+    const metric = (label, value, detail) => '<div class="overview-hero-metric">'
+      + '<div class="k">' + esc(label) + '</div>'
+      + '<div class="v">' + esc(value == null ? '—' : value) + '</div>'
+      + '<div class="metric-detail">' + detail + '</div>'
+      + '</div>';
+    const secondary = (label, value, alert) => '<div class="stat' + (alert ? ' is-alert' : '') + '">'
+      + '<div class="k">' + esc(label) + '</div><div class="v">' + esc(value == null ? '—' : value) + '</div></div>';
+    const accountTotal = Math.max(1, n(v.dealers));
+    const mixRow = (label, value, cls) => '<div class="overview-list-row"><span>' + esc(label) + '</span>'
+      + '<span class="overview-bar"><i class="' + cls + '" style="width:' + Math.round(n(value) / accountTotal * 100) + '%"></i></span>'
+      + '<strong>' + n(value) + '</strong></div>';
+
     host.innerHTML =
-      '<div class="grid" style="grid-template-columns:repeat(6,1fr);">'
-      + cells.map(c => '<div class="stat"><div class="k">' + esc(c[0]) + '</div><div class="v" style="font-size:22px;">' + esc(c[1] == null ? '—' : c[1]) + '</div></div>').join('')
+      '<div class="overview-hero">'
+      + metric('Total dealers', v.dealers, '<span class="metric-good">' + n(v.dealersActivePlan) + ' paid</span><span>' + n(v.dealersTrial) + ' trial</span>')
+      + metric('Active users · 7d', v.activeDealers7d, '<span>' + n(v.activeDealers24h) + ' active in 24h</span>')
+      + metric('Approved devices', v.devicesApproved, '<span>' + n(v.devicesPending) + ' pending approval</span>')
+      + metric('Avg dealer health', averageHealth + '%', '<span>live usage-strength score</span>')
       + '</div>'
-      + (o ? '' : '<div class="hint" style="margin-top:-10px;">Platform totals for properties, map interactions and errors need the 20260719 Dealer&nbsp;360 migration — everything shown above is live data already loaded by this page.</div>');
+      + '<div class="overview-secondary">'
+      + secondary('Properties on platform', o ? n(o.properties) : null)
+      + secondary('Map interactions', o ? n(o.mapInteractions) : null)
+      + secondary('Presentation opens', n(v.presentationOpens))
+      + secondary('Errors · 24h', o ? n(o.errors24h) : null, o && n(o.errors24h) > 0)
+      + '</div>'
+      + '<div class="overview-detail-grid">'
+      + '<article class="overview-detail-card"><h3>Account mix</h3><p>Current dealer account state</p>'
+      + mixRow('Paid', v.dealersActivePlan, 'mix-paid')
+      + mixRow('Trial', v.dealersTrial, 'mix-trial')
+      + mixRow('Suspended / expired', v.dealersSuspended, 'mix-blocked')
+      + '</article>'
+      + '<article class="overview-detail-card"><h3>Needs attention</h3><p>Live operational follow-up</p>'
+      + '<div class="attention-row"><span>Trials ending within 7 days</span><strong>' + n(v.trialsEndingSoon) + '</strong></div>'
+      + '<div class="attention-row"><span>Pending device approvals</span><strong>' + n(v.devicesPending) + '</strong></div>'
+      + '<div class="attention-row"><span>At-risk dealers</span><strong>' + n(local.atRisk) + '</strong></div>'
+      + '<div class="attention-row"><span>Highly engaged dealers</span><strong>' + n(local.engaged) + '</strong></div>'
+      + '</article></div>'
+      + (o ? '' : '<div class="hint overview-pending">Platform totals for properties, map interactions and errors need the 20260719 Dealer&nbsp;360 migration. Everything else shown here is live data already loaded by this page.</div>');
   }
 
   /* ────────────────────────── dealer list (I13) ────────────────────────── */
@@ -172,19 +222,21 @@
       const u = ctx.state.usage[d.dealer_id];
       const devRows = (ctx.state.devices || []).filter(x => x.dealer_id === d.dealer_id);
       const h = healthFor(d, u, devRows);
+      const healthScore = healthScoreFor(h, u);
       const approved = devRows.filter(x => x.status === 'approved').length;
       const pending = devRows.filter(x => x.status === 'pending').length;
       return '<tr>'
         + '<td><div class="dname"><a href="#" data-open360="' + esc(d.dealer_id) + '" style="color:#1F5E47;text-decoration:none;">' + esc(d.brand_name || d.dealer_id) + '</a></div>'
         +   '<div class="dmeta">' + esc(d.dealer_id) + (d.owner_name ? ' · ' + esc(d.owner_name) : '') + '</div></td>'
+        + '<td>' + esc(d.primary_area || '—') + '</td>'
         + '<td>' + ctx.statusChip(d) + '</td>'
-        + '<td style="white-space:nowrap;">' + ctx.fmtDate(d.trial_start) + ' → ' + ctx.fmtDate(d.trial_end) + '</td>'
+        + '<td style="white-space:nowrap;">' + ctx.fmtDate(d.trial_end) + '<div class="dmeta">from ' + ctx.fmtDate(d.trial_start) + '</div></td>'
         + '<td>' + (u ? ctx.fmtWhen(u.last_active) : '—') + '</td>'
-        + '<td>' + (u ? n(u.sessions) : '—') + '</td>'
-        + '<td>' + (u ? n(u.active_days) : '—') + '</td>'
+        + '<td>' + (u ? n(u.sessions) + '<div class="dmeta">' + n(u.active_days) + ' active days</div>' : '—') + '</td>'
         + '<td>' + (u ? n(u.presentation_opens) : '—') + '</td>'
         + '<td>' + approved + (pending ? ' <span class="chip trial">+' + pending + ' pending</span>' : '') + '</td>'
-        + '<td><span class="chip ' + h.cls + '" title="' + esc(h.reason) + '">' + esc(h.state) + '</span></td>'
+        + '<td><div class="health-meter" title="' + esc(h.state + ': ' + h.reason) + '" aria-label="' + esc(h.state + ', health ' + healthScore) + '">'
+        +   '<span><i class="' + healthScoreClass(healthScore) + '" style="width:' + healthScore + '%"></i></span><strong>' + healthScore + '</strong></div></td>'
         + '<td><div class="rowbtns">'
         +   '<button data-open360="' + esc(d.dealer_id) + '">Dealer 360</button>'
         +   '<button data-act="trial" data-id="' + esc(d.dealer_id) + '">Trial…</button>'
@@ -247,8 +299,13 @@
     timelineCursor = null;
     const d = (ctx.state.dealers || []).find(x => x.dealer_id === dealerId);
     if (!d || !drawerEl()) return;
+    if (window.PMDeveloperUI && typeof window.PMDeveloperUI.openDealer360 === 'function') {
+      window.PMDeveloperUI.openDealer360(dealerId);
+    }
     drawerEl().style.display = '';
-    document.body.style.overflow = 'hidden';
+    if (!(window.PMDeveloperUI && window.PMDeveloperUI.embeddedDealer360)) {
+      document.body.style.overflow = 'hidden';
+    }
     $('d360-title').textContent = d.brand_name || dealerId;
     $('d360-sub').innerHTML = esc(dealerId) + ' · ' + ctx.statusChip(d);
     switchTab('overview');
@@ -265,6 +322,9 @@
     if (drawerEl()) drawerEl().style.display = 'none';
     document.body.style.overflow = '';
     drawerDealerId = null;
+    if (window.PMDeveloperUI && typeof window.PMDeveloperUI.closeDealer360 === 'function') {
+      window.PMDeveloperUI.closeDealer360();
+    }
   }
 
   function switchTab(tab) {
@@ -302,13 +362,17 @@
     const deep = cache.d360[drawerDealerId];
     const du = deep && deep.usage;
     const dp = deep && deep.properties;
+    const healthScore = healthScoreFor(h, u);
     const trialDays = d.trial_start ? Math.max(0, Math.floor((Date.now() - new Date(d.trial_start)) / 86400000)) : null;
     const trialLeft = d.trial_end ? Math.ceil((new Date(d.trial_end) - Date.now()) / 86400000) : null;
 
-    $('d360-health').innerHTML =
-      '<span class="chip ' + h.cls + '" style="font-size:13px;padding:6px 14px;">' + esc(h.state) + '</span>'
-      + '<span style="font-size:13.5px;color:#5F6B61;margin-left:10px;">' + esc(h.reason) + '</span>'
-      + (h.actions.length ? '<div class="hint" style="margin-top:8px;"><b>Suggested:</b> ' + h.actions.map(esc).join(' · ') + ' <span class="muted">(advisory only)</span></div>' : '');
+    $('d360-health').innerHTML = '<div class="d360-health-summary">'
+      + '<svg viewBox="0 0 100 100" aria-label="Dealer health ' + healthScore + '"><circle cx="50" cy="50" r="42" fill="none" stroke="oklch(0.30 0.014 70)" stroke-width="9"/>'
+      + '<circle cx="50" cy="50" r="42" fill="none" stroke="oklch(0.72 0.10 72)" stroke-width="9" stroke-linecap="round" transform="rotate(-90 50 50)" pathLength="100" stroke-dasharray="' + healthScore + ' 100"/>'
+      + '<text x="50" y="48" text-anchor="middle" class="d360-score">' + healthScore + '</text><text x="50" y="64" text-anchor="middle" class="d360-score-label">HEALTH</text></svg>'
+      + '<div class="d360-health-copy"><span class="chip ' + h.cls + '">' + esc(h.state) + '</span><p>' + esc(h.reason) + '</p>'
+      + (h.actions.length ? '<small><b>Suggested:</b> ' + h.actions.map(esc).join(' · ') + ' <span>(advisory only)</span></small>' : '')
+      + '</div></div>';
 
     const cells = [
       cell('Account', (d.account_status || 'active') + ' / ' + (d.subscription_status || 'trial')),

@@ -281,7 +281,9 @@ async function run() {
     p_device_token: DEVICE_RATE,
     p_session_id: 'staging-rate-limit',
     p_event_type: 'app_open',
-    p_event_id: 'pevt-staging-rate-rejected',
+    // A fresh ID is required on every verifier run. Reusing the old probe ID
+    // correctly exercises idempotent retry handling before the rate check.
+    p_event_id: 'pevt-staging-rate-rejected-' + Date.now().toString(36),
     p_created_at: new Date(Date.now() - 47 * 60 * 60 * 1000).toISOString()
   }, null);
   check('rate limiting uses server-controlled ingestion time', denied(rateLimited, /event rate limit exceeded/i),
