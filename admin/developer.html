@@ -297,8 +297,11 @@
 
     <section class="card activation-section" data-dev-section="activations" hidden>
       <h2>Activation requests</h2>
-      <div class="hint">In-person onboarding: generate an 8-digit activation code, the dealer enters it on their laptop at the PlotMap landing page, the request lands here. Approving a request creates/updates the dealer and approves that laptop in one step.</div>
+      <div class="hint">Generate a dealer-scoped 8-digit code for a second or replacement device. The dealer enters it on that device, and the pending request remains locked until you approve it here.</div>
       <form class="create" id="code-form" style="margin-bottom:16px;">
+        <label>Dealer
+          <select id="ac-dealer" required><option value="">Select an active dealer</option></select>
+        </label>
         <label>Code label <input id="ac-label" placeholder="Sharma Realty onboarding"></label>
         <label>Activation code (8 digits)
           <div style="display:flex; gap:8px;">
@@ -306,7 +309,7 @@
             <button type="button" class="btn-ghost" id="ac-gen" style="height:40px;">Generate</button>
           </div>
         </label>
-        <label>Expires <input id="ac-expires" type="date"></label>
+        <label>Expires <input id="ac-expires" type="date" required></label>
         <div class="form-actions">
           <button class="btn-primary" type="submit" id="ac-submit">Create activation code</button>
           <span class="muted" style="font-size:12.5px;">Single-use by default. The code is shown once here and stored only as a bcrypt hash.</span>
@@ -324,14 +327,17 @@
 
     <section class="card create-dealer-section" data-dev-section="create" hidden>
       <h2>Create dealer</h2>
-      <div class="hint">Fills <code>dealer_settings</code> (account + trial) via the phase-4 admin RPC, then directory fields and the passcode via the new RPCs. Steps that need the pending migration are reported honestly — nothing is faked. The dealer's Supabase auth user + profile row are a one-time manual step (see the onboarding checklist below).</div>
+      <div class="hint">Creates the dealer account, secure login, active owner profile, passcode hash and one-time device onboarding code through the protected provisioning service.</div>
       <form class="create" id="create-form">
         <label>Dealer ID (slug) <input id="c-dealer-id" placeholder="dealer-sharma-realty" required pattern="[a-z0-9][a-z0-9-]{2,40}"></label>
         <label>Business name <input id="c-business" placeholder="Sharma Realty" required></label>
-        <label>Owner name <input id="c-owner" placeholder="Rohit Sharma"></label>
+        <label>Owner name <input id="c-owner" placeholder="Rohit Sharma" required></label>
         <label>Owner phone (optional) <input id="c-phone" placeholder="+91…"></label>
-        <label>Primary area (optional) <input id="c-area" placeholder="New Chandigarh"></label>
-        <label>Status
+        <label>Primary area <input id="c-area" placeholder="New Chandigarh" required></label>
+        <label>Account status
+          <select id="c-account-status"><option value="active">Active</option></select>
+        </label>
+        <label>Subscription status
           <select id="c-status">
             <option value="trial">Trial</option>
             <option value="active">Active (paid)</option>
@@ -339,17 +345,42 @@
         </label>
         <label>Trial start <input id="c-trial-start" type="date"></label>
         <label>Trial end <input id="c-trial-end" type="date"></label>
-        <label>Login email (for passcode login) <input id="c-email" type="email" placeholder="dealer@business.com"></label>
+        <label>Login email <input id="c-email" type="email" autocomplete="off" placeholder="dealer@business.com" required></label>
+        <label>Approved device limit <input id="c-device-limit" type="number" min="1" max="20" step="1" value="1" required></label>
+        <label>Activation-code expiry <input id="c-activation-expires" type="datetime-local" required></label>
         <label style="grid-column: span 2;">Passcode (min 8 chars)
-          <input id="c-passcode" autocomplete="off" placeholder="Click Generate →">
+          <input id="c-passcode" autocomplete="new-password" spellcheck="false" maxlength="72" placeholder="Click Generate →" required>
         </label>
         <label style="align-self:end;"><button type="button" class="btn-ghost" id="btn-gen-passcode" style="height:40px;">Generate passcode</button></label>
         <div class="form-actions">
-          <button class="btn-primary" type="submit" id="c-submit">Create dealer</button>
-          <span class="muted" style="font-size:12.5px;">The passcode is shown once here and stored only as a bcrypt hash server-side.</span>
+          <button class="btn-primary" type="submit" id="c-submit">Create dealer and onboarding code</button>
+          <span class="muted" style="font-size:12.5px;">Passcode and activation code are shown once. They are never stored in browser storage.</span>
         </div>
       </form>
-      <div class="steplog" id="create-log"></div>
+      <div class="steplog provisioning-progress" id="create-log" role="status" aria-live="polite"></div>
+      <section class="provisioning-success" id="create-success" hidden aria-live="polite">
+        <div class="provisioning-success-head">
+          <span class="success-mark" aria-hidden="true">✓</span>
+          <div><h2>Dealer created successfully</h2><p>Copy these details now. They cannot be retrieved again.</p></div>
+        </div>
+        <dl class="provisioning-summary">
+          <div><dt>Business</dt><dd id="success-business"></dd></div>
+          <div><dt>Owner</dt><dd id="success-owner"></dd></div>
+          <div><dt>Login email</dt><dd id="success-email"></dd></div>
+          <div><dt>Passcode</dt><dd id="success-passcode"></dd></div>
+          <div><dt>Activation code</dt><dd id="success-activation"></dd></div>
+          <div><dt>Code expiry</dt><dd id="success-expiry"></dd></div>
+          <div><dt>Device limit</dt><dd id="success-device-limit"></dd></div>
+          <div><dt>Trial period</dt><dd id="success-trial"></dd></div>
+        </dl>
+        <div class="provisioning-actions">
+          <button class="btn-primary" type="button" id="copy-onboarding">Copy onboarding details</button>
+          <button class="btn-ghost" type="button" id="copy-activation">Copy activation code</button>
+          <button class="btn-ghost" type="button" id="open-created-dealer">Open dealer in Dealer 360</button>
+          <button class="btn-ghost" type="button" id="create-another-dealer">Create another dealer</button>
+        </div>
+        <div class="muted" id="copy-status" role="status" aria-live="polite"></div>
+      </section>
       <aside class="account-preview" aria-label="Dealer account preview">
         <div class="account-preview-label">Account preview</div>
         <div class="account-preview-identity">
@@ -363,17 +394,6 @@
           <div><dt>Passcode</dt><dd id="preview-passcode">Not generated</dd></div>
         </dl>
       </aside>
-    </section>
-
-    <section class="card onboarding-section" data-dev-section="create" hidden>
-      <h2>Onboarding checklist (manual, one-time per dealer)</h2>
-      <div class="hint" style="margin-bottom:0;">
-        1. Supabase Dashboard → Authentication → <b>Add user</b>: the login email above, password = the passcode, auto-confirm ON.<br>
-        2. SQL editor → insert the profile row:
-        <code>insert into public.profiles (id, email, role, dealer_id, status) values ('&lt;auth-user-uuid&gt;', '&lt;login email&gt;', 'owner', '&lt;dealer-id&gt;', 'active');</code><br>
-        3. Create the dealer here (form above). 4. Hand the dealer their passcode — they sign in with it on the landing page.<br>
-        <span class="muted">Passcode reset: set a new one here, then update the auth user's password to the same value in the Dashboard.</span>
-      </div>
     </section>
 
     <section class="account-controls" data-dev-section="controls" hidden>
@@ -540,13 +560,13 @@
 <dialog id="dlg-approve">
   <h3>Approve activation request</h3>
   <div class="hint" id="dlg-approve-meta"></div>
-  <label>Dealer ID (slug)</label><input id="a-dealer-id" placeholder="dealer-sharma-realty" pattern="[a-z0-9][a-z0-9-]{2,40}">
+  <label>Dealer ID (from onboarding code)</label><input id="a-dealer-id" readonly>
   <label>Business name</label><input id="a-business" placeholder="Sharma Realty">
   <label>Owner name</label><input id="a-owner">
   <label>Owner phone</label><input id="a-phone">
   <label>Primary area</label><input id="a-area">
   <label>Proof / payment / onboarding notes (provider-only)</label><textarea id="a-notes" placeholder="e.g. Met in person 11 Jul, UPI ref …, ID checked."></textarea>
-  <div class="hint" style="margin-top:10px;">Approving creates/updates <code>dealer_settings</code> and approves the laptop the code was entered on. Passcode + auth user are separate steps (Passcode… button + onboarding checklist).</div>
+  <div class="hint" style="margin-top:10px;">Approval unlocks only this physical device. The dealer account and login must already exist, and device limits remain enforced.</div>
   <div class="actions">
     <button class="btn-ghost" type="button" data-close>Cancel</button>
     <button class="btn-primary" type="button" id="a-save">Approve request</button>
@@ -586,10 +606,33 @@
 
   let activeSection = 'overview';
   let activeDealer360 = '';
+  let onboardingSecrets = null;
+  let provisioningAttemptKey = '';
+  let provisioningInputFingerprint = '';
+  let provisioningSubmitting = false;
+
+  const PROVISIONING_STAGES = {
+    creating_account: 'Creating account',
+    creating_login: 'Creating login',
+    linking_owner: 'Linking owner',
+    securing_passcode: 'Securing passcode',
+    generating_onboarding_code: 'Generating onboarding code'
+  };
 
   function showSection(name) {
+    const nextSection = SECTION_META[name] ? name : 'overview';
+    if (activeSection === 'create' && nextSection !== 'create' && provisioningSubmitting) {
+      log($('create-log'), 'Dealer provisioning is still running. Wait for the result before leaving this page.');
+      return;
+    }
+    if (activeSection === 'create' && nextSection !== 'create' && onboardingSecrets) {
+      clearProvisioningSecrets();
+      $('create-success').hidden = true;
+      $('create-form').hidden = false;
+      $('account-preview').hidden = false;
+    }
     const meta = SECTION_META[name] || SECTION_META.overview;
-    activeSection = SECTION_META[name] ? name : 'overview';
+    activeSection = nextSection;
     document.querySelectorAll('[data-dev-section]').forEach(node => {
       node.hidden = node.getAttribute('data-dev-section') !== activeSection;
     });
@@ -642,6 +685,7 @@
 
     const createForm = $('create-form');
     if (createForm) createForm.addEventListener('input', renderCreatePreview);
+    setCreateDefaults();
     renderCreatePreview();
 
     showSection('overview');
@@ -664,6 +708,25 @@
       : 'Dates not set';
     $('preview-email').textContent = email || 'Not set';
     $('preview-passcode').textContent = passcodeReady ? 'Ready to hash' : 'Not generated';
+  }
+
+  function localDateValue(date) {
+    const shifted = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return shifted.toISOString().slice(0, 10);
+  }
+
+  function localDateTimeValue(date) {
+    const shifted = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return shifted.toISOString().slice(0, 16);
+  }
+
+  function setCreateDefaults() {
+    const now = new Date();
+    if (!$('c-trial-start').value) $('c-trial-start').value = localDateValue(now);
+    if (!$('c-trial-end').value) $('c-trial-end').value = localDateValue(new Date(now.getTime() + 14 * 86400000));
+    if (!$('c-activation-expires').value) $('c-activation-expires').value = localDateTimeValue(new Date(now.getTime() + 24 * 3600000));
+    if (!$('c-device-limit').value) $('c-device-limit').value = '1';
+    if (!$('ac-expires').value) $('ac-expires').value = localDateValue(new Date(now.getTime() + 24 * 3600000));
   }
 
   window.PMDeveloperUI = {
@@ -1017,6 +1080,17 @@
     }
   }
 
+  function renderActivationDealerOptions() {
+    const select = $('ac-dealer');
+    if (!select) return;
+    const current = select.value;
+    const activeDealers = state.dealers.filter(d => d.is_active !== false && (d.account_status || 'active') === 'active');
+    select.innerHTML = '<option value="">Select an active dealer</option>'
+      + activeDealers.map(d => '<option value="' + esc(d.dealer_id) + '">'
+        + esc(d.brand_name || d.dealer_id) + '</option>').join('');
+    if (activeDealers.some(d => d.dealer_id === current)) select.value = current;
+  }
+
   function renderAll() {
     renderBanner();
     // Dealer 360 takes over the dealer table + platform overview when it is
@@ -1045,6 +1119,7 @@
     }
     renderDevices();
     renderRequests();
+    renderActivationDealerOptions();
     renderAccountControls();
     renderDealerPicker();
   }
@@ -1206,70 +1281,306 @@
   });
 
   // ---------- create dealer ----------
+  const PROVISIONING_ERRORS = {
+    PLATFORM_ADMIN_REQUIRED: 'Active platform-admin access is required.',
+    INVALID_REQUEST: 'Review the dealer details and try again.',
+    INVALID_DEALER_ID: 'Use a unique lowercase dealer slug.',
+    INVALID_BUSINESS_NAME: 'Enter a valid business name.',
+    INVALID_OWNER_NAME: 'Enter a valid owner name.',
+    INVALID_OWNER_PHONE: 'Enter a valid owner phone number.',
+    INVALID_PRIMARY_AREA: 'Enter a valid primary area.',
+    INVALID_LOGIN_EMAIL: 'Enter a valid login email.',
+    INVALID_PASSCODE: 'Use a passcode between 8 and 72 bytes.',
+    TRIAL_DATES_REQUIRED: 'Trial start and end dates are required.',
+    INVALID_TRIAL_DATES: 'Trial end cannot be before trial start.',
+    TRIAL_END_MUST_BE_FUTURE: 'Trial end must be in the future.',
+    INVALID_DEVICE_LIMIT: 'Device limit must be between 1 and 20.',
+    INVALID_ACTIVATION_EXPIRY: 'Activation expiry must be between 10 minutes and 30 days from now.',
+    IDEMPOTENCY_CONFLICT: 'This retry no longer matches the original request. Review the fields and submit again.',
+    PROVISIONING_RATE_LIMIT: 'Too many provisioning attempts. Wait 15 minutes and try again.',
+    PROVISIONING_IN_PROGRESS: 'This dealer is already being provisioned. Wait a moment before retrying.',
+    DEALER_ALREADY_EXISTS: 'That dealer ID is already in use.',
+    DEALER_ACCOUNT_BLOCKED: 'This dealer account needs review before onboarding.',
+    LOGIN_EMAIL_ALREADY_IN_USE: 'That login email is already linked to PlotMap.',
+    AUTH_EMAIL_ALREADY_EXISTS: 'That login email already exists and needs manual review.',
+    DATABASE_FINALIZE_FAILED: 'Dealer setup did not complete. It is safe to retry.',
+    AUTH_ROLLBACK_FAILED: 'Setup needs a safe retry to reconcile the secure login.',
+    COMPLETED_CREDENTIALS_UNAVAILABLE: 'Dealer setup completed, but its one-time credentials cannot be shown again.',
+    EDGE_CONFIGURATION_MISSING: 'Dealer provisioning is not configured in this environment.',
+    NETWORK_FAILURE: 'Could not reach the secure provisioning service. Try again.'
+  };
+
+  function provisioningError(code, recoverable) {
+    const error = new Error(PROVISIONING_ERRORS[code] || 'Dealer provisioning could not be completed safely.');
+    error.code = PROVISIONING_ERRORS[code] ? code : 'UNKNOWN_FAILURE';
+    error.recoverable = !!recoverable;
+    return error;
+  }
+
+  function unsafeProvisioningText(value) {
+    return /[<>\u0000-\u001f\u007f]/.test(value)
+      || /(javascript:|data:text\/html|on[a-z]+\s*=)/i.test(value);
+  }
+
+  function createProvisioningPayload() {
+    const form = $('create-form');
+    if (!form.checkValidity()) { form.reportValidity(); throw provisioningError('INVALID_REQUEST'); }
+    const dealerId = $('c-dealer-id').value.trim().toLowerCase();
+    const businessName = $('c-business').value.trim();
+    const ownerName = $('c-owner').value.trim();
+    const ownerPhone = $('c-phone').value.trim();
+    const primaryArea = $('c-area').value.trim();
+    const loginEmail = $('c-email').value.trim().toLowerCase();
+    const passcode = $('c-passcode').value.trim();
+    const deviceLimit = Number($('c-device-limit').value);
+    const subscriptionStatus = $('c-status').value;
+    const trialStart = isoOrNull($('c-trial-start').value, false);
+    const trialEnd = isoOrNull($('c-trial-end').value, true);
+    const activationDate = new Date($('c-activation-expires').value);
+    const activationDelta = activationDate.getTime() - Date.now();
+
+    if (!/^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/.test(dealerId)) throw provisioningError('INVALID_DEALER_ID');
+    if (businessName.length < 2 || businessName.length > 160 || unsafeProvisioningText(businessName)) throw provisioningError('INVALID_BUSINESS_NAME');
+    if (ownerName.length < 2 || ownerName.length > 120 || unsafeProvisioningText(ownerName)) throw provisioningError('INVALID_OWNER_NAME');
+    if (ownerPhone && (ownerPhone.length < 7 || ownerPhone.length > 40 || !/^[0-9+() -]+$/.test(ownerPhone))) throw provisioningError('INVALID_OWNER_PHONE');
+    if (primaryArea.length < 2 || primaryArea.length > 120 || unsafeProvisioningText(primaryArea)) throw provisioningError('INVALID_PRIMARY_AREA');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginEmail) || loginEmail.length > 254 || unsafeProvisioningText(loginEmail)) throw provisioningError('INVALID_LOGIN_EMAIL');
+    if (passcode.length < 8 || new TextEncoder().encode(passcode).byteLength > 72 || unsafeProvisioningText(passcode)) throw provisioningError('INVALID_PASSCODE');
+    if (!Number.isInteger(deviceLimit) || deviceLimit < 1 || deviceLimit > 20) throw provisioningError('INVALID_DEVICE_LIMIT');
+    if (subscriptionStatus === 'trial' && (!trialStart || !trialEnd)) throw provisioningError('TRIAL_DATES_REQUIRED');
+    if (trialStart && trialEnd && new Date(trialEnd) < new Date(trialStart)) throw provisioningError('INVALID_TRIAL_DATES');
+    if (subscriptionStatus === 'trial' && new Date(trialEnd).getTime() <= Date.now()) throw provisioningError('TRIAL_END_MUST_BE_FUTURE');
+    if (!Number.isFinite(activationDate.getTime()) || activationDelta < 10 * 60000 || activationDelta > 30 * 86400000) throw provisioningError('INVALID_ACTIVATION_EXPIRY');
+
+    return {
+      dealerId,
+      businessName,
+      ownerName,
+      ownerPhone,
+      primaryArea,
+      accountStatus: $('c-account-status').value,
+      subscriptionStatus,
+      trialStart,
+      trialEnd,
+      loginEmail,
+      passcode,
+      deviceLimit,
+      activationExpiresAt: activationDate.toISOString()
+    };
+  }
+
+  function newIdempotencyKey() {
+    if (crypto.randomUUID) return crypto.randomUUID();
+    const bytes = new Uint8Array(24);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes).map(value => value.toString(16).padStart(2, '0')).join('');
+  }
+
+  function setProvisioningStage(stage, completedStages) {
+    const completed = completedStages || [];
+    const lines = Object.keys(PROVISIONING_STAGES).map(key => {
+      const marker = key === stage ? 'Working:' : completed.includes(key) ? 'Done:' : 'Waiting:';
+      return marker + ' ' + PROVISIONING_STAGES[key];
+    });
+    log($('create-log'), lines.join('\n'));
+  }
+
+  async function callProvisioningService(payload, idempotencyKey) {
+    const token = await window.PMAuth.getAccessToken().catch(() => null);
+    if (!token) throw provisioningError('PLATFORM_ADMIN_REQUIRED');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 90000);
+    const completedStages = [];
+    let finalResult = null;
+    let finalError = null;
+    try {
+      const response = await fetch(window.PMAuth.SUPABASE_URL + '/functions/v1/provision-dealer', {
+        method: 'POST',
+        headers: {
+          apikey: window.PMAuth.SUPABASE_KEY,
+          Authorization: 'Bearer ' + token,
+          'Content-Type': 'application/json',
+          'X-Idempotency-Key': idempotencyKey
+        },
+        body: JSON.stringify(Object.assign({}, payload, { idempotencyKey })),
+        signal: controller.signal,
+        cache: 'no-store'
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw provisioningError(body && body.code, body && body.recoverable);
+      }
+      if (!response.body) throw provisioningError('NETWORK_FAILURE', true);
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (true) {
+        const chunk = await reader.read();
+        buffer += decoder.decode(chunk.value || new Uint8Array(), { stream: !chunk.done });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          let event;
+          try { event = JSON.parse(line); } catch (_) { throw provisioningError('NETWORK_FAILURE', true); }
+          if (event.type === 'stage' && PROVISIONING_STAGES[event.stage]) {
+            setProvisioningStage(event.stage, completedStages);
+            if (!completedStages.includes(event.stage)) completedStages.push(event.stage);
+          } else if (event.type === 'result') {
+            finalResult = event.result || null;
+          } else if (event.type === 'error') {
+            finalError = provisioningError(event.code, event.recoverable);
+          }
+        }
+        if (chunk.done) break;
+      }
+      if (buffer.trim()) {
+        const event = JSON.parse(buffer);
+        if (event.type === 'result') finalResult = event.result || null;
+        if (event.type === 'error') finalError = provisioningError(event.code, event.recoverable);
+      }
+      if (finalError) throw finalError;
+      if (!finalResult) throw provisioningError('NETWORK_FAILURE', true);
+      return finalResult;
+    } catch (error) {
+      if (error && error.name === 'AbortError') throw provisioningError('NETWORK_FAILURE', true);
+      throw error && error.code ? error : provisioningError('NETWORK_FAILURE', true);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  function formatProvisioningDate(value) {
+    const date = value ? new Date(value) : null;
+    return date && !isNaN(date) ? date.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Not set';
+  }
+
+  function onboardingMessage(secret) {
+    return 'Welcome to PlotMap.\n\n'
+      + 'Login email: ' + secret.loginEmail + '\n'
+      + 'Passcode: ' + secret.passcode + '\n'
+      + 'Device activation code: ' + secret.activationCode + '\n'
+      + 'Code expires: ' + formatProvisioningDate(secret.codeExpiresAt) + '\n\n'
+      + 'Open ' + location.origin + '/ on the laptop or tablet that will be used. '
+      + 'Enter the activation code. Your device will remain pending until approved.';
+  }
+
+  function clearProvisioningSecrets() {
+    onboardingSecrets = null;
+    provisioningAttemptKey = '';
+    provisioningInputFingerprint = '';
+    ['success-business', 'success-owner', 'success-email', 'success-passcode', 'success-activation',
+      'success-expiry', 'success-device-limit', 'success-trial'].forEach(id => { if ($(id)) $(id).textContent = ''; });
+    $('copy-status').textContent = '';
+  }
+
+  window.addEventListener('pagehide', clearProvisioningSecrets);
+
+  function showProvisioningSuccess(result) {
+    onboardingSecrets = Object.freeze({
+      dealerId: String(result.dealerId || ''),
+      businessName: String(result.businessName || ''),
+      ownerName: String(result.ownerName || ''),
+      loginEmail: String(result.loginEmail || ''),
+      passcode: String(result.passcode || ''),
+      activationCode: String(result.activationCode || ''),
+      codeExpiresAt: result.codeExpiresAt || null,
+      deviceLimit: Number(result.deviceLimit || 1),
+      trialStart: result.trialStart || null,
+      trialEnd: result.trialEnd || null
+    });
+    $('success-business').textContent = onboardingSecrets.businessName;
+    $('success-owner').textContent = onboardingSecrets.ownerName;
+    $('success-email').textContent = onboardingSecrets.loginEmail;
+    $('success-passcode').textContent = onboardingSecrets.passcode;
+    $('success-activation').textContent = onboardingSecrets.activationCode;
+    $('success-expiry').textContent = formatProvisioningDate(onboardingSecrets.codeExpiresAt);
+    $('success-device-limit').textContent = String(onboardingSecrets.deviceLimit);
+    $('success-trial').textContent = onboardingSecrets.trialStart || onboardingSecrets.trialEnd
+      ? formatProvisioningDate(onboardingSecrets.trialStart) + ' to ' + formatProvisioningDate(onboardingSecrets.trialEnd)
+      : 'Active account';
+    $('c-passcode').value = '';
+    $('create-form').hidden = true;
+    $('create-log').style.display = 'none';
+    $('create-success').hidden = false;
+    $('account-preview').hidden = true;
+  }
+
+  async function copyProvisioningText(value, successMessage) {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      $('copy-status').textContent = successMessage;
+    } catch (_) {
+      $('copy-status').textContent = 'Copy was blocked by the browser. Select the visible value instead.';
+    }
+  }
+
   $('btn-gen-passcode').addEventListener('click', () => {
     $('c-passcode').value = generatePasscode();
     renderCreatePreview();
   });
   $('create-form').addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (provisioningSubmitting) return;
     const logEl = $('create-log');
-    logEl.textContent = ''; logEl.style.display = 'block';
-    $('c-submit').disabled = true;
-    try {
-      const dealerId = $('c-dealer-id').value.trim().toLowerCase();
-      const status = $('c-status').value;
-      const r1 = await rpc('plotmap_admin_set_dealer_account', {
-        p_dealer_id: dealerId,
-        p_account_status: 'active',
-        p_subscription_status: status === 'trial' ? 'trial' : 'active',
-        p_trial_end: isoOrNull($('c-trial-end').value, true)
-      });
-      log(logEl, (r1.ok ? '✓' : '✗') + ' dealer account (dealer_settings): ' + (r1.ok ? 'created/updated' : (r1.message || r1.status)), true);
-      if (!r1.ok) throw new Error('account step failed');
+    let payload;
+    try { payload = createProvisioningPayload(); }
+    catch (error) { log(logEl, error.message); return; }
 
-      if (state.flags.directoryRpc) {
-        const r2 = await rpc('plotmap_admin_upsert_dealer_directory', {
-          p_dealer_id: dealerId,
-          p_business_name: $('c-business').value.trim() || null,
-          p_owner_name: $('c-owner').value.trim() || null,
-          p_owner_phone: $('c-phone').value.trim() || null,
-          p_primary_area: $('c-area').value.trim() || null
-        });
-        log(logEl, (r2.ok ? '✓' : '✗') + ' directory fields: ' + (r2.ok ? 'saved' : (r2.message || r2.status)), true);
-      } else {
-        log(logEl, '– directory fields (owner name/phone/area) skipped: migration 20260710 not applied', true);
-      }
-
-      if (state.flags.trialRpc && $('c-trial-start').value) {
-        const r3 = await rpc('plotmap_admin_set_dealer_trial', {
-          p_dealer_id: dealerId,
-          p_trial_start: isoOrNull($('c-trial-start').value, false)
-        });
-        log(logEl, (r3.ok ? '✓' : '✗') + ' trial start: ' + (r3.ok ? 'saved' : (r3.message || r3.status)), true);
-      } else if ($('c-trial-start').value) {
-        log(logEl, '– trial start skipped: migration 20260710 not applied', true);
-      }
-
-      const email = $('c-email').value.trim();
-      const code = $('c-passcode').value.trim();
-      if (email && code.length >= 8) {
-        if (state.flags.passcodeRpc) {
-          const r4 = await rpc('plotmap_admin_set_dealer_passcode', { p_dealer_id: dealerId, p_login_email: email, p_passcode: code });
-          log(logEl, (r4.ok ? '✓' : '✗') + ' passcode hash: ' + (r4.ok ? 'stored (bcrypt)' : (r4.message || r4.status)), true);
-          if (r4.ok) log(logEl, '→ Now create the auth user (email above, password = this passcode) + profile row — see the onboarding checklist.', true);
-        } else {
-          log(logEl, '– passcode skipped: migration 20260710 not applied', true);
-        }
-      } else if (email || code) {
-        log(logEl, '– passcode skipped: need both a login email and a passcode of ≥ 8 chars', true);
-      }
-      await refresh();
-      log(logEl, 'Done.', true);
-    } catch (err) {
-      log(logEl, '✗ ' + (err && err.message ? err.message : 'failed'), true);
-    } finally {
-      $('c-submit').disabled = false;
+    const inputFingerprint = JSON.stringify(payload);
+    if (!provisioningAttemptKey || provisioningInputFingerprint !== inputFingerprint) {
+      provisioningAttemptKey = newIdempotencyKey();
+      provisioningInputFingerprint = inputFingerprint;
     }
+
+    provisioningSubmitting = true;
+    logEl.textContent = '';
+    logEl.style.display = 'block';
+    $('c-submit').disabled = true;
+    $('c-submit').textContent = 'Creating dealer...';
+    try {
+      const result = await callProvisioningService(payload, provisioningAttemptKey);
+      if (!result.credentialsAvailable) throw provisioningError(result.code || 'COMPLETED_CREDENTIALS_UNAVAILABLE');
+      await refresh();
+      showProvisioningSuccess(result);
+    } catch (error) {
+      log(logEl, error && error.message ? error.message : 'Dealer provisioning could not be completed safely.');
+      $('c-submit').textContent = error && error.recoverable ? 'Retry provisioning' : 'Create dealer and onboarding code';
+    } finally {
+      provisioningSubmitting = false;
+      $('c-submit').disabled = false;
+      if ($('c-submit').textContent === 'Creating dealer...') $('c-submit').textContent = 'Create dealer and onboarding code';
+    }
+  });
+
+  $('copy-onboarding').addEventListener('click', () => {
+    if (onboardingSecrets) copyProvisioningText(onboardingMessage(onboardingSecrets), 'Onboarding details copied.');
+  });
+  $('copy-activation').addEventListener('click', () => {
+    if (onboardingSecrets) copyProvisioningText(onboardingSecrets.activationCode, 'Activation code copied.');
+  });
+  $('open-created-dealer').addEventListener('click', () => {
+    if (!onboardingSecrets) return;
+    const dealerId = onboardingSecrets.dealerId;
+    clearProvisioningSecrets();
+    $('create-success').hidden = true;
+    $('create-form').hidden = false;
+    $('account-preview').hidden = false;
+    if (window.PMDev360) window.PMDev360.open360(dealerId);
+  });
+  $('create-another-dealer').addEventListener('click', () => {
+    clearProvisioningSecrets();
+    $('create-success').hidden = true;
+    $('create-form').hidden = false;
+    $('account-preview').hidden = false;
+    $('create-form').reset();
+    setCreateDefaults();
+    $('c-submit').textContent = 'Create dealer and onboarding code';
+    renderCreatePreview();
+    $('c-dealer-id').focus();
   });
 
   // ---------- table actions ----------
@@ -1310,25 +1621,41 @@
 
   // ---------- activation codes + requests ----------
   function generateActivationCode() {
-    const bytes = new Uint32Array(8);
-    crypto.getRandomValues(bytes);
-    return [...bytes].map(b => String(b % 10)).join('');
+    let code = '';
+    while (code.length < 8) {
+      const bytes = new Uint8Array(16);
+      crypto.getRandomValues(bytes);
+      for (const byte of bytes) {
+        if (byte < 250) code += String(byte % 10);
+        if (code.length === 8) break;
+      }
+    }
+    return code;
   }
   $('ac-gen').addEventListener('click', () => { $('ac-code').value = generateActivationCode(); });
   $('code-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const logEl = $('code-log');
+    const dealerId = $('ac-dealer').value.trim().toLowerCase();
     const code = $('ac-code').value.trim();
+    const expiresAt = isoOrNull($('ac-expires').value, true);
+    const expiryDelta = Date.parse(expiresAt || '') - Date.now();
+    if (!dealerId) { log(logEl, 'Choose the dealer that will own this activation code.'); return; }
     if (!/^\d{8}$/.test(code)) { log(logEl, 'Activation code must be exactly 8 digits.'); return; }
+    if (!Number.isFinite(expiryDelta) || expiryDelta < 10 * 60000 || expiryDelta > 30 * 86400000) {
+      log(logEl, 'Expiry must be between 10 minutes and 30 days from now.');
+      return;
+    }
     $('ac-submit').disabled = true;
     try {
-      const r = await rpc('plotmap_admin_create_activation_code', {
+      const r = await rpc('plotmap_admin_create_dealer_activation_code', {
+        p_dealer_id: dealerId,
         p_access_code: code,
         p_label: $('ac-label').value.trim() || null,
         p_max_uses: 1,
-        p_expires_at: isoOrNull($('ac-expires').value, true)
+        p_expires_at: expiresAt
       });
-      if (r.status === 404) { log(logEl, '✗ Migration 20260710 not applied — activation codes unavailable.'); return; }
+      if (r.status === 404) { log(logEl, '✗ One-click provisioning migration not applied — dealer-scoped codes unavailable.'); return; }
       if (!r.ok) { log(logEl, '✗ ' + (r.message || r.status)); return; }
       log(logEl, '✓ Activation code created. Give the dealer this code IN PERSON: ' + code
         + '\n  They enter it on the PlotMap landing page on THEIR laptop. It is stored only as a hash — this is the last time it is shown.');
@@ -1344,11 +1671,10 @@
     if (!r) return;
     approveRequestId = requestId;
     $('dlg-approve-meta').textContent = 'Requested ' + fmtWhen(r.created_at)
+      + (r.dealer_id ? ' · ' + r.dealer_id : '')
       + (r.device_label ? ' · ' + r.device_label : '')
       + (r.browser_info ? ' · ' + r.browser_info.slice(0, 80) : '');
-    const suggested = (r.requested_business_name || '')
-      .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32);
-    $('a-dealer-id').value = suggested ? 'dealer-' + suggested : '';
+    $('a-dealer-id').value = r.dealer_id || '';
     $('a-business').value = r.requested_business_name || '';
     $('a-owner').value = r.requested_owner_name || '';
     $('a-phone').value = r.requested_owner_phone || '';
@@ -1373,8 +1699,7 @@
         p_developer_notes: $('a-notes').value.trim() || null
       });
       if (!r.ok) { log($('a-log'), '✗ ' + (r.message || r.status)); return; }
-      log($('a-log'), '✓ Approved. The dealer laptop unlocks on its next visit to the landing page.'
-        + '\n→ Next: set their passcode (Passcode… button) and create the auth user + profile (onboarding checklist).');
+      log($('a-log'), '✓ Approved. This dealer device unlocks on its next visit to the landing page.');
       await refresh();
     } finally {
       $('a-save').disabled = false;

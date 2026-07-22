@@ -842,6 +842,12 @@ tbody tr:hover {
   color: oklch(0.94 0.008 85);
 }
 
+.activation-section form.create select {
+  border-color: oklch(0.32 0.014 70);
+  background: oklch(0.16 0.012 68);
+  color: oklch(0.94 0.008 85);
+}
+
 .activation-section form.create input::placeholder {
   color: oklch(0.52 0.02 72);
 }
@@ -1112,6 +1118,92 @@ tbody tr:hover {
 
 .create-dealer-section > .steplog {
   grid-column: 1;
+}
+
+.provisioning-progress {
+  margin-top: -4px;
+  padding: 18px 20px;
+  border: 1px solid var(--dev-line);
+  border-radius: 14px;
+  background: var(--dev-surface);
+  line-height: 1.75;
+}
+
+.provisioning-success {
+  grid-column: 1;
+  grid-row: 1;
+  padding: 28px 30px;
+  border: 1px solid oklch(0.73 0.08 75 / 0.45);
+  border-radius: 18px;
+  background: var(--dev-surface);
+}
+
+.provisioning-success-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--dev-line);
+}
+
+.provisioning-success-head h2,
+.provisioning-success-head p {
+  margin: 0;
+}
+
+.provisioning-success-head p {
+  margin-top: 5px;
+  color: var(--dev-muted);
+}
+
+.success-mark {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  border-radius: 50%;
+  background: oklch(0.92 0.07 95);
+  color: oklch(0.42 0.08 75);
+  font-weight: 700;
+}
+
+.provisioning-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  margin: 20px 0;
+}
+
+.provisioning-summary > div {
+  min-width: 0;
+  padding: 12px 16px 12px 0;
+  border-bottom: 1px solid var(--dev-line);
+}
+
+.provisioning-summary dt {
+  color: var(--dev-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.provisioning-summary dd {
+  margin: 5px 0 0;
+  overflow-wrap: anywhere;
+  color: var(--dev-ink);
+  font-weight: 600;
+}
+
+.provisioning-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.provisioning-success #copy-status {
+  min-height: 20px;
+  margin-top: 14px;
 }
 
 .account-preview {
@@ -1708,9 +1800,14 @@ dialog::backdrop {
 
   .create-dealer-section > form,
   .create-dealer-section > .steplog,
+  .provisioning-success,
   .account-preview {
     grid-column: 1;
     grid-row: auto;
+  }
+
+  .provisioning-summary {
+    grid-template-columns: 1fr;
   }
 
   .account-preview {

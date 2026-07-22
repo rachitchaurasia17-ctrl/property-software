@@ -9,6 +9,7 @@
  * Usage:
  *   PLOTMAP_SUPABASE_URL=https://your-project.supabase.co \
  *   PLOTMAP_SUPABASE_ANON_KEY=your-publishable-or-anon-key \
+ *   PLOTMAP_DEVICE_TOKEN=approved-device-token \
  *   node tools/verify-isolation.js
  *
  * This script must never use a service-role key.
@@ -18,6 +19,7 @@ const SUPABASE_URL = process.env.PLOTMAP_SUPABASE_URL;
 const SUPABASE_KEY = process.env.PLOTMAP_SUPABASE_ANON_KEY;
 const PRIMARY_DEALER_ID = process.env.PLOTMAP_PRIMARY_DEALER_ID || 'dealer-demo';
 const OTHER_DEALER_ID = process.env.PLOTMAP_OTHER_DEALER_ID || 'dealer-b';
+const DEVICE_TOKEN = process.env.PLOTMAP_DEVICE_TOKEN || '';
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error('Missing PLOTMAP_SUPABASE_URL or PLOTMAP_SUPABASE_ANON_KEY.');
@@ -52,6 +54,11 @@ function isBlockedStatus(status) {
   return status === 401 || status === 403 || status === 404;
 }
 
+function isBlockedRead(response) {
+  return isBlockedStatus(response.status)
+    || (response.status === 200 && Array.isArray(response.data) && response.data.length === 0);
+}
+
 function printCheck(label, pass, detail) {
   const marker = pass ? 'PASS' : 'FAIL';
   console.log(`${marker} ${label}${detail ? `: ${detail}` : ''}`);
@@ -60,11 +67,14 @@ function printCheck(label, pass, detail) {
 
 async function expectBlocked(label, path, method = 'GET', body = null) {
   const res = await fetchSupa(path, method, body);
-  return printCheck(label, isBlockedStatus(res.status), `status ${res.status}`);
+  const blocked = method === 'GET' ? isBlockedRead(res) : isBlockedStatus(res.status);
+  return printCheck(label, blocked, `status ${res.status}`);
 }
 
 async function expectRpcDealerRows(label, rpcName, dealerId) {
-  const res = await fetchSupa(`/rest/v1/rpc/${rpcName}`, 'POST', { p_dealer_id: dealerId });
+  const body = { p_dealer_id: dealerId };
+  if (DEVICE_TOKEN) body.p_device_token = DEVICE_TOKEN;
+  const res = await fetchSupa(`/rest/v1/rpc/${rpcName}`, 'POST', body);
   const rows = Array.isArray(res.data) ? res.data : [];
   const isolated = rows.every(row => row && row.dealer_id === dealerId);
   return printCheck(
@@ -92,16 +102,28 @@ async function run() {
   checks.push(await expectBlocked('anon cannot read audit_logs', '/rest/v1/audit_logs?select=*'));
 
   console.log('\n--- PlotMap dealer-scoped RPC checks ---');
-  checks.push(await expectRpcDealerRows('client properties RPC is dealer-scoped', 'plotmap_client_properties', PRIMARY_DEALER_ID));
-  checks.push(await expectRpcDealerRows('client maps RPC is dealer-scoped', 'plotmap_client_maps', PRIMARY_DEALER_ID));
-  checks.push(await expectRpcDealerRows('client overlays RPC is dealer-scoped', 'plotmap_client_overlays', PRIMARY_DEALER_ID));
+  const suffix = DEVICE_TOKEN ? '_for_device' : '';
+  checks.push(await expectRpcDealerRows('client properties RPC is dealer-scoped', `plotmap_client_properties${suffix}`, PRIMARY_DEALER_ID));
+  checks.push(await expectRpcDealerRows('client maps RPC is dealer-scoped', `plotmap_client_maps${suffix}`, PRIMARY_DEALER_ID));
+  checks.push(await expectRpcDealerRows('client overlays RPC is dealer-scoped', `plotmap_client_overlays${suffix}`, PRIMARY_DEALER_ID));
 
-  const eventRes = await fetchSupa('/rest/v1/rpc/plotmap_record_presentation_event', 'POST', {
+  const eventRpc = DEVICE_TOKEN
+    ? 'plotmap_record_device_presentation_event'
+    : 'plotmap_record_presentation_event';
+  const eventBody = {
     p_dealer_id: OTHER_DEALER_ID,
     p_session_id: 'phase2-rpc-check',
-    p_event_type: 'presentation_opened'
-  });
-  printCheck('presentation event RPC responds without direct table insert', eventRes.status < 500, `status ${eventRes.status}`);
+    p_event_type: 'app_open'
+  };
+  if (DEVICE_TOKEN) {
+    eventBody.p_device_token = DEVICE_TOKEN;
+    eventBody.p_event_id = `phase2-cross-dealer-${Date.now().toString(36)}`;
+  }
+  const eventRes = await fetchSupa(`/rest/v1/rpc/${eventRpc}`, 'POST', eventBody);
+  const eventSafe = DEVICE_TOKEN
+    ? !eventRes.ok && eventRes.status < 500
+    : eventRes.status < 500;
+  checks.push(printCheck('presentation event RPC cannot bypass dealer scope', eventSafe, `status ${eventRes.status}`));
 
   const failed = checks.filter(Boolean).length !== checks.length;
   if (failed) process.exit(1);
