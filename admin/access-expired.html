@@ -10,8 +10,30 @@
 </head>
 <body class="pm-shell" style="min-height:100vh;display:flex;align-items:center;justify-content:center;">
   <main class="pm-card" style="max-width:520px;margin:24px;text-align:center;">
-    <h1 style="margin:0 0 10px;font-size:24px;">Access expired or blocked</h1>
-    <p style="margin:0;color:var(--pm-text-mut);line-height:1.5;">Please contact your PlotMap provider.</p>
+    <h1 id="ae-title" style="margin:0 0 10px;font-size:24px;">Access expired or blocked</h1>
+    <p id="ae-body" style="margin:0 0 18px;color:var(--pm-text-mut);line-height:1.5;">Please contact your PlotMap provider.</p>
+    <a id="ae-action" href="/" style="display:inline-block;font-weight:700;color:var(--pm-emerald,#1F5E47);text-decoration:none;font-size:14px;">← Back to PlotMap</a>
   </main>
+  <script>
+    // Reason-aware copy — the page is reached from several distinct blocks, so
+    // it names the actual condition and the correct next step instead of one
+    // generic message.
+    (function () {
+      var reason = '';
+      try { reason = new URLSearchParams(location.search).get('reason') || ''; } catch (e) {}
+      var COPY = {
+        account_blocked: { t: 'Account not active', b: 'This account is suspended or its trial has ended. Contact your PlotMap provider to continue.', a: 'Contact your provider', href: '/' },
+        device_not_approved: { t: 'Device not activated', b: 'This device is not set up yet. Open the main PlotMap page and enter your one-time activation code on this device.', a: 'Activate this device →', href: '/' },
+        device_revoked: { t: 'Device access revoked', b: 'This device’s access was revoked. Ask your PlotMap provider for a new activation code, then set this device up again.', a: 'Enter a new code →', href: '/' }
+      };
+      var c = COPY[reason];
+      if (c) {
+        document.getElementById('ae-title').textContent = c.t;
+        document.getElementById('ae-body').textContent = c.b;
+        var act = document.getElementById('ae-action');
+        act.textContent = c.a; act.href = c.href;
+      }
+    })();
+  </script>
 </body>
 </html>

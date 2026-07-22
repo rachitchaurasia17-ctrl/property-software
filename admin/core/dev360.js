@@ -493,8 +493,16 @@
   function renderDevicesTab() {
     const host = $('d360-devices-body');
     const devRows = (ctx.state.devices || []).filter(x => x.dealer_id === drawerDealerId);
-    if (!devRows.length) { host.innerHTML = '<div class="muted">No devices recorded for this dealer.</div>'; return; }
-    host.innerHTML = '<table><thead><tr><th>Status</th><th>Device</th><th>First seen</th><th>Last seen</th><th>Actions</th></tr></thead><tbody>'
+    // One obvious path: generate a replacement/second-device code for THIS
+    // dealer, preselected, without hunting for a separate section.
+    const genBtn = '<div style="margin-bottom:12px;"><button class="btn-primary" type="button" data-gen-device-code>Generate device code</button>'
+      + '<span class="muted" style="font-size:12px;margin-left:10px;">One-time, 24-hour, single-use code for a new device.</span></div>';
+    if (!devRows.length) {
+      host.innerHTML = genBtn + '<div class="muted">No devices recorded for this dealer yet. Generate a code and have the dealer enter it on their device.</div>';
+      wireGenDeviceCode(host);
+      return;
+    }
+    host.innerHTML = genBtn + '<table><thead><tr><th>Status</th><th>Device</th><th>First seen</th><th>Last seen</th><th>Actions</th></tr></thead><tbody>'
       + devRows.map(v => '<tr>'
         + '<td><span class="chip ' + (v.status === 'approved' ? 'active' : v.status === 'pending' ? 'trial' : 'suspended') + '">' + esc(v.status) + '</span></td>'
         + '<td>' + esc(v.device_label || '—') + '<div class="dmeta">' + esc(v.browser_info || '') + '</div></td>'
@@ -508,6 +516,19 @@
         + '</tr>').join('')
       + '</tbody></table>'
       + '<div class="hint" style="margin-top:10px;">Device tokens and hashes are never shown. Approve/revoke confirm before acting; the server re-checks platform-admin rights on every call.</div>';
+    wireGenDeviceCode(host);
+  }
+
+  // Jump to the Device Codes section with this dealer preselected. Closes the
+  // drawer first so the generator (which lives in the main content) is visible.
+  function wireGenDeviceCode(host) {
+    const btn = host.querySelector('[data-gen-device-code]');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const id = drawerDealerId;
+      close360();
+      if (typeof window.PMDevGoDeviceCode === 'function') window.PMDevGoDeviceCode(id);
+    });
   }
 
   function renderErrorsTab() {
@@ -542,7 +563,56 @@
           : '<button data-act="activate" data-id="' + esc(d.dealer_id) + '">Activate</button>')
       + ((d.account_status || 'active') !== 'expired' ? '<button class="danger" data-act="expire" data-id="' + esc(d.dealer_id) + '">Expire</button>' : '')
       + '</div>'
-      + (d.developer_notes ? '<div class="hint" style="margin-top:12px;"><b>Developer notes:</b> ' + esc(d.developer_notes) + '</div>' : '');
+      + (d.developer_notes ? '<div class="hint" style="margin-top:12px;"><b>Developer notes:</b> ' + esc(d.developer_notes) + '</div>' : '')
+      + '<div style="margin-top:20px;padding-top:16px;border-top:1px solid #EFE7D4;">'
+      +   '<h4 style="margin:0 0 4px;font-size:13px;color:#8A3B1E;">Danger zone</h4>'
+      +   '<div class="hint" style="margin:0 0 10px;">Permanently deletes this dealer and all of its data (account, devices, codes, properties, analytics) and its login. This cannot be undone.</div>'
+      +   '<button class="danger" type="button" data-delete-dealer="' + esc(d.dealer_id) + '">Delete dealer permanently…</button>'
+      +   '<div class="steplog" id="d360-delete-log" style="display:none;"></div>'
+      + '</div>';
+    const delBtn = $('d360-account-body').querySelector('[data-delete-dealer]');
+    if (delBtn) delBtn.addEventListener('click', () => deleteDealerFlow(d.dealer_id));
+  }
+
+  // Guarded permanent-delete flow. Requires the admin to TYPE the dealer id,
+  // then calls the delete-dealer edge function. Until the migration + function
+  // are deployed it degrades to a clear "not enabled yet" message — it can
+  // never partially delete from the browser.
+  async function deleteDealerFlow(dealerId) {
+    const log = $('d360-delete-log');
+    const typed = window.prompt('This permanently deletes "' + dealerId + '" and ALL its data and login.\nThis cannot be undone.\n\nType the dealer id to confirm:');
+    if (typed == null) return;
+    if (String(typed).trim().toLowerCase() !== String(dealerId).toLowerCase()) {
+      if (log) { log.style.display = 'block'; log.textContent = 'Confirmation did not match — nothing was deleted.'; }
+      return;
+    }
+    if (log) { log.style.display = 'block'; log.textContent = 'Deleting…'; }
+    try {
+      const token = await window.PMAuth.getAccessToken().catch(() => null);
+      const res = await fetch(window.PMAuth.SUPABASE_URL + '/functions/v1/delete-dealer', {
+        method: 'POST',
+        headers: {
+          apikey: window.PMAuth.SUPABASE_KEY,
+          Authorization: 'Bearer ' + (token || window.PMAuth.SUPABASE_KEY),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ dealer_id: dealerId, confirm: dealerId })
+      });
+      if (res.status === 404) {
+        log.textContent = 'Delete is not enabled on this server yet. Apply migration 20260724_delete_dealer_draft.sql and deploy the delete-dealer function first.';
+        return;
+      }
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data || !data.ok) {
+        log.textContent = 'Delete failed: ' + ((data && (data.error || data.message)) || ('HTTP ' + res.status)) + '. Nothing may have been removed — review before retrying.';
+        return;
+      }
+      log.textContent = 'Deleted. Refreshing…';
+      close360();
+      await ctx.refresh();
+    } catch (err) {
+      if (log) log.textContent = 'Delete could not reach the server. Nothing was confirmed deleted.';
+    }
   }
 
   /* ────────────────────────── wiring ────────────────────────── */

@@ -194,7 +194,7 @@
       </button>
       <button type="button" data-dev-nav="activations">
         <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6.5 10.2l2.3 2.3 4.4-4.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span>Activation Requests</span>
+        <span>Device Codes</span>
         <span id="activation-count" class="rail-count" hidden>0</span>
       </button>
       <button type="button" data-dev-nav="devices">
@@ -296,27 +296,31 @@
     </section>
 
     <section class="card activation-section" data-dev-section="activations" hidden>
-      <h2>Legacy activation requests</h2>
-      <div class="hint">Generate a dealer-scoped 8-digit code for a second or replacement device. A valid code approves that device immediately when the dealer is active and has an available device slot.</div>
+      <h2>Device activation codes</h2>
+      <div class="hint">Generate a one-time 8-digit code for a <strong>second or replacement device</strong> on an existing dealer. (A new dealer's first code is issued by <a href="#" data-dev-nav-link="create">Create Dealer</a>.) A valid code approves that device immediately when the dealer is active and has a free device slot. Codes are single-use and default to a 24-hour window.</div>
       <form class="create" id="code-form" style="margin-bottom:16px;">
         <label>Dealer
           <select id="ac-dealer" required><option value="">Select an active dealer</option></select>
         </label>
-        <label>Code label <input id="ac-label" placeholder="Sharma Realty onboarding"></label>
+        <label>Code label <input id="ac-label" placeholder="Sharma Realty replacement laptop"></label>
         <label>Activation code (8 digits)
           <div style="display:flex; gap:8px;">
             <input id="ac-code" inputmode="numeric" pattern="\d{8}" autocomplete="off" placeholder="Click Generate →" style="flex:1;">
             <button type="button" class="btn-ghost" id="ac-gen" style="height:40px;">Generate</button>
           </div>
         </label>
-        <label>Expires <input id="ac-expires" type="date" required></label>
+        <label>Expires <input id="ac-expires" type="datetime-local" required></label>
         <div class="form-actions">
           <button class="btn-primary" type="submit" id="ac-submit">Create activation code</button>
-          <span class="muted" style="font-size:12.5px;">Single-use by default. The code is shown once here and stored only as a bcrypt hash.</span>
+          <span class="muted" style="font-size:12.5px;">Single-use, 24-hour default. Shown once here and stored only as a bcrypt hash.</span>
         </div>
       </form>
       <div class="steplog" id="code-log"></div>
-      <div id="request-rows" class="activation-request-list"><div class="muted">Loading activation requests...</div></div>
+      <div id="legacy-requests-wrap" hidden>
+        <h3 style="margin:22px 0 4px;font-size:14px;">Legacy pending requests</h3>
+        <div class="hint">Activation requests created before automatic approval. New codes no longer create these.</div>
+        <div id="request-rows" class="activation-request-list"><div class="muted">Loading activation requests...</div></div>
+      </div>
     </section>
 
     <section class="card devices-section" data-dev-section="devices" hidden>
@@ -598,7 +602,7 @@
     overview: { eyebrow: 'Platform', title: 'Command Overview', subtitle: 'The whole PlotMap platform at a glance - dealers, devices and live activity.' },
     dealers: { eyebrow: 'Accounts', title: 'All Dealers', subtitle: 'Every dealer on PlotMap, their status, usage and health.' },
     dealer360: { eyebrow: 'Deep dive', title: 'Dealer 360', subtitle: 'The complete operational picture for a single dealer.' },
-    activations: { eyebrow: 'Security', title: 'Legacy Activation Requests', subtitle: 'Resolve activation requests created before automatic device approval.' },
+    activations: { eyebrow: 'Onboarding', title: 'Device Codes', subtitle: 'Issue a one-time code for a second or replacement device, and resolve any legacy pending requests.' },
     devices: { eyebrow: 'Security', title: 'Dealer Devices', subtitle: 'Every approved, pending, rejected and revoked device.' },
     create: { eyebrow: 'Onboarding', title: 'Create Dealer', subtitle: 'Set up a new dealer account with a trial and login.' },
     controls: { eyebrow: 'Management', title: 'Account Controls', subtitle: 'Extend trials, reset passcodes, suspend or reactivate dealers.' }
@@ -660,6 +664,26 @@
     document.querySelectorAll('[data-dev-nav]').forEach(button => {
       button.addEventListener('click', () => showSection(button.getAttribute('data-dev-nav')));
     });
+    // Inline cross-links (e.g. "issued by Create Dealer") navigate like the rail.
+    document.addEventListener('click', event => {
+      const link = event.target.closest('[data-dev-nav-link]');
+      if (link) { event.preventDefault(); showSection(link.getAttribute('data-dev-nav-link')); }
+    });
+    // One obvious path to generate a replacement/second-device code, callable
+    // from Dealer 360 → Devices with the dealer preselected.
+    window.PMDevGoDeviceCode = function (dealerId) {
+      showSection('activations');
+      const sel = $('ac-dealer');
+      if (sel && dealerId) {
+        sel.value = dealerId;
+        if (sel.value !== dealerId) {
+          // dealer not in the active-only option list — surface why.
+          const log = $('code-log');
+          if (log) { log.style.display = 'block'; log.textContent = 'This dealer is not selectable for a new code (inactive or suspended). Reactivate the account first.'; }
+        }
+      }
+      const code = $('ac-code'); if (code) setTimeout(() => code.focus(), 40);
+    };
     const browse = document.querySelector('[data-go-dealers]');
     if (browse) browse.addEventListener('click', () => showSection('dealers'));
     const dealerPicker = $('d360-dealer-picker');
@@ -726,7 +750,7 @@
     if (!$('c-trial-end').value) $('c-trial-end').value = localDateValue(new Date(now.getTime() + 14 * 86400000));
     if (!$('c-activation-expires').value) $('c-activation-expires').value = localDateTimeValue(new Date(now.getTime() + 24 * 3600000));
     if (!$('c-device-limit').value) $('c-device-limit').value = '1';
-    if (!$('ac-expires').value) $('ac-expires').value = localDateValue(new Date(now.getTime() + 24 * 3600000));
+    if (!$('ac-expires').value) $('ac-expires').value = localDateTimeValue(new Date(now.getTime() + 24 * 3600000));
   }
 
   window.PMDeveloperUI = {
@@ -1071,7 +1095,12 @@
           + '<button data-request-act="approve" data-request-id="' + esc(r.id) + '">Approve device</button>'
         : '<span class="muted">Updated ' + fmtWhen(r.updated_at) + '</span>')
       + '</div></article>');
-    $('request-rows').innerHTML = rows.join('') || '<div class="empty-state activation-empty"><span class="empty-icon" aria-hidden="true">✓</span><h2>All caught up</h2><p>No activation requests are waiting right now.</p></div>';
+    $('request-rows').innerHTML = rows.join('') || '<div class="empty-state activation-empty"><span class="empty-icon" aria-hidden="true">✓</span><h2>All caught up</h2><p>No legacy requests are waiting.</p></div>';
+    // The legacy pending-request list is now hidden entirely unless legacy
+    // rows actually exist — new codes never create these, so a fresh platform
+    // never sees the legacy UI at all.
+    const wrap = $('legacy-requests-wrap');
+    if (wrap) wrap.hidden = state.requests.length === 0;
     const pending = state.requests.filter(r => r.status === 'pending').length;
     const count = $('activation-count');
     if (count) {

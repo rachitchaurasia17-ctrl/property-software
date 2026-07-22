@@ -147,12 +147,37 @@
     return { ok: true, reason: 'ok', dealer, user, roleRequired };
   }
 
-  function renderBlockedScreen() {
+  // Reason-aware block copy. Each reason names the actual condition and the
+  // correct next step, so a suspended account, an ended trial, an unactivated
+  // device and a revoked device are no longer one generic "access expired".
+  function blockCopy(reason) {
+    switch (reason) {
+      case 'account_blocked':
+      case 'dealer_inactive_server':
+        return { title: 'Account not active', body: 'This account is suspended or its trial has ended. Contact your PlotMap provider to continue.' };
+      case 'device_not_approved':
+        return { title: 'Device not activated', body: 'This device is not set up yet. Open the main PlotMap page and enter your activation code on this device.' };
+      case 'device_revoked':
+        return { title: 'Device access revoked', body: 'This device\'s access was revoked. Ask your PlotMap provider for a new activation code, then set the device up again.' };
+      default:
+        return { title: 'Access expired or blocked', body: 'Please contact your PlotMap provider.' };
+    }
+  }
+
+  function renderBlockedScreen(reason) {
     if (!/\/admin\/access-expired\.html$/i.test(location.pathname)) {
-      window.location.replace('/admin/access-expired.html');
+      const q = reason ? ('?reason=' + encodeURIComponent(reason)) : '';
+      window.location.replace('/admin/access-expired.html' + q);
       return;
     }
-    document.body.innerHTML = '<main style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;font-family:Arial,sans-serif;background:#f7f5ef;color:#1f2933;"><section style="max-width:520px;background:#fff;border:1px solid #e6dcc8;border-radius:12px;padding:28px;text-align:center;"><h1 style="font-size:24px;margin:0 0 10px;">Access expired or blocked</h1><p style="font-size:15px;line-height:1.5;margin:0;color:#5f6b7a;">Please contact your PlotMap provider.</p></section></main>';
+    let effective = reason;
+    if (!effective) {
+      try { effective = new URLSearchParams(location.search).get('reason') || ''; } catch (e) {}
+    }
+    const copy = blockCopy(effective);
+    const esc = v => String(v || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    document.body.innerHTML = '<main style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;font-family:Arial,sans-serif;background:#f7f5ef;color:#1f2933;"><section style="max-width:520px;background:#fff;border:1px solid #e6dcc8;border-radius:12px;padding:28px;text-align:center;"><h1 style="font-size:24px;margin:0 0 10px;">' + esc(copy.title) + '</h1><p style="font-size:15px;line-height:1.5;margin:0 0 18px;color:#5f6b7a;">' + esc(copy.body) + '</p><a href="/" style="display:inline-block;font-size:14px;font-weight:700;color:#1F5E47;text-decoration:none;">← Back to PlotMap</a></section></main>';
+    document.documentElement.style.visibility = '';
   }
 
   function recordAccessCheck(userId) {
@@ -352,7 +377,7 @@
       if (!window.PMAuth.isLocalDev()) {
         const serverActive = await fetchDealerActiveFromServer(profile.dealer_id);
         if (serverActive === false) {
-          renderBlockedScreen();
+          renderBlockedScreen('account_blocked');
           return { ok: false, reason: 'dealer_inactive_server', profile };
         }
         // Approved-device gate for dealer staff. The platform admin (the
@@ -364,13 +389,18 @@
           const deviceGate = deviceAccess && await deviceAccess.requireApproved(profile.dealer_id, {
             render: false,
             authenticated: true,
+            // Keep the guard hot-path side-effect-free: do not create a
+            // pending device row just to render a message.
+            skipReasonLookup: true,
             deviceLabel: 'PlotMap admin device'
           });
           if (!deviceGate || !deviceGate.ok) {
             if (deviceAccess && typeof deviceAccess.renderBlocked === 'function') {
-              deviceAccess.renderBlocked('This device is not approved for this PlotMap workspace. Activate it from the main PlotMap page, then reopen this workspace.');
+              // 'revoked' gets a distinct message; anything else reads as
+              // "not activated yet". Both remedies point at a fresh code.
+              deviceAccess.renderBlocked(deviceGate && deviceGate.statusText === 'revoked' ? 'device_revoked' : 'device_not_approved');
             } else {
-              renderBlockedScreen();
+              renderBlockedScreen(deviceGate && deviceGate.statusText === 'revoked' ? 'device_revoked' : 'device_not_approved');
             }
             return { ok: false, reason: 'device_not_approved', profile };
           }

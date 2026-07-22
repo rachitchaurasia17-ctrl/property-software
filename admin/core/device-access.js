@@ -39,16 +39,12 @@
     return String(navigator.userAgent || '').slice(0, 220);
   }
 
-  async function rpc(name, payload, authenticated) {
-    let bearer = SUPABASE_KEY;
-    if (authenticated && window.PMAuth && typeof window.PMAuth.getAccessToken === 'function') {
-      bearer = await window.PMAuth.getAccessToken().catch(() => null) || SUPABASE_KEY;
-    }
+  async function callRpc(name, payload, bearer) {
     const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + encodeURIComponent(name), {
       method: 'POST',
       headers: {
         apikey: SUPABASE_KEY,
-        Authorization: 'Bearer ' + bearer,
+        Authorization: 'Bearer ' + (bearer || SUPABASE_KEY),
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload || {})
@@ -56,6 +52,26 @@
     if (res.status === 404) return { ok: false, status: 404, migrationMissing: true };
     if (!res.ok) return { ok: false, status: res.status };
     return { ok: true, data: await res.json().catch(() => null) };
+  }
+
+  // The device-approval / device-status RPCs are SECURITY DEFINER and granted
+  // to anon — they compare only bcrypt hashes and need no caller identity. We
+  // still PREFER the signed-in JWT when asked (so RLS-aware paths stay honest),
+  // but a stale/expired JWT makes PostgREST reject the request with 401 BEFORE
+  // the function runs, which would misreport an approved device as unapproved.
+  // So on 401/403 from the authenticated attempt we retry once with the anon
+  // key, which yields the correct hash-based answer. This is the fix for
+  // "device was activated but login says not approved / access revoked".
+  async function rpc(name, payload, authenticated) {
+    if (authenticated && window.PMAuth && typeof window.PMAuth.getAccessToken === 'function') {
+      const token = await window.PMAuth.getAccessToken().catch(() => null);
+      if (token) {
+        const authed = await callRpc(name, payload, token);
+        if (authed.ok || (authed.status !== 401 && authed.status !== 403)) return authed;
+        // JWT was rejected — fall through to the anon retry below.
+      }
+    }
+    return callRpc(name, payload, SUPABASE_KEY);
   }
 
   // Read-only approval check used to GATE protected routes. Calls
@@ -97,27 +113,63 @@
     return { ok: statusText === 'approved', dealerId: (row && row.dealer_id) || id, statusText };
   }
 
-  function renderBlocked(message) {
-    const text = message || 'This device is not approved for this PlotMap workspace.';
+  // Reason keys → { title, body }. Falls back to a literal message for any
+  // string that isn't a known key (back-compat with earlier callers).
+  function blockCopy(reasonOrMessage) {
+    switch (reasonOrMessage) {
+      case 'device_revoked':
+        return { title: 'Device access revoked', body: 'This device\'s access was revoked. Ask your PlotMap provider for a new activation code, then set this device up again.' };
+      case 'account_blocked':
+        return { title: 'Account not active', body: 'This account is suspended or its trial has ended. Contact your PlotMap provider to continue.' };
+      case 'migration_required':
+        return { title: 'PlotMap not configured', body: 'PlotMap is not fully configured on this server yet. Contact your provider.' };
+      case 'device_not_approved':
+      case undefined:
+      case null:
+      case '':
+        return { title: 'Device not activated', body: 'This device is not set up yet. Open the main PlotMap page and enter your one-time activation code on this device.' };
+      default:
+        // A literal, already-composed message.
+        return { title: 'Device not approved', body: String(reasonOrMessage) };
+    }
+  }
+
+  function renderBlocked(reasonOrMessage) {
+    const copy = blockCopy(reasonOrMessage);
+    const esc = s => String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     document.body.innerHTML = '<main style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F5EFE2;color:#1C1E1B;font-family:Plus Jakarta Sans,Segoe UI,system-ui,sans-serif;padding:24px;">'
       + '<section style="max-width:540px;background:#FFFDF8;border:1px solid #E8DFC9;border-radius:20px;padding:32px;box-shadow:0 24px 52px rgba(120,90,30,.12);text-align:center;">'
       + '<div style="width:50px;height:50px;border-radius:16px;border:1px solid #D7C7A4;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;color:#1F5E47;font-weight:800;">PM</div>'
-      + '<h1 style="font-family:Fraunces,Georgia,serif;font-weight:500;font-size:26px;margin:0 0 10px;">Device not approved</h1>'
-      + '<p style="margin:0;color:#5F6B61;line-height:1.55;font-size:14.5px;">' + text.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])) + '</p>'
-      + '<p style="margin:18px 0 0;color:#8A7C60;font-size:12.5px;">Open PlotMap on your approved dealer device, or activate this one from the main PlotMap page.</p>'
+      + '<h1 style="font-family:Fraunces,Georgia,serif;font-weight:500;font-size:26px;margin:0 0 10px;">' + esc(copy.title) + '</h1>'
+      + '<p style="margin:0;color:#5F6B61;line-height:1.55;font-size:14.5px;">' + esc(copy.body) + '</p>'
+      + '<p style="margin:20px 0 0;"><a href="/" style="font-weight:700;color:#1F5E47;text-decoration:none;font-size:14px;">Open PlotMap to activate this device →</a></p>'
       + '</section></main>';
     document.documentElement.style.visibility = '';
   }
 
   // Gate a protected route. Read-only (isApproved) — never registers a device.
+  // On a block, best-effort resolve the precise reason (revoked vs
+  // not-activated vs account) so the message is accurate. getStatus only
+  // side-effects (a bounded pending row) for a device that has never been
+  // seen — an already-activated-then-revoked device just reads its row.
   async function requireApproved(dealerId, options) {
     const status = await isApproved(dealerId, options || {});
     if (status.ok) return status;
+    // Enrich the block reason when the plain gate only said 'unapproved'.
+    if (status.statusText === 'unapproved' && !(options && options.skipReasonLookup)) {
+      const detail = await getStatus(dealerId, options || {}).catch(() => null);
+      if (detail && detail.statusText) status.statusText = detail.statusText;
+    }
     if (options && options.render !== false) {
-      const msg = status.migrationMissing
-        ? 'PlotMap is not fully configured on this server yet. Contact your provider.'
-        : ((options && options.message) || 'This device is not approved for this PlotMap workspace.');
-      renderBlocked(msg);
+      // Map the resolved status to a reason key so the block screen names the
+      // real cause. 'blocked' from device_status means the dealer account is
+      // inactive; 'revoked'/'rejected' are device-level; everything else is
+      // "not activated yet".
+      const reason = status.migrationMissing ? 'migration_required'
+        : status.statusText === 'blocked' ? 'account_blocked'
+        : status.statusText === 'revoked' || status.statusText === 'rejected' ? 'device_revoked'
+        : 'device_not_approved';
+      renderBlocked((options && options.message) || reason);
     }
     return status;
   }
