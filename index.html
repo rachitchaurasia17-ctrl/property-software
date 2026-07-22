@@ -486,8 +486,8 @@
     return row;
   }
 
-  async function submitActivationRequest(accessCode) {
-    const res = await fetch(window.PMAuth.SUPABASE_URL + '/rest/v1/rpc/plotmap_submit_activation_request', {
+  async function activateDevice(accessCode) {
+    const res = await fetch(window.PMAuth.SUPABASE_URL + '/rest/v1/rpc/plotmap_activate_device', {
       method: 'POST',
       headers: {
         apikey: window.PMAuth.SUPABASE_KEY,
@@ -501,17 +501,19 @@
         p_browser_info: navigator.userAgent || ''
       })
     });
-    if (res.status === 404) throw new Error('PlotMap is not fully configured yet. Contact your provider.');
-    if (!res.ok) throw new Error('Could not submit the activation request.');
+    if (!res.ok) return { status: 'activation_failed', dealer_id: null };
     const rows = await res.json().catch(() => []);
     const row = Array.isArray(rows) ? rows[0] : null;
-    if (!row || !row.request_id || !row.lookup_token) throw new Error('That activation code is not valid.');
-    // Persist request id + high-entropy lookup token (NOT any passcode) so the
-    // pending screen survives the laptop closing while the provider approves.
-    localStorage.setItem('plotmap_activation_request', JSON.stringify({
-      requestId: row.request_id, lookupToken: row.lookup_token
-    }));
-    return row;
+    return row && row.status ? row : { status: 'activation_failed', dealer_id: null };
+  }
+
+  function activationFailureMessage(status) {
+    if (status === 'invalid_code') return 'Invalid activation code';
+    if (status === 'expired') return 'Activation code expired';
+    if (status === 'already_used') return 'Activation code already used';
+    if (status === 'device_limit_reached') return 'Device limit reached. Ask your PlotMap provider to revoke an old device or raise the limit.';
+    if (status === 'dealer_inactive') return 'Dealer account is not active';
+    return 'Activation could not be completed';
   }
 
   function readStoredActivationRequest() {
@@ -547,14 +549,14 @@
     const submitEl = el('ac-submit'), refreshEl = el('ac-refresh'), statusEl = el('ac-status');
     statusEl.textContent = '';
     if (state === 'pending') {
-      titleEl.textContent = 'Waiting for approval';
-      msgEl.textContent = msgOverride || 'Your activation request has been sent. Your PlotMap provider will approve this device shortly. You can leave this page open.';
+      titleEl.textContent = 'Legacy activation pending';
+      msgEl.textContent = msgOverride || 'This earlier activation request is still pending. Use refresh after your PlotMap provider resolves it.';
       codeEl.style.display = 'none';
       submitEl.style.display = 'none';
       refreshEl.style.display = '';
     } else if (state === 'blocked') {
       titleEl.textContent = 'Device not approved';
-      msgEl.textContent = msgOverride || 'This device is not approved for this PlotMap workspace. Enter a one-time activation code from your provider to request access.';
+      msgEl.textContent = msgOverride || 'This device is not approved for this PlotMap workspace. Enter a new one-time activation code from your provider.';
       codeEl.style.display = ''; codeEl.value = '';
       submitEl.style.display = ''; submitEl.textContent = 'Request access';
       refreshEl.style.display = 'none';
@@ -635,7 +637,7 @@
       return;
     }
 
-    // No binding and no pending request → a fresh device.
+    // No binding and no legacy pending request means this is a fresh device.
     if (storedActivation) { renderAccessCard('pending'); return; }
     renderAccessCard('activate');
   }
@@ -648,12 +650,25 @@
       if (!/^\d{8}$/.test(code)) { statusEl.textContent = 'Enter the 8-digit activation code.'; return; }
       el('ac-submit').disabled = true;
       statusEl.style.color = '#8A6224';
-      statusEl.textContent = 'Sending activation request…';
+      statusEl.textContent = 'Activating this device...';
       try {
-        await submitActivationRequest(code);
-        renderAccessCard('pending');
+        const row = await activateDevice(code);
+        if (row.status !== 'approved' || !row.dealer_id) {
+          statusEl.textContent = activationFailureMessage(row.status);
+          return;
+        }
+        try { localStorage.setItem('plotmap_dealer_id', row.dealer_id); } catch (e) {}
+        clearStoredActivationRequest();
+        const gate = await window.PMDeviceAccess.isApproved(row.dealer_id).catch(() => ({ ok: false }));
+        if (!gate.ok) {
+          statusEl.textContent = 'Activation could not be completed';
+          return;
+        }
+        el('ac-code').value = '';
+        revealDoors();
+        await openDealer();
       } catch (e) {
-        statusEl.textContent = e.message || 'Could not submit the activation request.';
+        statusEl.textContent = 'Activation could not be completed';
       } finally {
         el('ac-submit').disabled = false;
       }
@@ -676,7 +691,7 @@
           if (gate.ok) { revealDoors(); return; }
           renderAccessCard('blocked');
         } else if (row && row.status === 'pending') {
-          statusEl.textContent = 'Still pending — your provider hasn’t approved this device yet.';
+          statusEl.textContent = 'This legacy request is still pending.';
         } else {
           clearStoredActivationRequest();
           renderAccessCard('activate', 'That request is no longer valid. Enter a new activation code.');

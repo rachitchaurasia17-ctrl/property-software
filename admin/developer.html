@@ -296,8 +296,8 @@
     </section>
 
     <section class="card activation-section" data-dev-section="activations" hidden>
-      <h2>Activation requests</h2>
-      <div class="hint">Generate a dealer-scoped 8-digit code for a second or replacement device. The dealer enters it on that device, and the pending request remains locked until you approve it here.</div>
+      <h2>Legacy activation requests</h2>
+      <div class="hint">Generate a dealer-scoped 8-digit code for a second or replacement device. A valid code approves that device immediately when the dealer is active and has an available device slot.</div>
       <form class="create" id="code-form" style="margin-bottom:16px;">
         <label>Dealer
           <select id="ac-dealer" required><option value="">Select an active dealer</option></select>
@@ -321,7 +321,7 @@
 
     <section class="card devices-section" data-dev-section="devices" hidden>
       <h2>Dealer devices</h2>
-      <div class="hint">Approved devices can open Client Presentation and admin workspaces. New devices stay pending until approved here. One subscription allows one approved device unless you raise the limit.</div>
+      <div class="hint">Approved devices can open Client Presentation and admin workspaces. New activation codes enforce the configured device limit automatically; legacy pending devices can still be resolved here.</div>
       <div id="device-rows" class="device-grid"><div class="muted">Loading devices...</div></div>
     </section>
 
@@ -598,7 +598,7 @@
     overview: { eyebrow: 'Platform', title: 'Command Overview', subtitle: 'The whole PlotMap platform at a glance - dealers, devices and live activity.' },
     dealers: { eyebrow: 'Accounts', title: 'All Dealers', subtitle: 'Every dealer on PlotMap, their status, usage and health.' },
     dealer360: { eyebrow: 'Deep dive', title: 'Dealer 360', subtitle: 'The complete operational picture for a single dealer.' },
-    activations: { eyebrow: 'Security', title: 'Activation Requests', subtitle: 'Approve or reject devices asking to join a dealer workspace.' },
+    activations: { eyebrow: 'Security', title: 'Legacy Activation Requests', subtitle: 'Resolve activation requests created before automatic device approval.' },
     devices: { eyebrow: 'Security', title: 'Dealer Devices', subtitle: 'Every approved, pending, rejected and revoked device.' },
     create: { eyebrow: 'Onboarding', title: 'Create Dealer', subtitle: 'Set up a new dealer account with a trial and login.' },
     controls: { eyebrow: 'Management', title: 'Account Controls', subtitle: 'Extend trials, reset passcodes, suspend or reactivate dealers.' }
@@ -1464,7 +1464,7 @@
       + 'Device activation code: ' + secret.activationCode + '\n'
       + 'Code expires: ' + formatProvisioningDate(secret.codeExpiresAt) + '\n\n'
       + 'Open ' + location.origin + '/ on the laptop or tablet that will be used. '
-      + 'Enter the activation code. Your device will remain pending until approved.';
+      + 'Enter the activation code on the intended device. It activates immediately when a device slot is available.';
   }
 
   function clearProvisioningSecrets() {

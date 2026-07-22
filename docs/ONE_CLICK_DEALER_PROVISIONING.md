@@ -9,9 +9,9 @@ blocked until a separate production rollout is explicitly approved.
 - `dealer_settings` remains the dealer/account source of truth.
 - `profiles` remains the Auth user to dealer/role relationship.
 - `plotmap_admin_set_dealer_passcode()` remains the bcrypt passcode writer.
-- `dealer_access_codes` and `dealer_activation_requests` remain the device
-  onboarding system.
-- `dealer_devices` and its existing approval/limit helpers remain unchanged.
+- `dealer_access_codes` and `dealer_devices` remain the device onboarding
+  system. Existing `dealer_activation_requests` remain available for legacy
+  pending records only.
 - `audit_logs` receives only attempt IDs and sanitized result codes.
 
 No parallel dealer, profile, passcode, activation, device, or login system is
@@ -67,10 +67,21 @@ New access codes are exactly eight digits, generated from cryptographic random
 bytes with rejection sampling, bcrypt-hashed, dealer-scoped, single-use, and
 limited to a maximum 30-day expiry.
 
-Redeeming a code creates only a pending request. The dealer comes from the
-hashed code row, not browser input. A platform admin must separately approve
-the physical device, and the existing device limit is checked under a dealer
-row lock. Approval cannot substitute a different dealer ID.
+`20260723_auto_approve_device_activation.sql` adds the public
+`plotmap_activate_device` RPC. The dealer comes only from the hashed code row,
+not browser input. The RPC locks the code row and dealer settings row, checks
+account status and the approved-device limit, creates an approved device, and
+consumes the code in one transaction. It stores only bcrypt hashes.
+
+The consumed code records the approved device ID. If the transaction commits
+but its response is lost, the same code and device token can recover the
+approved result. The same code with another device token returns
+`already_used`. A limit rejection does not consume the code, allowing it to be
+used after an old device is revoked or the limit is raised.
+
+New browser redemptions cannot call `plotmap_submit_activation_request`.
+Existing pending rows, lookup status, approve/reject controls, and history stay
+available for legacy requests.
 
 The migration retires browser access to the old unscoped activation-code RPC.
 This means the database/function/frontend production rollout must happen in a
@@ -103,11 +114,15 @@ Dealer 360 migrations must already be present.
    staging Preview origin(s). Supabase supplies `SUPABASE_URL`,
    `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` inside the function.
 5. Deploy only `supabase/functions/provision-dealer` to the staging project.
-6. Run `node tools/verify-dealer-provisioning.js`.
-7. Run `node tools/verify-dealer-provisioning-staging.js`.
-8. Deploy the feature branch to Vercel Preview with its existing staging
+6. Dry-run and then apply only
+   `supabase/migrations/20260723_auto_approve_device_activation.sql` with
+   `tools/run-auto-device-activation-staging-migration.js`. Do not use
+   `supabase db push`.
+7. Run `node tools/verify-dealer-provisioning.js`.
+8. Run `node tools/verify-dealer-provisioning-staging.js`.
+9. Deploy the feature branch to Vercel Preview with its existing staging
    public runtime configuration.
-9. Complete browser QA with separate platform-admin and dealer profiles.
+10. Complete browser QA with separate platform-admin and dealer profiles.
 
 ## Staging preflight
 
@@ -150,6 +165,17 @@ live unscoped activation code, and at least one active platform admin.
 
 Verified on 22 July 2026 against the guarded non-production staging project:
 
+- Atomic auto-activation migration dry run rolled back successfully in
+  11.543 seconds; the same migration then applied to staging in 5.439 seconds.
+- Static provisioning/security verifier: 59/59.
+- Live provisioning and auto-activation matrix: 62/62. It covers immediate
+  first-device approval and login, idempotent same-device retry, simultaneous
+  different-device redemption, expiry, suspension, expired trial, device
+  limits, second devices, revocation/replacement, dealer scoping, hash-only
+  storage, Dealer 360 visibility, and legacy pending-request approval.
+- Dealer 360 static verifier: 28/28; live staging verifier: 22/22 after its
+  tracked server-time rate fixture was refreshed.
+
 - Final transaction-wrapped migration dry run rolled back successfully in
   7.580 seconds.
 - Final staging-only migration update applied successfully in 7.979 seconds.
@@ -180,10 +206,10 @@ alias, and the complete device lifecycle passes.
 
 ## Remaining production cautions
 
-- The public activation-code redemption path keeps the existing bcrypt,
-  expiry, single-use, device-limit, and pending-approval protections. It does
-  not add an IP-based gateway rate limit in this phase. Keep the pilot origin
-  controlled and add gateway/WAF throttling before broad public distribution.
+- The public activation-code redemption path keeps bcrypt, expiry, single-use,
+  account-gating, and device-limit protections. It does not add an IP-based
+  gateway rate limit in this phase. Keep the pilot origin controlled and add
+  gateway/WAF throttling before broad public distribution.
 - Provisioning returns credentials once. If the database commits but the
   browser loses the final response, replay intentionally returns no credentials;
   use the existing passcode reset and dealer-scoped replacement-code flows.
@@ -200,8 +226,9 @@ Approved rollout order:
 1. Create/verify a current database backup.
 2. Run the duplicate-email and legacy-pending preflight queries.
 3. Deploy the Edge Function to production but do not expose the new UI yet.
-4. Apply only `20260722_one_click_dealer_provisioning.sql` in the production
-   SQL editor during a short admin maintenance window.
+4. Apply `20260722_one_click_dealer_provisioning.sql`, followed by
+   `20260723_auto_approve_device_activation.sql`, in the production SQL editor
+   during a short admin maintenance window.
 5. Deploy the verified frontend immediately afterward.
 6. Run platform-admin, provisioning, login, activation, approval, device-limit,
    Dealer 360, and Client Presentation smoke tests.

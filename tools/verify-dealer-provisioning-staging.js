@@ -254,16 +254,76 @@ async function suspendDealer(dealerId, adminToken) {
   return result.ok;
 }
 
+async function setDealerAccount(dealerId, adminToken, accountStatus, trialEnd) {
+  return rpc('plotmap_admin_set_dealer_account', {
+    p_dealer_id: dealerId,
+    p_account_status: accountStatus,
+    p_subscription_status: 'trial',
+    p_trial_end: trialEnd,
+    p_expiry_date: null,
+    p_plan_code: null,
+    p_paid: null,
+    p_seat_limit: null,
+    p_max_maps: null,
+    p_max_properties: null,
+    p_max_team_members: null,
+    p_payment_notes: 'staging auto-activation verifier fixture'
+  }, adminToken);
+}
+
+function firstRow(result) {
+  return result && Array.isArray(result.data) && result.data[0] ? result.data[0] : null;
+}
+
+async function activateDevice(code, token, label = 'Provisioning verifier device', extra = {}) {
+  return rpc('plotmap_activate_device', {
+    p_access_code: code,
+    p_device_token: token,
+    p_device_label: label,
+    p_browser_info: 'Node staging verifier',
+    ...extra
+  });
+}
+
+async function createDealerActivationCode(dealerId, adminToken, label) {
+  const code = randomCode();
+  const result = await rpc('plotmap_admin_create_dealer_activation_code', {
+    p_dealer_id: dealerId,
+    p_access_code: code,
+    p_label: label,
+    p_max_uses: 1,
+    p_expires_at: new Date(Date.now() + 2 * 3600000).toISOString()
+  }, adminToken);
+  return { code, result };
+}
+
 async function run() {
   check('resolved project is the linked non-production staging project', true);
   check('private staging environment is ignored and untracked', true);
 
-  const admin = await signIn(env.PLATFORM_ADMIN_EMAIL, env.PLATFORM_ADMIN_PASSWORD);
+  const configuredAdmin = await signIn(env.PLATFORM_ADMIN_EMAIL, env.PLATFORM_ADMIN_PASSWORD);
   const dealerA = await signIn(env.DEALER_A_EMAIL, env.DEALER_A_PASSWORD);
-  if (!admin || !dealerA) abort('required staging login failed');
+  if (!configuredAdmin || !dealerA) abort('required staging login failed');
   check('staging platform admin and dealer fixtures can authenticate', true);
 
   const seed = `${Date.now().toString(36)}${crypto.randomBytes(3).toString('hex')}`.slice(-14);
+  const verifierAdminEmail = `plotmap.provisioning+${seed}-run-admin@example.com`;
+  const verifierAdminPassword = randomPasscode();
+  const verifierAdminId = await createAuthUser(verifierAdminEmail, verifierAdminPassword);
+  if (!verifierAdminId) abort('could not create disposable staging platform admin');
+  const verifierAdminProfile = await serviceTable('profiles', '', {
+    method: 'POST',
+    body: { id: verifierAdminId, email: verifierAdminEmail, role: 'owner', dealer_id: 'dealer-staging-a', status: 'active' },
+    prefer: 'return=minimal'
+  });
+  const verifierAdminGrant = verifierAdminProfile.ok ? await serviceTable('platform_admins', '', {
+    method: 'POST', body: { profile_id: verifierAdminId, status: 'active' }, prefer: 'return=minimal'
+  }) : verifierAdminProfile;
+  const provisionAdmin = verifierAdminGrant.ok ? await signIn(verifierAdminEmail, verifierAdminPassword) : null;
+  if (!provisionAdmin) abort('disposable staging platform admin could not authenticate');
+  const admin = configuredAdmin;
+  check('disposable platform admin isolates provisioning rate fixtures', true);
+
   const probePayload = payloadFor(`${seed}-anon`, randomPasscode());
 
   const anonymous = await edgeProvision(probePayload, null, crypto.randomUUID());
@@ -275,7 +335,7 @@ async function run() {
   const passcodeOne = randomPasscode();
   const first = payloadFor(`${seed}-one`, passcodeOne);
   const firstKey = crypto.randomUUID();
-  const firstResult = await edgeProvision(first, admin.token, firstKey);
+  const firstResult = await edgeProvision(first, provisionAdmin.token, firstKey);
   check('completely new dealer provisions successfully', Boolean(firstResult.result && firstResult.result.credentialsAvailable),
     firstResult.error ? `code ${firstResult.error}` : '');
   if (!firstResult.result || !firstResult.result.credentialsAvailable) abort('primary provisioning fixture failed');
@@ -298,42 +358,42 @@ async function run() {
   const dealer360 = await rpc('plotmap_admin_dealer_360', { p_dealer_id: first.dealerId }, admin.token);
   check('new dealer appears in Dealer 360', dealer360.ok && dealer360.data && typeof dealer360.data === 'object');
 
-  const completedRetry = await edgeProvision(first, admin.token, firstKey);
+  const completedRetry = await edgeProvision(first, provisionAdmin.token, firstKey);
   check('completed idempotent retry returns no credentials',
     (completedRetry.error === 'COMPLETED_CREDENTIALS_UNAVAILABLE' && !completedRetry.result)
       || Boolean(completedRetry.result
         && completedRetry.result.credentialsAvailable === false
         && completedRetry.result.code === 'COMPLETED_CREDENTIALS_UNAVAILABLE'));
 
-  const duplicateSlug = await edgeProvision({ ...payloadFor(`${seed}-slug`, randomPasscode()), dealerId: first.dealerId }, admin.token, crypto.randomUUID());
+  const duplicateSlug = await edgeProvision({ ...payloadFor(`${seed}-slug`, randomPasscode()), dealerId: first.dealerId }, provisionAdmin.token, crypto.randomUUID());
   check('duplicate dealer slug is rejected', duplicateSlug.error === 'DEALER_ALREADY_EXISTS');
 
-  const duplicateEmail = await edgeProvision({ ...payloadFor(`${seed}-email`, randomPasscode()), loginEmail: first.loginEmail }, admin.token, crypto.randomUUID());
+  const duplicateEmail = await edgeProvision({ ...payloadFor(`${seed}-email`, randomPasscode()), loginEmail: first.loginEmail }, provisionAdmin.token, crypto.randomUUID());
   check('duplicate login email is rejected', duplicateEmail.error === 'LOGIN_EMAIL_ALREADY_IN_USE');
 
   const invalidTrial = await edgeProvision(payloadFor(`${seed}-dates`, randomPasscode(), {
     trialStart: new Date(Date.now() + 2 * 86400000).toISOString(),
     trialEnd: new Date(Date.now() + 86400000).toISOString()
-  }), admin.token, crypto.randomUUID());
+  }), provisionAdmin.token, crypto.randomUUID());
   check('invalid trial dates are rejected', invalidTrial.error === 'INVALID_TRIAL_DATES');
 
-  const weakPasscode = await edgeProvision(payloadFor(`${seed}-weak`, 'weak'), admin.token, crypto.randomUUID());
+  const weakPasscode = await edgeProvision(payloadFor(`${seed}-weak`, 'weak'), provisionAdmin.token, crypto.randomUUID());
   check('weak passcode is rejected', weakPasscode.error === 'INVALID_PASSCODE');
 
-  const invalidLimit = await edgeProvision(payloadFor(`${seed}-limit`, randomPasscode(), { deviceLimit: 21 }), admin.token, crypto.randomUUID());
+  const invalidLimit = await edgeProvision(payloadFor(`${seed}-limit`, randomPasscode(), { deviceLimit: 21 }), provisionAdmin.token, crypto.randomUUID());
   check('invalid device limit is rejected', invalidLimit.error === 'INVALID_DEVICE_LIMIT');
 
   const expiredCode = await edgeProvision(payloadFor(`${seed}-expiry`, randomPasscode(), {
     activationExpiresAt: new Date(Date.now() - 60000).toISOString()
-  }), admin.token, crypto.randomUUID());
+  }), provisionAdmin.token, crypto.randomUUID());
   check('expired activation date is rejected', expiredCode.error === 'INVALID_ACTIVATION_EXPIRY');
 
   const passcodeTwo = randomPasscode();
   const concurrentPayload = payloadFor(`${seed}-race`, passcodeTwo);
   const concurrentKey = crypto.randomUUID();
   const concurrentResults = await Promise.all([
-    edgeProvision(concurrentPayload, admin.token, concurrentKey),
-    edgeProvision(concurrentPayload, admin.token, concurrentKey)
+    edgeProvision(concurrentPayload, provisionAdmin.token, concurrentKey),
+    edgeProvision(concurrentPayload, provisionAdmin.token, concurrentKey)
   ]);
   const credentialResults = concurrentResults.filter(result => result.result && result.result.credentialsAvailable);
   const safeSecond = concurrentResults.find(result => result.error === 'PROVISIONING_IN_PROGRESS' || result.error === 'COMPLETED_CREDENTIALS_UNAVAILABLE');
@@ -343,7 +403,7 @@ async function run() {
 
   const collision = payloadFor(`${seed}-recover`, passcodeOne);
   const collisionKey = crypto.randomUUID();
-  const collisionFailure = await edgeProvision(collision, admin.token, collisionKey);
+  const collisionFailure = await edgeProvision(collision, provisionAdmin.token, collisionKey);
   check('database finalization failure is sanitized and recoverable', collisionFailure.error === 'DATABASE_FINALIZE_FAILED' && collisionFailure.recoverable);
   const collisionAuthAfterFailure = await authLookup(collision.loginEmail);
   check('new Auth user is compensated after finalization failure', !collisionAuthAfterFailure.id);
@@ -360,14 +420,14 @@ async function run() {
   check('staging fixture passcode can be rotated for recovery test', authUpdated.ok && passcodeUpdated.ok);
   if (!authUpdated.ok || !passcodeUpdated.ok) abort('recovery fixture passcode rotation failed');
 
-  const recovered = await edgeProvision(collision, admin.token, collisionKey);
+  const recovered = await edgeProvision(collision, provisionAdmin.token, collisionKey);
   check('recoverable incomplete provisioning resumes safely', Boolean(recovered.result && recovered.result.credentialsAvailable));
   if (recovered.result && recovered.result.credentialsAvailable) completedDealers.add(collision.dealerId);
 
   const preexistingAuthPayload = payloadFor(`${seed}-auth`, randomPasscode());
   const unrelatedUserId = await createAuthUser(preexistingAuthPayload.loginEmail, preexistingAuthPayload.passcode);
   if (!unrelatedUserId) abort('could not create pre-existing Auth staging fixture');
-  const existingAuthResult = await edgeProvision(preexistingAuthPayload, admin.token, crypto.randomUUID());
+  const existingAuthResult = await edgeProvision(preexistingAuthPayload, provisionAdmin.token, crypto.randomUUID());
   const unrelatedLookup = await authLookup(preexistingAuthPayload.loginEmail);
   check('unrelated existing Auth user is rejected', existingAuthResult.error === 'AUTH_EMAIL_ALREADY_EXISTS');
   check('unrelated existing Auth user is not deleted', unrelatedLookup.id === unrelatedUserId);
@@ -389,7 +449,7 @@ async function run() {
   });
   check('existing ownerless dealer fixture is created', partialInsert.ok);
   const partialResult = partialInsert.ok
-    ? await edgeProvision(partialPayload, admin.token, crypto.randomUUID())
+    ? await edgeProvision(partialPayload, provisionAdmin.token, crypto.randomUUID())
     : {};
   check('existing dealer with no owner can be reconciled', Boolean(partialResult.result && partialResult.result.credentialsAvailable));
   if (partialResult.result && partialResult.result.credentialsAvailable) completedDealers.add(partialPayload.dealerId);
@@ -427,94 +487,171 @@ async function run() {
   check('suspended platform admin cannot provision', Boolean(suspendedSession) && suspendedAttempt.error === 'PLATFORM_ADMIN_REQUIRED');
   await deleteAuthUser(suspendedUserId);
 
+  const activationSecrets = [];
+  const deviceSecrets = [];
   const activationCode = String(firstResult.result.activationCode);
   const deviceToken = crypto.randomBytes(32).toString('hex');
-  const activation = await rpc('plotmap_submit_activation_request', {
-    p_access_code: activationCode,
-    p_device_token: deviceToken,
-    p_business_name: first.businessName,
-    p_owner_name: first.ownerName,
-    p_owner_phone: first.ownerPhone,
-    p_primary_area: first.primaryArea,
-    p_device_label: 'Provisioning verifier device',
-    p_browser_info: 'Node staging verifier'
-  });
-  const activationRow = Array.isArray(activation.data) ? activation.data[0] : null;
-  check('fresh device creates a pending activation request', activation.ok && activationRow && activationRow.status === 'pending',
-    `HTTP ${activation.status}${rpcMessage(activation) ? ` ${rpcMessage(activation)}` : ''}`);
+  activationSecrets.push(activationCode);
+  deviceSecrets.push(deviceToken);
 
-  const requestList = await rpc('plotmap_admin_list_activation_requests', {}, admin.token);
-  const pendingRequest = Array.isArray(requestList.data) && activationRow
-    ? requestList.data.find(row => row.id === activationRow.request_id)
-    : null;
-  check('pending request is scoped to the correct dealer', Boolean(pendingRequest && pendingRequest.dealer_id === first.dealerId),
-    `list HTTP ${requestList.status}`);
-
-  const approval = pendingRequest ? await rpc('plotmap_admin_approve_activation_request', {
-    p_request_id: pendingRequest.id,
-    p_dealer_id: first.dealerId,
-    p_business_name: first.businessName,
-    p_owner_name: first.ownerName,
-    p_owner_phone: first.ownerPhone,
-    p_primary_area: first.primaryArea,
-    p_developer_notes: 'staging verifier approval'
-  }, admin.token) : { ok: false };
-  check('platform admin can approve the physical device', approval.ok,
-    `HTTP ${approval.status || 0}${rpcMessage(approval) ? ` ${rpcMessage(approval)}` : ''}`);
-
-  const requestStatus = activationRow ? await rpc('plotmap_activation_request_status', {
-    p_request_id: activationRow.request_id,
-    p_lookup_token: activationRow.lookup_token
-  }) : { ok: false };
-  const statusRow = Array.isArray(requestStatus.data) ? requestStatus.data[0] : null;
-  check('approved request status resolves to the correct dealer', requestStatus.ok && statusRow && statusRow.status === 'approved' && statusRow.dealer_id === first.dealerId);
+  const activation = await activateDevice(activationCode, deviceToken);
+  const activationRow = firstRow(activation);
+  check('new dealer first device is approved immediately', activation.ok && activationRow
+    && activationRow.status === 'approved' && activationRow.dealer_id === first.dealerId,
+  `HTTP ${activation.status}`);
 
   const approved = await rpc('plotmap_device_is_approved', {
     p_dealer_id: first.dealerId,
     p_device_token: deviceToken
   });
-  check('approved device silently passes the device gate', approved.ok && approved.data === true);
+  check('immediate approved device passes the device gate', approved.ok && approved.data === true);
 
-  const secondCode = randomCode();
-  const codeCreated = await rpc('plotmap_admin_create_dealer_activation_code', {
-    p_dealer_id: first.dealerId,
-    p_access_code: secondCode,
-    p_label: 'Second-device limit test',
-    p_max_uses: 1,
-    p_expires_at: new Date(Date.now() + 2 * 3600000).toISOString()
-  }, admin.token);
-  const secondToken = crypto.randomBytes(32).toString('hex');
-  const secondActivation = codeCreated.ok ? await rpc('plotmap_submit_activation_request', {
-    p_access_code: secondCode,
-    p_device_token: secondToken,
-    p_business_name: first.businessName,
-    p_owner_name: first.ownerName,
-    p_owner_phone: first.ownerPhone,
-    p_primary_area: first.primaryArea,
-    p_device_label: 'Second verifier device',
-    p_browser_info: 'Node staging verifier'
+  const immediateLogin = await rpc('plotmap_passcode_login', { p_passcode: replacementPasscode });
+  const immediateLoginRow = firstRow(immediateLogin);
+  check('dealer login is available immediately after activation', immediateLogin.ok && immediateLoginRow
+    && immediateLoginRow.status === 'ok' && immediateLoginRow.login_email === first.loginEmail.toLowerCase());
+
+  const requestListAfterActivation = await rpc('plotmap_admin_list_activation_requests', {}, admin.token);
+  check('automatic redemption creates no pending request', requestListAfterActivation.ok
+    && !requestListAfterActivation.data.some(row => row.dealer_id === first.dealerId && row.status === 'pending'));
+
+  const idempotentRetry = await activateDevice(activationCode, deviceToken);
+  const idempotentRow = firstRow(idempotentRetry);
+  check('same-device retry safely recovers a committed activation', idempotentRetry.ok && idempotentRow
+    && idempotentRow.status === 'approved' && idempotentRow.dealer_id === first.dealerId);
+
+  const reusedToken = crypto.randomBytes(32).toString('hex');
+  deviceSecrets.push(reusedToken);
+  const reusedCode = await activateDevice(activationCode, reusedToken, 'Code reuse verifier');
+  const reusedRow = firstRow(reusedCode);
+  check('consumed code cannot approve another device', reusedCode.ok && reusedRow
+    && reusedRow.status === 'already_used' && reusedRow.dealer_id === null);
+
+  const raceProvisioning = credentialResults.find(result => result.result && result.result.credentialsAvailable);
+  if (!raceProvisioning) abort('concurrent activation fixture is unavailable');
+  const raceCode = String(raceProvisioning.result.activationCode);
+  const raceTokens = [crypto.randomBytes(32).toString('hex'), crypto.randomBytes(32).toString('hex')];
+  activationSecrets.push(raceCode);
+  deviceSecrets.push(...raceTokens);
+  const raceActivations = await Promise.all(raceTokens.map((token, index) =>
+    activateDevice(raceCode, token, `Concurrent verifier device ${index + 1}`)));
+  const raceRows = raceActivations.map(firstRow);
+  const raceApprovedIndex = raceRows.findIndex(row => row && row.status === 'approved');
+  check('simultaneous same-code redemption approves exactly one device', raceActivations.every(result => result.ok)
+    && raceRows.filter(row => row && row.status === 'approved').length === 1
+    && raceRows.filter(row => row && row.status === 'already_used').length === 1);
+  if (raceApprovedIndex < 0) abort('concurrent activation did not produce an approved device');
+  const raceWinnerToken = raceTokens[raceApprovedIndex];
+  const raceDevices = await serviceTable('dealer_devices', `?dealer_id=eq.${encodeURIComponent(concurrentPayload.dealerId)}&status=eq.approved&select=id,device_token_hash`);
+  check('same-code concurrency stores one approved device row', raceDevices.ok && raceDevices.data.length === 1);
+
+  let invalidActivation = null;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const candidate = randomCode();
+    const result = await activateDevice(candidate, crypto.randomBytes(32).toString('hex'), 'Invalid-code verifier');
+    if (firstRow(result) && firstRow(result).status === 'invalid_code') { invalidActivation = result; break; }
+  }
+  const invalidRow = firstRow(invalidActivation);
+  check('unknown eight-digit code is rejected safely', Boolean(invalidActivation && invalidActivation.ok
+    && invalidRow && invalidRow.status === 'invalid_code' && invalidRow.dealer_id === null));
+
+  const expiredActivationCode = String(recovered.result.activationCode);
+  activationSecrets.push(expiredActivationCode);
+  const expiringRows = await serviceTable('dealer_access_codes', `?dealer_id=eq.${encodeURIComponent(collision.dealerId)}&status=eq.active&select=id`);
+  const expiringId = expiringRows.ok && expiringRows.data[0] ? expiringRows.data[0].id : null;
+  const expiredPatch = expiringId ? await serviceTable('dealer_access_codes', `?id=eq.${encodeURIComponent(expiringId)}`, {
+    method: 'PATCH', body: { expires_at: new Date(Date.now() - 60000).toISOString() }, prefer: 'return=minimal'
   }) : { ok: false };
-  const secondRow = Array.isArray(secondActivation.data) ? secondActivation.data[0] : null;
-  const secondApproval = secondRow ? await rpc('plotmap_admin_approve_activation_request', {
-    p_request_id: secondRow.request_id,
+  const expiredActivation = expiredPatch.ok
+    ? await activateDevice(expiredActivationCode, crypto.randomBytes(32).toString('hex'), 'Expired-code verifier')
+    : { ok: false };
+  const expiredActivationRow = firstRow(expiredActivation);
+  check('expired activation code is rejected', expiredActivation.ok && expiredActivationRow
+    && expiredActivationRow.status === 'expired' && expiredActivationRow.dealer_id === null);
+
+  const partialCode = String(partialResult.result.activationCode);
+  const partialToken = crypto.randomBytes(32).toString('hex');
+  const futureTrialEnd = new Date(Date.now() + 14 * 86400000).toISOString();
+  activationSecrets.push(partialCode);
+  deviceSecrets.push(partialToken);
+  const suspended = await setDealerAccount(partialPayload.dealerId, admin.token, 'suspended', futureTrialEnd);
+  const suspendedActivation = suspended.ok
+    ? await activateDevice(partialCode, partialToken, 'Suspended-dealer verifier')
+    : { ok: false };
+  const suspendedRow = firstRow(suspendedActivation);
+  check('suspended dealer activation is rejected', suspendedActivation.ok && suspendedRow
+    && suspendedRow.status === 'dealer_inactive' && suspendedRow.dealer_id === null);
+
+  const expiredTrialSet = await setDealerAccount(
+    partialPayload.dealerId,
+    admin.token,
+    'active',
+    new Date(Date.now() - 60000).toISOString()
+  );
+  const expiredTrialActivation = expiredTrialSet.ok
+    ? await activateDevice(partialCode, partialToken, 'Expired-trial verifier')
+    : { ok: false };
+  const expiredTrialRow = firstRow(expiredTrialActivation);
+  check('expired dealer trial activation is rejected', expiredTrialActivation.ok && expiredTrialRow
+    && expiredTrialRow.status === 'dealer_inactive' && expiredTrialRow.dealer_id === null);
+  const partialRestored = await setDealerAccount(partialPayload.dealerId, admin.token, 'active', futureTrialEnd);
+  check('inactive-account fixture is restored for isolation test', partialRestored.ok);
+
+  const crossDealerAttempt = partialRestored.ok
+    ? await activateDevice(partialCode, partialToken, 'Cross-dealer verifier', { p_dealer_id: first.dealerId })
+    : { ok: false };
+  check('caller cannot inject a different dealer id', !crossDealerAttempt.ok);
+  const scopedActivation = partialRestored.ok
+    ? await activateDevice(partialCode, partialToken, 'Dealer-scoped verifier')
+    : { ok: false };
+  const scopedRow = firstRow(scopedActivation);
+  check('activation dealer comes only from the code row', scopedActivation.ok && scopedRow
+    && scopedRow.status === 'approved' && scopedRow.dealer_id === partialPayload.dealerId);
+
+  const secondCodeResult = await createDealerActivationCode(first.dealerId, admin.token, 'Second-device verifier');
+  const secondCode = secondCodeResult.code;
+  const secondToken = crypto.randomBytes(32).toString('hex');
+  activationSecrets.push(secondCode);
+  deviceSecrets.push(secondToken);
+  const limitAttempt = secondCodeResult.result.ok
+    ? await activateDevice(secondCode, secondToken, 'Second verifier device')
+    : { ok: false };
+  const limitRow = firstRow(limitAttempt);
+  check('device limit is enforced before code consumption', limitAttempt.ok && limitRow
+    && limitRow.status === 'device_limit_reached' && limitRow.dealer_id === null);
+
+  const raisedLimit = await rpc('plotmap_admin_set_dealer_device_limit', {
     p_dealer_id: first.dealerId,
-    p_business_name: first.businessName,
-    p_owner_name: first.ownerName,
-    p_owner_phone: first.ownerPhone,
-    p_primary_area: first.primaryArea,
-    p_developer_notes: 'device limit verification'
-  }, admin.token) : { ok: false, data: null };
-  check('second device is blocked at the configured limit', !secondApproval.ok && /DEALER_DEVICE_LIMIT_REACHED|device limit/i.test(rpcMessage(secondApproval)),
-    `code HTTP ${codeCreated.status}, submit HTTP ${secondActivation.status || 0}, approve HTTP ${secondApproval.status || 0}`);
+    p_max_devices_allowed: 2
+  }, admin.token);
+  const secondActivation = raisedLimit.ok
+    ? await activateDevice(secondCode, secondToken, 'Second verifier device')
+    : { ok: false };
+  const secondRow = firstRow(secondActivation);
+  check('second device with a new code auto-approves within the raised limit', secondActivation.ok && secondRow
+    && secondRow.status === 'approved' && secondRow.dealer_id === first.dealerId);
+
+  const replacementCodeResult = await createDealerActivationCode(first.dealerId, admin.token, 'Replacement-device verifier');
+  const replacementCode = replacementCodeResult.code;
+  const replacementToken = crypto.randomBytes(32).toString('hex');
+  activationSecrets.push(replacementCode);
+  deviceSecrets.push(replacementToken);
+  const replacementAtLimit = replacementCodeResult.result.ok
+    ? await activateDevice(replacementCode, replacementToken, 'Replacement verifier device')
+    : { ok: false };
+  const replacementLimitRow = firstRow(replacementAtLimit);
+  check('replacement device is blocked while the limit is full', replacementAtLimit.ok && replacementLimitRow
+    && replacementLimitRow.status === 'device_limit_reached' && replacementLimitRow.dealer_id === null);
 
   const devices = await rpc('plotmap_admin_list_dealer_devices', {}, admin.token);
   const approvedDevice = Array.isArray(devices.data)
-    ? devices.data.find(row => row.dealer_id === first.dealerId && row.status === 'approved')
+    ? devices.data.find(row => row.dealer_id === first.dealerId
+      && row.status === 'approved' && row.device_label === 'Provisioning verifier device')
     : null;
   const revoked = approvedDevice ? await rpc('plotmap_admin_set_device_status', {
     p_device_id: approvedDevice.id,
     p_status: 'revoked',
-    p_developer_notes: 'staging verifier cleanup'
+    p_developer_notes: 'staging replacement verification'
   }, admin.token) : { ok: false };
   const afterRevoke = revoked.ok ? await rpc('plotmap_device_is_approved', {
     p_dealer_id: first.dealerId,
@@ -522,22 +659,87 @@ async function run() {
   }) : { ok: false };
   check('revoked device is blocked', revoked.ok && afterRevoke.ok && afterRevoke.data === false);
 
+  const replacementActivation = revoked.ok
+    ? await activateDevice(replacementCode, replacementToken, 'Replacement verifier device')
+    : { ok: false };
+  const replacementRow = firstRow(replacementActivation);
+  check('new replacement-device code works after revocation', replacementActivation.ok && replacementRow
+    && replacementRow.status === 'approved' && replacementRow.dealer_id === first.dealerId);
+
+  const oldSubmit = await rpc('plotmap_submit_activation_request', {
+    p_access_code: randomCode(),
+    p_device_token: crypto.randomBytes(32).toString('hex'),
+    p_business_name: null,
+    p_owner_name: null,
+    p_owner_phone: null,
+    p_primary_area: null,
+    p_device_label: 'Blocked legacy submit',
+    p_browser_info: 'Node staging verifier'
+  });
+  check('anonymous callers cannot create new legacy pending requests', !oldSubmit.ok);
+
+  const raceLimitRaised = await rpc('plotmap_admin_set_dealer_device_limit', {
+    p_dealer_id: concurrentPayload.dealerId,
+    p_max_devices_allowed: 2
+  }, admin.token);
+  const raceHashRows = await serviceTable('dealer_devices', `?dealer_id=eq.${encodeURIComponent(concurrentPayload.dealerId)}&status=eq.approved&select=device_token_hash&limit=1`);
+  const legacyHash = raceHashRows.ok && raceHashRows.data[0] ? raceHashRows.data[0].device_token_hash : null;
+  const legacyInsert = raceLimitRaised.ok && legacyHash ? await serviceTable('dealer_activation_requests', '', {
+    method: 'POST',
+    body: {
+      lookup_token_hash: legacyHash,
+      status: 'pending',
+      dealer_id: concurrentPayload.dealerId,
+      requested_business_name: concurrentPayload.businessName,
+      requested_owner_name: concurrentPayload.ownerName,
+      requested_primary_area: concurrentPayload.primaryArea,
+      device_label: 'Legacy pending verifier',
+      device_token_hash: legacyHash,
+      browser_info: 'Node staging verifier'
+    },
+    prefer: 'return=representation'
+  }) : { ok: false };
+  const legacyRequest = legacyInsert.ok && legacyInsert.data[0] ? legacyInsert.data[0] : null;
+  const legacyApproval = legacyRequest ? await rpc('plotmap_admin_approve_activation_request', {
+    p_request_id: legacyRequest.id,
+    p_dealer_id: concurrentPayload.dealerId,
+    p_business_name: null,
+    p_owner_name: null,
+    p_owner_phone: null,
+    p_primary_area: null,
+    p_developer_notes: 'legacy staging verification'
+  }, admin.token) : { ok: false };
+  const legacyStatus = legacyApproval.ok ? await rpc('plotmap_activation_request_status', {
+    p_request_id: legacyRequest.id,
+    p_lookup_token: raceWinnerToken
+  }) : { ok: false };
+  const legacyStatusRow = firstRow(legacyStatus);
+  check('existing legacy pending requests can still be approved', legacyApproval.ok && legacyStatus.ok
+    && legacyStatusRow && legacyStatusRow.status === 'approved'
+    && legacyStatusRow.dealer_id === concurrentPayload.dealerId);
+
+  const dealer360AfterActivation = await rpc('plotmap_admin_dealer_360', { p_dealer_id: first.dealerId }, admin.token);
+  check('auto-approved dealer remains available in Dealer 360', dealer360AfterActivation.ok
+    && dealer360AfterActivation.data && typeof dealer360AfterActivation.data === 'object');
+
   const passcodeRows = await serviceTable('dealer_passcodes', `?dealer_id=eq.${encodeURIComponent(first.dealerId)}&select=passcode_hash`);
-  const codeRows = await serviceTable('dealer_access_codes', `?dealer_id=eq.${encodeURIComponent(first.dealerId)}&select=code_hash`);
+  const codeRows = await serviceTable('dealer_access_codes', `?dealer_id=eq.${encodeURIComponent(first.dealerId)}&select=code_hash,redeemed_device_id`);
+  const deviceRows = await serviceTable('dealer_devices', `?dealer_id=eq.${encodeURIComponent(first.dealerId)}&select=device_token_hash,status`);
   const attemptRows = await serviceTable('dealer_provisioning_attempts', `?dealer_id=eq.${encodeURIComponent(first.dealerId)}&select=passcode_retry_hash,idempotency_key_hash,request_fingerprint,status`);
   const auditRows = await serviceTable('audit_logs', `?dealer_id=eq.${encodeURIComponent(first.dealerId)}&select=action_type,metadata`);
   const analyticsRows = await serviceTable('presentation_events', `?dealer_id=eq.${encodeURIComponent(first.dealerId)}&select=event_type,metadata`);
-  const inspected = [passcodeRows, codeRows, attemptRows, auditRows, analyticsRows].every(result => result.ok);
-  const storedText = inspected ? JSON.stringify([passcodeRows.data, codeRows.data, attemptRows.data, auditRows.data, analyticsRows.data]) : '';
+  const inspected = [passcodeRows, codeRows, deviceRows, attemptRows, auditRows, analyticsRows].every(result => result.ok);
+  const storedText = inspected ? JSON.stringify([passcodeRows.data, codeRows.data, deviceRows.data, attemptRows.data, auditRows.data, analyticsRows.data]) : '';
   check('credential tables contain hashes and completed retry hash is cleared', inspected
     && Array.isArray(passcodeRows.data) && passcodeRows.data.every(row => /^\$2[aby]\$/.test(row.passcode_hash))
     && Array.isArray(codeRows.data) && codeRows.data.every(row => /^\$2[aby]\$/.test(row.code_hash))
+    && Array.isArray(deviceRows.data) && deviceRows.data.every(row => /^\$2[aby]\$/.test(row.device_token_hash))
     && Array.isArray(attemptRows.data) && attemptRows.data.every(row => row.status !== 'completed' || row.passcode_retry_hash === null));
-  check('credentials are absent from audit and analytics records', inspected
+  check('activation codes and device tokens are absent from stored records', inspected
     && !storedText.includes(passcodeOne)
     && !storedText.includes(replacementPasscode)
-    && !storedText.includes(activationCode)
-    && !storedText.includes(secondCode));
+    && activationSecrets.every(secret => !storedText.includes(secret))
+    && deviceSecrets.every(secret => !storedText.includes(secret)));
 
   for (const dealerId of completedDealers) {
     check(`completed staging dealer suspended (${dealerId})`, await suspendDealer(dealerId, admin.token));

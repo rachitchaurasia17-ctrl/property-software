@@ -13,7 +13,9 @@ const vm = require('vm');
 const ROOT = path.resolve(__dirname, '..');
 const files = {
   migration: path.join(ROOT, 'supabase', 'migrations', '20260722_one_click_dealer_provisioning.sql'),
+  activation: path.join(ROOT, 'supabase', 'migrations', '20260723_auto_approve_device_activation.sql'),
   edge: path.join(ROOT, 'supabase', 'functions', 'provision-dealer', 'index.ts'),
+  gateway: path.join(ROOT, 'index.html'),
   developer: path.join(ROOT, 'admin', 'developer.html'),
   css: path.join(ROOT, 'admin', 'developer-control.css')
 };
@@ -21,7 +23,8 @@ const files = {
 const source = Object.fromEntries(
   Object.entries(files).map(([name, filename]) => [name, fs.readFileSync(filename, 'utf8')])
 );
-const sqlWithoutComments = source.migration.replace(/--.*$/gm, '');
+const migrationSql = `${source.migration}\n${source.activation}`;
+const sqlWithoutComments = migrationSql.replace(/--.*$/gm, '');
 const checks = [];
 
 function check(name, ok, detail = '') {
@@ -31,7 +34,7 @@ function check(name, ok, detail = '') {
 
 function functionBody(name) {
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const match = source.migration.match(new RegExp(
+  const match = migrationSql.match(new RegExp(
     `create\\s+or\\s+replace\\s+function\\s+public\\.${escaped}\\b[\\s\\S]*?as\\s+\\$\\$([\\s\\S]*?)\\$\\$;`,
     'i'
   ));
@@ -116,6 +119,31 @@ function run() {
   ]));
   check('old unscoped activation RPC is revoked', /revoke all on function public\.plotmap_admin_create_activation_code[\s\S]*?from public, anon, authenticated/i.test(source.migration));
 
+  const activationBody = functionBody('plotmap_activate_device');
+  check('atomic activation RPC exists', Boolean(activationBody));
+  check('activation code and dealer rows are transaction-locked', hasAll(activationBody, [
+    /from public\.dealer_access_codes c[\s\S]*?for update/i,
+    /from public\.dealer_settings d[\s\S]*?for update/i
+  ]));
+  check('atomic activation enforces account and device limits', hasAll(activationBody, [
+    /plotmap_dealer_is_active\(v_code\.dealer_id\)/i,
+    /v_approved_devices >= v_max_devices/i,
+    /device_limit_reached/i
+  ]));
+  check('atomic activation stores only a bcrypt device token hash', hasAll(activationBody, [
+    /crypt\(trim\(p_device_token\), gen_salt\('bf', 10\)\)/i,
+    /redeemed_device_id = v_device_id/i,
+    /status = 'disabled'/i
+  ]) && !/insert into public\.dealer_devices[\s\S]*?p_device_token\s*,/i.test(activationBody));
+  check('same-code concurrency has a same-device idempotent path', hasAll(activationBody, [
+    /v_code\.redeemed_device_id is not null/i,
+    /v_device\.device_token_hash = crypt\(trim\(p_device_token\), v_device\.device_token_hash\)/i,
+    /return query select 'already_used'/i
+  ]));
+  check('new activation creates no pending request', !/insert into public\.dealer_activation_requests/i.test(activationBody));
+  check('legacy request creation is no longer browser executable', /revoke all on function public\.plotmap_submit_activation_request\(text, text, text, text, text, text, text, text\)[\s\S]*?from public, anon, authenticated/i.test(source.activation));
+  check('legacy request approval remains available', /plotmap_admin_approve_activation_request/i.test(source.migration));
+
   const envNames = [...source.edge.matchAll(/Deno\.env\.get\('([^']+)'\)/g)].map(match => match[1]).sort();
   const expectedEnv = ['PLOTMAP_ALLOWED_ORIGINS', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_URL'].sort();
   check('Edge Function reads only approved environment names', JSON.stringify(envNames) === JSON.stringify(expectedEnv), envNames.join(', '));
@@ -156,6 +184,18 @@ function run() {
   ]) && !/localStorage|sessionStorage|console\./i.test(createSection));
   check('navigation cannot hide an in-flight credential result', /nextSection !== 'create' && provisioningSubmitting/i.test(source.developer));
   check('activation UI calls dealer-scoped RPC', /plotmap_admin_create_dealer_activation_code/i.test(source.developer));
+  check('public gateway uses atomic activation RPC', /rpc\/plotmap_activate_device/i.test(source.gateway)
+    && !/rpc\/plotmap_submit_activation_request/i.test(source.gateway));
+  check('public gateway shows safe activation failures only', hasAll(source.gateway, [
+    /Invalid activation code/i,
+    /Activation code expired/i,
+    /Activation code already used/i,
+    /Device limit reached/i,
+    /Dealer account is not active/i,
+    /Activation could not be completed/i
+  ]) && !/statusEl\.textContent = e\.message/i.test(source.gateway));
+  check('successful activation opens dealer login immediately', /revealDoors\(\);\s*await openDealer\(\)/i.test(source.gateway));
+  check('activation code is never persisted by the gateway', !/localStorage\.setItem\([^\n]*activation[^\n]*code/i.test(source.gateway));
   check('approval dealer field is read-only', /id="a-dealer-id" readonly/i.test(source.developer));
   check('new success and progress UI has responsive CSS', hasAll(source.css, [
     /\.provisioning-progress/i,
