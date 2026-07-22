@@ -1,7 +1,7 @@
 # One-click dealer provisioning
 
-Status: staging verified. Production remains blocked until the branch Preview
-is verified and a separate production rollout is explicitly approved.
+Status: staging and protected branch Preview verified. Production remains
+blocked until a separate production rollout is explicitly approved.
 
 ## Existing systems reused
 
@@ -163,6 +163,11 @@ Verified on 22 July 2026 against the guarded non-production staging project:
   client reads, and cross-dealer event rejection.
 - Runtime configuration verifier: 6/6. A Preview-mode build contained the
   complete staging public pair, no production project ref, and no secret key.
+- The Vercel Preview serves that same staging runtime pair with `no-store`
+  caching. Deployed Developer Control, CSS, and Client Presentation assets
+  match the staging build; Vercel adds only its normal Preview toolbar script.
+- The Preview origin receives a `204` Edge preflight with an exact origin
+  response. An untrusted origin receives `403`.
 - Local Developer Control, all main sections, all seven Dealer 360 tabs, and
   Client Presentation loaded without console warnings or errors.
 - Tablet landscape had no horizontal overflow. Client Presentation contained
