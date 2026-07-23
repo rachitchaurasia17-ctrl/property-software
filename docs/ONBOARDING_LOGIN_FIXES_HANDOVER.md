@@ -1,7 +1,7 @@
 # Onboarding / Login / Devices / Deletion — implementation + runbook
 
 Branch: `fix/onboarding-login-simplify` (off production `main` @ `5b65570`).
-Head: `83d3526`. Preview: `https://xyz-ix568e169-rachitchaurasia17-4865s-projects.vercel.app`
+Claude handoff: `5904aac`. Preview: `https://xyz-ix568e169-rachitchaurasia17-4865s-projects.vercel.app`
 (preview target, staging Supabase, secret scan clean).
 
 Codex's live systems (provisioning, `provision-dealer`, `plotmap_activate_device`,
@@ -36,10 +36,10 @@ the exact steps below.
    Device not activated · Device access revoked · Trial expired · Account
    suspended · Device limit reached. Account-inactive without a server split
    shows a combined message and never mislabels an active trial as expired.
-   *Limitation:* precisely splitting "trial expired" vs "suspended" on the
-   **dealer's own** block screen needs a tiny client-safe RPC (there is no
-   client-callable "why inactive" today). Wired everywhere the reason is
-   known; the two distinct states exist and render.
+   The additive rollout migration adds a token-bound, read-only reason RPC so
+   the dealer's own block screen can distinguish trial expiry from suspension
+   without exposing account state to arbitrary anonymous callers or creating
+   a legacy pending-device row.
 3. **Developer Control consolidated** to 6 nav items — Platform Overview,
    All Dealers, Dealer 360, Device Codes, Dealer Devices, Create Dealer.
    Standalone "Account Controls" removed; every per-dealer action lives in
@@ -50,8 +50,8 @@ the exact steps below.
    (`datetime-local`, +24h default, single-use), legacy pending list hidden
    unless legacy rows exist; **Dealer 360 → Devices → Generate device code**
    jumps there with the dealer preselected.
-5. **Delete-dealer — production-quality DRAFTS (NOT applied/deployed):**
-   `supabase/migrations/20260724_delete_dealer_draft.sql` (advisory lock,
+5. **Delete-dealer — finalized for staging verification (NOT applied/deployed):**
+   `supabase/migrations/20260724000100_onboarding_access_and_dealer_deletion.sql` (advisory lock,
    idempotent already-deleted path, excludes caller / platform admins /
    users shared with another dealer from Auth deletion, id-or-brand
    confirmation, secret-free tombstone with an operation id) +
@@ -65,10 +65,8 @@ the exact steps below.
 1. Point the CLI at staging: `supabase link --project-ref rhmimpcirjbksjmhludg`.
    **Verify** `supabase projects list` shows staging `linked: true` before
    any apply.
-2. Apply the two migrations (controlled, NOT `db push`):
-   `supabase migration up` — or run each file in the staging SQL editor:
-   `20260724_delete_dealer_draft.sql` (plus any earlier Dealer-360 drafts if
-   staging doesn't already have them).
+2. Apply only the reviewed additive migration (controlled, NOT `db push`):
+   `20260724000100_onboarding_access_and_dealer_deletion.sql`.
 3. Deploy the edge function to staging with JWT verification and the origin
    allow-list:
    `supabase functions deploy delete-dealer --project-ref rhmimpcirjbksjmhludg`
@@ -90,7 +88,7 @@ the exact steps below.
 3. Read-only preflight (functions absent, RLS on, platform admin exists).
 4. Deploy `delete-dealer` to production with `PLOTMAP_ALLOWED_ORIGINS =
    https://property-software.vercel.app` and the service-role secret.
-5. Apply `20260724_delete_dealer_draft.sql` (additive) to production.
+5. Apply `20260724000100_onboarding_access_and_dealer_deletion.sql` (additive) to production.
 6. Post-checks (function exists + admin-gated; tombstone table deny-all;
    ingestion still gated).
 7. Merge `fix/onboarding-login-simplify` → `main`; push. Vercel builds

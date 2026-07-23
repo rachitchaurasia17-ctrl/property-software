@@ -599,12 +599,14 @@
         body: JSON.stringify({ dealer_id: dealerId, confirm: dealerId })
       });
       if (res.status === 404) {
-        log.textContent = 'Delete is not enabled on this server yet. Apply migration 20260724_delete_dealer_draft.sql and deploy the delete-dealer function first.';
+        log.textContent = 'Delete is not enabled on this server yet. Apply migration 20260724000100_onboarding_access_and_dealer_deletion.sql and deploy the delete-dealer function first.';
         return;
       }
       const data = await res.json().catch(() => null);
       if (!res.ok || !data || !data.ok) {
-        log.textContent = 'Delete failed: ' + ((data && (data.error || data.message)) || ('HTTP ' + res.status)) + '. Nothing may have been removed — review before retrying.';
+        log.textContent = data && data.retryable
+          ? 'Dealer data was removed, but login cleanup is incomplete. Retry this deletion to finish safely.'
+          : 'Delete failed. Nothing was confirmed deleted; review before retrying.';
         return;
       }
       log.textContent = 'Deleted. Refreshing…';

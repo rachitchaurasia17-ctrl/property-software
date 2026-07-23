@@ -1,4 +1,4 @@
-// PlotMap permanent dealer deletion (DESTRUCTIVE) — DRAFT, NOT DEPLOYED.
+// PlotMap permanent dealer deletion (DESTRUCTIVE).
 //
 // Inverse of `provision-dealer`. The ONLY layer allowed to use
 // SUPABASE_SERVICE_ROLE_KEY. It:
@@ -12,7 +12,8 @@
 // `--verify-jwt` and PLOTMAP_ALLOWED_ORIGINS set to the production origin.
 // Test on staging before enabling in production.
 //
-// ROLLOUT: apply supabase/migrations/20260724_delete_dealer_draft.sql first,
+// ROLLOUT: apply
+// supabase/migrations/20260724000100_onboarding_access_and_dealer_deletion.sql first,
 // then deploy this function. Until both are live the Developer Control
 // "Delete dealer" action degrades to "not enabled on this server yet".
 
@@ -85,7 +86,9 @@ Deno.serve(async (request: Request): Promise<Response> => {
   if (!token) return json(origin, { error: 'PLATFORM_ADMIN_REQUIRED' }, 401);
 
   const raw = await request.text();
-  if (raw.length > MAX_REQUEST_BYTES) return json(origin, { error: 'INVALID_REQUEST' }, 413);
+  if (new TextEncoder().encode(raw).byteLength > MAX_REQUEST_BYTES) {
+    return json(origin, { error: 'INVALID_REQUEST' }, 413);
+  }
   let payload: JsonRecord;
   try { payload = raw ? JSON.parse(raw) as JsonRecord : {}; } catch { return json(origin, { error: 'INVALID_REQUEST' }, 400); }
 
@@ -114,14 +117,34 @@ Deno.serve(async (request: Request): Promise<Response> => {
   const authIds = Array.isArray(summary.auth_user_ids) ? (summary.auth_user_ids as string[]) : [];
 
   // 2) Remove the owner Auth user(s) from GoTrue (service role).
-  const authResults: Record<string, string> = {};
+  let authDeleted = 0;
+  let authFailed = 0;
   for (const id of authIds) {
-    if (!/^[0-9a-f-]{36}$/i.test(String(id))) continue;
+    if (!/^[0-9a-f-]{36}$/i.test(String(id))) {
+      authFailed += 1;
+      continue;
+    }
     const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${id}`, {
       method: 'DELETE',
       headers: { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
     });
-    authResults[String(id)] = res.ok ? 'deleted' : 'auth_delete_failed';
+    if (res.ok || res.status === 404) authDeleted += 1;
+    else authFailed += 1;
+  }
+
+  // The database purge is durable and idempotent. Surface incomplete Auth
+  // cleanup as a retryable failure so the UI cannot report full success while
+  // a login still exists. A repeat call reuses the tombstone's Auth ids.
+  if (authFailed > 0) {
+    return json(origin, {
+      ok: false,
+      error: 'AUTH_CLEANUP_INCOMPLETE',
+      retryable: true,
+      dealer_id: dealerId,
+      operation_id: summary.operation_id || null,
+      auth_users_deleted: authDeleted,
+      auth_users_pending: authFailed,
+    }, 502);
   }
 
   return json(origin, {
@@ -130,6 +153,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
     already_deleted: summary.already_deleted === true,
     operation_id: summary.operation_id || null,
     removed: summary.deleted || {},
-    auth_users: authResults,
+    auth_users_deleted: authDeleted,
+    auth_users_pending: 0,
   }, 200);
 });

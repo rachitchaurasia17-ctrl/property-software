@@ -54,14 +54,9 @@
     return { ok: true, data: await res.json().catch(() => null) };
   }
 
-  // The device-approval / device-status RPCs are SECURITY DEFINER and granted
-  // to anon — they compare only bcrypt hashes and need no caller identity. We
-  // still PREFER the signed-in JWT when asked (so RLS-aware paths stay honest),
-  // but a stale/expired JWT makes PostgREST reject the request with 401 BEFORE
-  // the function runs, which would misreport an approved device as unapproved.
-  // So on 401/403 from the authenticated attempt we retry once with the anon
-  // key, which yields the correct hash-based answer. This is the fix for
-  // "device was activated but login says not approved / access revoked".
+  // Legacy device-status callers may request an authenticated attempt. A stale
+  // JWT is allowed to fall back to anon because this RPC is explicitly granted
+  // to anon and compares only server-side hashes.
   async function rpc(name, payload, authenticated) {
     if (authenticated && window.PMAuth && typeof window.PMAuth.getAccessToken === 'function') {
       const token = await window.PMAuth.getAccessToken().catch(() => null);
@@ -83,19 +78,13 @@
   async function isApproved(dealerId, options) {
     const id = dealerId || resolveDealerId('');
     if (!id) return { ok: false, statusText: 'no_dealer', dealerId: '' };
-    // Device approval is a pure bcrypt-hash check (dealer active + device
-    // token possession) exposed as a SECURITY DEFINER RPC granted to anon.
-    // It needs NO caller identity, so we ALWAYS call it through the anon
-    // client — attaching a dealer JWT only risks a stale-token 401 that
-    // PostgREST returns before the function runs, which is what falsely
-    // blocked freshly-activated devices. (`options.authenticated` is
-    // deliberately ignored for this call; rpc() still keeps a 401→anon
-    // retry as a belt-and-suspenders safeguard for any future caller.)
+    // Approval is always anon-direct. A stale dealer JWT can therefore never
+    // block the server-side token hash check before the RPC runs.
     void (options && options.authenticated);
-    const result = await rpc('plotmap_device_is_approved', {
+    const result = await callRpc('plotmap_device_is_approved', {
       p_dealer_id: id,
       p_device_token: getToken()
-    }, false);
+    }, SUPABASE_KEY);
     if (!result.ok) {
       return { ok: false, dealerId: id, statusText: result.migrationMissing ? 'migration_required' : 'error', migrationMissing: !!result.migrationMissing };
     }
@@ -120,6 +109,28 @@
     const row = Array.isArray(result.data) ? result.data[0] : null;
     const statusText = row && row.status ? row.status : 'unknown';
     return { ok: statusText === 'approved', dealerId: (row && row.dealer_id) || id, statusText };
+  }
+
+  // Read-only reason lookup. Unlike the legacy plotmap_device_status RPC,
+  // this never creates a pending device row. Account state is returned only
+  // when the caller possesses a token already stored for this dealer.
+  async function getAccessReason(dealerId) {
+    const id = dealerId || resolveDealerId('');
+    if (!id) return { ok: false, dealerId: '', statusText: 'device_not_activated' };
+    const result = await callRpc('plotmap_device_access_reason', {
+      p_dealer_id: id,
+      p_device_token: getToken()
+    }, SUPABASE_KEY);
+    if (!result.ok) {
+      return {
+        ok: false,
+        dealerId: id,
+        statusText: result.migrationMissing ? 'migration_required' : 'device_not_activated',
+        migrationMissing: !!result.migrationMissing
+      };
+    }
+    const statusText = typeof result.data === 'string' ? result.data : 'device_not_activated';
+    return { ok: statusText === 'approved', dealerId: id, statusText };
   }
 
   // Reason keys → { title, body }. Falls back to a literal message for any
@@ -167,16 +178,14 @@
   }
 
   // Gate a protected route. Read-only (isApproved) — never registers a device.
-  // On a block, best-effort resolve the precise reason (revoked vs
-  // not-activated vs account) so the message is accurate. getStatus only
-  // side-effects (a bounded pending row) for a device that has never been
-  // seen — an already-activated-then-revoked device just reads its row.
+  // On a block, resolve the precise reason without registering a device or
+  // creating a legacy pending request.
   async function requireApproved(dealerId, options) {
     const status = await isApproved(dealerId, options || {});
     if (status.ok) return status;
     // Enrich the block reason when the plain gate only said 'unapproved'.
     if (status.statusText === 'unapproved' && !(options && options.skipReasonLookup)) {
-      const detail = await getStatus(dealerId, options || {}).catch(() => null);
+      const detail = await getAccessReason(dealerId).catch(() => null);
       if (detail && detail.statusText) status.statusText = detail.statusText;
     }
     if (options && options.render !== false) {
@@ -185,13 +194,15 @@
       // inactive; 'revoked'/'rejected' are device-level; everything else is
       // "not activated yet".
       const reason = status.migrationMissing ? 'migration_required'
-        : status.statusText === 'blocked' ? 'account_blocked'
-        : status.statusText === 'revoked' || status.statusText === 'rejected' ? 'device_revoked'
+        : status.statusText === 'trial_expired' ? 'trial_expired'
+        : status.statusText === 'account_suspended' ? 'account_suspended'
+        : status.statusText === 'account_blocked' ? 'account_blocked'
+        : status.statusText === 'device_revoked' ? 'device_revoked'
         : 'device_not_approved';
       renderBlocked((options && options.message) || reason);
     }
     return status;
   }
 
-  window.PMDeviceAccess = { getToken, resolveDealerId, isApproved, getStatus, requireApproved, renderBlocked };
+  window.PMDeviceAccess = { getToken, resolveDealerId, isApproved, getStatus, getAccessReason, requireApproved, renderBlocked };
 })();
