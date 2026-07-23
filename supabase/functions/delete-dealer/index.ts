@@ -27,6 +27,8 @@ const ALLOWED_ORIGINS = new Set(
     .split(',').map((v) => v.trim().replace(/\/$/, '')).filter(Boolean),
 );
 const MAX_REQUEST_BYTES = 4 * 1024;
+const PHOTO_BUCKET = 'property-photos';
+const MAX_STORAGE_OBJECTS = 10000;
 
 function corsHeaders(origin: string | null): HeadersInit {
   const allowed = origin && ALLOWED_ORIGINS.has(origin.replace(/\/$/, '')) ? origin : '';
@@ -70,6 +72,71 @@ async function validUser(token: string): Promise<boolean> {
     headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
   });
   return response.ok && !!(data && (data as JsonRecord).id);
+}
+
+function storageBucketMissing(response: Response, data: unknown): boolean {
+  if (response.status === 404) return true;
+  const message = data && typeof data === 'object' ? String((data as JsonRecord).message || '') : '';
+  return response.status === 400 && /bucket[^a-z]+not[^a-z]+found/i.test(message);
+}
+
+async function deleteDealerPhotoObjects(dealerId: string): Promise<number> {
+  const root = `dealers/${dealerId}`;
+  const directories = [root];
+  const visited = new Set<string>();
+  const objects: string[] = [];
+
+  while (directories.length) {
+    const prefix = directories.shift() as string;
+    if (visited.has(prefix)) continue;
+    visited.add(prefix);
+    let offset = 0;
+
+    while (true) {
+      const listed = await fetchJson(`${SUPABASE_URL}/storage/v1/object/list/${PHOTO_BUCKET}`, {
+        method: 'POST',
+        headers: {
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prefix, limit: 100, offset, sortBy: { column: 'name', order: 'asc' } }),
+      });
+      if (storageBucketMissing(listed.response, listed.data)) return 0;
+      if (!listed.response.ok || !Array.isArray(listed.data)) throw new Error('storage_list_failed');
+
+      for (const raw of listed.data) {
+        if (!raw || typeof raw !== 'object') continue;
+        const item = raw as JsonRecord;
+        const name = String(item.name || '').replace(/^\/+|\/+$/g, '');
+        if (!name || name === '.' || name === '..') continue;
+        const objectPath = `${prefix}/${name}`;
+        if (item.id || item.metadata) objects.push(objectPath);
+        else directories.push(objectPath);
+        if (objects.length > MAX_STORAGE_OBJECTS || directories.length > MAX_STORAGE_OBJECTS) {
+          throw new Error('storage_limit_exceeded');
+        }
+      }
+
+      if (listed.data.length < 100) break;
+      offset += listed.data.length;
+    }
+  }
+
+  for (let i = 0; i < objects.length; i += 100) {
+    const response = await fetch(`${SUPABASE_URL}/storage/v1/object/${PHOTO_BUCKET}`, {
+      method: 'DELETE',
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ prefixes: objects.slice(i, i + 100) }),
+    });
+    if (!response.ok) throw new Error('storage_delete_failed');
+  }
+
+  return objects.length;
 }
 
 Deno.serve(async (request: Request): Promise<Response> => {
@@ -116,6 +183,22 @@ Deno.serve(async (request: Request): Promise<Response> => {
   // interrupted Auth cleanup (compensation / recoverable path).
   const authIds = Array.isArray(summary.auth_user_ids) ? (summary.auth_user_ids as string[]) : [];
 
+  // Storage is intentionally removed through the Storage API. Supabase
+  // forbids direct SQL deletion from storage.objects. On failure, the durable
+  // SQL tombstone makes this whole external cleanup path safely retryable.
+  let photoObjectsDeleted = 0;
+  try {
+    photoObjectsDeleted = await deleteDealerPhotoObjects(dealerId);
+  } catch (_) {
+    return json(origin, {
+      ok: false,
+      error: 'STORAGE_CLEANUP_INCOMPLETE',
+      retryable: true,
+      dealer_id: dealerId,
+      operation_id: summary.operation_id || null,
+    }, 502);
+  }
+
   // 2) Remove the owner Auth user(s) from GoTrue (service role).
   let authDeleted = 0;
   let authFailed = 0;
@@ -153,6 +236,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
     already_deleted: summary.already_deleted === true,
     operation_id: summary.operation_id || null,
     removed: summary.deleted || {},
+    property_photo_objects_deleted: photoObjectsDeleted,
     auth_users_deleted: authDeleted,
     auth_users_pending: 0,
   }, 200);

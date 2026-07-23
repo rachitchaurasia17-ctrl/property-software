@@ -664,7 +664,8 @@ async function run() {
     : { ok: false };
   const replacementRow = firstRow(replacementActivation);
   check('new replacement-device code works after revocation', replacementActivation.ok && replacementRow
-    && replacementRow.status === 'approved' && replacementRow.dealer_id === first.dealerId);
+    && replacementRow.status === 'approved' && replacementRow.dealer_id === first.dealerId,
+    replacementRow ? `status ${replacementRow.status}` : `HTTP ${replacementActivation.status || 0}`);
 
   const oldSubmit = await rpc('plotmap_submit_activation_request', {
     p_access_code: randomCode(),

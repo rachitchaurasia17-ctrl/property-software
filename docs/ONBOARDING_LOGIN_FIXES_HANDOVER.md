@@ -50,7 +50,7 @@ the exact steps below.
    (`datetime-local`, +24h default, single-use), legacy pending list hidden
    unless legacy rows exist; **Dealer 360 → Devices → Generate device code**
    jumps there with the dealer preselected.
-5. **Delete-dealer — finalized for staging verification (NOT applied/deployed):**
+5. **Delete-dealer — finalized and verified on staging (not production):**
    `supabase/migrations/20260724000100_onboarding_access_and_dealer_deletion.sql` (advisory lock,
    idempotent already-deleted path, excludes caller / platform admins /
    users shared with another dealer from Auth deletion, id-or-brand
@@ -59,6 +59,19 @@ the exact steps below.
    retries Auth cleanup from the tombstone). UI in Dealer 360 → Account →
    Danger zone requires typed confirmation and degrades to "not enabled yet"
    until deployed.
+
+## Codex staging finalization
+
+- The finalized additive migration is applied to staging only. It also narrows
+  activation-code bcrypt candidates by lifecycle/retry window so historical
+  code rows cannot exhaust the public RPC timeout.
+- `delete-dealer` is deployed to staging with JWT verification and the single
+  approved Preview origin. Public-schema deletion is transactional; private
+  photo cleanup uses the supported Storage API, and Auth/storage failures are
+  retryable through the durable tombstone.
+- Live staging results: provisioning/activation `62/62`, onboarding/deletion
+  `27/27`, Dealer 360 `22/22`, and Phase 2 isolation passed. Disposable dealer
+  and rate-limit fixtures were removed; deletion tombstones were retained.
 
 ## STAGING runbook (do this first)
 

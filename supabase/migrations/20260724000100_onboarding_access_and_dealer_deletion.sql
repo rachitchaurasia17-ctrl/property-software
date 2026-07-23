@@ -104,6 +104,240 @@ revoke all on function public.plotmap_device_access_reason(text, text)
 grant execute on function public.plotmap_device_access_reason(text, text)
   to anon, authenticated;
 
+-- Keep public code redemption bounded as historical bcrypt hashes accumulate.
+-- Valid codes are checked first. Expired/consumed rows are considered only in
+-- a short recovery window, which preserves immediate retry and clear failure
+-- states without scanning the entire activation history on every request.
+create index if not exists dealer_access_codes_activation_candidates_idx
+  on public.dealer_access_codes (status, expires_at desc, redeemed_at desc, created_at desc);
+
+create or replace function public.plotmap_activate_device(
+  p_access_code text,
+  p_device_token text,
+  p_device_label text default null,
+  p_browser_info text default null
+)
+returns table (status text, dealer_id text)
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_now timestamptz := timezone('utc'::text, now());
+  v_code public.dealer_access_codes%rowtype;
+  v_device public.dealer_devices%rowtype;
+  v_device_id uuid;
+  v_max_devices integer;
+  v_approved_devices integer;
+begin
+  perform pg_sleep(0.25);
+
+  if p_access_code is null or trim(p_access_code) !~ '^[0-9]{8}$' then
+    return query select 'invalid_code'::text, null::text;
+    return;
+  end if;
+  if p_device_token is null
+     or length(trim(p_device_token)) < 32
+     or octet_length(trim(p_device_token)) > 512
+     or public.plotmap_provisioning_text_is_unsafe(trim(p_device_token)) then
+    return query select 'activation_failed'::text, null::text;
+    return;
+  end if;
+  if length(trim(coalesce(p_device_label, ''))) > 160
+     or length(trim(coalesce(p_browser_info, ''))) > 240
+     or public.plotmap_provisioning_text_is_unsafe(coalesce(p_device_label, ''))
+     or public.plotmap_provisioning_text_is_unsafe(coalesce(p_browser_info, '')) then
+    return query select 'activation_failed'::text, null::text;
+    return;
+  end if;
+
+  -- Normal path: only currently usable codes. There is at most one active
+  -- code per dealer, and normal codes expire within 24 hours.
+  select c.*
+    into v_code
+    from public.dealer_access_codes c
+    where c.dealer_id is not null
+      and c.status = 'active'
+      and c.expires_at > v_now
+      and c.use_count < c.max_uses
+      and c.code_hash = crypt(trim(p_access_code), c.code_hash)
+    order by c.created_at desc
+    limit 1
+    for update;
+
+  -- Safe immediate-retry path for a committed activation response that was
+  -- lost. Historical consumed rows outside this window remain rejected.
+  if not found then
+    select c.*
+      into v_code
+      from public.dealer_access_codes c
+      where c.dealer_id is not null
+        and c.status = 'disabled'
+        and c.redeemed_device_id is not null
+        and c.redeemed_at >= v_now - interval '15 minutes'
+        and c.code_hash = crypt(trim(p_access_code), c.code_hash)
+      order by c.redeemed_at desc
+      limit 1
+      for update;
+  end if;
+
+  -- Recently created expired codes receive the specific client-safe status;
+  -- older unknown/expired inputs collapse to invalid_code.
+  if not found then
+    select c.*
+      into v_code
+      from public.dealer_access_codes c
+      where c.dealer_id is not null
+        and c.status in ('active', 'expired')
+        and (c.expires_at is null or c.expires_at <= v_now)
+        and c.created_at >= v_now - interval '15 minutes'
+        and c.code_hash = crypt(trim(p_access_code), c.code_hash)
+      order by c.created_at desc
+      limit 1
+      for update;
+  end if;
+
+  if not found then
+    return query select 'invalid_code'::text, null::text;
+    return;
+  end if;
+
+  if v_code.redeemed_device_id is not null then
+    select d.*
+      into v_device
+      from public.dealer_devices d
+      where d.id = v_code.redeemed_device_id
+      for update;
+
+    if found
+       and v_device.status = 'approved'
+       and v_device.dealer_id = v_code.dealer_id
+       and v_device.device_token_hash = crypt(trim(p_device_token), v_device.device_token_hash) then
+      update public.dealer_devices
+         set last_seen = v_now,
+             updated_at = v_now
+       where id = v_device.id;
+      return query select 'approved'::text, v_code.dealer_id;
+      return;
+    end if;
+
+    return query select 'already_used'::text, null::text;
+    return;
+  end if;
+
+  if v_code.status = 'expired'
+     or v_code.expires_at is null
+     or v_code.expires_at <= v_now then
+    return query select 'expired'::text, null::text;
+    return;
+  end if;
+  if v_code.status <> 'active' or v_code.use_count >= v_code.max_uses then
+    return query select 'already_used'::text, null::text;
+    return;
+  end if;
+  if v_code.max_uses <> 1 then
+    return query select 'invalid_code'::text, null::text;
+    return;
+  end if;
+
+  -- The dealer row lock serializes different codes for one dealer so the
+  -- configured approved-device limit cannot be exceeded concurrently.
+  select coalesce(d.max_devices_allowed, 1)
+    into v_max_devices
+    from public.dealer_settings d
+    where d.dealer_id = v_code.dealer_id
+    for update;
+
+  if not found or not public.plotmap_dealer_is_active(v_code.dealer_id) then
+    return query select 'dealer_inactive'::text, null::text;
+    return;
+  end if;
+
+  select d.*
+    into v_device
+    from public.dealer_devices d
+    where d.dealer_id = v_code.dealer_id
+      and d.status = 'approved'
+      and d.device_token_hash = crypt(trim(p_device_token), d.device_token_hash)
+    order by d.created_at desc
+    limit 1
+    for update;
+
+  if found then
+    v_device_id := v_device.id;
+    update public.dealer_devices
+       set last_seen = v_now,
+           updated_at = v_now
+     where id = v_device_id;
+  else
+    select count(*)
+      into v_approved_devices
+      from public.dealer_devices d
+      where d.dealer_id = v_code.dealer_id
+        and d.status = 'approved';
+
+    if v_approved_devices >= v_max_devices then
+      return query select 'device_limit_reached'::text, null::text;
+      return;
+    end if;
+
+    insert into public.dealer_devices (
+      dealer_id,
+      device_token_hash,
+      status,
+      device_label,
+      browser_info,
+      approved_at,
+      updated_at
+    ) values (
+      v_code.dealer_id,
+      crypt(trim(p_device_token), gen_salt('bf', 10)),
+      'approved',
+      nullif(left(trim(coalesce(p_device_label, '')), 160), ''),
+      nullif(left(trim(coalesce(p_browser_info, '')), 240), ''),
+      v_now,
+      v_now
+    ) returning id into v_device_id;
+  end if;
+
+  update public.dealer_access_codes c
+     set use_count = 1,
+         status = 'disabled',
+         redeemed_device_id = v_device_id,
+         redeemed_at = v_now,
+         updated_at = v_now
+   where c.id = v_code.id;
+
+  insert into public.audit_logs (
+    dealer_id,
+    actor_profile_id,
+    actor_role,
+    action_type,
+    entity_type,
+    entity_id,
+    metadata
+  ) values (
+    v_code.dealer_id,
+    null,
+    null,
+    'dealer_device_auto_approved',
+    'dealer_devices',
+    v_device_id::text,
+    jsonb_build_object('accessCodeId', v_code.id, 'automatic', true)
+  );
+
+  return query select 'approved'::text, v_code.dealer_id;
+exception
+  when others then
+    return query select 'activation_failed'::text, null::text;
+end;
+$$;
+
+revoke all on function public.plotmap_activate_device(text, text, text, text)
+  from public, anon, authenticated;
+grant execute on function public.plotmap_activate_device(text, text, text, text)
+  to anon, authenticated;
+
 -- Durable, platform-level deletion tombstone. No table policy is created;
 -- normal clients cannot read or modify these rows.
 create table if not exists public.dealer_deletion_log (
@@ -135,7 +369,6 @@ declare
   v_dealer text := lower(trim(coalesce(p_dealer_id, '')));
   v_admin uuid := auth.uid();
   v_brand text;
-  v_photo_bucket text;
   v_confirm text := lower(trim(coalesce(p_confirm, '')));
   v_auth_ids uuid[] := '{}';
   v_summary jsonb := '{}'::jsonb;
@@ -199,8 +432,8 @@ begin
     raise exception 'unknown dealer';
   end if;
 
-  select d.brand_name, d.photo_bucket
-    into v_brand, v_photo_bucket
+  select d.brand_name
+    into v_brand
     from public.dealer_settings d
     where d.dealer_id = v_dealer;
 
@@ -230,20 +463,6 @@ begin
       and not exists (
         select 1 from public.platform_admins pa where pa.profile_id = p.id
       );
-
-  -- Remove private property photos under the exact dealer path. Bucket and
-  -- object paths are server-owned; no client-supplied path is accepted.
-  if to_regclass('storage.objects') is not null then
-    execute $storage$
-      delete from storage.objects
-      where (bucket_id = 'property-photos' or bucket_id = nullif($2, ''))
-        and (storage.foldername(name))[1] = 'dealers'
-        and (storage.foldername(name))[2] = $1
-    $storage$
-    using v_dealer, v_photo_bucket;
-    get diagnostics v_n = row_count;
-    v_summary := v_summary || jsonb_build_object('property_photo_objects', v_n);
-  end if;
 
   foreach v_t in array v_tables loop
     if to_regclass('public.' || v_t) is not null then
