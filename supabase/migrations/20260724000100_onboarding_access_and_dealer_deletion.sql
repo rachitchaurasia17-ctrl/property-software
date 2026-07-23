@@ -420,12 +420,20 @@ begin
       limit 1;
 
     if found then
+      -- Keep the tombstone's original Auth ids for audit/recovery, but return
+      -- only users that still exist. This makes an Edge retry idempotent after
+      -- Auth cleanup and avoids repeatedly deleting already-absent users.
+      select coalesce(array_agg(u.id), '{}')
+        into v_auth_ids
+        from auth.users u
+        where u.id = any(coalesce(v_existing.auth_user_ids, '{}'));
+
       return jsonb_build_object(
         'dealer_id', v_dealer,
         'already_deleted', true,
         'operation_id', v_existing.operation_id,
         'deleted', v_existing.summary,
-        'auth_user_ids', to_jsonb(v_existing.auth_user_ids)
+        'auth_user_ids', to_jsonb(v_auth_ids)
       );
     end if;
 

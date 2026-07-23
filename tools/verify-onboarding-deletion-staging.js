@@ -15,8 +15,9 @@ const ENV_FILE = path.join(ROOT, '.env.dealer360-staging.local');
 const LINK_FILE = path.join(ROOT, 'supabase', '.temp', 'project-ref');
 const STAGING_REF = 'rhmimpcirjbksjmhludg';
 const PRODUCTION_REF = 'czmkfmkmgqlienmdihul';
-const PREVIEW_ORIGIN = 'https://xyz-ix568e169-rachitchaurasia17-4865s-projects.vercel.app';
+const PREVIEW_ORIGIN = 'https://xyz-bmr8nc57g-rachitchaurasia17-4865s-projects.vercel.app';
 const checks = [];
+let verifierAdminUserId = '';
 
 function command(name, args) {
   return spawnSync(name, args, { cwd: ROOT, encoding: 'utf8', windowsHide: true, shell: false });
@@ -124,6 +125,23 @@ function serviceTable(table, query, options = {}) {
   });
 }
 
+async function createAuthUser(email, password) {
+  const result = await request('/auth/v1/admin/users', {
+    service: true,
+    body: { email, password, email_confirm: true }
+  });
+  const user = result.data && result.data.user ? result.data.user : result.data;
+  return result.ok && user && user.id ? user.id : '';
+}
+
+async function deleteAuthUser(userId) {
+  if (!userId) return true;
+  const result = await request(`/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
+    method: 'DELETE', service: true
+  });
+  return result.ok || result.status === 404;
+}
+
 async function edgeProvision(payload, bearer, idempotencyKey) {
   const result = await request('/functions/v1/provision-dealer', {
     body: { ...payload, idempotencyKey },
@@ -181,11 +199,38 @@ async function run() {
   if (!admin || !dealerA) abort('required staging login failed');
   check('platform admin and normal dealer authenticate', true);
 
-  const platformBefore = await serviceTable('platform_admins', '?select=profile_id,status');
   const unrelatedBefore = await countRows('dealer_settings', 'dealer-staging-a');
-  if (!platformBefore.ok || unrelatedBefore < 0) abort('could not snapshot isolation controls');
+  if (unrelatedBefore < 0) abort('could not snapshot isolation controls');
 
   const suffix = `${Date.now().toString(36)}${crypto.randomBytes(3).toString('hex')}`.slice(-14);
+  const verifierAdminEmail = `plotmap.delete+${suffix}-run-admin@example.com`;
+  const verifierAdminPassword = randomPassword();
+  verifierAdminUserId = await createAuthUser(verifierAdminEmail, verifierAdminPassword);
+  if (!verifierAdminUserId) abort('could not create disposable staging platform admin');
+  const verifierAdminProfile = await serviceTable('profiles', '', {
+    method: 'POST',
+    body: {
+      id: verifierAdminUserId,
+      email: verifierAdminEmail,
+      role: 'owner',
+      dealer_id: 'dealer-staging-a',
+      status: 'active'
+    },
+    prefer: 'return=minimal'
+  });
+  const verifierAdminGrant = verifierAdminProfile.ok ? await serviceTable('platform_admins', '', {
+    method: 'POST',
+    body: { profile_id: verifierAdminUserId, status: 'active' },
+    prefer: 'return=minimal'
+  }) : verifierAdminProfile;
+  const provisionAdmin = verifierAdminGrant.ok
+    ? await signIn(verifierAdminEmail, verifierAdminPassword)
+    : null;
+  if (!provisionAdmin) abort('disposable staging platform admin could not authenticate');
+  check('disposable platform admin isolates provisioning rate fixtures', true);
+  const platformBefore = await serviceTable('platform_admins', '?select=profile_id,status');
+  if (!platformBefore.ok) abort('could not snapshot platform-admin isolation control');
+
   const dealerId = `dealer-delete-${suffix}`;
   const email = `plotmap.delete+${suffix}@example.com`;
   const password = randomPassword();
@@ -204,7 +249,7 @@ async function run() {
     deviceLimit: 1,
     activationExpiresAt: new Date(now + 2 * 3600000).toISOString(),
     passcode: password
-  }, admin.token, crypto.randomUUID());
+  }, provisionAdmin.token, crypto.randomUUID());
   if (!provision || !/^\d{8}$/.test(String(provision.activationCode || ''))) {
     abort('disposable dealer provisioning failed');
   }
@@ -357,10 +402,14 @@ async function run() {
     '?or=(dealer_id.like.dealer-stage-*,dealer_id.like.dealer-delete-*)&select=dealer_id'
   );
   let staleCleanupOk = stale.ok;
+  const staleFailureCodes = [];
   if (stale.ok && Array.isArray(stale.data)) {
     for (const row of stale.data) {
       const result = await edgeDelete(String(row.dealer_id || ''), admin.token);
-      if (!result.ok && !result.data?.retryable) staleCleanupOk = false;
+      if (!result.ok && !result.data?.retryable) {
+        staleCleanupOk = false;
+        staleFailureCodes.push(String(result.data?.error || `HTTP_${result.status}`));
+      }
     }
   }
   // Retry from tombstones to complete any external Auth/storage cleanup after
@@ -373,7 +422,10 @@ async function run() {
   if (staleTombstones.ok && Array.isArray(staleTombstones.data)) {
     for (const row of staleTombstones.data) {
       const retry = await edgeDelete(String(row.dealer_id || ''), admin.token);
-      if (!retry.ok) staleCleanupOk = false;
+      if (!retry.ok) {
+        staleCleanupOk = false;
+        staleFailureCodes.push(String(retry.data?.error || `HTTP_${retry.status}`));
+      }
     }
   }
   const staleAfter = await serviceTable(
@@ -381,14 +433,20 @@ async function run() {
     '?or=(dealer_id.like.dealer-stage-*,dealer_id.like.dealer-delete-*)&select=dealer_id'
   );
   check('disposable staging dealer fixtures are removed', staleCleanupOk
-    && staleAfter.ok && Array.isArray(staleAfter.data) && staleAfter.data.length === 0);
+    && staleAfter.ok && Array.isArray(staleAfter.data) && staleAfter.data.length === 0,
+  [...new Set(staleFailureCodes)].join(', ').slice(0, 180));
+
+  const verifierAdminRemoved = await deleteAuthUser(verifierAdminUserId);
+  if (verifierAdminRemoved) verifierAdminUserId = '';
+  check('disposable platform admin fixture is removed', verifierAdminRemoved);
 
   const failed = checks.filter(item => !item.ok);
   console.log(`\n${checks.length - failed.length}/${checks.length} onboarding/deletion staging checks passed.`);
   if (failed.length) process.exitCode = 1;
 }
 
-run().catch(error => {
+run().catch(async error => {
+  await deleteAuthUser(verifierAdminUserId).catch(() => false);
   console.error(`STAGING VERIFICATION BLOCKED: ${error.message}`);
   process.exitCode = 2;
 });

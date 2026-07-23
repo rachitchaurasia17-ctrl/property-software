@@ -211,8 +211,20 @@ Deno.serve(async (request: Request): Promise<Response> => {
       method: 'DELETE',
       headers: { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
     });
-    if (res.ok || res.status === 404) authDeleted += 1;
-    else authFailed += 1;
+    if (res.ok || res.status === 404) {
+      authDeleted += 1;
+      continue;
+    }
+    if (res.status === 422) {
+      const body = await res.json().catch(() => ({})) as JsonRecord;
+      const code = String(body.code || body.error_code || '').toLowerCase();
+      const message = String(body.message || body.msg || body.error || '').toLowerCase();
+      if (code === 'user_not_found' || message.includes('user not found')) {
+        authDeleted += 1;
+        continue;
+      }
+    }
+    authFailed += 1;
   }
 
   // The database purge is durable and idempotent. Surface incomplete Auth
