@@ -108,6 +108,9 @@ Deno.serve(async (request: Request): Promise<Response> => {
     return json(origin, { error: 'DELETE_FAILED' }, 400);
   }
   const summary = purge.data as JsonRecord;
+  // Works for a fresh delete AND for a retry: when the dealer is already
+  // gone the RPC returns the tombstone's auth_user_ids, so we can finish an
+  // interrupted Auth cleanup (compensation / recoverable path).
   const authIds = Array.isArray(summary.auth_user_ids) ? (summary.auth_user_ids as string[]) : [];
 
   // 2) Remove the owner Auth user(s) from GoTrue (service role).
@@ -124,6 +127,8 @@ Deno.serve(async (request: Request): Promise<Response> => {
   return json(origin, {
     ok: true,
     dealer_id: dealerId,
+    already_deleted: summary.already_deleted === true,
+    operation_id: summary.operation_id || null,
     removed: summary.deleted || {},
     auth_users: authResults,
   }, 200);

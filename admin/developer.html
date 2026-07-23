@@ -205,10 +205,6 @@
         <svg viewBox="0 0 20 20" aria-hidden="true"><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><line x1="3.5" y1="10" x2="16.5" y2="10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
         <span>Create Dealer</span>
       </button>
-      <button type="button" data-dev-nav="controls">
-        <svg viewBox="0 0 20 20" aria-hidden="true"><line x1="4" y1="6.5" x2="16" y2="6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="4" y1="13.5" x2="16" y2="13.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="13" cy="6.5" r="2.4" fill="#211d19" stroke="currentColor" stroke-width="2"/><circle cx="7" cy="13.5" r="2.4" fill="#211d19" stroke="currentColor" stroke-width="2"/></svg>
-        <span>Account Controls</span>
-      </button>
     </nav>
 
     <div class="rail-footer">
@@ -385,7 +381,7 @@
         </div>
         <div class="muted" id="copy-status" role="status" aria-live="polite"></div>
       </section>
-      <aside class="account-preview" aria-label="Dealer account preview">
+      <aside class="account-preview" id="account-preview" aria-label="Dealer account preview">
         <div class="account-preview-label">Account preview</div>
         <div class="account-preview-identity">
           <span id="preview-initial">D</span>
@@ -400,33 +396,9 @@
       </aside>
     </section>
 
-    <section class="account-controls" data-dev-section="controls" hidden>
-      <div class="account-picker card">
-        <label for="account-control-dealer">Managing account</label>
-        <select id="account-control-dealer" aria-label="Dealer account"></select>
-        <span id="account-control-status" class="chip low">Select a dealer</span>
-      </div>
-      <div class="account-action-grid">
-        <article class="account-action-card">
-          <h2>Trial controls</h2>
-          <p>Review trial dates, payment notes and developer follow-up notes.</p>
-          <button type="button" class="btn-ghost" data-account-action="trial">Open trial controls</button>
-        </article>
-        <article class="account-action-card">
-          <h2>Reset passcode</h2>
-          <p>Issue a fresh owner passcode through the protected platform-admin RPC.</p>
-          <button type="button" class="btn-ghost" data-account-action="passcode">Reset passcode</button>
-        </article>
-        <article class="account-action-card account-action-danger">
-          <h2>Suspend or reactivate</h2>
-          <p>Block or restore this dealer's PlotMap access. The server rechecks your role.</p>
-          <div class="account-action-buttons">
-            <button type="button" class="btn-ghost danger" data-account-action="suspend">Suspend</button>
-            <button type="button" class="btn-primary" data-account-action="activate">Reactivate</button>
-          </div>
-        </article>
-      </div>
-    </section>
+    <!-- Account Controls retired: every action (trial, passcode reset,
+         suspend/reactivate, permanent delete) now lives in
+         Dealer 360 → Account, so there is one place per dealer. -->
   </main>
   </div>
 </div>
@@ -604,8 +576,7 @@
     dealer360: { eyebrow: 'Deep dive', title: 'Dealer 360', subtitle: 'The complete operational picture for a single dealer.' },
     activations: { eyebrow: 'Onboarding', title: 'Device Codes', subtitle: 'Issue a one-time code for a second or replacement device, and resolve any legacy pending requests.' },
     devices: { eyebrow: 'Security', title: 'Dealer Devices', subtitle: 'Every approved, pending, rejected and revoked device.' },
-    create: { eyebrow: 'Onboarding', title: 'Create Dealer', subtitle: 'Set up a new dealer account with a trial and login.' },
-    controls: { eyebrow: 'Management', title: 'Account Controls', subtitle: 'Extend trials, reset passcodes, suspend or reactivate dealers.' }
+    create: { eyebrow: 'Onboarding', title: 'Create Dealer', subtitle: 'Set up a new dealer account with a trial and login.' }
   };
 
   let activeSection = 'overview';

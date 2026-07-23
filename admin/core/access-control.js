@@ -152,13 +152,20 @@
   // device and a revoked device are no longer one generic "access expired".
   function blockCopy(reason) {
     switch (reason) {
+      case 'account_suspended':
+        return { title: 'Account suspended', body: 'This PlotMap account is currently inactive. Contact your PlotMap provider.' };
+      case 'trial_expired':
+        return { title: 'Trial expired', body: 'Your PlotMap trial has ended. Contact your PlotMap provider to continue.' };
       case 'account_blocked':
       case 'dealer_inactive_server':
-        return { title: 'Account not active', body: 'This account is suspended or its trial has ended. Contact your PlotMap provider to continue.' };
+        return { title: 'Account not active', body: 'This PlotMap account is suspended or its trial has ended. Contact your PlotMap provider to continue.' };
+      case 'device_limit_reached':
+        return { title: 'Device limit reached', body: 'This account has reached its approved-device limit. An existing device must be removed or the limit increased.' };
       case 'device_not_approved':
-        return { title: 'Device not activated', body: 'This device is not set up yet. Open the main PlotMap page and enter your activation code on this device.' };
+      case 'device_not_activated':
+        return { title: 'Device not activated', body: 'This browser has not been activated for this PlotMap account.' };
       case 'device_revoked':
-        return { title: 'Device access revoked', body: 'This device\'s access was revoked. Ask your PlotMap provider for a new activation code, then set the device up again.' };
+        return { title: 'Device access revoked', body: 'Access for this browser has been removed.' };
       default:
         return { title: 'Access expired or blocked', body: 'Please contact your PlotMap provider.' };
     }

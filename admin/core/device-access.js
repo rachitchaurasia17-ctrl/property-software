@@ -83,10 +83,19 @@
   async function isApproved(dealerId, options) {
     const id = dealerId || resolveDealerId('');
     if (!id) return { ok: false, statusText: 'no_dealer', dealerId: '' };
+    // Device approval is a pure bcrypt-hash check (dealer active + device
+    // token possession) exposed as a SECURITY DEFINER RPC granted to anon.
+    // It needs NO caller identity, so we ALWAYS call it through the anon
+    // client — attaching a dealer JWT only risks a stale-token 401 that
+    // PostgREST returns before the function runs, which is what falsely
+    // blocked freshly-activated devices. (`options.authenticated` is
+    // deliberately ignored for this call; rpc() still keeps a 401→anon
+    // retry as a belt-and-suspenders safeguard for any future caller.)
+    void (options && options.authenticated);
     const result = await rpc('plotmap_device_is_approved', {
       p_dealer_id: id,
       p_device_token: getToken()
-    }, !!(options && options.authenticated));
+    }, false);
     if (!result.ok) {
       return { ok: false, dealerId: id, statusText: result.migrationMissing ? 'migration_required' : 'error', migrationMissing: !!result.migrationMissing };
     }
@@ -115,22 +124,32 @@
 
   // Reason keys → { title, body }. Falls back to a literal message for any
   // string that isn't a known key (back-compat with earlier callers).
+  // Single source of reason copy, shared with the access-expired screen and
+  // the guard. Titles/messages match the product spec exactly.
   function blockCopy(reasonOrMessage) {
     switch (reasonOrMessage) {
       case 'device_revoked':
-        return { title: 'Device access revoked', body: 'This device\'s access was revoked. Ask your PlotMap provider for a new activation code, then set this device up again.' };
+        return { title: 'Device access revoked', body: 'Access for this browser has been removed.', action: 'Enter a new activation code' };
+      case 'device_limit_reached':
+        return { title: 'Device limit reached', body: 'This account has reached its approved-device limit. An existing device must be removed or the limit increased.', action: 'Back to PlotMap' };
+      case 'trial_expired':
+        return { title: 'Trial expired', body: 'Your PlotMap trial has ended. Contact your PlotMap provider to continue.', action: 'Back to PlotMap' };
+      case 'account_suspended':
+        return { title: 'Account suspended', body: 'This PlotMap account is currently inactive. Contact your PlotMap provider.', action: 'Back to PlotMap' };
       case 'account_blocked':
-        return { title: 'Account not active', body: 'This account is suspended or its trial has ended. Contact your PlotMap provider to continue.' };
+        // Used when the server only tells us the account is inactive without
+        // saying suspended-vs-trial. Never implies "trial expired" wrongly.
+        return { title: 'Account not active', body: 'This PlotMap account is suspended or its trial has ended. Contact your PlotMap provider to continue.', action: 'Back to PlotMap' };
       case 'migration_required':
-        return { title: 'PlotMap not configured', body: 'PlotMap is not fully configured on this server yet. Contact your provider.' };
+        return { title: 'PlotMap not configured', body: 'PlotMap is not fully configured on this server yet. Contact your provider.', action: 'Back to PlotMap' };
       case 'device_not_approved':
+      case 'device_not_activated':
       case undefined:
       case null:
       case '':
-        return { title: 'Device not activated', body: 'This device is not set up yet. Open the main PlotMap page and enter your one-time activation code on this device.' };
+        return { title: 'Device not activated', body: 'This browser has not been activated for this PlotMap account.', action: 'Enter activation code' };
       default:
-        // A literal, already-composed message.
-        return { title: 'Device not approved', body: String(reasonOrMessage) };
+        return { title: 'Device not approved', body: String(reasonOrMessage), action: 'Back to PlotMap' };
     }
   }
 
@@ -142,7 +161,7 @@
       + '<div style="width:50px;height:50px;border-radius:16px;border:1px solid #D7C7A4;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;color:#1F5E47;font-weight:800;">PM</div>'
       + '<h1 style="font-family:Fraunces,Georgia,serif;font-weight:500;font-size:26px;margin:0 0 10px;">' + esc(copy.title) + '</h1>'
       + '<p style="margin:0;color:#5F6B61;line-height:1.55;font-size:14.5px;">' + esc(copy.body) + '</p>'
-      + '<p style="margin:20px 0 0;"><a href="/" style="font-weight:700;color:#1F5E47;text-decoration:none;font-size:14px;">Open PlotMap to activate this device →</a></p>'
+      + '<p style="margin:20px 0 0;"><a href="/" style="font-weight:700;color:#1F5E47;text-decoration:none;font-size:14px;">' + esc(copy.action || 'Back to PlotMap') + ' →</a></p>'
       + '</section></main>';
     document.documentElement.style.visibility = '';
   }
