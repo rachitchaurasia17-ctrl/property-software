@@ -1,0 +1,89 @@
+/* =============================================================================
+   PlotMap Client Presentation — VIOLET-DUSK VISUAL FOUNDATION
+   -----------------------------------------------------------------------------
+   Establishes the approved violet-dusk look on the Client Presentation WITHOUT
+   touching the map engine (app.js), the asset registry, overlays, coordinates
+   or any map behaviour. It loads AFTER styles.css and works two ways:
+
+     1. Remaps the presentation's own `--pm-*` design tokens to violet-dusk
+        values, so every surface/border/ink that reads a token re-tints at once.
+     2. Targets the signature chrome the design calls out (glass top bar, gold
+        active view tabs, gold Original/Easy toggle, gold map-highlight glow,
+        gold pins, Newsreader/Hanken type).
+
+   This is the FOUNDATION layer: it proves the token+override integration pattern
+   for the presentation. The remaining fine chrome (photo rail, part selector,
+   property sheet internals, iPad drawer) is migrated on top of this same layer —
+   see docs/REDESIGN_IMPLEMENTATION_HANDOFF.md for the exact selector list.
+   ========================================================================== */
+
+/* 1 ── Token remap: the presentation reads these throughout its 116KB sheet. */
+:root {
+  --pm-land:   #f5efff;   /* app background base            */
+  --pm-land-2: #f0eaff;   /* secondary surface / inset      */
+  --pm-ink:    #241f1c;   /* headings / strong text         */
+  --pm-muted:  #6b6156;   /* body / captions                */
+  --pm-emerald:#1f4d3a;   /* dark accent (contrast-safe as bg-with-white and as text) */
+  --pm-airport:#5b32c4;   /* violet secondary accent        */
+  --pm-proof:  #a8792a;   /* gold eyebrow / proof accent    */
+  --pm-orange: #8a5a0c;   /* gold-ink for picker labels     */
+  --pm-border: #ddd2f5;   /* violet hairline                */
+  --pm-card:   #fffaf0;   /* cream surface                  */
+  --pm-shadow: 0 1px 2px rgba(30,28,22,.03), 0 16px 38px -30px rgba(30,28,22,.7);
+}
+
+/* 2 ── Type: Newsreader (display) + Hanken Grotesk (UI), replacing Fraunces / Jakarta. */
+body { font-family: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif; }
+.serif, .title-xl, .as-hero { font-family: 'Newsreader', Georgia, serif !important; }
+
+/* 3 ── Violet-dusk bloom on the stage (base + map background). */
+html, body { background: #f5efff; }
+#app {
+  background: #f5efff;
+  background-image:
+    radial-gradient(62% 50% at -2% -4%,  rgba(139,96,232,.50), transparent 62%),
+    radial-gradient(54% 44% at 101% 4%,  rgba(56,138,186,.40), transparent 62%),
+    radial-gradient(66% 48% at 46% 108%, rgba(255,190,48,.44), transparent 64%);
+}
+.mapwrap {
+  background:
+    radial-gradient(120% 100% at 70% 18%, rgba(245,239,255,.9) 0%, rgba(240,234,255,.7) 50%, rgba(236,227,255,.6) 100%),
+    #f5efff;
+}
+
+/* 4 ── Glass top bar (design: cream glass floating over the map). */
+.topbar { background: rgba(255,250,240,.86) !important; border-bottom: 1px solid #ddd2f5 !important; box-shadow: 0 10px 30px -12px rgba(45,32,80,.10) !important; }
+.logo { background: #1a2f24 !important; border-color: #1a2f24 !important; }
+.logo i { border-color: #ffd75e !important; }
+.area-switch { background: #faf7ff !important; border-color: #ddd2f5 !important; }
+.area-switch:hover { background: #f0eaff !important; }
+.area-switch .lab, .area-switch .caret { color: #a8792a !important; }
+
+/* 5 ── View tabs (Masterplan / Properties / Sector maps): active = gold pill, dark ink. */
+.tab.on { background: #ffc93c !important; color: #1f1a12 !important; box-shadow: 0 8px 18px -6px rgba(244,174,20,.55) !important; }
+.tab:hover:not(.on) { background: #fdefc9 !important; color: #1f1a12 !important; }
+
+/* 6 ── Original / Easy Map toggle: active = gold. */
+.mode-switch button.on,
+.mode-switch.topbar-mode button.on,
+.mode-switch.topbar-mode .transparent-btn.on { background: #ffc93c !important; border-color: #ffc93c !important; color: #1f1a12 !important; box-shadow: 0 8px 18px -6px rgba(244,174,20,.5) !important; }
+.mode-switch.topbar-mode button:hover, .mode-switch.topbar-mode .transparent-btn:hover { background: #fdefc9 !important; color: #8a5a0c !important; border-color: #f2dca6 !important; }
+
+/* 7 ── Back / Present buttons + primary/ghost. */
+.back-btn:hover, .present-btn:hover { background: #fdefc9 !important; color: #8a5a0c !important; }
+#app.present .present-btn { background: #fff3d1 !important; border-color: #f6d98d !important; color: #8a5a0c !important; }
+.btn-primary { background: #ffc93c !important; color: #1f1a12 !important; box-shadow: 0 10px 22px -12px rgba(244,174,20,.8) !important; }
+.btn-primary:hover { background: #f4ae14 !important; }
+.btn-ghost:hover { background: #fdefc9 !important; color: #8a5a0c !important; }
+
+/* 8 ── Proof / property panel + cards. */
+.panel { background: rgba(255,250,240,.96) !important; border-left: 1px solid #ddd2f5 !important; box-shadow: -24px 0 56px -20px rgba(40,24,90,.18) !important; }
+.item-btn.sel, .layer-pill.act, .item-chip.act { background: #efe8fb !important; border-color: #d6c6f5 !important; color: #5b32c4 !important; }
+
+/* 9 ── Map highlights + pins glow GOLD (design: roads/blocks/pins light up gold). */
+.o-block.act, .o-zone.act, .o-pin.act { filter: drop-shadow(0 0 10px rgba(255,194,30,.55)) !important; }
+
+/* 10 ── Custom scrollbar to match the design system. */
+.panel ::-webkit-scrollbar, [data-scroll]::-webkit-scrollbar { width: 10px; height: 10px; }
+.panel ::-webkit-scrollbar-thumb, [data-scroll]::-webkit-scrollbar-thumb { background: #e6cf9a; border-radius: 9px; border: 3px solid transparent; background-clip: content-box; }
+.panel ::-webkit-scrollbar-track, [data-scroll]::-webkit-scrollbar-track { background: transparent; }
