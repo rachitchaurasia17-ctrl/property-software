@@ -87,3 +87,27 @@ html, body { background: #f5efff; }
 .panel ::-webkit-scrollbar, [data-scroll]::-webkit-scrollbar { width: 10px; height: 10px; }
 .panel ::-webkit-scrollbar-thumb, [data-scroll]::-webkit-scrollbar-thumb { background: #e6cf9a; border-radius: 9px; border: 3px solid transparent; background-clip: content-box; }
 .panel ::-webkit-scrollbar-track, [data-scroll]::-webkit-scrollbar-track { background: transparent; }
+
+/* 11 ── Fine chrome: Photo/landmark rail & collapse control. */
+.rail, .photo-rail { background: rgba(255,250,240,.92) !important; border-top: 1px solid #ddd2f5 !important; backdrop-filter: blur(10px) !important; -webkit-backdrop-filter: blur(10px) !important; }
+.rail-card, .photo-thumb { border-radius: 12px !important; border: 1.5px solid #ddd2f5 !important; transition: border-color 0.15s ease, transform 0.15s ease !important; }
+.rail-card:hover, .photo-thumb:hover { border-color: #ffc93c !important; transform: translateY(-2px) !important; }
+.rail-toggle, .rail-collapse-btn { background: rgba(255,250,240,.94) !important; border: 1px solid #ddd2f5 !important; color: #1f1a12 !important; font-weight: 700 !important; }
+.rail-toggle:hover, .rail-collapse-btn:hover { background: #fdefc9 !important; color: #8a5a0c !important; }
+
+/* 12 ── iPad on-demand drawer & part selector. */
+.ipad-drawer, .drawer-panel { background: rgba(255,250,240,.97) !important; border-radius: 20px 20px 0 0 !important; box-shadow: 0 -16px 40px -12px rgba(40,24,90,.20) !important; }
+.ptag, .part-chip { background: #faf7ff !important; border: 1px solid #ddd2f5 !important; color: #6b6156 !important; border-radius: 999px !important; font-weight: 700 !important; }
+.ptag.on, .part-chip.on { background: #ffc93c !important; border-color: #ffc93c !important; color: #1f1a12 !important; font-weight: 800 !important; }
+
+/* 13 ── Zoom controls, Fit Map, Fullscreen & Close presentation buttons. */
+.zoom, .map-controls { background: rgba(255,250,240,.92) !important; border: 1px solid #ddd2f5 !important; border-radius: 14px !important; backdrop-filter: blur(10px) !important; }
+.zoom button, .map-controls button { color: #241f1c !important; transition: background 0.15s !important; }
+.zoom button:hover, .map-controls button:hover { background: #fdefc9 !important; color: #8a5a0c !important; }
+.fit-btn, .fullscreen-btn, .close-present-btn { background: rgba(255,250,240,.92) !important; border: 1px solid #ddd2f5 !important; color: #241f1c !important; font-weight: 700 !important; }
+.fit-btn:hover, .fullscreen-btn:hover, .close-present-btn:hover { background: #fdefc9 !important; color: #8a5a0c !important; }
+
+/* 14 ── Property sheet & gallery modal internals. */
+.gallery-modal, .photo-lightbox { background: rgba(26,20,38,.92) !important; backdrop-filter: blur(16px) !important; }
+.prop-sheet-title { font-family: 'Newsreader', Georgia, serif !important; color: #1f1a12 !important; }
+.prop-sheet-price { color: #1f4d3a !important; font-weight: 800 !important; }

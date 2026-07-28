@@ -5,7 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Team Workspace — PlotMap</title>
-<link rel="stylesheet" href="/admin/crm-ui.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<link rel="stylesheet" href="/admin/core/plotmap-ds.css">
 <script src="/config/runtime-env.js"></script>
 <script src="/config/supabase-config.js"></script>
 <script src="/admin/core/auth.js"></script>
@@ -15,486 +21,461 @@
 <script src="/admin/core/event-tracker.js"></script>
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
+<script src="/admin/core/overlay-store.js"></script>
 <script src="/admin/core/saas-foundation.js"></script>
 <script src="/admin/core/supabase-sync.js"></script>
-<script src="/admin/core/nav.js"></script>
+<script src="/admin/core/plotmap-shell.js"></script>
 <script>
 if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
 </script>
 <style>
-  /* Team Workspace — "work table" styling on top of crm-ui.css */
-  .tw-stat { background:#fff; border:1px solid var(--pm-border); border-radius:18px; padding:18px 20px; }
-  .tw-stat .k { font-size:13px; color:var(--pm-text-sec); font-weight:600; }
-  .tw-stat .v { font-size:34px; font-weight:600; letter-spacing:-.01em; margin-top:6px; line-height:1; color:var(--pm-ink,#1C1E1B); }
-  .tw-stat .v small { font-size:13px; color:var(--pm-text-mut); font-weight:500; margin-left:6px; }
-  .tw-action { cursor:pointer; text-align:left; background:#fff; border:1px solid var(--pm-border); border-radius:18px;
-    padding:20px 18px; display:flex; flex-direction:column; align-items:flex-start; gap:14px;
-    box-shadow:0 1px 2px rgba(20,18,12,.03), 0 8px 18px rgba(40,32,15,.03); transition:transform .16s ease, border-color .16s ease; width:100%; }
-  .tw-action:hover { transform:translateY(-2px); border-color:#D6D1C6; }
-  .tw-action .ic { width:46px; height:46px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800; }
-  .tw-action .lbl { font-size:15.5px; font-weight:700; color:#2B2A25; }
-  .tw-row { display:flex; align-items:center; gap:13px; padding:12px 0; border-top:1px solid var(--pm-border-subtle); }
-  .tw-av { flex:none; width:40px; height:40px; border-radius:12px; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; }
-  .tw-badge { font-size:11px; font-weight:700; padding:4px 10px; border-radius:999px; white-space:nowrap; }
-  .tw-overlay { position:fixed; inset:0; background:rgba(28,26,20,.42); display:none; align-items:flex-start; justify-content:center; padding:60px 16px; z-index:60; overflow:auto; }
-  .tw-overlay.on { display:flex; }
-  .tw-modal { background:#fff; border:1px solid var(--pm-border); border-radius:20px; width:100%; max-width:520px; padding:22px 24px; box-shadow:0 24px 60px rgba(30,26,12,.28); }
-  .tw-modal h2 { font-family:var(--pm-serif,'Fraunces',Georgia,serif); margin:0 0 4px; font-size:22px; font-weight:600; }
+  .tw-hero { border-radius:24px; padding:28px 32px; background:#1e1a12; background-image:linear-gradient(135deg,#2c261b 0%,#1e1a12 60%,#120f09 100%); color:#fff; box-shadow:0 20px 40px -20px rgba(0,0,0,0.6); margin-bottom:28px; }
+  .tw-hero h1 { font-family:var(--pm-font-display); font-weight:500; font-size:36px; color:#fff8e6; margin:6px 0 8px; }
+  .tw-quick-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; margin-bottom:28px; }
+  .tw-quick-card { display:flex; align-items:center; gap:14px; padding:18px 20px; background:var(--pm-surface); border:1.5px solid var(--pm-hairline-2); border-radius:18px; text-decoration:none; color:var(--pm-ink); box-shadow:var(--pm-shadow-card); transition:transform var(--pm-hover-ms) ease, border-color var(--pm-hover-ms) ease; cursor:pointer; }
+  .tw-quick-card:hover { transform:translateY(-2px); border-color:var(--pm-violet); }
+  .tw-quick-icon { width:44px; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:22px; flex:none; }
+  .tw-row { display:flex; align-items:center; gap:16px; padding:16px 18px; border-bottom:1px solid var(--pm-hairline); background:var(--pm-surface); transition:background var(--pm-hover-ms); }
+  .tw-row:last-child { border-bottom:none; }
+  .tw-row:hover { background:var(--pm-surface-alt); }
+  .tw-av { width:40px; height:40px; border-radius:12px; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; flex:none; }
 </style>
 </head>
-<body class="pm-shell">
-
-<header id="pm-topbar"></header>
-
-<main class="pm-main">
-  <!-- Hero — Stitch structure, PlotMap emerald palette -->
-  <section class="pm-hero">
-    <div class="pm-hero-row">
-      <div>
-        <div class="pm-hero-kicker" id="date-line">Your work table for today</div>
-        <h1 class="pm-hero-title" id="greeting">Welcome.</h1>
-        <div class="pm-hero-sub">Add clients, list properties, and mark them on the map — everything in one place.</div>
-        <div class="pm-hero-actions">
-          <button type="button" class="pm-btn pm-btn-light" id="hdr-add-client">+ Add Client</button>
-          <a class="pm-btn pm-btn-onhero" href="/admin/properties.html">Open Properties</a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Do next — the staff work table -->
-  <div class="pm-section-title">Do next</div>
-  <div class="pm-grid cols-4" style="margin-bottom:26px;">
-    <button type="button" class="pm-quick" id="act-add-client">
-      <div class="qic" style="background:var(--pm-emerald-light);color:var(--pm-emerald);">＋</div>
-      <div><div class="qlbl">Add Client</div><div class="qhint">Add to your book</div></div>
-    </button>
-    <button type="button" class="pm-quick" id="act-add-property">
-      <div class="qic" style="background:var(--pm-gold-light);color:var(--pm-gold);">＋</div>
-      <div><div class="qlbl">Add Property</div><div class="qhint">List a new plot</div></div>
-    </button>
-    <a class="pm-quick" href="/admin/properties.html">
-      <div class="qic" style="background:var(--pm-blue-light);color:var(--pm-blue);">▤</div>
-      <div><div class="qlbl">Open Properties</div><div class="qhint">Manage your inventory</div></div>
-    </a>
-    <a class="pm-quick" href="/admin/map-studio.html">
-      <div class="qic" style="background:var(--pm-purple-light);color:var(--pm-purple);">◈</div>
-      <div><div class="qlbl">Open Map Studio</div><div class="qhint">Mark roads &amp; plots</div></div>
-    </a>
-  </div>
-
-  <!-- My clients -->
-  <div class="pm-section-title">My clients</div>
-  <div class="pm-card-xl">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-      <div class="pm-card-h">Your book</div>
-      <div class="pm-card-sub" id="clients-count"></div>
-    </div>
-    <div id="clients-list"></div>
-  </div>
-
-  <!-- These feeds are still computed by JS but kept off the simple work table. -->
-  <div style="display:none;"><div id="week-stats"></div><div id="activity-feed"></div></div>
-
-  <!-- Team management — only for owner/managers (team.manage). Hidden for staff. -->
-  <div class="pm-card-xl" id="team-manage-card" style="display:none;margin-top:18px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
-      <div>
-        <div class="pm-card-h">Team management</div>
-        <div class="pm-card-sub">Roles, permissions, and status for everyone who signs in through Dealer Login</div>
-      </div>
-      <button class="pm-btn pm-btn-secondary" type="button" id="team-add-member">Add team member</button>
-    </div>
-    <div id="team-members-list"></div>
-    <form class="pm-form" id="team-member-form" style="display:none;margin-top:16px;">
-      <input type="hidden" id="team-member-id" value="">
-      <div class="pm-grid cols-3">
-        <div class="fld"><label>Name</label><input id="team-member-name" type="text" placeholder="Team Member"></div>
-        <div class="fld"><label>Email (must match their login email)</label><input id="team-member-email" type="email" placeholder="member@example.com"></div>
-        <div class="fld"><label>Role</label><select id="team-member-role"></select></div>
-        <div class="fld"><label>Status</label><select id="team-member-status"><option value="active">Active</option><option value="blocked">Blocked</option><option value="disabled">Disabled</option><option value="removed">Removed</option></select></div>
-      </div>
-      <div class="fld" style="margin-top:12px;">
-        <label>Permissions <span style="font-weight:400;color:var(--pm-text-mut);">(pre-filled from the role — adjust freely)</span></label>
-        <div id="team-permission-grid" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;"></div>
-      </div>
-      <div id="team-allowed-pages" style="font-size:12.5px;color:var(--pm-text-mut);margin-top:10px;"></div>
-      <div id="team-form-error" style="font-size:13px;color:#b0532c;margin-top:10px;"></div>
-      <div style="display:flex;gap:10px;margin-top:14px;">
-        <button class="pm-btn pm-btn-primary" type="submit">Save member</button>
-        <button class="pm-btn pm-btn-secondary" type="button" id="team-member-cancel">Cancel</button>
-      </div>
-    </form>
-  </div>
-</main>
-
-<!-- Add / edit client details modal -->
-<div class="tw-overlay" id="modal-client">
-  <form class="tw-modal" id="form-client">
-    <h2 id="cl-title">Client details</h2>
-    <div class="pm-card-sub" id="cl-sub" style="margin-bottom:14px;">Just the basics — you can add more later. Saved details show up on the Dealer Login too.</div>
-    <input type="hidden" id="cl-id" value="">
-    <div class="pm-form">
-      <div class="fld"><label>Full name</label><input id="cl-name" type="text" placeholder="e.g. Rajdeep Singh" required></div>
-      <div class="pm-grid cols-2" style="margin-top:10px;">
-        <div class="fld"><label>Phone</label><input id="cl-phone" type="text" placeholder="+91 …"></div>
-        <div class="fld"><label>Budget</label><input id="cl-budget" type="text" placeholder="₹ …"></div>
-      </div>
-      <div class="pm-grid cols-2" style="margin-top:10px;">
-        <div class="fld"><label>Area interested in</label><input id="cl-area" type="text" placeholder="e.g. Aerocity"></div>
-        <div class="fld"><label>Property type</label>
-          <select id="cl-ptype">
-            <option value="">—</option>
-            <option>Residential Plot</option><option>Commercial</option><option>Commercial SCO</option>
-            <option>Showroom</option><option>Residential</option><option>Other</option>
-          </select>
-        </div>
-      </div>
-      <div class="pm-grid cols-2" style="margin-top:10px;">
-        <div class="fld"><label>Requirement</label><input id="cl-size" type="text" placeholder="e.g. 250 sq yd"></div>
-        <div class="fld"><label>Stage</label>
-          <select id="cl-status">
-            <option>New</option><option>Warm</option><option>Property Shared</option>
-            <option>Site Visit Planned</option><option>Site Visit Done</option>
-            <option>Negotiation</option><option>Closed</option><option value="Not Answering">Follow up</option>
-          </select>
-        </div>
-      </div>
-      <div class="fld" style="margin-top:10px;"><label>How did they reach you?</label>
-        <select id="cl-source">
-          <option value="">—</option>
-          <option>Walk-in</option><option>Reference</option><option>WhatsApp</option><option>Website</option><option>Campaign</option>
-        </select>
-      </div>
-      <div class="fld" style="margin-top:10px;"><label>Notes</label><input id="cl-notes" type="text" placeholder="Anything worth remembering"></div>
-    </div>
-    <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end;">
-      <button type="button" class="pm-btn pm-btn-secondary" data-close-modal="modal-client">Cancel</button>
-      <button type="submit" class="pm-btn pm-btn-primary" id="cl-submit">Save client</button>
-    </div>
-  </form>
-</div>
-
+<body class="pm-body pm-app-bg">
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // Force the team nav on the workspace even for an owner — this page is the
-  // Team Workspace context, not the dealer intelligence bar.
-  window.PMNav.render('workspace', 'team');
+  const crm = window.CRM;
+  const esc = window.PMShell.esc;
 
-  const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  })[c]);
+  // Team Workspace always mounts team shell variant
+  const mount = window.PMShell.mount({
+    variant: 'team',
+    active: 'workspace',
+    section: { icon: 'ph-users-three', name: 'Team Workspace' }
+  });
 
-  // Friendly notice when another admin page bounced the user here.
+  // Check notice from access bounce
   try {
     const denied = new URLSearchParams(location.search).get('denied');
     if (denied) {
-      const note = document.createElement('div');
-      note.style.cssText = 'background:#FBF3E4;border:1px solid #E8D9BE;border-radius:14px;padding:12px 16px;font-size:13.5px;color:#8A6224;margin-bottom:16px;';
-      note.textContent = 'That page is not part of your access yet. Ask the owner if you need it — this is your workspace.';
-      const main = document.querySelector('.pm-main');
-      if (main) main.insertBefore(note, main.firstChild);
+      window.PMShell.toast('That page is restricted to owners. Welcome to your workspace!', 'warn');
     }
   } catch (err) {}
 
-  // Greeting + date
-  const greetingEl = document.getElementById('greeting');
+  const scoped = () => (crm.getScopedCRM ? crm.getScopedCRM() : crm.getCRM());
+
+  const STAGE_COLORS = {
+    'New': { c: 'var(--pm-blue)', bg: 'var(--pm-surface-blue)' },
+    'Warm': { c: 'var(--pm-gold-dark)', bg: 'var(--pm-surface-gold)' },
+    'Hot': { c: 'var(--pm-orange)', bg: '#fdf0ea' },
+    'Property Shared': { c: 'var(--pm-blue)', bg: 'var(--pm-surface-blue)' },
+    'Site Visit Planned': { c: 'var(--pm-violet-deep)', bg: 'var(--pm-surface-violet)' },
+    'Site Visit Done': { c: 'var(--pm-violet-deep)', bg: 'var(--pm-surface-violet)' },
+    'Negotiation': { c: 'var(--pm-gold-dark)', bg: 'var(--pm-surface-gold)' },
+    'Closed': { c: 'var(--pm-emerald)', bg: 'var(--pm-surface-green)' },
+    'Not Answering': { c: 'var(--pm-gold-dark)', bg: 'var(--pm-surface-gold)' }
+  };
+  const stageStyle = (s) => STAGE_COLORS[s] || { c: 'var(--pm-ink-soft)', bg: 'var(--pm-surface-alt)' };
+  const STAGE_LABEL = { 'Not Answering': 'Follow up' };
+  const stageLabel = (s) => STAGE_LABEL[s] || s || 'New';
+  const AV_COLORS = ['#1f5e47', '#3e6e96', '#a87c3d', '#6b4fa0', '#b0532c'];
+  const initialsOf = (name) => String(name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?';
+  const avColor = (name) => AV_COLORS[(String(name || '').length) % AV_COLORS.length];
+
+  let currentProfileName = 'Team Member';
+
   if (window.PMAuth) {
     window.PMAuth.getCurrentProfile().then(profile => {
       if (!profile) return;
       const raw = (profile.display_name || (profile.email || '').split('@')[0] || '').trim();
-      if (!raw) return;
-      greetingEl.textContent = 'Welcome, ' + (raw.charAt(0).toUpperCase() + raw.slice(1)) + '.';
+      if (raw) currentProfileName = raw.charAt(0).toUpperCase() + raw.slice(1);
+      const greetingTitle = document.getElementById('tw-greeting-title');
+      if (greetingTitle) greetingTitle.textContent = 'Welcome back, ' + currentProfileName + '.';
     }).catch(() => {});
   }
-  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const now = new Date();
-  document.getElementById('date-line').textContent = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()];
+  const dateStr = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()];
 
-  const crm = window.CRM;
-  const scoped = () => (crm.getScopedCRM ? crm.getScopedCRM() : crm.getCRM());
-
-  const WEEK_MS = 7 * 86400000;
-  const tsOf = (v) => {
-    if (v == null) return 0;
-    if (typeof v === 'number') return v;
-    const t = new Date(v).getTime();
-    return Number.isFinite(t) ? t : 0;
-  };
-  const withinWeek = (v) => { const t = tsOf(v); return t && (Date.now() - t) <= WEEK_MS; };
-
-  const STAGE_COLORS = {
-    'New':          { c:'#3E6E96', bg:'#E9EFF4' },
-    'Warm':         { c:'#B07A2B', bg:'#F6ECD8' },
-    'Hot':          { c:'#B0532C', bg:'#F6E2D8' },
-    'Property Shared': { c:'#3E6E96', bg:'#E9EFF4' },
-    'Site Visit Planned': { c:'#6B4FA0', bg:'#EDEAF2' },
-    'Site Visit Done': { c:'#6B4FA0', bg:'#EDEAF2' },
-    'Negotiation':  { c:'#B07A2B', bg:'#F6ECD8' },
-    'Closed':       { c:'#1F5E47', bg:'#E7F0EB' },
-    'Not Answering':{ c:'#8A6224', bg:'#FBF3E4' }
-  };
-  const stageStyle = (s) => STAGE_COLORS[s] || { c:'var(--pm-text-sec)', bg:'#F0ECE3' };
-  // Display-only label map — keeps stored status values intact for pipeline logic.
-  const STAGE_LABEL = { 'Not Answering': 'Follow up' };
-  const stageLabel = (s) => STAGE_LABEL[s] || s || 'New';
-  const AV_COLORS = ['#1F5E47','#3E6E96','#A87C3D','#6B4FA0','#B0532C'];
-  const initialsOf = (name) => String(name || '?').trim().split(/\s+/).slice(0,2).map(w => w[0] || '').join('').toUpperCase() || '?';
-  const avColor = (name) => AV_COLORS[(String(name||'').length) % AV_COLORS.length];
-  const timeAgo = (v) => {
-    const t = tsOf(v); if (!t) return '';
-    const diff = Date.now() - t;
-    if (diff < 3600000) return Math.max(1, Math.round(diff/60000)) + 'm ago';
-    if (diff < 86400000) return Math.round(diff/3600000) + 'h ago';
-    if (diff < 7*86400000) return Math.round(diff/86400000) + 'd ago';
-    return new Date(t).toLocaleDateString();
-  };
-
-  function render() {
+  function renderPage() {
     const data = scoped();
     const clients = Array.isArray(data.clients) ? data.clients : [];
-    const properties = Array.isArray(data.properties) ? data.properties : [];
-    const followups = Array.isArray(data.followups) ? data.followups : [];
+    const canManageTeam = window.PMFoundation && window.PMFoundation.currentUserCan('team.manage');
 
-    // ---- This week stats ----
-    const stats = [
-      { k: 'Clients added', v: clients.filter(c => withinWeek(c.createdAt || c.lastActivityAt)).length, unit: 'this week' },
-      { k: 'Properties added', v: properties.filter(p => withinWeek(p.createdAt)).length, unit: '' },
-      { k: 'Follow-ups logged', v: followups.filter(f => withinWeek(f.createdAt || f.dateTime)).length, unit: '' }
-    ];
-    document.getElementById('week-stats').innerHTML = stats.map(s => `
-      <div class="tw-stat">
-        <div class="k">${esc(s.k)}</div>
-        <div class="v pm-serif">${s.v}${s.unit ? `<small>${esc(s.unit)}</small>` : ''}</div>
-      </div>`).join('');
+    mount.innerHTML = `
+      <!-- Hero -->
+      <div class="tw-hero">
+        <div style="font-size:12px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--pm-gold);">${esc(dateStr)}</div>
+        <h1 id="tw-greeting-title">Welcome back, ${esc(currentProfileName)}.</h1>
+        <p style="font-size:16px;color:#c9b48a;margin:0 0 20px;">Your work table for today — add clients, list properties, and mark plots on the map.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <button type="button" class="pm-btn pm-btn-violet" id="tw-hdr-add-client">
+            <i class="ph ph-user-plus" style="font-size:18px;"></i> + Add Client
+          </button>
+          <a class="pm-btn pm-btn-ghost" href="/admin/properties.html" style="color:#fff;border-color:rgba(255,255,255,0.2);">
+            <i class="ph ph-buildings"></i> Open Properties
+          </a>
+        </div>
+      </div>
 
-    // ---- My clients ----
-    const sortedClients = [...clients].sort((a, b) => tsOf(b.lastActivityAt || b.updatedAt) - tsOf(a.lastActivityAt || a.updatedAt));
-    document.getElementById('clients-count').textContent = clients.length + ' in your book';
-    const listEl = document.getElementById('clients-list');
-    if (!sortedClients.length) {
-      listEl.innerHTML = '<div class="pm-empty"><div class="title">No clients yet</div><div class="desc">Add your first client to start your book.</div></div>';
-    } else {
-      listEl.innerHTML = sortedClients.slice(0, 8).map(c => {
-        const st = stageStyle(c.status);
-        const meta = [c.interestedArea, c.sizeRequirement].filter(Boolean).join(' · ');
-        return `<div class="tw-row">
+      <!-- Quick Action Cards -->
+      <div style="font-family:var(--pm-font-display);font-size:22px;font-weight:500;color:var(--pm-ink);margin-bottom:14px;">Do Next</div>
+      <div class="tw-quick-grid">
+        <div class="tw-quick-card" id="tw-act-add-client">
+          <div class="tw-quick-icon" style="background:var(--pm-surface-violet);color:var(--pm-violet-deep);"><i class="ph ph-user-plus"></i></div>
+          <div>
+            <div style="font-weight:700;font-size:15px;">Add Client</div>
+            <div style="font-size:12.5px;color:var(--pm-ink-soft);">Add to your book</div>
+          </div>
+        </div>
+        <a href="/admin/properties.html" class="tw-quick-card">
+          <div class="tw-quick-icon" style="background:var(--pm-surface-gold);color:var(--pm-gold-dark);"><i class="ph ph-plus-circle"></i></div>
+          <div>
+            <div style="font-weight:700;font-size:15px;">Add Property</div>
+            <div style="font-size:12.5px;color:var(--pm-ink-soft);">List a new plot</div>
+          </div>
+        </a>
+        <a href="/admin/properties.html" class="tw-quick-card">
+          <div class="tw-quick-icon" style="background:var(--pm-surface-blue);color:var(--pm-blue);"><i class="ph ph-buildings"></i></div>
+          <div>
+            <div style="font-weight:700;font-size:15px;">Open Properties</div>
+            <div style="font-size:12.5px;color:var(--pm-ink-soft);">Manage inventory</div>
+          </div>
+        </a>
+        <a href="/admin/map-studio.html" class="tw-quick-card">
+          <div class="tw-quick-icon" style="background:var(--pm-surface-green);color:var(--pm-emerald);"><i class="ph ph-map-trifold"></i></div>
+          <div>
+            <div style="font-weight:700;font-size:15px;">Open Map Studio</div>
+            <div style="font-size:12.5px;color:var(--pm-ink-soft);">Mark roads &amp; plots</div>
+          </div>
+        </a>
+      </div>
+
+      <!-- My Clients Card -->
+      <div class="pm-card" style="border-radius:24px;padding:24px;background:var(--pm-surface);border:1.5px solid var(--pm-hairline-2);margin-bottom:28px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;">
+          <div>
+            <div style="font-family:var(--pm-font-display);font-size:22px;font-weight:500;color:var(--pm-ink);">My Clients</div>
+            <div style="font-size:13.5px;color:var(--pm-ink-soft);">${clients.length} in your workspace book</div>
+          </div>
+          <a class="pm-btn pm-btn-soft pm-btn-sm" href="/admin/clients.html">View All Clients →</a>
+        </div>
+        <div id="tw-clients-list" style="border:1px solid var(--pm-hairline);border-radius:16px;overflow:hidden;"></div>
+      </div>
+
+      <!-- Team Management Card (Owner/Manager Only) -->
+      ${canManageTeam ? `
+      <div class="pm-card" id="tw-team-card" style="border-radius:24px;padding:24px;background:var(--pm-surface);border:1.5px solid var(--pm-hairline-2);">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+          <div>
+            <div style="font-family:var(--pm-font-display);font-size:22px;font-weight:500;color:var(--pm-ink);">Team Management</div>
+            <div style="font-size:13.5px;color:var(--pm-ink-soft);">Roles, permissions, and access status for everyone on Dealer Login</div>
+          </div>
+          <button class="pm-btn pm-btn-violet pm-btn-sm" type="button" id="tw-add-team-btn">+ Add Team Member</button>
+        </div>
+        <div id="tw-team-members-list" style="border:1px solid var(--pm-hairline);border-radius:16px;overflow:hidden;margin-bottom:16px;"></div>
+
+        <!-- Add/Edit Team Member Form (collapsible) -->
+        <div id="tw-team-form-wrap" style="display:none;background:var(--pm-surface-alt);border:1px solid var(--pm-hairline-2);border-radius:18px;padding:20px;margin-top:16px;">
+          <h4 id="tw-form-title" style="margin:0 0 16px;font-family:var(--pm-font-display);font-size:20px;font-weight:500;">Add Team Member</h4>
+          <input type="hidden" id="tw-mem-id" value="">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:14px;">
+            <div class="pm-field">
+              <label class="pm-label">Name</label>
+              <input id="tw-mem-name" class="pm-input" type="text" placeholder="Full Name">
+            </div>
+            <div class="pm-field">
+              <label class="pm-label">Email (Login email)</label>
+              <input id="tw-mem-email" class="pm-input" type="email" placeholder="member@example.com">
+            </div>
+            <div class="pm-field">
+              <label class="pm-label">Role</label>
+              <select id="tw-mem-role" class="pm-select"></select>
+            </div>
+            <div class="pm-field">
+              <label class="pm-label">Status</label>
+              <select id="tw-mem-status" class="pm-select">
+                <option value="active">Active</option>
+                <option value="blocked">Blocked</option>
+                <option value="disabled">Disabled</option>
+                <option value="removed">Removed</option>
+              </select>
+            </div>
+          </div>
+          <div class="pm-field" style="margin-bottom:12px;">
+            <label class="pm-label">Permissions Scope</label>
+            <div id="tw-perm-grid" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;"></div>
+          </div>
+          <div id="tw-allowed-pages" style="font-size:13px;color:var(--pm-ink-soft);margin-bottom:16px;"></div>
+          <div id="tw-form-error" style="font-size:13px;color:var(--pm-orange);margin-bottom:12px;"></div>
+          <div style="display:flex;gap:10px;">
+            <button class="pm-btn pm-btn-violet" type="button" id="tw-mem-save">Save Member</button>
+            <button class="pm-btn pm-btn-ghost" type="button" id="tw-mem-cancel">Cancel</button>
+          </div>
+        </div>
+      </div>` : ''}
+    `;
+
+    renderClientsList();
+    if (canManageTeam) setupTeamManagement();
+
+    // Bind Quick Actions
+    const addClientAct = document.getElementById('tw-act-add-client');
+    if (addClientAct) addClientAct.addEventListener('click', () => openClientModal());
+
+    const addClientHdr = document.getElementById('tw-hdr-add-client');
+    if (addClientHdr) addClientHdr.addEventListener('click', () => openClientModal());
+  }
+
+  function renderClientsList() {
+    const el = document.getElementById('tw-clients-list');
+    if (!el) return;
+
+    const data = scoped();
+    const clients = Array.isArray(data.clients) ? data.clients : [];
+    const sorted = [...clients].sort((a, b) => (Number(b.lastActivityAt) || Number(b.createdAt) || 0) - (Number(a.lastActivityAt) || Number(a.createdAt) || 0));
+
+    if (!sorted.length) {
+      el.innerHTML = `
+        <div class="pm-empty" style="padding:32px 16px;">
+          <div class="pm-empty-title">No clients yet</div>
+          <div class="pm-empty-desc">Add your first client to start building your workspace book.</div>
+        </div>`;
+      return;
+    }
+
+    el.innerHTML = sorted.slice(0, 8).map(c => {
+      const st = stageStyle(c.status);
+      const meta = [c.interestedArea, c.sizeRequirement].filter(Boolean).join(' · ');
+      return `
+        <div class="tw-row">
           <div class="tw-av" style="background:${avColor(c.name)};">${esc(initialsOf(c.name))}</div>
           <div style="flex:1;min-width:0;">
-            <div style="font-size:14.5px;font-weight:700;">${esc(c.name || 'Unknown')}</div>
-            <div style="font-size:12px;color:var(--pm-text-mut);margin-top:1px;">${esc(meta || '—')}</div>
+            <div style="font-size:15px;font-weight:700;color:var(--pm-ink);">${esc(c.name || 'Unknown')}</div>
+            <div style="font-size:13px;color:var(--pm-ink-soft);margin-top:2px;">${esc(meta || '—')}</div>
           </div>
-          <span class="tw-badge" style="color:${st.c};background:${st.bg};">${esc(stageLabel(c.status))}</span>
-          <button class="pm-btn pm-btn-secondary sm" type="button" data-update-client="${esc(c.id)}">Update</button>
+          <span class="pm-badge" style="color:${st.c};background:${st.bg};font-weight:700;">${esc(stageLabel(c.status))}</span>
         </div>`;
-      }).join('');
-      listEl.querySelectorAll('[data-update-client]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const c = (scoped().clients || []).find(x => x.id === btn.getAttribute('data-update-client'));
-          if (c) openClientForm(c);
-        });
-      });
-    }
-
-    // ---- Recent activity (clients + properties, newest first) ----
-    const recent = [
-      ...clients.map(c => ({ when: tsOf(c.createdAt || c.lastActivityAt), name: c.name, meta: 'New client' + (c.interestedArea ? ' · ' + c.interestedArea : '') })),
-      ...properties.map(p => ({ when: tsOf(p.createdAt), name: (p.title || p.plotNumber || 'Property') + ' added', meta: [p.area, p.size].filter(Boolean).join(' · ') }))
-    ].filter(r => r.when).sort((a, b) => b.when - a.when).slice(0, 6);
-    const feedEl = document.getElementById('activity-feed');
-    feedEl.innerHTML = recent.length
-      ? recent.map(r => `<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:11px 0;border-top:1px solid var(--pm-border-subtle);">
-          <div style="min-width:0;"><div style="font-size:14px;font-weight:700;">${esc(r.name)}</div><div style="font-size:12px;color:var(--pm-text-mut);margin-top:1px;">${esc(r.meta || '')}</div></div>
-          <span style="font-size:12px;color:var(--pm-text-mut);font-weight:600;white-space:nowrap;">${esc(timeAgo(r.when))}</span>
-        </div>`).join('')
-      : '<div class="pm-empty"><div class="title">Nothing yet</div><div class="desc">Add a client or property to see activity here.</div></div>';
+    }).join('');
   }
 
-  // ---- Modals ----
-  const openModal = (id) => document.getElementById(id).classList.add('on');
-  const closeModal = (id) => document.getElementById(id).classList.remove('on');
-  document.querySelectorAll('[data-close-modal]').forEach(btn => {
-    btn.addEventListener('click', () => closeModal(btn.getAttribute('data-close-modal')));
-  });
-  document.querySelectorAll('.tw-overlay').forEach(ov => {
-    ov.addEventListener('click', (e) => { if (e.target === ov) ov.classList.remove('on'); });
-  });
+  function setupTeamManagement() {
+    const listEl = document.getElementById('tw-team-members-list');
+    const formWrap = document.getElementById('tw-team-form-wrap');
+    const addBtn = document.getElementById('tw-add-team-btn');
+    const roleSelect = document.getElementById('tw-mem-role');
+    const permGrid = document.getElementById('tw-perm-grid');
+    const allowedPagesEl = document.getElementById('tw-allowed-pages');
+    if (!listEl || !window.PMFoundation) return;
 
-  // Add / edit client details (shared modal)
-  function openClientForm(client) {
-    const editing = !!(client && client.id);
-    document.getElementById('form-client').reset();
-    document.getElementById('cl-id').value = editing ? client.id : '';
-    document.getElementById('cl-title').textContent = editing ? 'Update client details' : 'Add client details';
-    document.getElementById('cl-submit').textContent = editing ? 'Save changes' : 'Add client';
-    document.getElementById('cl-name').value = editing ? (client.name || '') : '';
-    document.getElementById('cl-phone').value = editing ? (client.phone || '') : '';
-    document.getElementById('cl-budget').value = editing ? (client.budgetRange || '') : '';
-    document.getElementById('cl-area').value = editing ? (client.interestedArea || '') : '';
-    document.getElementById('cl-ptype').value = editing ? (client.propertyType || '') : '';
-    document.getElementById('cl-size').value = editing ? (client.sizeRequirement || '') : '';
-    document.getElementById('cl-status').value = editing ? (client.status || 'New') : 'New';
-    document.getElementById('cl-source').value = editing ? (client.leadSource || '') : '';
-    document.getElementById('cl-notes').value = editing ? (client.notes || '') : '';
-    openModal('modal-client');
-  }
-  document.getElementById('act-add-client').addEventListener('click', () => openClientForm(null));
-  document.getElementById('hdr-add-client').addEventListener('click', () => openClientForm(null));
-  document.getElementById('form-client').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const name = document.getElementById('cl-name').value.trim();
-    if (!name) return;
-    const details = {
-      name,
-      phone: document.getElementById('cl-phone').value.trim(),
-      budgetRange: document.getElementById('cl-budget').value.trim(),
-      interestedArea: document.getElementById('cl-area').value.trim(),
-      propertyType: document.getElementById('cl-ptype').value,
-      sizeRequirement: document.getElementById('cl-size').value.trim(),
-      status: document.getElementById('cl-status').value,
-      leadSource: document.getElementById('cl-source').value,
-      notes: document.getElementById('cl-notes').value.trim()
+    const permCatalog = window.PMFoundation.permissionCatalog();
+    const ROLE_LABELS = {};
+
+    roleSelect.innerHTML = window.PMFoundation.TEAM_ROLES.map(role => {
+      ROLE_LABELS[role.id] = role.label;
+      return `<option value="${esc(role.id)}">${esc(role.label)}</option>`;
+    }).join('');
+    ROLE_LABELS.owner = 'Owner';
+
+    permGrid.innerHTML = permCatalog.map(item => `
+      <label style="display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--pm-hairline-2);border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer;background:var(--pm-surface);">
+        <input type="checkbox" value="${esc(item.id)}"> ${esc(item.label)}
+      </label>
+    `).join('');
+
+    const PAGE_SCOPES = [
+      { label: 'Client Presentation', scope: 'presentation.view' },
+      { label: 'Map Studio', scope: 'mapstudio.manage' },
+      { label: 'Properties', scope: 'properties.manage' },
+      { label: 'Deals', scope: 'deals.view' },
+      { label: 'Client Details', scope: 'clients.view' },
+      { label: 'Area Intelligence', scope: 'insights.view' }
+    ];
+
+    const refreshAllowedPages = () => {
+      const selected = [...permGrid.querySelectorAll('input[type="checkbox"]:checked')].map(box => box.value);
+      const pages = PAGE_SCOPES.filter(p => selected.includes(p.scope)).map(p => p.label);
+      allowedPagesEl.textContent = pages.length ? 'Allowed pages: Workspace, ' + pages.join(', ') : 'Allowed pages: Workspace only';
     };
-    const id = document.getElementById('cl-id').value;
-    if (id) crm.updateClient(id, details);
-    else crm.addClient(Object.assign({ type: 'buyer' }, details));
-    closeModal('modal-client');
-    render();
-  });
 
-  // Add Property → the real, existing add form
-  document.getElementById('act-add-property').addEventListener('click', () => {
-    window.location.href = '/admin/properties.html';
-  });
+    permGrid.addEventListener('change', refreshAllowedPages);
+    roleSelect.addEventListener('change', () => {
+      const preset = new Set(window.PMFoundation.defaultPermissions(roleSelect.value));
+      permGrid.querySelectorAll('input[type="checkbox"]').forEach(box => { box.checked = preset.has(box.value); });
+      refreshAllowedPages();
+    });
 
-  render();
+    const renderMembers = () => {
+      const list = window.PMFoundation.listTeamMembers();
+      if (!list.length) {
+        listEl.innerHTML = '<div class="pm-empty" style="padding:24px;"><div class="pm-empty-title">No team members added yet</div></div>';
+        return;
+      }
+      const STATUS_COLORS = { active: 'var(--pm-emerald)', blocked: 'var(--pm-orange)', disabled: 'var(--pm-orange)', removed: 'var(--pm-ink-soft)' };
 
-  // ---- Team management (owner / managers only) ----
-  if (window.PMFoundation) {
-    const canManage = window.PMFoundation.currentUserCan('team.manage');
-    if (canManage) {
-      document.getElementById('team-manage-card').style.display = 'block';
-      const permGrid = document.getElementById('team-permission-grid');
-      const permCatalog = window.PMFoundation.permissionCatalog();
-      const roleSelect = document.getElementById('team-member-role');
-      const ROLE_LABELS = {};
-      roleSelect.innerHTML = window.PMFoundation.TEAM_ROLES.map(role => {
-        ROLE_LABELS[role.id] = role.label;
-        return `<option value="${esc(role.id)}">${esc(role.label)}</option>`;
-      }).join('');
-      ROLE_LABELS.owner = 'Owner';
-      permGrid.innerHTML = permCatalog.map(item => `
-        <label style="display:inline-flex;align-items:center;gap:8px;border:1px solid var(--pm-border);border-radius:999px;padding:8px 12px;font-size:13px;cursor:pointer;background:#fff;">
-          <input type="checkbox" value="${esc(item.id)}"> ${esc(item.label)}
-        </label>`).join('');
-
-      const PAGE_SCOPES = [
-        { label: 'Client Presentation', scope: 'presentation.view' },
-        { label: 'Map Studio', scope: 'mapstudio.manage' },
-        { label: 'Properties', scope: 'properties.manage' },
-        { label: 'Deals', scope: 'deals.view' },
-        { label: 'Client Details', scope: 'clients.view' },
-        { label: 'Area Intelligence + Property Insights', scope: 'insights.view' }
-      ];
-      const allowedPagesText = (scopes) => {
-        const set = new Set(scopes || []);
-        const pages = PAGE_SCOPES.filter(p => set.has(p.scope)).map(p => p.label);
-        return pages.length ? 'Can open: Workspace, ' + pages.join(', ') : 'Can open: Workspace only';
-      };
-      const selectedScopes = () => [...permGrid.querySelectorAll('input[type="checkbox"]:checked')].map(box => box.value);
-      const refreshAllowedPages = () => {
-        document.getElementById('team-allowed-pages').textContent = allowedPagesText(selectedScopes());
-      };
-      permGrid.addEventListener('change', refreshAllowedPages);
-      roleSelect.addEventListener('change', () => {
-        const preset = new Set(window.PMFoundation.defaultPermissions(roleSelect.value));
-        permGrid.querySelectorAll('input[type="checkbox"]').forEach(box => { box.checked = preset.has(box.value); });
-        refreshAllowedPages();
-      });
-
-      const form = document.getElementById('team-member-form');
-      const toggleForm = (member) => {
-        document.getElementById('team-member-id').value = member ? member.id : '';
-        document.getElementById('team-member-name').value = member ? (member.name || '') : '';
-        document.getElementById('team-member-email').value = member ? (member.email || '') : '';
-        document.getElementById('team-member-status').value = member ? (member.status || 'active') : 'active';
-        roleSelect.value = member && member.role !== 'owner' ? (member.role || 'team') : 'team';
-        const selected = new Set(member ? (member.permissions || []) : window.PMFoundation.defaultPermissions(roleSelect.value));
-        permGrid.querySelectorAll('input[type="checkbox"]').forEach(box => { box.checked = selected.has(box.value); });
-        document.getElementById('team-form-error').textContent = '';
-        refreshAllowedPages();
-        form.style.display = 'block';
-      };
-
-      const STATUS_COLORS = { active: 'var(--pm-emerald)', blocked: '#b0532c', disabled: '#b0532c', removed: 'var(--pm-text-mut)' };
-      const renderMembers = () => {
-        const list = window.PMFoundation.listTeamMembers();
-        document.getElementById('team-members-list').innerHTML = list.length ? list.map(member => `
-          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px 0;border-top:1px solid var(--pm-border-subtle);">
-            <div style="min-width:0;">
-              <div style="font-size:14.5px;font-weight:700;">${esc(member.name || member.email || member.id)}</div>
-              <div style="font-size:12px;color:var(--pm-text-mut);">
-                ${esc(ROLE_LABELS[member.role] || member.role)} ·
-                <span style="color:${STATUS_COLORS[member.status] || 'var(--pm-text-mut)'};font-weight:700;">${esc(member.status || 'active')}</span>
-                ${member.email ? ' · ' + esc(member.email) : ''}
-              </div>
-              <div style="font-size:12px;color:var(--pm-text-mut);margin-top:4px;">${esc(allowedPagesText(member.role === 'owner' ? permCatalog.map(p => p.id) : member.permissions))}</div>
+      listEl.innerHTML = list.map(m => `
+        <div class="tw-row">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:15px;font-weight:700;color:var(--pm-ink);">${esc(m.name || m.email || m.id)}</div>
+            <div style="font-size:13px;color:var(--pm-ink-soft);margin-top:2px;">
+              ${esc(ROLE_LABELS[m.role] || m.role)} ·
+              <span style="color:${STATUS_COLORS[m.status] || 'var(--pm-ink-soft)'};font-weight:700;">${esc(m.status || 'active')}</span>
+              ${m.email ? ' · ' + esc(m.email) : ''}
             </div>
-            ${member.role !== 'owner' ? `
-            <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
-              <button class="pm-btn pm-btn-secondary sm" type="button" data-edit-member="${esc(member.id)}">Edit</button>
-              ${member.status === 'active' ? `<button class="pm-btn pm-btn-secondary sm" type="button" data-disable-member="${esc(member.id)}">Disable</button>` : ''}
-              ${member.status !== 'active' && member.status !== 'removed' ? `<button class="pm-btn pm-btn-secondary sm" type="button" data-enable-member="${esc(member.id)}">Re-activate</button>` : ''}
-              ${member.status !== 'removed' ? `<button class="pm-btn pm-btn-secondary sm" type="button" data-remove-member="${esc(member.id)}">Remove</button>` : ''}
-            </div>` : ''}
-          </div>`).join('') : '<div class="pm-empty"><div class="title">No team members yet</div><div class="desc">Add the first team member — they sign in through the same Dealer Login.</div></div>';
-        document.querySelectorAll('[data-edit-member]').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const member = window.PMFoundation.listTeamMembers().find(item => item.id === btn.getAttribute('data-edit-member'));
-            toggleForm(member);
-          });
-        });
-        document.querySelectorAll('[data-disable-member]').forEach(btn => {
-          btn.addEventListener('click', () => { window.PMFoundation.setTeamMemberStatus(btn.getAttribute('data-disable-member'), 'disabled'); renderMembers(); });
-        });
-        document.querySelectorAll('[data-enable-member]').forEach(btn => {
-          btn.addEventListener('click', () => { window.PMFoundation.setTeamMemberStatus(btn.getAttribute('data-enable-member'), 'active'); renderMembers(); });
-        });
-        document.querySelectorAll('[data-remove-member]').forEach(btn => {
-          btn.addEventListener('click', () => {
-            if (!confirm('Remove this team member? They keep their history but lose workspace access.')) return;
-            window.PMFoundation.setTeamMemberStatus(btn.getAttribute('data-remove-member'), 'removed');
-            renderMembers();
-          });
-        });
-      };
+          </div>
+          ${m.role !== 'owner' ? `
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="pm-btn pm-btn-soft pm-btn-sm" type="button" data-edit-member="${esc(m.id)}">Edit</button>
+            ${m.status === 'active' ? `<button class="pm-btn pm-btn-soft pm-btn-sm" type="button" data-disable-member="${esc(m.id)}">Disable</button>` : ''}
+            ${m.status !== 'active' && m.status !== 'removed' ? `<button class="pm-btn pm-btn-soft pm-btn-sm" type="button" data-enable-member="${esc(m.id)}">Re-activate</button>` : ''}
+          </div>` : ''}
+        </div>
+      `).join('');
 
-      document.getElementById('team-add-member').addEventListener('click', () => toggleForm(null));
-      document.getElementById('team-member-cancel').addEventListener('click', () => { form.style.display = 'none'; });
-      form.addEventListener('submit', (event) => {
-        event.preventDefault();
-        const errorEl = document.getElementById('team-form-error');
-        errorEl.textContent = '';
-        try {
-          window.PMFoundation.saveTeamMember({
-            id: document.getElementById('team-member-id').value || null,
-            name: document.getElementById('team-member-name').value.trim(),
-            email: document.getElementById('team-member-email').value.trim(),
-            status: document.getElementById('team-member-status').value,
-            role: roleSelect.value,
-            permissions: selectedScopes()
-          });
-        } catch (err) {
-          errorEl.textContent = err.message || 'Could not save this team member.';
-          return;
-        }
-        form.style.display = 'none';
-        renderMembers();
+      listEl.querySelectorAll('[data-edit-member]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const m = window.PMFoundation.listTeamMembers().find(x => x.id === btn.getAttribute('data-edit-member'));
+          if (m) openMemberForm(m);
+        });
       });
-      renderMembers();
-    }
+      listEl.querySelectorAll('[data-disable-member]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          window.PMFoundation.setTeamMemberStatus(btn.getAttribute('data-disable-member'), 'disabled');
+          window.PMShell.toast('Team member disabled', 'ok');
+          renderMembers();
+        });
+      });
+      listEl.querySelectorAll('[data-enable-member]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          window.PMFoundation.setTeamMemberStatus(btn.getAttribute('data-enable-member'), 'active');
+          window.PMShell.toast('Team member activated', 'ok');
+          renderMembers();
+        });
+      });
+    };
+
+    const openMemberForm = (member) => {
+      const isEdit = !!member;
+      document.getElementById('tw-mem-id').value = isEdit ? member.id : '';
+      document.getElementById('tw-mem-name').value = isEdit ? (member.name || '') : '';
+      document.getElementById('tw-mem-email').value = isEdit ? (member.email || '') : '';
+      document.getElementById('tw-mem-status').value = isEdit ? (member.status || 'active') : 'active';
+      roleSelect.value = isEdit && member.role !== 'owner' ? (member.role || 'team') : 'team';
+      const selected = new Set(isEdit ? (member.permissions || []) : window.PMFoundation.defaultPermissions(roleSelect.value));
+      permGrid.querySelectorAll('input[type="checkbox"]').forEach(box => { box.checked = selected.has(box.value); });
+      document.getElementById('tw-form-title').textContent = isEdit ? 'Edit Team Member' : 'Add Team Member';
+      document.getElementById('tw-form-error').textContent = '';
+      refreshAllowedPages();
+      formWrap.style.display = 'block';
+    };
+
+    addBtn.addEventListener('click', () => openMemberForm(null));
+    document.getElementById('tw-mem-cancel').addEventListener('click', () => { formWrap.style.display = 'none'; });
+
+    document.getElementById('tw-mem-save').addEventListener('click', () => {
+      const errEl = document.getElementById('tw-form-error');
+      errEl.textContent = '';
+      const selectedScopes = [...permGrid.querySelectorAll('input[type="checkbox"]:checked')].map(box => box.value);
+      try {
+        window.PMFoundation.saveTeamMember({
+          id: document.getElementById('tw-mem-id').value || null,
+          name: document.getElementById('tw-mem-name').value.trim(),
+          email: document.getElementById('tw-mem-email').value.trim(),
+          status: document.getElementById('tw-mem-status').value,
+          role: roleSelect.value,
+          permissions: selectedScopes
+        });
+        window.PMShell.toast('Team member saved', 'ok');
+        formWrap.style.display = 'none';
+        renderMembers();
+      } catch (err) {
+        errEl.textContent = err.message || 'Could not save team member.';
+      }
+    });
+
+    renderMembers();
   }
+
+  function openClientModal() {
+    const overlay = document.createElement('div');
+    overlay.className = 'pm-overlay is-open';
+    overlay.innerHTML = `
+      <div class="pm-dialog" style="max-width:520px;">
+        <div class="pm-dialog-h">
+          <h3>Add Client</h3>
+          <button type="button" class="pm-btn-close" id="tw-cl-close"><i class="ph ph-x"></i></button>
+        </div>
+        <form id="tw-cl-form">
+          <div class="pm-field" style="margin-bottom:14px;">
+            <label class="pm-label">Full Name <span style="color:var(--pm-orange);">*</span></label>
+            <input id="tw-cl-name" class="pm-input" type="text" placeholder="e.g. Rajdeep Singh" required>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+            <div class="pm-field">
+              <label class="pm-label">Phone</label>
+              <input id="tw-cl-phone" class="pm-input" type="text" placeholder="+91 …">
+            </div>
+            <div class="pm-field">
+              <label class="pm-label">Budget</label>
+              <input id="tw-cl-budget" class="pm-input" type="text" placeholder="₹ …">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+            <div class="pm-field">
+              <label class="pm-label">Area Interested In</label>
+              <input id="tw-cl-area" class="pm-input" type="text" placeholder="e.g. Aerocity">
+            </div>
+            <div class="pm-field">
+              <label class="pm-label">Property Type</label>
+              <select id="tw-cl-ptype" class="pm-select">
+                <option value="">—</option>
+                <option>Residential Plot</option><option>Commercial</option><option>Commercial SCO</option>
+                <option>Showroom</option><option>Residential</option><option>Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="pm-field" style="margin-bottom:20px;">
+            <label class="pm-label">Requirement &amp; Notes</label>
+            <input id="tw-cl-notes" class="pm-input" type="text" placeholder="250 sq yd, corner plot preferred…">
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:10px;">
+            <button type="button" class="pm-btn pm-btn-ghost" id="tw-cl-cancel">Cancel</button>
+            <button type="submit" class="pm-btn pm-btn-violet">Save Client</button>
+          </div>
+        </form>
+      </div>`;
+
+    document.body.appendChild(overlay);
+
+    const close = () => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); };
+    overlay.querySelector('#tw-cl-close').addEventListener('click', close);
+    overlay.querySelector('#tw-cl-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    overlay.querySelector('#tw-cl-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = overlay.querySelector('#tw-cl-name').value.trim();
+      if (!name) return;
+      crm.addClient({
+        name,
+        type: 'buyer',
+        phone: overlay.querySelector('#tw-cl-phone').value.trim(),
+        budgetRange: overlay.querySelector('#tw-cl-budget').value.trim(),
+        interestedArea: overlay.querySelector('#tw-cl-area').value.trim(),
+        propertyType: overlay.querySelector('#tw-cl-ptype').value,
+        notes: overlay.querySelector('#tw-cl-notes').value.trim(),
+        status: 'New',
+        createdAt: new Date().toISOString()
+      });
+      window.PMShell.toast('Client added', 'ok');
+      close();
+      renderPage();
+    });
+  }
+
+  renderPage();
 });
 </script>
 </body>

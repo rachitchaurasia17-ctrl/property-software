@@ -5,7 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Area Intelligence — PlotMap</title>
-<link rel="stylesheet" href="/admin/crm-ui.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<link rel="stylesheet" href="/admin/core/plotmap-ds.css">
 <script src="/config/runtime-env.js"></script>
 <script src="/config/supabase-config.js"></script>
 <script src="/admin/core/auth.js"></script>
@@ -15,77 +21,49 @@
 <script src="/admin/core/event-tracker.js"></script>
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
+<script src="/admin/core/overlay-store.js"></script>
+<script src="/admin/core/saas-foundation.js"></script>
 <script src="/admin/core/supabase-sync.js"></script>
-<script src="/admin/core/nav.js"></script>
+<script src="/admin/core/plotmap-shell.js"></script>
 <script>
 if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
 </script>
 <style>
-.ai-card { background:#fff;border:1px solid var(--pm-border);border-radius:20px;padding:18px 20px; }
-.ai-stats { display:flex;flex-wrap:wrap;gap:8px;margin-top:14px; }
-.ai-stat { flex:1;min-width:30%;background:var(--pm-bg-warm);border:1px solid var(--pm-border-subtle);padding:10px 12px;border-radius:12px; }
-.ai-stat-val { font-size:18px;font-weight:800;color:var(--pm-text); }
-.ai-stat-lbl { font-size:10.5px;color:var(--pm-text-mut);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:2px; }
-.ai-meaning { display:flex;gap:10px;align-items:flex-start;margin-top:14px;background:var(--pm-emerald-light);border:1px solid #CDE6DA;border-radius:12px;padding:10px 12px; }
-.ai-meaning i { flex:none;width:22px;height:22px;border-radius:7px;background:var(--pm-emerald);color:#fff;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:800;font-size:12px; }
-.ai-meaning span { font-size:12.5px;color:#216B4E;font-weight:600;line-height:1.45; }
-.gap-row { display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--pm-border-subtle);align-items:center; }
-.gap-row:last-child { border-bottom:none; }
+  .ai-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:20px; margin-bottom:28px; }
+  .ai-card { background:var(--pm-surface); border:1.5px solid var(--pm-hairline-2); border-radius:20px; padding:22px; box-shadow:var(--pm-shadow-card); }
+  .ai-stat-row { display:flex; gap:10px; margin-top:16px; }
+  .ai-stat-tile { flex:1; background:var(--pm-surface-alt); border:1px solid var(--pm-hairline-2); border-radius:12px; padding:10px 12px; text-align:center; }
+  .ai-stat-val { font-family:var(--pm-font-display); font-size:22px; font-weight:500; color:var(--pm-ink); }
+  .ai-stat-lbl { font-size:11px; font-weight:700; color:var(--pm-ink-soft); text-transform:uppercase; letter-spacing:.05em; margin-top:2px; }
+  .ai-meaning-box { display:flex; gap:10px; align-items:flex-start; margin-top:16px; background:var(--pm-surface-green); border:1px solid #cde6da; border-radius:14px; padding:12px 14px; font-size:13px; color:var(--pm-emerald); line-height:1.45; }
+  .gap-item { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:14px 0; border-bottom:1px solid var(--pm-hairline); }
+  .gap-item:last-child { border-bottom:none; }
 </style>
 </head>
-<body class="pm-shell">
-
-<header id="pm-topbar"></header>
-
-<main class="pm-main">
-  <div class="pm-page-header">
-    <div>
-      <h1>Area Intelligence</h1>
-      <div class="sub">Which areas your clients care about most.</div>
-    </div>
-    <a class="pm-btn pm-btn-secondary" href="/app/plotmap/">Open Client Presentation</a>
-  </div>
-
-  <div style="font-size:18px;font-weight:800;margin-bottom:12px;">Hot &amp; rising areas</div>
-  <div class="pm-grid cols-3" id="area-pulse" style="margin-bottom:24px;"></div>
-
-  <div class="pm-grid wide-left" style="align-items:start;">
-    <div class="pm-card-xl">
-      <div class="pm-card-h">Client attention vs your inventory</div>
-      <div class="pm-card-sub">Presentation attention per area, compared with the stock you can show</div>
-      <div id="gap-analysis"></div>
-    </div>
-
-    <div class="pm-card-xl">
-      <div class="pm-card-h">Map activity</div>
-      <div class="pm-card-sub">What clients explore on your maps</div>
-      <div id="map-activity" style="display:flex;flex-direction:column;gap:12px;"></div>
-    </div>
-  </div>
-</main>
-
+<body class="pm-body pm-app-bg">
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  window.PMNav.render('area-intelligence');
   const crm = window.CRM;
-  const data = crm.getScopedCRM ? crm.getScopedCRM() : crm.getCRM();
-  const stats = crm.computePresentationStats ? crm.computePresentationStats() : { perArea: {} };
+  const data = crm && (crm.getScopedCRM ? crm.getScopedCRM() : crm.getCRM ? crm.getCRM() : {}) || {};
+  const stats = (crm && crm.computePresentationStats) ? crm.computePresentationStats() : { perArea: {} };
+  const esc = window.PMShell.esc;
 
-  const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  })[c]);
+  const mount = window.PMShell.mount({
+    variant: 'owner',
+    active: 'home',
+    section: { icon: 'ph-compass', name: 'Area Intelligence' }
+  });
 
-  // Presentation-only area rows (skip internal map ids from older event formats)
   const inventoryByArea = {};
   (data.properties || []).forEach(p => {
     if (p.area && p.internalStatus === 'Available') inventoryByArea[p.area] = (inventoryByArea[p.area] || 0) + 1;
   });
 
-  const areas = Object.keys(stats.perArea)
+  const areas = Object.keys(stats.perArea || {})
     .filter(name => !/^(masterplan|sector)-/.test(name))
     .map(name => {
       const a = stats.perArea[name];
-      const score = a.mapOpens + a.views * 2 + (a.overlayClicks || 0) + (a.sectorOpens || 0) + (a.shares || 0) * 2;
+      const score = (a.mapOpens || 0) + (a.views || 0) * 2 + (a.overlayClicks || 0) + (a.sectorOpens || 0) + (a.shares || 0) * 2;
       return { name, score, inventory: inventoryByArea[name] || 0, ...a };
     })
     .sort((a, b) => b.score - a.score);
@@ -93,9 +71,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const active = areas.filter(a => a.score > 0);
 
   function statusFor(a, rank) {
-    if (rank === 0 && a.score >= 4) return { label: 'Hot', cls: 'warm' };
-    if (a.score >= 2) return { label: 'Rising', cls: 'info' };
-    return { label: 'Getting looks', cls: 'neutral' };
+    if (rank === 0 && a.score >= 4) return { label: 'Hot', badge: 'pm-badge-gold' };
+    if (a.score >= 2) return { label: 'Rising', badge: 'pm-badge-live' };
+    return { label: 'Getting looks', badge: 'pm-badge-neutral' };
   }
 
   function whyText(a) {
@@ -115,72 +93,116 @@ document.addEventListener('DOMContentLoaded', () => {
     return 'Clients open this map often — make sure its properties have photos and pins.';
   }
 
-  // ---- Hot & rising areas ----
-  const pgrid = document.getElementById('area-pulse');
+  mount.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:24px;">
+      <div>
+        <h1 style="font-family:var(--pm-font-display);font-weight:500;font-size:32px;color:var(--pm-ink);margin:0 0 6px;">Area Intelligence</h1>
+        <p style="font-size:16px;color:var(--pm-ink-soft);margin:0;">Which areas your clients care about most in Client Presentation.</p>
+      </div>
+      <a class="pm-btn pm-btn-violet" href="/app/plotmap/">
+        <i class="ph ph-presentation-chart"></i> Open Client Presentation
+      </a>
+    </div>
+
+    <div style="font-family:var(--pm-font-display);font-size:22px;font-weight:500;color:var(--pm-ink);margin-bottom:14px;">Hot &amp; Rising Areas</div>
+    <div class="ai-grid" id="ai-pulse-grid"></div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;" id="ai-details-grid">
+      <!-- Attention vs Inventory -->
+      <div class="pm-card" style="border-radius:24px;padding:24px;background:var(--pm-surface);border:1.5px solid var(--pm-hairline-2);">
+        <div style="font-family:var(--pm-font-display);font-size:22px;font-weight:500;color:var(--pm-ink);margin-bottom:4px;">Client Attention vs Inventory</div>
+        <div style="font-size:13.5px;color:var(--pm-ink-soft);margin-bottom:18px;">Presentation attention per area compared with available stock</div>
+        <div id="ai-gap-list"></div>
+      </div>
+
+      <!-- Map Activity Highlights -->
+      <div class="pm-card" style="border-radius:24px;padding:24px;background:var(--pm-surface);border:1.5px solid var(--pm-hairline-2);">
+        <div style="font-family:var(--pm-font-display);font-size:22px;font-weight:500;color:var(--pm-ink);margin-bottom:4px;">Map Activity Highlights</div>
+        <div style="font-size:13.5px;color:var(--pm-ink-soft);margin-bottom:18px;">What clients explore on your maps</div>
+        <div id="ai-map-activity" style="display:flex;flex-direction:column;gap:14px;"></div>
+      </div>
+    </div>
+  `;
+
+  // --- Render Pulse Grid ---
+  const pulseGrid = document.getElementById('ai-pulse-grid');
   if (active.length === 0) {
-    pgrid.innerHTML = '<div class="pm-card-xl" style="grid-column:1/-1;"><div class="pm-empty" style="padding:36px 20px;"><div class="title">No client activity yet</div><div class="desc" style="margin-top:6px;">Area Intelligence fills in as clients explore your Client Presentation. Open it and walk a client through a map to get started.</div><div style="margin-top:16px;"><a class="pm-btn pm-btn-primary" href="/app/plotmap/">Open Client Presentation</a></div></div></div>';
+    pulseGrid.innerHTML = `
+      <div class="pm-card" style="grid-column:1/-1;padding:40px 24px;text-align:center;border-radius:24px;">
+        <i class="ph ph-compass" style="font-size:40px;color:var(--pm-violet-deep);margin-bottom:12px;"></i>
+        <div class="pm-empty-title">No client activity recorded yet</div>
+        <div class="pm-empty-desc" style="max-width:440px;margin:8px auto 0;">Area Intelligence fills in as clients explore your Client Presentation. Open it and walk a client through a map to generate signals.</div>
+        <a class="pm-btn pm-btn-violet" href="/app/plotmap/" style="margin-top:18px;display:inline-flex;">Open Client Presentation</a>
+      </div>`;
   } else {
-    pgrid.innerHTML = active.slice(0, 6).map((a, i) => {
+    pulseGrid.innerHTML = active.slice(0, 6).map((a, i) => {
       const st = statusFor(a, i);
       return `
-      <div class="ai-card">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
-          <div style="font-size:19px;font-weight:800;">${esc(a.name)}</div>
-          <span class="pm-status ${st.cls}">${st.label}</span>
-        </div>
-        <div style="font-size:12.5px;color:var(--pm-text-mut);line-height:1.45;margin-top:6px;min-height:32px;">${esc(whyText(a))}</div>
-        <div class="ai-stats">
-          <div class="ai-stat"><div class="ai-stat-val">${a.mapOpens}</div><div class="ai-stat-lbl">Map opens</div></div>
-          <div class="ai-stat"><div class="ai-stat-val">${a.views}</div><div class="ai-stat-lbl">Property views</div></div>
-          <div class="ai-stat"><div class="ai-stat-val">${a.sessions}</div><div class="ai-stat-lbl">Sessions</div></div>
-        </div>
-        <div class="ai-meaning"><i>i</i><span><b>What this means for you:</b> ${esc(meaningText(a, i))}</span></div>
-      </div>`;
+        <div class="ai-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+            <div style="font-size:20px;font-weight:800;color:var(--pm-ink);">${esc(a.name)}</div>
+            <span class="pm-badge ${st.badge}">${esc(st.label)}</span>
+          </div>
+          <div style="font-size:13px;color:var(--pm-ink-soft);line-height:1.45;margin-top:6px;min-height:36px;">${esc(whyText(a))}</div>
+          <div class="ai-stat-row">
+            <div class="ai-stat-tile"><div class="ai-stat-val">${a.mapOpens || 0}</div><div class="ai-stat-lbl">Map Opens</div></div>
+            <div class="ai-stat-tile"><div class="ai-stat-val">${a.views || 0}</div><div class="ai-stat-lbl">Views</div></div>
+            <div class="ai-stat-tile"><div class="ai-stat-val">${a.sessions || 0}</div><div class="ai-stat-lbl">Sessions</div></div>
+          </div>
+          <div class="ai-meaning-box">
+            <i class="ph ph-info" style="font-size:18px;flex:none;margin-top:1px;"></i>
+            <span><b>Takeaway:</b> ${esc(meaningText(a, i))}</span>
+          </div>
+        </div>`;
     }).join('');
   }
 
-  // ---- Attention vs inventory ----
-  const gapDiv = document.getElementById('gap-analysis');
+  // --- Render Gap List ---
+  const gapList = document.getElementById('ai-gap-list');
   const gapRows = areas.filter(a => a.score > 0 || a.inventory > 0);
   if (gapRows.length === 0) {
-    gapDiv.innerHTML = '<div class="pm-empty"><div class="desc">Once clients start exploring, you’ll see where attention outruns your stock.</div></div>';
+    gapList.innerHTML = '<div class="pm-empty" style="padding:24px;"><div class="pm-empty-desc">Once clients start exploring, you’ll see where attention outruns your available stock.</div></div>';
   } else {
     const maxScore = Math.max(1, ...gapRows.map(a => a.score));
-    gapDiv.innerHTML = gapRows.slice(0, 8).map(a => {
+    gapList.innerHTML = gapRows.slice(0, 8).map(a => {
       let verdict, color;
       if (a.score >= 3 && a.inventory === 0) { verdict = 'High attention · no stock'; color = 'var(--pm-orange)'; }
       else if (a.score >= 3 && a.inventory <= 2) { verdict = 'High attention · low stock'; color = 'var(--pm-gold-dark)'; }
       else if (a.score === 0 && a.inventory > 0) { verdict = 'Stock waiting · no attention yet'; color = 'var(--pm-blue)'; }
       else { verdict = a.inventory + ' available · steady interest'; color = 'var(--pm-emerald)'; }
       return `
-      <div class="gap-row">
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:700;font-size:14.5px;">${esc(a.name)}</div>
-          <div class="pm-progress slim" style="margin-top:7px;max-width:280px;"><div class="bar" style="width:${Math.round((a.score / maxScore) * 100)}%;background:var(--pm-emerald);"></div></div>
-        </div>
-        <div style="color:${color};font-weight:700;font-size:12.5px;background:var(--pm-bg-warm);border:1px solid var(--pm-border-subtle);padding:6px 12px;border-radius:999px;white-space:nowrap;">${verdict}</div>
-      </div>`;
+        <div class="gap-item">
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:15px;color:var(--pm-ink);">${esc(a.name)}</div>
+            <div style="margin-top:8px;max-width:240px;height:6px;background:var(--pm-surface-alt);border-radius:999px;overflow:hidden;">
+              <div style="width:${Math.round((a.score / maxScore) * 100)}%;height:100%;background:var(--pm-emerald);border-radius:999px;"></div>
+            </div>
+          </div>
+          <span style="color:${color};font-weight:700;font-size:12.5px;background:var(--pm-surface-alt);border:1px solid var(--pm-hairline-2);padding:6px 12px;border-radius:999px;white-space:nowrap;">${esc(verdict)}</span>
+        </div>`;
     }).join('');
   }
 
-  // ---- Map activity highlights ----
-  const mapAct = document.getElementById('map-activity');
-  const byOpens = [...active].sort((a, b) => b.mapOpens - a.mapOpens)[0];
+  // --- Render Map Activity ---
+  const mapAct = document.getElementById('ai-map-activity');
+  const byOpens = [...active].sort((a, b) => (b.mapOpens || 0) - (a.mapOpens || 0))[0];
   const byShares = [...active].sort((a, b) => (b.shares || 0) - (a.shares || 0))[0];
-  const byViews = [...active].sort((a, b) => b.views - a.views)[0];
+  const byViews = [...active].sort((a, b) => (b.views || 0) - (a.views || 0))[0];
+
   const tile = (label, area, valueText, color, link) => `
-    <div style="padding:16px;background:var(--pm-bg-warm);border-radius:14px;border:1px solid var(--pm-border-subtle);">
-      <div style="font-size:11.5px;color:var(--pm-text-mut);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">${label}</div>
-      <div style="font-size:21px;font-weight:800;color:${color};">${esc(area || '—')}</div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px;">
-        <span style="font-size:12.5px;color:var(--pm-text-mut);">${esc(valueText)}</span>
-        ${area && link ? `<a href="${link}" style="font-size:12.5px;font-weight:700;">Open →</a>` : ''}
+    <div style="padding:18px;background:var(--pm-surface-alt);border-radius:16px;border:1.5px solid var(--pm-hairline-2);">
+      <div style="font-size:11.5px;color:var(--pm-ink-soft);font-weight:800;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">${esc(label)}</div>
+      <div style="font-size:22px;font-family:var(--pm-font-display);font-weight:500;color:${color};">${esc(area || '—')}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+        <span style="font-size:13px;color:var(--pm-ink-soft);">${esc(valueText)}</span>
+        ${area && link ? `<a href="${link}" style="font-size:13px;font-weight:700;color:var(--pm-violet-deep);text-decoration:none;">Open →</a>` : ''}
       </div>
     </div>`;
+
   mapAct.innerHTML =
-    tile('Most opened map', byOpens && byOpens.mapOpens > 0 ? byOpens.name : '', byOpens ? byOpens.mapOpens + ' opens in Client Presentation' : 'No opens yet', 'var(--pm-blue)', '/app/plotmap/')
-    + tile('Most shared area', byShares && (byShares.shares || 0) > 0 ? byShares.name : '', byShares ? (byShares.shares || 0) + ' properties shared' : 'No shares yet', 'var(--pm-gold)', '/admin/properties.html')
-    + tile('Most viewed properties', byViews && byViews.views > 0 ? byViews.name : '', byViews ? byViews.views + ' detailed views' : 'No views yet', 'var(--pm-emerald)', '/admin/property-insights.html');
+    tile('Most Opened Map', byOpens && byOpens.mapOpens > 0 ? byOpens.name : '', byOpens ? byOpens.mapOpens + ' opens in presentation' : 'No map opens yet', 'var(--pm-blue)', '/app/plotmap/')
+    + tile('Most Shared Area', byShares && (byShares.shares || 0) > 0 ? byShares.name : '', byShares ? (byShares.shares || 0) + ' properties shared' : 'No shares yet', 'var(--pm-gold-dark)', '/admin/properties.html')
+    + tile('Most Viewed Properties', byViews && byViews.views > 0 ? byViews.name : '', byViews ? byViews.views + ' detailed property views' : 'No property views yet', 'var(--pm-emerald)', '/admin/property-insights.html');
 });
 </script>
 </body>

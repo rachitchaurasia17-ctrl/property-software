@@ -8,9 +8,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
     <script src="/admin/crm-data.js"></script>
     <script src="/admin/core/data-adapter.js"></script>
     <script src="/admin/core/sync-queue.js"></script>
@@ -37,24 +40,24 @@
         margin: 0;
         padding: 0;
         height: 100%;
-        background: #f1ebdd;
+        background: #f7f4ee;
       }
       * {
         box-sizing: border-box;
       }
       body {
-        font-family: "Instrument Sans", system-ui, sans-serif;
-        color: #23201a;
+        font-family: "Hanken Grotesk", system-ui, sans-serif;
+        color: #271e3b;
         overflow: hidden;
       }
       button {
         font-family: inherit;
       }
       input::placeholder {
-        color: #b9ae94;
+        color: #9a8bb5;
       }
       .serif {
-        font-family: "Instrument Serif", serif;
+        font-family: "Newsreader", Georgia, serif;
       }
       @keyframes flowdash {
         to {
@@ -127,16 +130,18 @@
         overflow: hidden;
       }
 
-      /* ---------- top bar (common layout) ---------- */
+      /* ---------- top bar (violet-dusk chrome layout) ---------- */
       .topbar {
-        height: 66px;
+        height: 64px;
         flex: none;
         display: flex;
         align-items: center;
         gap: 20px;
         padding: 0 24px;
-        background: #fff;
-        border-bottom: 1px solid #e7e3d9;
+        background: rgba(255, 252, 247, 0.92);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(220, 212, 235, 0.6);
         position: sticky;
         top: 0;
         z-index: 100;
@@ -148,13 +153,13 @@
         flex: none;
         cursor: pointer;
         text-decoration: none;
-        color: #1c1e1b;
+        color: #271e3b;
       }
       .topbar .brand-icon {
-        width: 32px;
-        height: 32px;
-        border-radius: 10px;
-        background: #e7f0eb;
+        width: 34px;
+        height: 34px;
+        border-radius: 11px;
+        background: #f2eafd;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -163,55 +168,56 @@
         width: 14px;
         height: 14px;
         border-radius: 50%;
-        border: 3.5px solid #1f5e47;
+        border: 3.5px solid #6b4fa0;
         display: block;
       }
       .topbar .brand-name {
         font-weight: 800;
         font-size: 18px;
         letter-spacing: -0.02em;
-        font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+        font-family: "Hanken Grotesk", system-ui, sans-serif;
+        color: #271e3b;
       }
       .topbar nav {
         display: flex;
-        gap: 3px;
+        gap: 4px;
         flex: none;
       }
       .topbar nav a {
         background: transparent;
-        color: #6a6e68;
+        color: #7c6a96;
         border: 0;
         border-radius: 11px;
-        padding: 11px 16px;
-        font-size: 15px;
-        font-weight: 600;
+        padding: 9px 15px;
+        font-size: 14.5px;
+        font-weight: 700;
         cursor: pointer;
         text-decoration: none;
         transition:
           background 0.18s,
           color 0.18s;
         white-space: nowrap;
-        font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+        font-family: "Hanken Grotesk", system-ui, sans-serif;
       }
       .topbar nav a:hover {
-        background: #f3f1eb;
-        color: #1c1e1b;
+        background: #f3ebfc;
+        color: #271e3b;
       }
       .topbar nav a.on {
-        background: #e7f0eb;
-        color: #1f5e47;
-        font-weight: 700;
+        background: #ede2fe;
+        color: #5c3c92;
+        font-weight: 800;
       }
       .topbar .role-chip {
         flex: none;
         display: flex;
         align-items: center;
         gap: 11px;
-        background: #faf8f3;
-        border: 1px solid #e7e3d9;
+        background: #f7f2fc;
+        border: 1px solid #e5d9f8;
         border-radius: 13px;
         padding: 6px 8px 6px 14px;
-        font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+        font-family: "Hanken Grotesk", system-ui, sans-serif;
       }
       .topbar .role-info {
         text-align: right;

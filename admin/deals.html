@@ -4,8 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Deals — PlotMap</title>
-<link rel="stylesheet" href="/admin/crm-ui.css">
+<title>My Deals — PlotMap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<link rel="stylesheet" href="/admin/core/plotmap-ds.css">
 <script src="/config/runtime-env.js"></script>
 <script src="/config/supabase-config.js"></script>
 <script src="/admin/core/auth.js"></script>
@@ -15,73 +21,45 @@
 <script src="/admin/core/event-tracker.js"></script>
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
+<script src="/admin/core/overlay-store.js"></script>
 <script src="/admin/core/saas-foundation.js"></script>
 <script src="/admin/core/supabase-sync.js"></script>
-<script src="/admin/core/nav.js"></script>
+<script src="/admin/core/plotmap-shell.js"></script>
 <script>
-if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
+if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
 </script>
 <style>
-.dl-signal { display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid var(--pm-border-subtle); }
-.dl-signal .heat { flex:none;width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px; }
-.dl-stage { font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap; }
-.dl-followup { background:#fff;border:1px solid var(--pm-border);border-radius:18px;padding:16px 18px;margin-bottom:12px; }
-.dl-followup textarea { width:100%;border:1px solid var(--pm-border);border-radius:10px;background:var(--pm-bg-warm);padding:9px 11px;font-size:13px;color:var(--pm-text);resize:vertical;min-height:38px;outline:none; }
-.dl-followup textarea:focus { border-color:var(--pm-emerald);background:#fff; }
-.dl-stagebtns { display:flex;gap:6px;flex-wrap:wrap; }
-.dl-stagebtns button { border:1px solid var(--pm-border);background:#fff;color:var(--pm-text-sec);font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px;cursor:pointer; }
-.dl-stagebtns button.on { border-color:var(--pm-emerald);background:var(--pm-emerald-light);color:var(--pm-emerald); }
-.dl-wa { display:inline-flex;align-items:center;gap:7px;border:1px solid #CDE6DA;background:#EAF3EE;color:#216B4E;font-size:12.5px;font-weight:700;padding:8px 13px;border-radius:11px;cursor:pointer;text-decoration:none; }
-.dl-wa:hover { background:#DCEEE4;color:#184E3B; }
+  .dl-layout { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+  @media (max-width:1024px) { .dl-layout { grid-template-columns:1fr; } }
+  .dl-signal-item { display:flex; align-items:center; gap:16px; padding:16px 20px; border-bottom:1px solid var(--pm-hairline); background:var(--pm-surface); transition:background var(--pm-hover-ms); }
+  .dl-signal-item:last-child { border-bottom:none; }
+  .dl-signal-item:hover { background:var(--pm-surface-alt); }
+  .dl-heat-badge { width:42px; height:42px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; flex:none; }
+  .dl-card { border-radius:20px; padding:20px 22px; background:var(--pm-surface); border:1.5px solid var(--pm-hairline-2); box-shadow:var(--pm-shadow-card); margin-bottom:16px; }
+  .dl-card-h { font-family:var(--pm-font-display); font-size:22px; font-weight:500; color:var(--pm-ink); margin:0 0 4px; }
+  .dl-card-sub { font-size:13.5px; color:var(--pm-ink-soft); font-weight:500; margin-bottom:16px; }
+  .dl-stage-btn { border:1.5px solid var(--pm-hairline); background:var(--pm-surface); color:var(--pm-ink-soft); font-size:12px; font-weight:700; padding:6px 12px; border-radius:999px; cursor:pointer; transition:all 0.15s ease; }
+  .dl-stage-btn.on { border-color:var(--pm-emerald); background:var(--pm-surface-green); color:var(--pm-emerald); }
+  .dl-note-box { width:100%; border:1.5px solid var(--pm-hairline); border-radius:12px; background:var(--pm-surface-alt); padding:10px 12px; font-family:var(--pm-font-sans); font-size:13.5px; color:var(--pm-ink); resize:vertical; min-height:48px; outline:none; margin-top:12px; box-sizing:border-box; }
+  .dl-note-box:focus { border-color:var(--pm-violet-deep); background:#fff; }
+  .dl-wa-btn { display:inline-flex; align-items:center; gap:8px; border:1px solid #cde6da; background:#eaf3ee; color:#216b4e; font-size:13px; font-weight:700; padding:8px 14px; border-radius:10px; text-decoration:none; transition:background 0.15s; }
+  .dl-wa-btn:hover { background:#dceee4; color:#184e3b; }
 </style>
 </head>
-<body class="pm-shell">
-
-<header id="pm-topbar"></header>
-
-<main class="pm-main">
-  <div class="pm-page-header">
-    <div>
-      <h1>Deals</h1>
-      <div class="sub">Turn Client Presentation interest into follow-ups — no spreadsheets, no pressure.</div>
-    </div>
-  </div>
-
-  <div class="pm-grid wide-left" style="align-items:start;">
-    <!-- Interest signals -->
-    <div class="pm-card-xl">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px;flex-wrap:wrap;">
-        <div>
-          <div class="pm-card-h">Interest signals</div>
-          <div class="pm-card-sub">Properties clients keep coming back to in Client Presentation</div>
-        </div>
-      </div>
-      <div id="signals"></div>
-    </div>
-
-    <!-- Follow-up pipeline -->
-    <div>
-      <div class="pm-card-xl" style="margin-bottom:14px;">
-        <div class="pm-card-h">Your follow-ups</div>
-        <div class="pm-card-sub">Saved on this device — a simple pipeline, one card per interested client</div>
-        <div id="followups"></div>
-      </div>
-    </div>
-  </div>
-</main>
-
+<body class="pm-body pm-app-bg">
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  window.PMNav.render('deals');
-
   const crm = window.CRM;
-  const data = crm.getScopedCRM ? crm.getScopedCRM() : crm.getCRM();
+  const data = crm && (crm.getScopedCRM ? crm.getScopedCRM() : crm.getCRM ? crm.getCRM() : {}) || {};
   const events = Array.isArray(data.presentationEvents) ? data.presentationEvents : [];
   const propById = Object.fromEntries((data.properties || []).map(p => [p.id, p]));
+  const esc = window.PMShell.esc;
 
-  const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  })[c]);
+  const mount = window.PMShell.mount({
+    variant: 'owner',
+    active: 'deals',
+    section: { icon: 'ph-handshake', name: 'My Deals' }
+  });
 
   const STAGES = ['New', 'Contacted', 'Visit planned', 'Closing', 'Done'];
   const STORE_KEY = 'plotmap_deal_followups_v1';
@@ -93,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try { localStorage.setItem(STORE_KEY, JSON.stringify(rows)); } catch (err) {}
   }
 
-  // ---- Interest signals: presentation events only, grouped per property ----
+  // --- Interest signals computation ---
   const INTEREST_EVENTS = ['property_viewed', 'property_selected', 'client_panel_opened', 'property_shared', 'property_shared_whatsapp', 'brochure_shared'];
   const perProp = {};
   events.forEach(e => {
@@ -103,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.sessionId) row.sessions.add(e.sessionId);
     if (String(e.createdAt || '') > row.last) row.last = e.createdAt || '';
   });
-  // only properties that still exist are actionable follow-ups
+
   const signals = Object.keys(perProp).filter(id => propById[id]).map(id => {
     const s = perProp[id];
     const prop = propById[id];
@@ -124,9 +102,9 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   function heatFor(i) {
-    if (i === 0) return { bg: 'var(--pm-emerald-light)', fg: 'var(--pm-emerald)', label: 'Hot' };
-    if (i <= 2) return { bg: 'var(--pm-gold-light)', fg: 'var(--pm-gold-dark)', label: 'Warm' };
-    return { bg: 'var(--pm-bg-warm)', fg: 'var(--pm-text-sec)', label: 'Interest' };
+    if (i === 0) return { bg: 'var(--pm-surface-green)', fg: 'var(--pm-emerald)', label: 'Hot' };
+    if (i <= 2) return { bg: 'var(--pm-surface-gold)', fg: 'var(--pm-gold-dark)', label: 'Warm' };
+    return { bg: 'var(--pm-surface-alt)', fg: 'var(--pm-ink-soft)', label: 'Interest' };
   }
 
   function waLink(f) {
@@ -140,35 +118,116 @@ document.addEventListener('DOMContentLoaded', () => {
     return 'https://wa.me/?text=' + encodeURIComponent(msg);
   }
 
+  let activeStageFilter = 'All';
+
+  function renderPage() {
+    const followups = loadFollowups();
+    const activeFollowups = followups.filter(f => f.stage !== 'Done');
+    const doneFollowups = followups.filter(f => f.stage === 'Done');
+
+    mount.innerHTML = `
+      <div style="margin-bottom:24px;">
+        <h1 style="font-family:var(--pm-font-display);font-weight:500;font-size:32px;color:var(--pm-ink);margin:0 0 6px;">My Deals</h1>
+        <p style="font-size:16px;color:var(--pm-ink-soft);margin:0;">Turn Client Presentation interest into follow-ups — no spreadsheets, no pressure.</p>
+      </div>
+
+      <div class="dl-layout">
+        <!-- Interest Signals Column -->
+        <div class="pm-card" style="border-radius:24px;padding:24px;background:var(--pm-surface);border:1.5px solid var(--pm-hairline-2);">
+          <div class="dl-card-h">Interest signals</div>
+          <div class="dl-card-sub">Properties clients keep coming back to in Client Presentation</div>
+          <div id="dl-signals-list" style="border:1px solid var(--pm-hairline);border-radius:16px;overflow:hidden;"></div>
+        </div>
+
+        <!-- Follow-ups Pipeline Column -->
+        <div>
+          <div class="pm-card" style="border-radius:24px;padding:24px;background:var(--pm-surface);border:1.5px solid var(--pm-hairline-2);margin-bottom:24px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+              <div>
+                <div class="dl-card-h">Active follow-ups</div>
+                <div class="dl-card-sub" style="margin-bottom:0;">Saved on this device — one card per interested client</div>
+              </div>
+              <span class="pm-badge pm-badge-neutral">${activeFollowups.length} active</span>
+            </div>
+
+            <!-- Stage Filter Pills -->
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;" id="dl-filter-pills">
+              ${['All', ...STAGES].map(s => `<button type="button" data-filter="${esc(s)}" class="pm-pill ${activeStageFilter === s ? 'is-active' : ''}">${esc(s)}</button>`).join('')}
+            </div>
+
+            <div id="dl-followups-list"></div>
+          </div>
+
+          ${doneFollowups.length > 0 ? `
+          <details class="pm-card" style="border-radius:20px;padding:18px 22px;background:var(--pm-surface);border:1.5px solid var(--pm-hairline-2);">
+            <summary style="cursor:pointer;font-weight:800;font-size:15px;color:var(--pm-ink);display:flex;align-items:center;justify-content:space-between;">
+              <span>Completed deals (${doneFollowups.length})</span>
+              <i class="ph ph-caret-down" style="font-size:16px;"></i>
+            </summary>
+            <div id="dl-done-list" style="margin-top:16px;"></div>
+          </details>` : ''}
+        </div>
+      </div>
+    `;
+
+    // Bind Filter Pills
+    mount.querySelectorAll('[data-filter]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeStageFilter = btn.getAttribute('data-filter');
+        renderPage();
+      });
+    });
+
+    renderSignals();
+    renderFollowups();
+  }
+
   function renderSignals() {
-    const el = document.getElementById('signals');
+    const el = document.getElementById('dl-signals-list');
+    if (!el) return;
     const followups = loadFollowups();
     const tracked = new Set(followups.filter(f => f.stage !== 'Done').map(f => f.propertyId));
+
     if (signals.length === 0) {
-      el.innerHTML = '<div class="pm-empty" style="padding:36px 20px;"><div class="title">Deals will help you turn presentation interest into follow-ups.</div><div class="desc" style="margin-top:8px;max-width:440px;margin-left:auto;margin-right:auto;">When a client views or shares a property inside Client Presentation, the interest shows up here — ready to become a follow-up.</div><div style="margin-top:18px;"><a class="pm-btn pm-btn-primary" href="/app/plotmap/">Open Client Presentation</a></div></div>';
+      el.innerHTML = `
+        <div class="pm-empty" style="padding:40px 24px;">
+          <i class="ph ph-presentation-chart" style="font-size:40px;color:var(--pm-violet-deep);margin-bottom:12px;"></i>
+          <div class="pm-empty-title">No presentation activity yet</div>
+          <div class="pm-empty-desc">When a client views or shares a property inside Client Presentation, the interest signal shows up here.</div>
+          <a class="pm-btn pm-btn-violet" href="/app/plotmap/" style="margin-top:16px;display:inline-flex;">Open Client Presentation</a>
+        </div>`;
       return;
     }
+
     el.innerHTML = signals.slice(0, 12).map((s, i) => {
       const heat = heatFor(i);
-      return `<div class="dl-signal">
-        <div class="heat" style="background:${heat.bg};color:${heat.fg};">${s.views + s.shares}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:14.5px;font-weight:700;">${esc(s.title)}</div>
-          <div style="font-size:12.5px;color:var(--pm-text-mut);">${esc(s.area || '—')} · ${s.sessions} session${s.sessions === 1 ? '' : 's'} · ${s.views} view${s.views === 1 ? '' : 's'}${s.shares ? ' · ' + s.shares + ' share' + (s.shares === 1 ? '' : 's') : ''} · last ${esc(fmtWhen(s.last))}</div>
-        </div>
-        <span class="dl-stage" style="background:${heat.bg};color:${heat.fg};">${heat.label}</span>
-        ${tracked.has(s.propertyId)
-          ? '<span style="font-size:12.5px;font-weight:700;color:var(--pm-emerald);white-space:nowrap;">In follow-ups ✓</span>'
-          : `<button class="pm-btn pm-btn-secondary sm" type="button" data-track="${esc(s.propertyId)}">Start follow-up</button>`}
-      </div>`;
+      const isTracked = tracked.has(s.propertyId);
+      return `
+        <div class="dl-signal-item">
+          <div class="dl-heat-badge" style="background:${heat.bg};color:${heat.fg};">${s.views + s.shares}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:15px;font-weight:700;color:var(--pm-ink);">${esc(s.title)}</div>
+            <div style="font-size:13px;color:var(--pm-ink-soft);margin-top:2px;">
+              ${esc(s.area || '—')} · ${s.sessions} session${s.sessions === 1 ? '' : 's'} · ${s.views} view${s.views === 1 ? '' : 's'}${s.shares ? ' · ' + s.shares + ' share' + (s.shares === 1 ? '' : 's') : ''}
+            </div>
+          </div>
+          ${isTracked ? `
+            <span class="pm-badge pm-badge-live" style="font-size:12px;">Tracking ✓</span>
+          ` : `
+            <button class="pm-btn pm-btn-soft pm-btn-sm" type="button" data-track="${esc(s.propertyId)}">
+              <i class="ph ph-plus"></i> Follow up
+            </button>
+          `}
+        </div>`;
     }).join('');
+
     el.querySelectorAll('[data-track]').forEach(btn => {
       btn.addEventListener('click', () => {
         const sig = signals.find(x => x.propertyId === btn.getAttribute('data-track'));
         if (!sig) return;
         const rows = loadFollowups();
         rows.unshift({
-          id: 'fu' + Date.now(),
+          id: 'fu_' + Date.now().toString(36),
           propertyId: sig.propertyId,
           title: sig.title,
           area: sig.area,
@@ -177,70 +236,110 @@ document.addEventListener('DOMContentLoaded', () => {
           createdAt: new Date().toISOString()
         });
         saveFollowups(rows);
-        renderSignals();
-        renderFollowups();
+        window.PMShell.toast('Follow-up created', 'ok');
+        renderPage();
       });
     });
   }
 
   function renderFollowups() {
-    const el = document.getElementById('followups');
+    const activeEl = document.getElementById('dl-followups-list');
+    const doneEl = document.getElementById('dl-done-list');
     const rows = loadFollowups();
-    if (rows.length === 0) {
-      el.innerHTML = '<div class="pm-empty"><div class="title">No follow-ups yet</div><div class="desc">Pick an interest signal on the left and start a follow-up.</div></div>';
-      return;
+
+    let filtered = rows;
+    if (activeStageFilter !== 'All') {
+      filtered = rows.filter(r => r.stage === activeStageFilter);
+    } else {
+      filtered = rows.filter(r => r.stage !== 'Done');
     }
-    el.innerHTML = rows.map(f => `
-      <div class="dl-followup">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
-          <div style="min-width:0;">
-            <div style="font-size:15px;font-weight:700;">${esc(f.title)}</div>
-            <div style="font-size:12px;color:var(--pm-text-mut);">${esc(f.area || '—')} · started ${esc(fmtWhen(f.createdAt))}</div>
-          </div>
-          <button type="button" data-del="${esc(f.id)}" title="Remove follow-up" style="border:none;background:transparent;color:var(--pm-text-mut);cursor:pointer;font-size:15px;padding:2px 4px;">✕</button>
-        </div>
-        <div class="dl-stagebtns" style="margin:12px 0 10px;">
-          ${STAGES.map(s => `<button type="button" data-stage="${esc(s)}" data-id="${esc(f.id)}" class="${f.stage === s ? 'on' : ''}">${s}</button>`).join('')}
-        </div>
-        <textarea data-note="${esc(f.id)}" placeholder="Follow-up note — who is interested, what they asked for…">${esc(f.note)}</textarea>
-        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-          <a class="dl-wa" href="${esc(waLink(f))}" target="_blank" rel="noopener">Share on WhatsApp</a>
-          <a class="pm-btn pm-btn-secondary sm" href="/admin/property-insights.html">Property interest</a>
-        </div>
-      </div>
-    `).join('');
-    el.querySelectorAll('[data-stage]').forEach(btn => {
+
+    if (activeEl) {
+      if (filtered.length === 0) {
+        activeEl.innerHTML = `
+          <div class="pm-empty" style="padding:32px 16px;">
+            <div class="pm-empty-title">No follow-ups in this view</div>
+            <div class="pm-empty-desc">Pick an interest signal on the left to start a new follow-up.</div>
+          </div>`;
+      } else {
+        activeEl.innerHTML = filtered.map(renderFollowupCard).join('');
+      }
+    }
+
+    if (doneEl) {
+      const doneRows = rows.filter(r => r.stage === 'Done');
+      doneEl.innerHTML = doneRows.length ? doneRows.map(renderFollowupCard).join('') : '<div style="font-size:13px;color:var(--pm-ink-soft);">No completed deals yet.</div>';
+    }
+
+    // Attach listeners
+    const container = mount;
+    container.querySelectorAll('[data-stage]').forEach(btn => {
       btn.addEventListener('click', () => {
         const rows2 = loadFollowups();
         const row = rows2.find(x => x.id === btn.getAttribute('data-id'));
         if (!row) return;
         row.stage = btn.getAttribute('data-stage');
         saveFollowups(rows2);
-        renderSignals();
-        renderFollowups();
+        renderPage();
       });
     });
-    el.querySelectorAll('[data-note]').forEach(area => {
+
+    container.querySelectorAll('[data-note]').forEach(area => {
       area.addEventListener('change', () => {
         const rows2 = loadFollowups();
         const row = rows2.find(x => x.id === area.getAttribute('data-note'));
         if (!row) return;
         row.note = area.value.slice(0, 500);
         saveFollowups(rows2);
+        window.PMShell.toast('Note saved', 'ok');
       });
     });
-    el.querySelectorAll('[data-del]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (!confirm('Remove this follow-up?')) return;
-        saveFollowups(loadFollowups().filter(x => x.id !== btn.getAttribute('data-del')));
-        renderSignals();
-        renderFollowups();
+
+    container.querySelectorAll('[data-del]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-del');
+        const confirmed = await window.PMShell.confirm({
+          title: 'Remove Follow-up?',
+          body: 'This will remove this deal follow-up from your pipeline.',
+          confirmText: 'Remove Deal',
+          danger: true
+        });
+        if (!confirmed) return;
+        saveFollowups(loadFollowups().filter(x => x.id !== id));
+        window.PMShell.toast('Follow-up removed', 'ok');
+        renderPage();
       });
     });
   }
 
-  renderSignals();
-  renderFollowups();
+  function renderFollowupCard(f) {
+    return `
+      <div class="dl-card" style="margin-bottom:14px;background:var(--pm-surface);border:1.5px solid var(--pm-hairline-2);">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+          <div>
+            <div style="font-size:16px;font-weight:700;color:var(--pm-ink);">${esc(f.title)}</div>
+            <div style="font-size:13px;color:var(--pm-ink-soft);margin-top:2px;">${esc(f.area || '—')} · started ${esc(fmtWhen(f.createdAt))}</div>
+          </div>
+          <button type="button" data-del="${esc(f.id)}" class="pm-btn pm-btn-ghost pm-btn-sm" title="Remove follow-up" style="color:var(--pm-ink-soft);">
+            <i class="ph ph-trash" style="font-size:16px;"></i>
+          </button>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 10px;">
+          ${STAGES.map(s => `<button type="button" data-stage="${esc(s)}" data-id="${esc(f.id)}" class="dl-stage-btn ${f.stage === s ? 'on' : ''}">${esc(s)}</button>`).join('')}
+        </div>
+        <textarea data-note="${esc(f.id)}" class="dl-note-box" placeholder="Follow-up note — client requirements, budget details, next call time…">${esc(f.note || '')}</textarea>
+        <div style="display:flex;gap:10px;margin-top:12px;align-items:center;flex-wrap:wrap;">
+          <a class="dl-wa-btn" href="${esc(waLink(f))}" target="_blank" rel="noopener">
+            <i class="ph ph-whatsapp-logo" style="font-size:18px;"></i> Share on WhatsApp
+          </a>
+          <a class="pm-btn pm-btn-soft pm-btn-sm" href="/admin/property-insights.html">
+            <i class="ph ph-chart-line-up"></i> Insights
+          </a>
+        </div>
+      </div>`;
+  }
+
+  renderPage();
 });
 </script>
 </body>

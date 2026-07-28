@@ -4,8 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Client Details — PlotMap</title>
-<link rel="stylesheet" href="/admin/crm-ui.css">
+<title>My Customers — PlotMap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<link rel="stylesheet" href="/admin/core/plotmap-ds.css">
 <script src="/config/runtime-env.js"></script>
 <script src="/config/supabase-config.js"></script>
 <script src="/admin/core/auth.js"></script>
@@ -15,124 +21,332 @@
 <script src="/admin/core/event-tracker.js"></script>
 <script src="/admin/core/access-control.js"></script>
 <script src="/admin/crm-store.js"></script>
+<script src="/admin/core/overlay-store.js"></script>
+<script src="/admin/core/saas-foundation.js"></script>
 <script src="/admin/core/supabase-sync.js"></script>
-<script src="/admin/core/nav.js"></script>
+<script src="/admin/core/plotmap-shell.js"></script>
 <script>
-if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
+if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
 </script>
+<style>
+  .cl-stat-card { background:var(--pm-surface); border:1.5px solid var(--pm-hairline-2); border-radius:20px; padding:20px 22px; box-shadow:var(--pm-shadow-card); }
+  .cl-stat-card .lbl { font-size:12px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--pm-ink-soft); }
+  .cl-stat-card .val { font-family:var(--pm-font-display); font-size:42px; font-weight:500; line-height:1; margin-top:6px; }
+  .cl-item { display:flex; align-items:flex-start; gap:16px; padding:18px 20px; border-bottom:1px solid var(--pm-hairline); background:var(--pm-surface); transition:background var(--pm-hover-ms); }
+  .cl-item:last-child { border-bottom:none; }
+  .cl-item:hover { background:var(--pm-surface-alt); }
+  .cl-avatar { width:44px; height:44px; border-radius:14px; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; flex:none; }
+</style>
 </head>
-<body class="pm-shell">
-
-<header id="pm-topbar"></header>
-
-<main class="pm-main">
-  <div class="pm-page-header">
-    <div>
-      <h1>Client Details</h1>
-      <div class="sub">Your client book — everyone your team is working with.</div>
-    </div>
-    <a class="pm-btn pm-btn-primary" href="/admin/team.html">+ Add Client</a>
-  </div>
-
-  <div class="pm-grid cols-4" style="margin-bottom:18px;" id="client-kpis"></div>
-
-  <div class="pm-search" style="margin-bottom:14px;">
-    <span class="icon">○</span>
-    <input type="text" id="client-search" placeholder="Search clients by name, area, or phone…">
-  </div>
-
-  <section class="pm-card-xl">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;flex-wrap:wrap;">
-      <div class="pm-card-h">All clients</div>
-      <div class="pm-card-sub" id="client-book-count"></div>
-    </div>
-    <div id="client-book"></div>
-  </section>
-</main>
-
+<body class="pm-body pm-app-bg">
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  window.PMNav.render('client-details');
-
   const crm = window.CRM;
-  const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  })[c]);
+  const esc = window.PMShell.esc;
 
-  // Display-only label map — never changes stored status values (pipeline logic).
+  const mount = window.PMShell.mount({
+    variant: 'owner',
+    active: 'clients',
+    section: { icon: 'ph-users', name: 'My Customers' }
+  });
+
   const STAGE_LABEL = { 'Not Answering': 'Follow up' };
   const stageLabel = (s) => STAGE_LABEL[s] || s || 'New';
   const STAGE_STYLE = {
-    'New': { c:'#3E6E96', bg:'#E9EFF4' }, 'Warm': { c:'#B07A2B', bg:'#F6ECD8' },
-    'Hot': { c:'#B0532C', bg:'#F6E2D8' }, 'Property Shared': { c:'#3E6E96', bg:'#E9EFF4' },
-    'Site Visit Planned': { c:'#6B4FA0', bg:'#EDEAF2' }, 'Site Visit Done': { c:'#6B4FA0', bg:'#EDEAF2' },
-    'Negotiation': { c:'#B07A2B', bg:'#F6ECD8' }, 'Closed': { c:'#1F5E47', bg:'#E7F0EB' },
-    'Not Answering': { c:'#8A6224', bg:'#FBF3E4' }
+    'New': { c: 'var(--pm-blue)', bg: 'var(--pm-surface-blue)' },
+    'Warm': { c: 'var(--pm-gold-dark)', bg: 'var(--pm-surface-gold)' },
+    'Hot': { c: 'var(--pm-orange)', bg: '#fdf0ea' },
+    'Property Shared': { c: 'var(--pm-blue)', bg: 'var(--pm-surface-blue)' },
+    'Site Visit Planned': { c: 'var(--pm-violet-deep)', bg: 'var(--pm-surface-violet)' },
+    'Site Visit Done': { c: 'var(--pm-violet-deep)', bg: 'var(--pm-surface-violet)' },
+    'Negotiation': { c: 'var(--pm-gold-dark)', bg: 'var(--pm-surface-gold)' },
+    'Closed': { c: 'var(--pm-emerald)', bg: 'var(--pm-surface-green)' },
+    'Not Answering': { c: 'var(--pm-gold-dark)', bg: 'var(--pm-surface-gold)' }
   };
-  const stageStyle = (s) => STAGE_STYLE[s] || { c:'var(--pm-text-sec)', bg:'#F0ECE3' };
-  const AV = ['#1F5E47', '#3E6E96', '#A87C3D', '#6B4FA0', '#B0532C'];
+  const stageStyle = (s) => STAGE_STYLE[s] || { c: 'var(--pm-ink-soft)', bg: 'var(--pm-surface-alt)' };
+  const AV = ['#1f5e47', '#3e6e96', '#a87c3d', '#6b4fa0', '#b0532c'];
   const initialsOf = (n) => String(n || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?';
   const avColor = (n) => AV[String(n || '').length % AV.length];
 
-  const clientsData = () => {
+  function getClients() {
     const s = crm.getScopedCRM ? crm.getScopedCRM() : crm.getCRM();
     return Array.isArray(s.clients) ? s.clients : [];
-  };
+  }
 
-  let q = '';
+  let searchQuery = '';
+  let activeStatusFilter = 'All';
 
-  function renderKPIs(all) {
+  function renderPage() {
+    const all = getClients();
     const active = all.filter(c => !/closed|lost/i.test(c.status || '')).length;
     const followup = all.filter(c => c.status === 'Not Answering').length;
     const week = all.filter(c => (Number(c.createdAt) || Number(c.lastActivityAt) || 0) > Date.now() - 7 * 86400000).length;
-    document.getElementById('client-kpis').innerHTML = [
-      { k: 'Total clients', v: all.length, c: 'var(--pm-text)' },
-      { k: 'Active', v: active, c: 'var(--pm-emerald)' },
-      { k: 'Need follow-up', v: followup, c: 'var(--pm-gold)' },
-      { k: 'New this week', v: week, c: 'var(--pm-blue)' }
-    ].map(s => `<div class="pm-stat-card"><div class="stat-label"><span>${s.k}</span></div><div class="stat-val" style="color:${s.c};">${s.v}</div></div>`).join('');
-  }
 
-  function clientRow(c) {
-    const st = stageStyle(c.status);
-    const line = [c.interestedArea, c.propertyType, c.sizeRequirement, c.budgetRange].filter(Boolean).join(' · ');
-    const sub = [c.phone, c.leadSource ? 'via ' + c.leadSource : ''].filter(Boolean).join(' · ');
-    return `<div style="display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-top:1px solid var(--pm-border-subtle);">
-      <div style="flex:none;width:42px;height:42px;border-radius:12px;background:${avColor(c.name)};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;">${esc(initialsOf(c.name))}</div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:15px;font-weight:700;">${esc(c.name || 'Unknown')}</div>
-        <div style="font-size:12.5px;color:var(--pm-text-mut);margin-top:2px;">${esc(line || '—')}</div>
-        ${sub ? `<div style="font-size:12px;color:var(--pm-text-mut);margin-top:2px;">${esc(sub)}</div>` : ''}
-        ${c.notes ? `<div style="font-size:12px;color:var(--pm-text-sec);margin-top:5px;">${esc(c.notes)}</div>` : ''}
+    let filtered = all;
+    if (searchQuery) {
+      filtered = filtered.filter(c => (String(c.name || '') + ' ' + String(c.interestedArea || '') + ' ' + String(c.phone || '') + ' ' + String(c.propertyType || '')).toLowerCase().includes(searchQuery));
+    }
+    if (activeStatusFilter !== 'All') {
+      filtered = filtered.filter(c => (c.status || 'New') === activeStatusFilter);
+    }
+    const sorted = [...filtered].sort((a, b) => (Number(b.lastActivityAt) || Number(b.createdAt) || 0) - (Number(a.lastActivityAt) || Number(a.createdAt) || 0));
+
+    mount.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:24px;">
+        <div>
+          <h1 style="font-family:var(--pm-font-display);font-weight:500;font-size:32px;color:var(--pm-ink);margin:0 0 6px;">My Customers</h1>
+          <p style="font-size:16px;color:var(--pm-ink-soft);margin:0;">Your customer book — everyone your team is working with.</p>
+        </div>
+        <button type="button" class="pm-btn pm-btn-violet" id="cl-add-btn">
+          <i class="ph ph-plus" style="font-size:18px;"></i> Add Customer
+        </button>
       </div>
-      <span class="pm-chip" style="white-space:nowrap;color:${st.c};background:${st.bg};font-weight:700;">${esc(stageLabel(c.status))}</span>
-    </div>`;
+
+      <!-- Stat Cards -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;">
+        <div class="cl-stat-card">
+          <div class="lbl">Total Customers</div>
+          <div class="val" style="color:var(--pm-ink);">${all.length}</div>
+        </div>
+        <div class="cl-stat-card">
+          <div class="lbl">Active Deals</div>
+          <div class="val" style="color:var(--pm-emerald);">${active}</div>
+        </div>
+        <div class="cl-stat-card">
+          <div class="lbl">Need Follow-up</div>
+          <div class="val" style="color:var(--pm-gold-dark);">${followup}</div>
+        </div>
+        <div class="cl-stat-card">
+          <div class="lbl">New This Week</div>
+          <div class="val" style="color:var(--pm-blue);">${week}</div>
+        </div>
+      </div>
+
+      <!-- Controls Row: Search & Filters -->
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap;">
+        <div class="pm-input-wrap" style="flex:1;min-width:280px;">
+          <input type="text" id="cl-search-input" class="pm-input" placeholder="Search customers by name, area, phone, or requirement…" value="${esc(searchQuery)}">
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${['All', 'New', 'Warm', 'Hot', 'Site Visit Planned', 'Negotiation', 'Closed'].map(st => `
+            <button type="button" data-status="${esc(st)}" class="pm-pill ${activeStatusFilter === st ? 'is-active' : ''}">${esc(st)}</button>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- Customer Book Card -->
+      <div class="pm-card" style="border-radius:24px;padding:24px;background:var(--pm-surface);border:1.5px solid var(--pm-hairline-2);">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;">
+          <div style="font-family:var(--pm-font-display);font-size:22px;font-weight:500;color:var(--pm-ink);">Customer Directory</div>
+          <div style="font-size:13.5px;color:var(--pm-ink-soft);font-weight:600;">
+            ${all.length ? (searchQuery || activeStatusFilter !== 'All' ? sorted.length + ' of ' + all.length + ' match' : all.length + ' customer' + (all.length === 1 ? '' : 's')) : ''}
+          </div>
+        </div>
+        <div id="cl-book-list" style="border:1px solid var(--pm-hairline);border-radius:16px;overflow:hidden;"></div>
+      </div>
+    `;
+
+    // Bind Search & Filters
+    const searchInput = document.getElementById('cl-search-input');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        searchQuery = e.target.value.toLowerCase().trim();
+        renderBookList();
+      });
+    }
+
+    mount.querySelectorAll('[data-status]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeStatusFilter = btn.getAttribute('data-status');
+        renderPage();
+      });
+    });
+
+    const addBtn = document.getElementById('cl-add-btn');
+    if (addBtn) addBtn.addEventListener('click', () => openCustomerModal(null));
+
+    renderBookList();
   }
 
-  function render() {
-    const all = clientsData();
-    renderKPIs(all);
-    const list = q
-      ? all.filter(c => (String(c.name || '') + ' ' + String(c.interestedArea || '') + ' ' + String(c.phone || '')).toLowerCase().includes(q))
-      : all;
-    const sorted = [...list].sort((a, b) => (Number(b.lastActivityAt) || 0) - (Number(a.lastActivityAt) || 0));
-    document.getElementById('client-book-count').textContent = all.length
-      ? (q ? sorted.length + ' of ' + all.length : all.length + ' client' + (all.length === 1 ? '' : 's'))
-      : '';
-    const el = document.getElementById('client-book');
+  function renderBookList() {
+    const el = document.getElementById('cl-book-list');
+    if (!el) return;
+
+    const all = getClients();
+    let filtered = all;
+    if (searchQuery) {
+      filtered = filtered.filter(c => (String(c.name || '') + ' ' + String(c.interestedArea || '') + ' ' + String(c.phone || '') + ' ' + String(c.propertyType || '')).toLowerCase().includes(searchQuery));
+    }
+    if (activeStatusFilter !== 'All') {
+      filtered = filtered.filter(c => (c.status || 'New') === activeStatusFilter);
+    }
+    const sorted = [...filtered].sort((a, b) => (Number(b.lastActivityAt) || Number(b.createdAt) || 0) - (Number(a.lastActivityAt) || Number(a.createdAt) || 0));
+
     if (!all.length) {
-      el.innerHTML = '<div class="pm-empty"><div class="title">No clients yet</div><div class="desc">Add your first client in the Team Workspace — they show up here for the whole team.</div><a class="pm-btn pm-btn-primary" style="margin-top:14px;" href="/admin/team.html">+ Add Client</a></div>';
+      el.innerHTML = `
+        <div class="pm-empty" style="padding:48px 24px;">
+          <i class="ph ph-user-plus" style="font-size:40px;color:var(--pm-violet-deep);margin-bottom:12px;"></i>
+          <div class="pm-empty-title">No customers in your book</div>
+          <div class="pm-empty-desc">Add your first customer to start tracking interest, requirements, and follow-ups.</div>
+          <button class="pm-btn pm-btn-violet" type="button" id="cl-empty-add" style="margin-top:16px;display:inline-flex;">+ Add First Customer</button>
+        </div>`;
+      const emptyAdd = document.getElementById('cl-empty-add');
+      if (emptyAdd) emptyAdd.addEventListener('click', () => openCustomerModal(null));
       return;
     }
+
     if (!sorted.length) {
-      el.innerHTML = '<div class="pm-empty"><div class="title">No clients match</div><div class="desc">Try a different name, area, or phone number.</div></div>';
+      el.innerHTML = `
+        <div class="pm-empty" style="padding:36px 16px;">
+          <div class="pm-empty-title">No matching customers</div>
+          <div class="pm-empty-desc">Try clearing your search query or selecting a different status filter.</div>
+        </div>`;
       return;
     }
-    el.innerHTML = sorted.map(clientRow).join('');
+
+    el.innerHTML = sorted.map(c => {
+      const st = stageStyle(c.status);
+      const line = [c.interestedArea, c.propertyType, c.sizeRequirement, c.budgetRange].filter(Boolean).join(' · ');
+      const sub = [c.phone, c.leadSource ? 'via ' + c.leadSource : ''].filter(Boolean).join(' · ');
+      return `
+        <div class="cl-item">
+          <div class="cl-avatar" style="background:${avColor(c.name)};">${esc(initialsOf(c.name))}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <span style="font-size:16px;font-weight:700;color:var(--pm-ink);">${esc(c.name || 'Unknown')}</span>
+              <span class="pm-badge" style="color:${st.c};background:${st.bg};font-weight:700;">${esc(stageLabel(c.status))}</span>
+            </div>
+            <div style="font-size:13.5px;color:var(--pm-ink-soft);margin-top:4px;">${esc(line || 'No requirements specified')}</div>
+            ${sub ? `<div style="font-size:12.5px;color:var(--pm-ink-soft);margin-top:2px;">${esc(sub)}</div>` : ''}
+            ${c.notes ? `<div style="font-size:13px;color:var(--pm-ink);margin-top:6px;background:var(--pm-surface-alt);padding:6px 10px;border-radius:8px;">${esc(c.notes)}</div>` : ''}
+          </div>
+          <button class="pm-btn pm-btn-soft pm-btn-sm" type="button" data-edit-customer="${esc(c.id)}">
+            <i class="ph ph-pencil-simple"></i> Edit
+          </button>
+        </div>`;
+    }).join('');
+
+    el.querySelectorAll('[data-edit-customer]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-edit-customer');
+        const customer = getClients().find(x => x.id === id);
+        if (customer) openCustomerModal(customer);
+      });
+    });
   }
 
-  document.getElementById('client-search').addEventListener('input', (e) => { q = e.target.value.toLowerCase().trim(); render(); });
-  render();
+  function openCustomerModal(client) {
+    const isEdit = !!(client && client.id);
+    const overlay = document.createElement('div');
+    overlay.className = 'pm-overlay is-open';
+    overlay.innerHTML = `
+      <div class="pm-dialog" style="max-width:540px;">
+        <div class="pm-dialog-h">
+          <h3>${isEdit ? 'Update Customer' : 'Add New Customer'}</h3>
+          <button type="button" class="pm-btn-close" id="cl-modal-close"><i class="ph ph-x"></i></button>
+        </div>
+        <form id="cl-modal-form">
+          <div class="pm-field" style="margin-bottom:14px;">
+            <label class="pm-label">Full Name <span style="color:var(--pm-orange);">*</span></label>
+            <input id="m-name" class="pm-input" type="text" placeholder="e.g. Rajdeep Singh" required value="${esc(isEdit ? client.name || '' : '')}">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+            <div class="pm-field">
+              <label class="pm-label">Phone Number</label>
+              <input id="m-phone" class="pm-input" type="text" placeholder="+91 …" value="${esc(isEdit ? client.phone || '' : '')}">
+            </div>
+            <div class="pm-field">
+              <label class="pm-label">Budget Range</label>
+              <input id="m-budget" class="pm-input" type="text" placeholder="e.g. ₹1.5 Cr – ₹2 Cr" value="${esc(isEdit ? client.budgetRange || '' : '')}">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+            <div class="pm-field">
+              <label class="pm-label">Interested Area</label>
+              <input id="m-area" class="pm-input" type="text" placeholder="e.g. Aerocity Sector 82" value="${esc(isEdit ? client.interestedArea || '' : '')}">
+            </div>
+            <div class="pm-field">
+              <label class="pm-label">Property Type</label>
+              <select id="m-ptype" class="pm-select">
+                <option value="">Select type…</option>
+                ${['Residential Plot', 'Commercial', 'Commercial SCO', 'Showroom', 'Residential Villa', 'Other'].map(opt => `
+                  <option value="${esc(opt)}" ${(isEdit && client.propertyType === opt) ? 'selected' : ''}>${esc(opt)}</option>
+                `).join('')}
+              </select>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+            <div class="pm-field">
+              <label class="pm-label">Size Requirement</label>
+              <input id="m-size" class="pm-input" type="text" placeholder="e.g. 250 sq yd" value="${esc(isEdit ? client.sizeRequirement || '' : '')}">
+            </div>
+            <div class="pm-field">
+              <label class="pm-label">Pipeline Stage</label>
+              <select id="m-status" class="pm-select">
+                ${['New', 'Warm', 'Hot', 'Property Shared', 'Site Visit Planned', 'Site Visit Done', 'Negotiation', 'Closed', 'Not Answering'].map(st => `
+                  <option value="${esc(st)}" ${(isEdit && client.status === st) ? 'selected' : (st === 'New' && !isEdit ? 'selected' : '')}>${esc(stageLabel(st))}</option>
+                `).join('')}
+              </select>
+            </div>
+          </div>
+          <div class="pm-field" style="margin-bottom:14px;">
+            <label class="pm-label">Lead Source</label>
+            <select id="m-source" class="pm-select">
+              <option value="">Select source…</option>
+              ${['Walk-in', 'Reference', 'WhatsApp', 'Website', 'Campaign', 'Direct Call'].map(src => `
+                <option value="${esc(src)}" ${(isEdit && client.leadSource === src) ? 'selected' : ''}>${esc(src)}</option>
+              `).join('')}
+            </select>
+          </div>
+          <div class="pm-field" style="margin-bottom:20px;">
+            <label class="pm-label">Notes &amp; Preferences</label>
+            <input id="m-notes" class="pm-input" type="text" placeholder="Corner plot preference, facing, timeline…" value="${esc(isEdit ? client.notes || '' : '')}">
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:10px;">
+            <button type="button" class="pm-btn pm-btn-ghost" id="cl-modal-cancel">Cancel</button>
+            <button type="submit" class="pm-btn pm-btn-violet">${isEdit ? 'Save Changes' : 'Add Customer'}</button>
+          </div>
+        </form>
+      </div>`;
+
+    document.body.appendChild(overlay);
+
+    const close = () => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); };
+    overlay.querySelector('#cl-modal-close').addEventListener('click', close);
+    overlay.querySelector('#cl-modal-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    overlay.querySelector('#cl-modal-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = overlay.querySelector('#m-name').value.trim();
+      if (!name) return;
+
+      const details = {
+        name,
+        phone: overlay.querySelector('#m-phone').value.trim(),
+        budgetRange: overlay.querySelector('#m-budget').value.trim(),
+        interestedArea: overlay.querySelector('#m-area').value.trim(),
+        propertyType: overlay.querySelector('#m-ptype').value,
+        sizeRequirement: overlay.querySelector('#m-size').value.trim(),
+        status: overlay.querySelector('#m-status').value,
+        leadSource: overlay.querySelector('#m-source').value,
+        notes: overlay.querySelector('#m-notes').value.trim(),
+        lastActivityAt: new Date().toISOString()
+      };
+
+      if (isEdit) {
+        crm.updateClient(client.id, details);
+        window.PMShell.toast('Customer updated', 'ok');
+      } else {
+        crm.addClient(Object.assign({ type: 'buyer', createdAt: new Date().toISOString() }, details));
+        window.PMShell.toast('Customer added to book', 'ok');
+      }
+      close();
+      renderPage();
+    });
+  }
+
+  renderPage();
 });
 </script>
 </body>
