@@ -6,305 +6,204 @@
 <title>PlotMap — Property Presentation, On a Living Map</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<link rel="stylesheet" href="/admin/core/plotmap-ds.css">
+<!-- Device-first access gate — runtime config, auth + device modules preserved. -->
 <script src="/config/runtime-env.js"></script>
 <script src="/config/supabase-config.js"></script>
 <script src="/admin/core/auth.js"></script>
 <script src="/admin/core/device-access.js?v=2"></script>
 <style>
-  * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; }
-  body {
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-    color: #1C1E1B;
-    background: #F5EFE2;
-    -webkit-font-smoothing: antialiased;
-  }
-  ::selection { background: #CFE2D7; color: #13402F; }
-  a { color: inherit; text-decoration: none; }
-  button, input { font-family: inherit; }
+  /* ── Landing page: cinematic violet-dusk entry (design-system tokens only) ── */
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #f7ecd6; }
+  body { font-family: var(--pm-font-ui); -webkit-font-smoothing: antialiased; }
 
-  .page {
-    position: relative;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-  .page::before {
-    content: '';
-    position: absolute; inset: 0;
-    background: radial-gradient(120% 82% at 50% -8%, #FCF8EF 0%, #F4EDDE 46%, #ECE3CF 100%);
-    pointer-events: none;
-  }
-  .glow-gold {
-    position: absolute; left: 50%; top: -170px; transform: translateX(-50%);
-    width: 860px; height: 560px; border-radius: 50%;
-    background: radial-gradient(circle, rgba(193,150,74,0.20), transparent 64%);
-    pointer-events: none;
-  }
-  .hairline {
-    position: absolute; left: 0; right: 0; top: 0; height: 3px;
-    background: linear-gradient(90deg, transparent, rgba(168,124,61,.6), transparent);
-  }
+  @keyframes lRise  { from { opacity:0; transform:translateY(22px); } to { opacity:1; transform:none; } }
+  @keyframes lFade  { from { opacity:0; } to { opacity:1; } }
+  @keyframes lWide  { from { opacity:0; letter-spacing:.6em; } to { opacity:1; letter-spacing:.34em; } }
+  @keyframes lPulse { 0% { transform:scale(.6); opacity:.9; } 100% { transform:scale(2.6); opacity:0; } }
+  @keyframes lBloomA { 0%,100% { transform:translate3d(0,0,0) scale(1); } 50% { transform:translate3d(6%,4%,0) scale(1.18); } }
+  @keyframes lBloomB { 0%,100% { transform:translate3d(0,0,0) scale(1.1); } 50% { transform:translate3d(-7%,5%,0) scale(1); } }
+  @keyframes lBloomC { 0%,100% { transform:translate3d(0,0,0) scale(1); } 50% { transform:translate3d(4%,-6%,0) scale(1.22); } }
+  @keyframes lGlowRing { 0%,100% { opacity:.5; transform:scale(1); } 50% { opacity:.95; transform:scale(1.06); } }
+  @keyframes lSlide { 0%,100% { transform:translateX(0); } 50% { transform:translateX(5px); } }
+  @keyframes authIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
 
-  .frame {
-    position: relative;
-    min-height: 100vh;
-    max-width: 1080px;
-    width: 100%;
-    margin: 0 auto;
-    padding: 26px 48px 30px;
-    display: flex;
-    flex-direction: column;
-  }
+  .page { position:fixed; inset:0; overflow:hidden; background:#f7ecd6; display:flex; flex-direction:column; }
+  .bloom { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+  .bloom > span { position:absolute; border-radius:50%; display:block; }
+  .b-a { width:70vw; height:70vw; left:-16vw; top:-22vw; background:radial-gradient(circle,rgba(255,201,60,.72),rgba(255,201,60,0) 68%); animation:lBloomA 26s ease-in-out infinite; }
+  .b-b { width:62vw; height:62vw; right:-14vw; top:-18vw; background:radial-gradient(circle,rgba(151,110,235,.42),rgba(151,110,235,0) 68%); animation:lBloomB 32s ease-in-out infinite; }
+  .b-c { width:74vw; height:74vw; left:14vw; bottom:-40vw; background:radial-gradient(circle,rgba(31,161,110,.34),rgba(31,161,110,0) 66%); animation:lBloomC 29s ease-in-out infinite; }
+  .b-d { width:46vw; height:46vw; right:2vw; bottom:-24vw; background:radial-gradient(circle,rgba(255,150,90,.38),rgba(255,150,90,0) 68%); animation:lBloomA 34s ease-in-out infinite; }
+  .b-grid { position:absolute; inset:0; border-radius:0; background:repeating-linear-gradient(90deg,rgba(120,92,40,.055) 0 1px,transparent 1px 88px),repeating-linear-gradient(0deg,rgba(120,92,40,.055) 0 1px,transparent 1px 88px); }
+  .b-vign { position:absolute; inset:0; border-radius:0; background:radial-gradient(105% 78% at 50% 42%,rgba(255,250,238,.62) 0%,rgba(247,236,214,.2) 52%,rgba(240,226,196,.62) 100%); }
 
-  .topline {
-    display: flex; align-items: center; justify-content: space-between; flex: none; gap: 16px;
-  }
-  .live-tag {
-    display: flex; align-items: center; gap: 9px;
-    color: #5C7A6B; font-size: 12px; letter-spacing: 0.2em; font-weight: 700; text-transform: uppercase;
-  }
-  .live-tag i {
-    width: 7px; height: 7px; border-radius: 50%; background: #2E8B66;
-    box-shadow: 0 0 0 4px rgba(46,139,102,.16);
-  }
-  .powered { display: flex; align-items: center; gap: 8px; }
-  .powered .lbl { font-size: 11px; letter-spacing: 0.16em; color: #9A8C6E; text-transform: uppercase; }
-  .powered .ring { width: 13px; height: 13px; border-radius: 50%; border: 2.5px solid #1F5E47; }
-  .powered b { font-size: 14px; font-weight: 800; letter-spacing: -0.01em; color: #1C2B22; }
+  .frame { position:relative; z-index:2; flex:1; min-height:0; display:flex; flex-direction:column; }
 
-  /* Vertically-centred region used by the loader and the access card. */
-  .center-wrap { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; }
+  .topline { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:clamp(14px,2.2vh,22px) clamp(20px,3vw,40px); flex:none; animation:lFade .8s ease both; }
+  .live-tag { display:flex; align-items:center; gap:9px; }
+  .live-dot { position:relative; width:9px; height:9px; flex:none; display:block; }
+  .live-dot span { position:absolute; inset:0; border-radius:50%; background:#12a150; }
+  .live-dot span:last-child { animation:lPulse 2.4s ease-out infinite; }
+  .live-tag .t1 { font-size:12px; font-weight:800; letter-spacing:.22em; text-transform:uppercase; color:#12704a; }
+  .live-tag .sep { width:4px; height:4px; border-radius:50%; background:#c9b48a; }
+  .live-tag .t2 { font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#9a8a68; }
+  .brandline { display:flex; align-items:center; gap:12px; }
+  .brandline .clk { text-align:right; line-height:1.25; }
+  .brandline .clk .g { font-size:14px; font-weight:800; color:#3a332c; }
+  .brandline .clk .d { font-size:12px; color:#94886c; }
+  .brandline .mark { width:38px; height:38px; border-radius:12px; background:#1a2f24; color:#ffd75e; display:grid; place-items:center; flex:none; box-shadow:0 10px 20px -12px rgba(26,47,36,.9); }
+
+  .center { flex:1; min-height:0; display:flex; align-items:center; justify-content:center; padding:0 clamp(20px,3vw,40px); }
+
+  .hero-wrap { flex:1; min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:clamp(16px,3.4vh,34px); padding:0 clamp(20px,3vw,40px) clamp(10px,1.6vh,18px); }
+  .brand { display:flex; flex-direction:column; align-items:center; text-align:center; flex:none; }
+  .logo { position:relative; width:clamp(42px,5.6vh,58px); height:clamp(42px,5.6vh,58px); animation:lRise .9s var(--pm-ease) both; }
+  .logo .halo { position:absolute; inset:-10px; border-radius:22px; background:radial-gradient(circle,rgba(255,201,60,.75),transparent 70%); animation:lGlowRing 4.2s ease-in-out infinite; }
+  .logo svg { position:relative; width:100%; height:100%; display:block; filter:drop-shadow(0 10px 20px rgba(120,86,10,.36)); }
+  .brand h1 { margin:clamp(10px,1.8vh,18px) 0 0; font-family:var(--pm-font-display); font-weight:500; font-size:clamp(46px,9.4vh,96px); line-height:.9; letter-spacing:-.035em; color:#16281e; animation:lRise 1s var(--pm-ease) both; animation-delay:.08s; }
+  .brand .kicker { margin-top:clamp(8px,1.5vh,15px); font-size:clamp(10px,1.35vh,13px); font-weight:800; letter-spacing:.34em; text-transform:uppercase; color:#a8792a; animation:lWide 1.4s var(--pm-ease) both; animation-delay:.3s; }
+  .brand .lead { margin:clamp(10px,1.8vh,18px) 0 0; max-width:480px; font-size:clamp(14px,1.9vh,17px); line-height:1.5; color:#6b6156; text-wrap:pretty; animation:lRise 1s var(--pm-ease) both; animation-delay:.16s; }
+
+  .doors { display:flex; gap:clamp(12px,1.4vw,20px); width:100%; max-width:1160px; flex:0 1 auto; min-height:0; }
+  .door { flex:1; min-width:0; display:flex; flex-direction:column; overflow:hidden; text-align:left; border-radius:clamp(18px,2.4vh,26px); background:#fffaf0; color:inherit; transition:transform .38s var(--pm-ease),box-shadow .38s ease,border-color .3s ease; animation:lRise .95s var(--pm-ease) both; }
+  .door-cap { position:relative; flex:none; height:clamp(84px,13vh,120px); overflow:hidden; }
+  .door-cap .stripes { position:absolute; inset:0; }
+  .door-cap .blob { position:absolute; border-radius:50%; }
+  .door-cap .tile { position:absolute; left:clamp(16px,2vw,22px); top:50%; transform:translateY(-50%); width:clamp(42px,6vh,54px); height:clamp(42px,6vh,54px); border-radius:16px; display:grid; place-items:center; }
+  .door-cap .tile i { font-size:clamp(21px,3vh,27px); }
+  .door-cap .num { position:absolute; right:clamp(16px,2vw,22px); top:clamp(10px,1.4vh,14px); font-family:var(--pm-font-display); font-size:clamp(20px,3vh,27px); }
+  .door-body { padding:clamp(14px,2.2vh,22px) clamp(16px,2vw,24px) clamp(16px,2.4vh,24px); display:flex; flex-direction:column; flex:1; min-height:0; }
+  .door-body .tag { font-size:clamp(10px,1.3vh,11.5px); font-weight:800; letter-spacing:.16em; text-transform:uppercase; }
+  .door-body .ttl { margin-top:6px; font-family:var(--pm-font-display); font-weight:500; font-size:clamp(21px,3.4vh,30px); line-height:1.05; letter-spacing:-.02em; color:#241f1c; }
+  .door-body .dsc { margin:8px 0 0; font-size:clamp(13px,1.7vh,15px); line-height:1.45; color:#6b6156; text-wrap:pretty; }
+  .door-body .cta { display:flex; align-items:center; gap:8px; margin-top:auto; padding-top:clamp(12px,1.8vh,20px); font-size:clamp(14px,1.8vh,15.5px); font-weight:800; }
+  .door-body .cta i { font-size:15px; animation:lSlide 2.6s ease-in-out infinite; }
+
+  /* client (gold) */
+  .door.client { border:1px solid #f2dca6; box-shadow:0 2px 3px rgba(40,30,10,.04),0 30px 56px -38px rgba(120,86,10,.8); animation-delay:.2s; }
+  .door.client:hover, .door.client:focus-visible { transform:translateY(-10px); box-shadow:0 2px 3px rgba(40,30,10,.05),0 44px 70px -34px rgba(255,175,20,.9); border-color:#ffc93c; outline:none; }
+  .door.client .door-cap { background:#ffc93c; background-image:radial-gradient(120% 130% at 12% 8%,#ffe28a,#f7b21f 62%,#e79a0c); }
+  .door.client .stripes { background:repeating-linear-gradient(58deg,rgba(255,255,255,.24) 0 2px,transparent 2px 26px); }
+  .door.client .blob { right:-18px; bottom:-30px; width:120px; height:120px; background:rgba(255,255,255,.24); }
+  .door.client .tile { background:#1a2f24; color:#ffd75e; box-shadow:0 14px 26px -14px rgba(26,47,36,.8); }
+  .door.client .num { color:rgba(26,47,36,.42); }
+  .door.client .tag { color:#a8792a; }
+  .door.client .cta { color:#8a5a0c; }
+
+  /* dealer (forest) */
+  .door.dealer { border:1px solid #c9e4d5; box-shadow:0 2px 3px rgba(40,30,10,.04),0 30px 56px -38px rgba(20,60,42,.8); animation-delay:.28s; }
+  .door.dealer:hover, .door.dealer:focus-visible { transform:translateY(-10px); box-shadow:0 2px 3px rgba(40,30,10,.05),0 44px 70px -34px rgba(18,161,80,.75); border-color:#12a150; outline:none; }
+  .door.dealer .door-cap { background:#1f4d3a; background-image:radial-gradient(120% 130% at 88% 6%,#37876a,#1f4d3a 58%,#143528); }
+  .door.dealer .stripes { background:repeating-linear-gradient(122deg,rgba(255,255,255,.12) 0 2px,transparent 2px 26px); }
+  .door.dealer .blob { left:-24px; bottom:-34px; width:130px; height:130px; background:rgba(122,224,164,.22); }
+  .door.dealer .tile { background:#ffc93c; color:#1a2f24; box-shadow:0 14px 26px -14px rgba(0,0,0,.6); }
+  .door.dealer .num { color:rgba(217,245,227,.5); }
+  .door.dealer .tag { color:#12704a; }
+  .door.dealer .cta { color:#12704a; }
+
+  /* team (violet) */
+  .door.team { border:1px solid #ded1f4; box-shadow:0 2px 3px rgba(40,30,10,.04),0 30px 56px -38px rgba(70,40,150,.7); animation-delay:.36s; }
+  .door.team:hover, .door.team:focus-visible { transform:translateY(-10px); box-shadow:0 2px 3px rgba(40,30,10,.05),0 44px 70px -34px rgba(151,110,235,.8); border-color:#976eeb; outline:none; }
+  .door.team .door-cap { background:#5b32c4; background-image:radial-gradient(120% 130% at 18% 4%,#a983f5,#6a3ed6 58%,#4a26a8); }
+  .door.team .stripes { background:repeating-linear-gradient(58deg,rgba(255,255,255,.14) 0 2px,transparent 2px 26px); }
+  .door.team .blob { right:-20px; top:-34px; width:126px; height:126px; background:rgba(255,255,255,.16); }
+  .door.team .tile { background:#ffe1e6; color:#5b32c4; box-shadow:0 14px 26px -14px rgba(40,20,90,.7); }
+  .door.team .num { color:rgba(239,232,251,.5); }
+  .door.team .tag { color:#5b32c4; }
+  .door.team .cta { color:#5b32c4; }
+
+  .footnote { display:flex; align-items:center; justify-content:center; gap:clamp(12px,1.6vw,24px); flex-wrap:wrap; flex:none; animation:lFade 1.2s ease both; animation-delay:.5s; }
+  .footnote .fn { display:flex; align-items:center; gap:7px; font-size:clamp(11.5px,1.5vh,13.5px); color:#8d8271; }
+  .footnote .fn i { font-size:16px; }
+  .footnote .fn-sep { width:5px; height:5px; border-radius:50%; background:#d3c49c; }
 
   /* ── Boot loader (silent device check) ── */
-  #boot-loader { text-align: center; color: #8A7C60; }
-  #boot-loader .ring {
-    width: 30px; height: 30px; margin: 0 auto 14px; border-radius: 50%;
-    border: 3px solid #E1D6BC; border-top-color: #1F5E47; animation: spin .8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  #boot-loader p { margin: 0; font-size: 13px; letter-spacing: .02em; }
+  #boot-loader { text-align:center; color:#8a7c60; }
+  #boot-loader .ring { width:30px; height:30px; margin:0 auto 14px; border-radius:50%; border:3px solid #e6d9b8; border-top-color:#1f4d3a; animation:pm-spin .8s linear infinite; }
+  #boot-loader p { margin:0; font-size:13px; letter-spacing:.02em; }
 
-  /* ── Hero (doors state only) ── */
-  .hero {
-    flex: 1;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center;
-    padding: clamp(18px, 4vh, 40px) 0 22px;
-  }
-  .emblem {
-    width: 60px; height: 60px; border-radius: 18px;
-    border: 1px solid rgba(168,124,61,.5);
-    background: linear-gradient(155deg, #FFFCF4, #F1E7D0);
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 16px 34px rgba(120,90,30,.16), inset 0 1px 0 rgba(255,255,255,.7);
-    margin-bottom: 20px;
-  }
-  .emblem i { width: 22px; height: 22px; border-radius: 50%; border: 3px solid #1F5E47; display: block; }
-  h1 {
-    font-family: 'Fraunces', Georgia, serif;
-    font-weight: 500;
-    font-size: clamp(40px, 6vw, 60px);
-    line-height: 1;
-    letter-spacing: 0.04em;
-    margin: 0;
-    color: #15281F;
-  }
-  .word {
-    font-family: 'Fraunces', Georgia, serif;
-    font-weight: 400;
-    font-size: clamp(16px, 2.2vw, 22px);
-    letter-spacing: 0.5em;
-    padding-left: 0.5em;
-    margin: 12px 0 0;
-    color: #A87C3D;
-    text-transform: uppercase;
-  }
-  .lead {
-    font-size: 15.5px; line-height: 1.55; color: #5F6B61; max-width: 46ch; margin: 20px 0 0;
-  }
+  /* ── Access card (activate / pending / blocked) — device gate, DS-skinned ── */
+  .access-card { width:100%; max-width:410px; background:#fffaf0; border:1.5px solid #f2dca6; border-radius:24px; padding:32px 28px 26px; text-align:center; box-shadow:0 2px 4px rgba(120,90,30,.05),0 30px 60px -30px rgba(120,86,10,.55); animation:lRise .5s var(--pm-ease) both; }
+  .ac-emblem { width:54px; height:54px; border-radius:16px; margin:0 auto 16px; background:#1a2f24; color:#ffd75e; display:grid; place-items:center; box-shadow:0 14px 26px -14px rgba(26,47,36,.8); }
+  .ac-emblem i { font-size:24px; }
+  .ac-brand { font-family:var(--pm-font-display); font-size:14px; letter-spacing:.34em; text-transform:uppercase; color:#a8792a; margin-bottom:14px; padding-left:.34em; }
+  .access-card h2 { font-family:var(--pm-font-display); margin:0 0 8px; font-size:25px; font-weight:500; letter-spacing:-.015em; color:#241f1c; }
+  .access-card p { margin:0 0 18px; color:#6b6156; line-height:1.55; font-size:14px; }
+  .access-card input { width:100%; height:52px; margin-bottom:12px; text-align:center; border-radius:14px; border:1px solid #e4dbf7; background:#faf7ff; padding:0 15px; font-size:20px; letter-spacing:.34em; font-weight:700; color:#241f1c; outline:none; transition:border-color .15s ease,background .15s ease; }
+  .access-card input::placeholder { letter-spacing:normal; font-size:14px; font-weight:500; color:#a99fd0; }
+  .access-card input:focus { border-color:#5b32c4; background:#fff; box-shadow:0 0 0 4px rgba(91,50,196,.10); }
+  .access-card button.primary { width:100%; height:52px; border-radius:14px; border:none; background:#ffc93c; color:#241d0c; font-weight:800; font-size:15px; cursor:pointer; box-shadow:0 10px 22px -12px rgba(180,130,10,.8); transition:background .15s ease; }
+  .access-card button.primary:hover { background:#ffd75e; }
+  .access-card button.primary:disabled { opacity:.6; cursor:default; }
+  .access-card button.ghost { width:100%; height:46px; margin-top:8px; border-radius:13px; border:1px solid #ddd2f5; background:#fffaf0; color:#6b6156; font-weight:800; font-size:13.5px; cursor:pointer; }
+  .access-card button.ghost:hover { border-color:#5b32c4; color:#5b32c4; }
+  .access-card .ac-status { margin-top:12px; min-height:17px; color:#8a5a0c; font-size:12.5px; font-weight:700; line-height:1.4; }
+  .access-card .ac-help { margin:16px 0 0; font-size:11.5px; color:#8d8271; line-height:1.5; }
 
-  /* ── Doors ── */
-  .doors {
-    flex: none;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
-  }
-  .door {
-    text-align: left; cursor: pointer;
-    background: #FFFDF8;
-    border: 1px solid #E8DFC9;
-    border-radius: 20px;
-    padding: 22px 22px 20px;
-    display: flex; flex-direction: column;
-    min-height: 176px;
-    box-shadow: 0 2px 4px rgba(120,90,30,.04), 0 16px 36px rgba(120,90,30,.07);
-    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
-  }
-  .door:hover, .door:focus-visible {
-    transform: translateY(-4px);
-    box-shadow: 0 10px 22px rgba(120,90,30,.1), 0 28px 56px rgba(120,90,30,.15);
-    outline: none;
-  }
-  .door.client:hover, .door.client:focus-visible { border-color: #1F5E47; }
-  .door.dealer:hover, .door.dealer:focus-visible { border-color: #A87C3D; }
-  .door.team:hover, .door.team:focus-visible { border-color: #3E6E96; }
-  .door-top { display: flex; align-items: center; justify-content: space-between; }
-  .door-ic {
-    width: 44px; height: 44px; border-radius: 14px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 19px; font-weight: 800;
-  }
-  .door.client .door-ic { background: #E7F0EB; color: #1F5E47; }
-  .door.dealer .door-ic { background: #F6ECD8; color: #A87C3D; }
-  .door.team .door-ic { background: #E9EFF4; color: #3E6E96; }
-  .door-num { font-family: 'Fraunces', Georgia, serif; font-size: 15px; color: #C8BFA8; }
-  .door-tag {
-    font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase;
-    font-weight: 700; margin-top: 18px;
-  }
-  .door.client .door-tag { color: #1F5E47; }
-  .door.dealer .door-tag { color: #A87C3D; }
-  .door.team .door-tag { color: #3E6E96; }
-  .door-title {
-    font-family: 'Fraunces', Georgia, serif;
-    font-size: 23px; font-weight: 500; letter-spacing: -0.01em; color: #1C2B22; margin-top: 5px;
-  }
-  .door-desc { font-size: 12.5px; color: #6B7268; line-height: 1.5; margin-top: 7px; }
-  .door-cta {
-    display: flex; align-items: center; gap: 7px;
-    margin-top: auto; padding-top: 14px;
-    font-size: 13.5px; font-weight: 700;
-  }
-  .door.client .door-cta { color: #1F5E47; }
-  .door.dealer .door-cta { color: #A87C3D; }
-  .door.team .door-cta { color: #3E6E96; }
-  .door-cta .arw { font-size: 15px; }
-
-  .footnote {
-    margin: 18px auto 0; color: #8A7C60; font-size: 12.5px; line-height: 1.5; text-align: center;
-  }
-
-  /* ── Access card (single compact card; activate / pending / blocked) ── */
-  .access-card {
-    width: 100%;
-    max-width: 400px;
-    background: #FFFDF8;
-    border: 1px solid #E8DFC9;
-    border-radius: 22px;
-    padding: 30px 28px 26px;
-    text-align: center;
-    box-shadow: 0 2px 4px rgba(120,90,30,.04), 0 26px 56px rgba(120,90,30,.14);
-  }
-  .ac-emblem {
-    width: 52px; height: 52px; border-radius: 16px; margin: 0 auto 16px;
-    border: 1px solid rgba(168,124,61,.5);
-    background: linear-gradient(155deg, #FFFCF4, #F1E7D0);
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.7);
-  }
-  .ac-emblem i { width: 20px; height: 20px; border-radius: 50%; border: 3px solid #1F5E47; display: block; }
-  .ac-brand {
-    font-family: 'Fraunces', Georgia, serif; font-size: 15px; letter-spacing: .34em;
-    text-transform: uppercase; color: #A87C3D; margin-bottom: 14px; padding-left: .34em;
-  }
-  .access-card h2 {
-    font-family: 'Fraunces', Georgia, serif;
-    margin: 0 0 8px; font-size: 24px; font-weight: 500; color: #1C2B22;
-  }
-  .access-card p { margin: 0 0 18px; color: #5F6B61; line-height: 1.55; font-size: 13.5px; }
-  .access-card input {
-    width: 100%; height: 50px; margin-bottom: 12px; text-align: center;
-    border-radius: 13px; border: 1px solid #E8DFC9; background: #FAF8F3;
-    padding: 0 15px; font-size: 20px; letter-spacing: .34em; font-weight: 700; color: #1C1E1B; outline: none;
-  }
-  .access-card input::placeholder { letter-spacing: normal; font-size: 14px; font-weight: 500; color: #A79E86; }
-  .access-card input:focus { border-color: #1F5E47; background: #fff; }
-  .access-card button.primary {
-    width: 100%; height: 50px; border-radius: 13px; border: none;
-    background: #1F5E47; color: #fff; font-weight: 700; font-size: 15px; cursor: pointer;
-    box-shadow: 0 8px 18px rgba(31,94,71,.22);
-  }
-  .access-card button.primary:hover { background: #184E3B; }
-  .access-card button.primary:disabled { opacity: .6; cursor: default; }
-  .access-card button.ghost {
-    width: 100%; height: 44px; margin-top: 8px; border-radius: 12px;
-    border: 1px solid #E8DFC9; background: #fff; color: #5F6B61; font-weight: 700; font-size: 13.5px; cursor: pointer;
-  }
-  .access-card button.ghost:hover { border-color: #1F5E47; color: #1F5E47; }
-  .access-card .ac-status { margin-top: 12px; min-height: 17px; color: #8A6224; font-size: 12.5px; font-weight: 700; line-height: 1.4; }
-  .access-card .ac-help { margin: 16px 0 0; font-size: 11.5px; color: #9A8C6E; line-height: 1.5; }
-
-  /* ── Sign-in shell (opened only when a door needs a session) ── */
-  #auth-shell {
-    position: fixed; inset: 0; z-index: 40;
-    display: none; align-items: center; justify-content: center;
-    background: rgba(28,30,27,.42); padding: 24px;
-  }
-  .auth-form {
-    background: #FFFDF8; border: 1px solid #E8DFC9; border-radius: 20px;
-    padding: 24px; width: 100%; max-width: 400px;
-    box-shadow: 0 30px 70px rgba(60,45,15,.25);
-    animation: authIn .22s ease both;
-  }
-  @keyframes authIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-  .auth-form h2 { font-family: 'Fraunces', Georgia, serif; margin: 0; font-size: 23px; font-weight: 500; color: #1C2B22; }
-  .auth-close { border: none; background: #F4F2EA; color: #6A6E68; cursor: pointer; width: 32px; height: 32px; border-radius: 10px; font-size: 14px; font-weight: 700; }
-  .auth-close:hover { background: #ECE8DD; color: #1C1E1B; }
-  .auth-form input {
-    width: 100%; height: 48px; margin-bottom: 12px;
-    border-radius: 13px; border: 1px solid #E8DFC9; background: #FAF8F3;
-    padding: 0 15px; font-size: 15px; color: #1C1E1B; outline: none;
-  }
-  .auth-form input:focus { border-color: #1F5E47; background: #fff; }
-  .auth-form button[type="submit"] {
-    width: 100%; height: 48px; border-radius: 13px; border: none;
-    background: #1F5E47; color: #fff; font-weight: 700; font-size: 15px; cursor: pointer;
-    box-shadow: 0 8px 18px rgba(31,94,71,.24);
-  }
-  .auth-form button[type="submit"]:hover { background: #184E3B; }
-  .auth-form button[type="submit"]:disabled { opacity: .65; cursor: default; }
+  /* ── Sign-in shell ── */
+  #auth-shell { position:fixed; inset:0; z-index:40; display:none; align-items:center; justify-content:center; background:rgba(28,22,44,.44); backdrop-filter:blur(3px); padding:24px; }
+  .auth-form { background:#fffaf0; border:1.5px solid #e4dbf7; border-radius:22px; padding:26px; width:100%; max-width:410px; box-shadow:0 30px 70px -20px rgba(40,24,90,.45); animation:authIn .22s ease both; }
+  .auth-form h2 { font-family:var(--pm-font-display); margin:0; font-size:24px; font-weight:500; letter-spacing:-.015em; color:#241f1c; }
+  .auth-close { border:none; background:#f0eaff; color:#6b6156; cursor:pointer; width:34px; height:34px; border-radius:10px; font-size:15px; font-weight:800; }
+  .auth-close:hover { background:#e7defc; color:#241f1c; }
+  .auth-form input { width:100%; height:48px; margin-bottom:12px; border-radius:14px; border:1px solid #e4dbf7; background:#faf7ff; padding:0 15px; font-size:15px; color:#241f1c; outline:none; }
+  .auth-form input:focus { border-color:#5b32c4; background:#fff; box-shadow:0 0 0 4px rgba(91,50,196,.10); }
+  .auth-form button[type="submit"] { width:100%; height:48px; border-radius:14px; border:none; background:#ffc93c; color:#241d0c; font-weight:800; font-size:15px; cursor:pointer; box-shadow:0 10px 22px -12px rgba(180,130,10,.8); }
+  .auth-form button[type="submit"]:hover { background:#ffd75e; }
+  .auth-form button[type="submit"]:disabled { opacity:.65; cursor:default; }
 
   /* ── State visibility (single source of truth) ── */
-  #boot-loader, #access-wrap, .hero, .doors, .footnote { display: none; }
-  body.s-loading #boot-loader { display: block; }
-  body.s-access  #access-wrap { display: flex; }
-  body.s-doors   .hero  { display: flex; }
-  body.s-doors   .doors { display: grid; }
-  body.s-doors   .footnote { display: block; }
-  /* The sign-in shell must never appear in the access/loading states. */
-  body.s-loading #auth-shell, body.s-access #auth-shell { display: none !important; }
+  #boot-loader, #access-wrap, .hero-wrap, .footnote { display:none; }
+  body.s-loading #boot-loader { display:block; }
+  body.s-access  #access-wrap { display:flex; }
+  body.s-doors   .hero-wrap { display:flex; }
+  body.s-doors   .footnote { display:flex; }
+  body.s-loading #auth-shell, body.s-access #auth-shell { display:none !important; }
 
   @media (max-width: 980px) {
-    .doors { grid-template-columns: 1fr; }
-    .door { min-height: 0; }
+    .doors { flex-direction:column; overflow-y:auto; }
+    .door { min-height:0; }
   }
   @media (max-width: 760px) {
-    .frame { padding: 20px 18px 26px; }
-    .topline { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .topline { flex-direction:column; align-items:flex-start; gap:10px; }
+    html, body, .page { overflow:auto; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .b-a,.b-b,.b-c,.b-d,.logo .halo,.brand h1,.brand .kicker,.brand .lead,.door,.door-body .cta i,.live-dot span:last-child { animation:none !important; }
   }
 </style>
 </head>
-<body class="s-loading">
+<body class="pm-body s-loading">
 <main class="page">
-  <span class="hairline" aria-hidden="true"></span>
-  <span class="glow-gold" aria-hidden="true"></span>
+  <div class="bloom" aria-hidden="true">
+    <span class="b-a"></span><span class="b-b"></span><span class="b-c"></span><span class="b-d"></span>
+    <span class="b-grid"></span><span class="b-vign"></span>
+  </div>
 
   <div class="frame">
     <header class="topline" aria-label="PlotMap">
-      <span class="live-tag"><i aria-hidden="true"></i>Tricity · Live</span>
-      <span class="powered">
-        <span class="lbl">Powered by</span>
-        <span class="ring" aria-hidden="true"></span>
-        <b>PlotMap</b>
+      <span class="live-tag">
+        <span class="live-dot" aria-hidden="true"><span></span><span></span></span>
+        <span class="t1">Tricity</span><span class="sep"></span><span class="t2">Live</span>
       </span>
+      <div class="brandline">
+        <div class="clk">
+          <div class="g" id="pm-greeting">Welcome</div>
+          <div class="d" id="pm-clock"></div>
+        </div>
+        <div class="mark" aria-hidden="true">
+          <svg viewBox="0 0 40 40" width="24" height="24"><rect width="40" height="40" rx="12" fill="#ffc93c"></rect><path d="M20 8.5 L33 16 L20 23.5 L7 16 Z" fill="#1a2f24"></path><path d="M7 22 L20 29.5 L33 22 L33 25.5 L20 33 L7 25.5 Z" fill="#1a2f24" opacity="0.42"></path></svg>
+        </div>
+      </div>
     </header>
 
     <!-- Loading: silent device check -->
-    <div class="center-wrap" id="boot-loader">
+    <div class="center" id="boot-loader">
       <div>
         <div class="ring" aria-hidden="true"></div>
         <p>Checking this device…</p>
@@ -312,9 +211,9 @@
     </div>
 
     <!-- Access: one compact card (activate / pending / blocked) -->
-    <div class="center-wrap" id="access-wrap">
+    <div class="center" id="access-wrap">
       <section class="access-card" aria-labelledby="ac-title">
-        <div class="ac-emblem" aria-hidden="true"><i></i></div>
+        <div class="ac-emblem" aria-hidden="true"><i class="ph-fill ph-shield-check"></i></div>
         <div class="ac-brand">PlotMap</div>
         <h2 id="ac-title">Activate this device</h2>
         <p id="ac-msg">Enter the one-time 8-digit activation code from your PlotMap provider to set up this device.</p>
@@ -327,49 +226,67 @@
     </div>
 
     <!-- Doors: revealed only on an approved device -->
-    <section class="hero" aria-labelledby="hero-title">
-      <div class="emblem" aria-hidden="true"><i></i></div>
-      <h1 id="hero-title">PlotMap</h1>
-      <div class="word">Property Presentation</div>
-      <p class="lead">Your approved workspace — presented on a living map, run from one calm, premium command system.</p>
-    </section>
+    <div class="hero-wrap">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">
+          <div class="halo"></div>
+          <svg viewBox="0 0 40 40"><rect width="40" height="40" rx="12" fill="#ffc93c"></rect><path d="M20 8.5 L33 16 L20 23.5 L7 16 Z" fill="#1a2f24"></path><path d="M7 22 L20 29.5 L33 22 L33 25.5 L20 33 L7 25.5 Z" fill="#1a2f24" opacity="0.42"></path></svg>
+        </div>
+        <h1 id="hero-title">PlotMap</h1>
+        <div class="kicker">Property Presentation System</div>
+        <p class="lead">Every map, every plot, every client — one calm room. Choose where the day starts.</p>
+      </div>
 
-    <div class="doors" aria-label="PlotMap entry options">
-      <a class="door client" href="/app/plotmap/">
-        <span class="door-top">
-          <span class="door-ic" aria-hidden="true">◑</span>
-          <span class="door-num">01</span>
-        </span>
-        <span class="door-tag">For your client</span>
-        <span class="door-title">Client Presentation</span>
-        <span class="door-desc">Walk a buyer through any property, sector and location on a beautiful live map.</span>
-        <span class="door-cta">Start presenting <span class="arw">→</span></span>
-      </a>
+      <div class="doors" aria-label="PlotMap entry options">
+        <a class="door client" href="/app/plotmap/">
+          <div class="door-cap">
+            <div class="stripes"></div><div class="blob"></div>
+            <div class="tile"><i class="ph-fill ph-projector-screen-chart"></i></div>
+            <div class="num">01</div>
+          </div>
+          <div class="door-body">
+            <div class="tag">For your client</div>
+            <div class="ttl">Client Presentation</div>
+            <p class="dsc">Walk a buyer through any city, sector and property on a beautiful live map.</p>
+            <div class="cta">Start presenting <i class="ph-bold ph-arrow-right"></i></div>
+          </div>
+        </a>
 
-      <button class="door dealer" type="button" onclick="openDealer()">
-        <span class="door-top">
-          <span class="door-ic" aria-hidden="true">◆</span>
-          <span class="door-num">02</span>
-        </span>
-        <span class="door-tag">For the dealer</span>
-        <span class="door-title">Dealer Login</span>
-        <span class="door-desc">Your command room — business signals, area intelligence, client movement and property insights in one calm place.</span>
-        <span class="door-cta">Enter command <span class="arw">→</span></span>
-      </button>
+        <button class="door dealer" type="button" onclick="openDealer()">
+          <div class="door-cap">
+            <div class="stripes"></div><div class="blob"></div>
+            <div class="tile"><i class="ph-fill ph-chart-donut"></i></div>
+            <div class="num">02</div>
+          </div>
+          <div class="door-body">
+            <div class="tag">For you</div>
+            <div class="ttl">Dealer Dashboard</div>
+            <p class="dsc">Real demand signals, your best clients, closed deals and every client link.</p>
+            <div class="cta">Enter command <i class="ph-bold ph-arrow-right" style="animation-delay:.3s"></i></div>
+          </div>
+        </button>
 
-      <button class="door team" type="button" onclick="openTeam()">
-        <span class="door-top">
-          <span class="door-ic" aria-hidden="true">◐</span>
-          <span class="door-num">03</span>
-        </span>
-        <span class="door-tag">For your team</span>
-        <span class="door-title">Team Workspace</span>
-        <span class="door-desc">The daily work table — add properties, open Map Studio, mark maps and keep client work moving.</span>
-        <span class="door-cta">Open workspace <span class="arw">→</span></span>
-      </button>
+        <button class="door team" type="button" onclick="openTeam()">
+          <div class="door-cap">
+            <div class="stripes"></div><div class="blob"></div>
+            <div class="tile"><i class="ph-fill ph-pen-nib"></i></div>
+            <div class="num">03</div>
+          </div>
+          <div class="door-body">
+            <div class="tag">For your team</div>
+            <div class="ttl">Team Workspace</div>
+            <p class="dsc">Add properties, mark maps in Map Studio, send private client links.</p>
+            <div class="cta">Open workspace <i class="ph-bold ph-arrow-right" style="animation-delay:.6s"></i></div>
+          </div>
+        </button>
+      </div>
+
+      <div class="footnote">
+        <div class="fn"><i class="ph-fill ph-shield-check" style="color:#12704a"></i>Only what you publish is ever visible to a client</div>
+        <span class="fn-sep"></span>
+        <div class="fn"><i class="ph-fill ph-cloud-check" style="color:#a8792a"></i>Studio changes reach the client screen instantly</div>
+      </div>
     </div>
-
-    <p class="footnote">This device is approved and remembered — PlotMap opens straight to your workspace.<br>Client Presentation stays separate and client-safe at /app/plotmap/.</p>
   </div>
 </main>
 
@@ -384,21 +301,16 @@
     <input id="auth-password" type="password" autocomplete="current-password" placeholder="Password" required>
     <input id="auth-passcode" type="password" inputmode="numeric" autocomplete="off" placeholder="Dealer passcode" style="display:none;">
     <button id="auth-submit" type="submit">Continue</button>
-    <button type="button" id="auth-mode-toggle" style="width:100%;margin-top:10px;border:none;background:transparent;color:#1F5E47;font-size:13px;font-weight:700;cursor:pointer;">Have a passcode? Sign in with passcode</button>
-    <div id="auth-status" style="margin-top:12px; font-size:13px; color:#9A4A2C; font-weight:600; min-height:16px;"></div>
+    <button type="button" id="auth-mode-toggle" style="width:100%;margin-top:10px;border:none;background:transparent;color:#5b32c4;font-size:13px;font-weight:800;cursor:pointer;">Have a passcode? Sign in with passcode</button>
+    <div id="auth-status" style="margin-top:12px; font-size:13px; color:#9a2c2c; font-weight:700; min-height:16px;"></div>
   </form>
 </div>
 
 <script>
   // ─────────────────────────────────────────────────────────────────────────
-  // PlotMap root — DEVICE-FIRST access.
-  //
-  // The silent gate is the approved DEVICE, not a password. On every launch we
-  // restore/refresh any Supabase session and ask the server whether THIS
-  // browser's device token is approved (read-only RPC — it never registers a
-  // device). Approved → the workspace doors appear immediately, no form. Not
-  // approved → one compact card offers the one-time 8-digit activation code.
-  // Access never comes from the URL, and passcodes are never stored locally.
+  // PlotMap root — DEVICE-FIRST access.  (Logic preserved verbatim from the
+  // pre-redesign root; only the presentation layer changed. The silent gate is
+  // the approved DEVICE, not a password.)
   // ─────────────────────────────────────────────────────────────────────────
   const IS_LOCAL = /^(localhost|127\.|0\.0\.0\.0|\[::1\])/.test(location.hostname || '')
     || location.hostname.endsWith('.local') || location.protocol === 'file:';
@@ -407,13 +319,23 @@
   let authIntent = 'dealer';
   let authMode = 'email';
 
-  // Only same-origin path redirects ("/admin/…") — never absolute or "//host".
   function safeNext(value) { return /^\/(?!\/)/.test(String(value || '')) ? value : ''; }
 
   function el(id) { return document.getElementById(id); }
   function setBodyState(state) {
     document.body.classList.remove('s-loading', 's-access', 's-doors');
     document.body.classList.add(state);
+  }
+
+  // ── Live greeting + clock (top bar) — real clock, no fabricated name ──
+  function tickClock() {
+    const now = new Date();
+    const h = now.getHours();
+    const part = h < 5 ? 'Late night' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+    const g = el('pm-greeting'); const c = el('pm-clock');
+    if (g) g.textContent = part;
+    if (c) c.textContent = now.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})
+      + ' · ' + now.toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit'});
   }
 
   // ── Sign-in shell (opened only from a door that needs a session) ──
@@ -440,8 +362,6 @@
     el('auth-status').textContent = '';
   }
 
-  // Dealer Login — owners sign in once with their passcode; the session then
-  // persists and auto-refreshes, so this is never asked again on this device.
   async function openDealer() {
     authIntent = 'dealer';
     el('auth-title').textContent = 'Dealer Login';
@@ -452,7 +372,6 @@
     setAuthMode('passcode');
     openAuth();
   }
-  // Team Workspace — team members sign in with email & password (once).
   async function openTeam() {
     authIntent = 'team';
     el('auth-title').textContent = 'Team Workspace';
@@ -464,7 +383,6 @@
     openAuth();
   }
 
-  // ── Server calls (anon key; verification happens server-side) ──
   async function resolvePasscode(passcode) {
     const res = await fetch(window.PMAuth.SUPABASE_URL + '/rest/v1/rpc/plotmap_passcode_login', {
       method: 'POST',
@@ -542,7 +460,6 @@
     return Array.isArray(rows) && rows[0] ? rows[0] : null;
   }
 
-  // ── Access card renderer (one card, three states) ──
   function renderAccessCard(state, msgOverride) {
     setBodyState('s-access');
     const titleEl = el('ac-title'), msgEl = el('ac-msg'), codeEl = el('ac-code');
@@ -576,12 +493,10 @@
     document.documentElement.style.visibility = '';
   }
 
-  // ── Boot: silent session restore + device gate ──
   async function boot() {
     const params = new URLSearchParams(location.search);
     nextTarget = safeNext(params.get('next'));
 
-    // Local dev: skip the server gate and show the workspace (mock session).
     if (IS_LOCAL) { revealDoors(); return; }
 
     if (!window.PMAuth || !window.PMDeviceAccess) {
@@ -589,8 +504,6 @@
       return;
     }
 
-    // Restore & auto-refresh the existing Supabase session. If signed in, adopt
-    // the profile's dealer binding (authoritative — never taken from the URL).
     let profile = await window.PMAuth.getCurrentProfile().catch(() => null);
     if (profile && profile.dealer_id) {
       try { localStorage.setItem('plotmap_dealer_id', profile.dealer_id); } catch (e) {}
@@ -599,7 +512,6 @@
     let dealerId = '';
     try { dealerId = localStorage.getItem('plotmap_dealer_id') || ''; } catch (e) {}
 
-    // A pending activation, once approved, delivers this device's dealer id.
     const storedActivation = readStoredActivationRequest();
     if (storedActivation && !dealerId) {
       const row = await checkActivationRequestStatus(storedActivation).catch(() => null);
@@ -616,13 +528,10 @@
       }
     }
 
-    // Silent, read-only device check for the bound dealer.
     if (dealerId) {
       const gate = await window.PMDeviceAccess.isApproved(dealerId, { authenticated: !!profile })
         .catch(() => ({ ok: false, statusText: 'error' }));
       if (gate.ok) {
-        // Approved device: honour an explicit ?next redirect if already signed
-        // in; otherwise reveal the doors with no form.
         if (nextTarget && profile) { window.location.replace(nextTarget); return; }
         revealDoors();
         return;
@@ -631,25 +540,25 @@
         renderAccessCard('blocked', 'PlotMap is not fully configured on this server yet. Contact your provider.');
         return;
       }
-      // Bound but not approved: still pending, or revoked/rejected/suspended.
       if (storedActivation) { renderAccessCard('pending'); return; }
       renderAccessCard('blocked');
       return;
     }
 
-    // No binding and no legacy pending request means this is a fresh device.
     if (storedActivation) { renderAccessCard('pending'); return; }
     renderAccessCard('activate');
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    // Access-card actions
+    tickClock();
+    setInterval(tickClock, 60000);
+
     el('ac-submit').addEventListener('click', async () => {
       const code = (el('ac-code').value || '').replace(/\s+/g, '');
       const statusEl = el('ac-status');
       if (!/^\d{8}$/.test(code)) { statusEl.textContent = 'Enter the 8-digit activation code.'; return; }
       el('ac-submit').disabled = true;
-      statusEl.style.color = '#8A6224';
+      statusEl.style.color = '#8a5a0c';
       statusEl.textContent = 'Activating this device...';
       try {
         const row = await activateDevice(code);
@@ -680,7 +589,7 @@
       const statusEl = el('ac-status');
       if (!stored) { renderAccessCard('activate'); return; }
       el('ac-refresh').disabled = true;
-      statusEl.style.color = '#8A6224';
+      statusEl.style.color = '#8a5a0c';
       statusEl.textContent = 'Checking…';
       try {
         const row = await checkActivationRequestStatus(stored);
@@ -703,13 +612,12 @@
       }
     });
 
-    // Sign-in shell (mode toggle + submit)
     el('auth-mode-toggle').addEventListener('click', () => setAuthMode(authMode === 'passcode' ? 'email' : 'passcode'));
 
     el('auth-form').addEventListener('submit', async (event) => {
       event.preventDefault();
       const status = el('auth-status'), submit = el('auth-submit');
-      status.style.color = '#5F6B61';
+      status.style.color = '#6b6156';
       status.textContent = 'Signing in…';
       submit.disabled = true;
       try {
@@ -730,8 +638,6 @@
         if (!profile) throw new Error('No workspace profile found for this account.');
         if (profile.dealer_id) { try { localStorage.setItem('plotmap_dealer_id', profile.dealer_id); } catch (e) {} }
 
-        // The destination still enforces the approved-device gate itself; give
-        // a clear message here if this device isn't approved yet.
         if (!IS_LOCAL) {
           const gate = await window.PMDeviceAccess.isApproved(profile.dealer_id || '', { authenticated: true })
             .catch(() => ({ ok: false }));
@@ -747,8 +653,6 @@
         }
         window.location.href = dest;
       } catch (error) {
-        // Raw auth-service bodies (JSON) must never render to the user; our
-        // own thrown messages (device approval guidance) pass through.
         const raw = String((error && error.message) || '');
         console.warn('[PlotMap] sign-in failed:', raw);
         status.textContent = /not approved/i.test(raw)
@@ -758,7 +662,7 @@
             : /failed to fetch|network/i.test(raw)
               ? 'Could not reach the server. Check your connection and try again.'
               : 'Sign-in failed. Please try again.';
-        status.style.color = '#9A4A2C';
+        status.style.color = '#9a2c2c';
       } finally {
         submit.disabled = false;
       }

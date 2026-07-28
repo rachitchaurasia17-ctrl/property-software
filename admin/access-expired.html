@@ -5,19 +5,53 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Access Expired - PlotMap</title>
-<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/admin/crm-ui.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<link rel="stylesheet" href="/admin/core/plotmap-ds.css">
+<style>
+  html, body { margin: 0; min-height: 100vh; }
+  .ae-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .ae-card {
+    max-width: 480px; width: 100%; text-align: center;
+    background: var(--pm-surface); border: 1.5px solid var(--pm-hairline-2);
+    border-radius: var(--pm-r-launcher); padding: 40px 34px 32px;
+    box-shadow: var(--pm-shadow-card);
+    animation: pm-rise .5s var(--pm-ease) both;
+  }
+  .ae-emblem {
+    width: 60px; height: 60px; border-radius: var(--pm-r-tile-sm); margin: 0 auto 20px;
+    background: var(--pm-gold-bed); color: var(--pm-gold-ink); display: grid; place-items: center;
+    box-shadow: 0 14px 24px -16px rgba(120,86,10,.9);
+  }
+  .ae-emblem i { font-size: 27px; }
+  .ae-brand { font-family: var(--pm-font-display); font-size: 14px; letter-spacing: .34em; text-transform: uppercase; color: var(--pm-gold-eyebrow); margin-bottom: 14px; padding-left: .34em; }
+  #ae-title { font-family: var(--pm-font-display); font-weight: 500; font-size: 28px; letter-spacing: -.02em; color: var(--pm-ink); margin: 0 0 10px; }
+  #ae-body { margin: 0 0 22px; color: var(--pm-ink-muted); line-height: 1.55; font-size: 15px; }
+  #ae-action {
+    display: inline-flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 22px;
+    border-radius: var(--pm-r-input); background: var(--pm-gold); color: #241d0c;
+    font-weight: 800; font-size: 14.5px; text-decoration: none;
+    box-shadow: 0 10px 22px -12px rgba(180,130,10,.8); transition: background var(--pm-hover-ms) ease;
+  }
+  #ae-action:hover { background: var(--pm-gold-bright); color: #241d0c; }
+</style>
 </head>
-<body class="pm-shell" style="min-height:100vh;display:flex;align-items:center;justify-content:center;">
-  <main class="pm-card" style="max-width:520px;margin:24px;text-align:center;">
-    <h1 id="ae-title" style="margin:0 0 10px;font-size:24px;">Access expired or blocked</h1>
-    <p id="ae-body" style="margin:0 0 18px;color:var(--pm-text-mut);line-height:1.5;">Please contact your PlotMap provider.</p>
-    <a id="ae-action" href="/" style="display:inline-block;font-weight:700;color:var(--pm-emerald,#1F5E47);text-decoration:none;font-size:14px;">← Back to PlotMap</a>
+<body class="pm-body pm-bloom">
+  <main class="ae-wrap">
+    <section class="ae-card" aria-labelledby="ae-title">
+      <div class="ae-emblem" aria-hidden="true"><i class="ph-fill ph-shield-warning"></i></div>
+      <div class="ae-brand">PlotMap</div>
+      <h1 id="ae-title">Access expired or blocked</h1>
+      <p id="ae-body">Please contact your PlotMap provider.</p>
+      <a id="ae-action" href="/">← Back to PlotMap</a>
+    </section>
   </main>
   <script>
     // Reason-aware copy — the page is reached from several distinct blocks, so
     // it names the actual condition and the correct next step instead of one
-    // generic message.
+    // generic message. (Logic preserved verbatim from pre-redesign.)
     (function () {
       var reason = '';
       try { reason = new URLSearchParams(location.search).get('reason') || ''; } catch (e) {}

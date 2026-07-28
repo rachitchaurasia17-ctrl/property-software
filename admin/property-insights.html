@@ -5,7 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Property Insights — PlotMap</title>
-<link rel="stylesheet" href="/admin/crm-ui.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<link rel="stylesheet" href="/admin/core/plotmap-ds.css">
 <script src="/config/runtime-env.js"></script>
 <script src="/config/supabase-config.js"></script>
 <script src="/admin/core/auth.js"></script>
@@ -20,79 +26,33 @@
 <script src="/admin/core/overlay-store.js"></script>
 <script src="/admin/crm-store.js"></script>
 <script src="/admin/core/supabase-sync.js"></script>
-<script src="/admin/core/nav.js"></script>
+<script src="/admin/core/plotmap-shell.js"></script>
 <script>
 if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'owner' });
 </script>
+<style>
+  .pi-stat-card { background:var(--pm-surface); border:1.5px solid var(--pm-hairline-2); border-radius:20px; padding:22px; box-shadow:var(--pm-shadow-card); }
+  .pi-stat-card .lbl { font-size:12px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--pm-ink-soft); }
+  .pi-stat-card .val { font-family:var(--pm-font-display); font-size:44px; font-weight:500; line-height:1; margin-top:6px; }
+  .pi-stat-card .sub { font-size:12.5px; color:var(--pm-ink-soft); margin-top:8px; }
+  .pi-item { display:flex; align-items:center; gap:16px; padding:14px 0; border-bottom:1px solid var(--pm-hairline); }
+  .pi-item:last-child { border-bottom:none; }
+</style>
 </head>
-<body class="pm-shell">
-
-<header id="pm-topbar"></header>
-
-<main class="pm-main">
-  <div class="pm-page-header">
-    <div>
-      <h1>Property Insights</h1>
-      <div class="sub">What's ready to show, what's getting attention, and what needs work.</div>
-    </div>
-    <a class="pm-btn pm-btn-secondary" href="/admin/properties.html">Manage properties</a>
-  </div>
-
-  <!-- Inventory readiness — the readiness command -->
-  <div class="pm-grid cols-3" style="margin-bottom:18px;" id="readiness-kpis">
-    <!-- JS -->
-  </div>
-
-  <!-- Inventory status -->
-  <div class="pm-grid cols-4" style="margin-bottom:18px;" id="kpi-cards">
-    <!-- JS -->
-  </div>
-
-  <!-- Getting attention + Action required -->
-  <div class="pm-grid wide-left" style="margin-bottom:18px;align-items:start;">
-    <div class="pm-card-xl">
-      <div class="pm-card-h">Getting the most attention</div>
-      <div class="pm-card-sub">Properties clients look at most</div>
-      <div id="attention-list">
-        <!-- JS -->
-      </div>
-    </div>
-    <div class="pm-card-xl">
-      <div class="pm-card-h">Action required</div>
-      <div class="pm-card-sub">Fix these to make listings ready to show</div>
-      <div id="issues-list">
-        <!-- JS -->
-      </div>
-    </div>
-  </div>
-
-  <!-- Inventory by area + by type -->
-  <div class="pm-grid cols-2" style="margin-bottom:18px;align-items:start;">
-    <div class="pm-card">
-      <div style="font-size:18px;font-weight:800;margin-bottom:4px;">Inventory by area</div>
-      <div style="font-size:13px;color:var(--pm-text-mut);margin-bottom:16px;">Distribution of properties</div>
-      <div id="area-dist"></div>
-    </div>
-    <div class="pm-card">
-      <div style="font-size:18px;font-weight:800;margin-bottom:4px;">Inventory by type</div>
-      <div style="font-size:13px;color:var(--pm-text-mut);margin-bottom:16px;">Property type breakdown</div>
-      <div id="type-dist"></div>
-    </div>
-  </div>
-
-  <!-- Inventory signals -->
-  <div class="pm-pulse-card">
-    <div class="pulse-label">WHAT TO FOCUS ON</div>
-    <div class="pulse-text" id="inv-pulse">Loading…</div>
-  </div>
-</main>
-
+<body class="pm-body pm-app-bg">
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  window.PMNav.render('property-insights');
   const crm = window.CRM;
-  const data = crm.getCRM();
+  const data = crm && crm.getCRM ? crm.getCRM() : {};
   const props = data.properties || [];
+  const esc = window.PMShell.esc;
+
+  const mount = window.PMShell.mount({
+    variant: 'owner',
+    active: 'home',
+    section: { icon: 'ph-chart-line-up', name: 'Property Insights' }
+  });
+
   const pinForProperty = (id) => {
     if (!window.PMOverlayStore) return null;
     return window.PMOverlayStore.customItems().find(it => it && it.kind === 'pin' && it.propertyId === id && !it.deleted) || null;
@@ -101,9 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const available = props.filter(p => p.internalStatus === 'Available');
   const onHold = props.filter(p => p.internalStatus === 'On Hold');
   const sold = props.filter(p => p.internalStatus === 'Sold');
-  const internal = props.filter(p => p.internalStatus === 'Internal Only');
 
-  // ---- Readiness (the readiness command) ----
   const hasPhoto = (p) => Array.isArray(p.photos) && p.photos.some(s => /^https?:\/\//i.test(String(s || '')));
   const onMap = (p) => !!pinForProperty(p.id) || !!p.masterMapId || (Array.isArray(p.plotAt) && p.plotAt.length === 2);
   const hasSector = (p) => !!p.sectorMapId;
@@ -111,139 +69,194 @@ document.addEventListener('DOMContentLoaded', () => {
   const readyProps = props.filter(p => isVisible(p) && hasPhoto(p) && (onMap(p) || hasSector(p)));
   const needsWork = props.length - readyProps.length;
   const health = props.length ? Math.round((readyProps.length / props.length) * 100) : 0;
-  document.getElementById('readiness-kpis').innerHTML = [
-    { k: 'Ready to show', v: readyProps.length, c: 'var(--pm-emerald)', sub: 'Client-safe with a photo & map/sector' },
-    { k: 'Needs work', v: needsWork, c: 'var(--pm-gold)', sub: 'Missing a photo, map, or sector proof' },
-    { k: 'Portfolio health', v: health + '%', c: health >= 70 ? 'var(--pm-emerald)' : health >= 40 ? 'var(--pm-gold)' : 'var(--pm-orange)', sub: 'Share of listings ready to show' }
-  ].map(s => `
-    <div class="pm-card" style="padding:20px 22px;">
-      <div style="font-size:13px;color:var(--pm-text-sec);font-weight:600;">${s.k}</div>
-      <div class="pm-serif" style="font-size:40px;font-weight:500;letter-spacing:-.01em;margin-top:8px;line-height:1;color:${s.c};">${s.v}</div>
-      <div style="font-size:12px;color:var(--pm-text-mut);margin-top:8px;">${s.sub}</div>
-    </div>
-  `).join('');
 
-  // KPI Cards (inventory status)
-  document.getElementById('kpi-cards').innerHTML = [
-    { k: 'Listed', v: props.length, c: 'var(--pm-text)' },
-    { k: 'Available', v: available.length, c: 'var(--pm-emerald)' },
-    { k: 'On hold', v: onHold.length, c: 'var(--pm-gold)' },
-    { k: 'Sold', v: sold.length, c: 'var(--pm-emerald-mid)' }
-  ].map(s => `
-    <div class="pm-stat-card">
-      <div class="stat-label"><span>${s.k}</span></div>
-      <div class="stat-val" style="color:${s.c};">${s.v}</div>
+  mount.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:24px;">
+      <div>
+        <h1 style="font-family:var(--pm-font-display);font-weight:500;font-size:32px;color:var(--pm-ink);margin:0 0 6px;">Property Insights</h1>
+        <p style="font-size:16px;color:var(--pm-ink-soft);margin:0;">Portfolio readiness, presentation attention, and listing quality.</p>
+      </div>
+      <a class="pm-btn pm-btn-violet" href="/admin/properties.html">
+        <i class="ph ph-buildings"></i> Manage Properties
+      </a>
     </div>
-  `).join('');
 
-  // Most attention — views counted ONLY from Client Presentation activity
+    <!-- Portfolio Readiness KPIs -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px;">
+      <div class="pi-stat-card">
+        <div class="lbl">Ready to Show</div>
+        <div class="val" style="color:var(--pm-emerald);">${readyProps.length}</div>
+        <div class="sub">Client-safe with photo &amp; map location</div>
+      </div>
+      <div class="pi-stat-card">
+        <div class="lbl">Needs Work</div>
+        <div class="val" style="color:var(--pm-gold-dark);">${needsWork}</div>
+        <div class="sub">Missing photo, map pin, or sector proof</div>
+      </div>
+      <div class="pi-stat-card">
+        <div class="lbl">Portfolio Health</div>
+        <div class="val" style="color:${health >= 70 ? 'var(--pm-emerald)' : health >= 40 ? 'var(--pm-gold-dark)' : 'var(--pm-orange)'};">${health}%</div>
+        <div class="sub">Share of total listings ready to show</div>
+      </div>
+    </div>
+
+    <!-- Inventory Status Bar -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px;">
+      <div class="pm-card" style="padding:16px 20px;">
+        <div style="font-size:12px;font-weight:800;color:var(--pm-ink-soft);text-transform:uppercase;">Listed</div>
+        <div style="font-size:28px;font-family:var(--pm-font-display);font-weight:500;color:var(--pm-ink);margin-top:4px;">${props.length}</div>
+      </div>
+      <div class="pm-card" style="padding:16px 20px;">
+        <div style="font-size:12px;font-weight:800;color:var(--pm-ink-soft);text-transform:uppercase;">Available</div>
+        <div style="font-size:28px;font-family:var(--pm-font-display);font-weight:500;color:var(--pm-emerald);margin-top:4px;">${available.length}</div>
+      </div>
+      <div class="pm-card" style="padding:16px 20px;">
+        <div style="font-size:12px;font-weight:800;color:var(--pm-ink-soft);text-transform:uppercase;">On Hold</div>
+        <div style="font-size:28px;font-family:var(--pm-font-display);font-weight:500;color:var(--pm-gold-dark);margin-top:4px;">${onHold.length}</div>
+      </div>
+      <div class="pm-card" style="padding:16px 20px;">
+        <div style="font-size:12px;font-weight:800;color:var(--pm-ink-soft);text-transform:uppercase;">Sold</div>
+        <div style="font-size:28px;font-family:var(--pm-font-display);font-weight:500;color:var(--pm-blue);margin-top:4px;">${sold.length}</div>
+      </div>
+    </div>
+
+    <!-- Getting Attention vs Action Required Grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;margin-bottom:28px;">
+      <!-- Getting Attention -->
+      <div class="pm-card" style="border-radius:24px;padding:24px;background:var(--pm-surface);border:1.5px solid var(--pm-hairline-2);">
+        <div style="font-family:var(--pm-font-display);font-size:22px;font-weight:500;color:var(--pm-ink);margin-bottom:4px;">Getting the Most Attention</div>
+        <div style="font-size:13.5px;color:var(--pm-ink-soft);margin-bottom:18px;">Properties clients explore most in Client Presentation</div>
+        <div id="pi-attention-list"></div>
+      </div>
+
+      <!-- Action Required -->
+      <div class="pm-card" style="border-radius:24px;padding:24px;background:var(--pm-surface);border:1.5px solid var(--pm-hairline-2);">
+        <div style="font-family:var(--pm-font-display);font-size:22px;font-weight:500;color:var(--pm-ink);margin-bottom:4px;">Action Required</div>
+        <div style="font-size:13.5px;color:var(--pm-ink-soft);margin-bottom:18px;">Fix these to make listings ready for client presentation</div>
+        <div id="pi-issues-list"></div>
+      </div>
+    </div>
+
+    <!-- Area Distribution & Type Distribution -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
+      <div class="pm-card" style="border-radius:24px;padding:24px;background:var(--pm-surface);border:1.5px solid var(--pm-hairline-2);">
+        <div style="font-family:var(--pm-font-display);font-size:22px;font-weight:500;color:var(--pm-ink);margin-bottom:4px;">Inventory by Area</div>
+        <div style="font-size:13.5px;color:var(--pm-ink-soft);margin-bottom:18px;">Distribution of properties across areas</div>
+        <div id="pi-area-dist"></div>
+      </div>
+
+      <div class="pm-card" style="border-radius:24px;padding:24px;background:var(--pm-surface);border:1.5px solid var(--pm-hairline-2);">
+        <div style="font-family:var(--pm-font-display);font-size:22px;font-weight:500;color:var(--pm-ink);margin-bottom:4px;">Inventory by Type</div>
+        <div style="font-size:13.5px;color:var(--pm-ink-soft);margin-bottom:18px;">Property type breakdown</div>
+        <div id="pi-type-dist"></div>
+      </div>
+    </div>
+  `;
+
+  // --- Render Attention List ---
   const pstats = crm.computePresentationStats ? crm.computePresentationStats() : { perProperty: {} };
-  const statOf = (p) => pstats.perProperty[p.id] || { views: 0, shares: 0, lastAt: 0 };
+  const statOf = (p) => (pstats.perProperty && pstats.perProperty[p.id]) || { views: 0, shares: 0, lastAt: 0 };
   const viewsOf = (p) => statOf(p).views;
-  const sorted = [...props].sort((a, b) => viewsOf(b) - viewsOf(a));
-  const attnEl = document.getElementById('attention-list');
-  const fmtLast = (ts) => {
-    if (!ts) return '';
-    const t = new Date(ts);
-    return new Date().toISOString().slice(0, 10) === t.toISOString().slice(0, 10)
-      ? t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      : t.toLocaleDateString([], { day: 'numeric', month: 'short' });
-  };
-  if (sorted.length === 0) {
-    attnEl.innerHTML = '<div class="pm-empty"><div class="desc">No properties added yet.</div></div>';
-  } else if (sorted.every(p => viewsOf(p) === 0)) {
-    attnEl.innerHTML = '<div class="pm-empty"><div class="title">No presentation views yet</div><div class="desc">When you walk clients through PlotMap, property attention shows up here.</div></div>';
+  const sortedProps = [...props].sort((a, b) => viewsOf(b) - viewsOf(a));
+  const attnEl = document.getElementById('pi-attention-list');
+
+  if (sortedProps.length === 0) {
+    attnEl.innerHTML = '<div class="pm-empty" style="padding:24px;"><div class="pm-empty-desc">No properties added yet.</div></div>';
+  } else if (sortedProps.every(p => viewsOf(p) === 0)) {
+    attnEl.innerHTML = '<div class="pm-empty" style="padding:24px;"><div class="pm-empty-title">No presentation views recorded</div><div class="pm-empty-desc">When you walk clients through PlotMap, property attention shows up here.</div></div>';
   } else {
-    const top = sorted[0];
-    attnEl.innerHTML = sorted.slice(0, 5).map(p => {
+    const top = sortedProps[0];
+    attnEl.innerHTML = sortedProps.slice(0, 5).map(p => {
       const s = statOf(p);
       const maxViews = viewsOf(top) || 1;
       const pct = Math.round((s.views / maxViews) * 100);
-      const meta = [p.area || '-', s.shares ? s.shares + ' share' + (s.shares === 1 ? '' : 's') : null, s.lastAt ? 'last ' + fmtLast(s.lastAt) : null].filter(Boolean).join(' · ');
-      return `<div style="padding:12px 0;border-top:1px solid var(--pm-border-subtle);display:flex;align-items:center;gap:14px;">
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:15px;font-weight:700;">${p.title || p.name || 'Unnamed'}</div>
-          <div style="font-size:12px;color:var(--pm-text-mut);">${meta}</div>
-        </div>
-        <div style="width:120px;">
-          <div class="pm-progress xs"><div class="bar" style="width:${pct}%;background:var(--pm-emerald);"></div></div>
-        </div>
-        <span style="font-size:13px;font-weight:700;color:var(--pm-emerald);width:56px;text-align:right;">${s.views} view${s.views === 1 ? '' : 's'}</span>
-      </div>`;
-    }).join('') + `
-      <div style="display:flex;gap:10px;align-items:flex-start;margin-top:14px;background:var(--pm-emerald-light);border:1px solid #CDE6DA;border-radius:12px;padding:10px 12px;">
-        <span style="flex:none;width:22px;height:22px;border-radius:7px;background:var(--pm-emerald);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;">i</span>
-        <span style="font-size:12.5px;color:#216B4E;font-weight:600;line-height:1.45;"><b>What this means:</b> ${(top.title || top.name || 'Your top property')} is getting the most client attention — make sure its photos, map pin and details are ready before your next follow-up.</span>
-      </div>`;
+      return `
+        <div class="pi-item">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:15px;font-weight:700;color:var(--pm-ink);">${esc(p.title || p.name || 'Unnamed')}</div>
+            <div style="font-size:13px;color:var(--pm-ink-soft);margin-top:2px;">${esc(p.area || '—')} ${s.shares ? '· ' + s.shares + ' shares' : ''}</div>
+          </div>
+          <div style="width:100px;">
+            <div style="height:6px;background:var(--pm-surface-alt);border-radius:999px;overflow:hidden;">
+              <div style="width:${pct}%;height:100%;background:var(--pm-emerald);border-radius:999px;"></div>
+            </div>
+          </div>
+          <span style="font-size:13.5px;font-weight:700;color:var(--pm-emerald);width:56px;text-align:right;">${s.views} v</span>
+        </div>`;
+    }).join('');
   }
 
-  // Needs attention
-  const issuesEl = document.getElementById('issues-list');
+  // --- Render Issues List ---
+  const issuesEl = document.getElementById('pi-issues-list');
   const issues = [];
   props.forEach(p => {
     const nm = p.title || p.name || 'Unnamed';
-    if (!hasPhoto(p)) issues.push({ title: nm, issue: 'Needs a photo', icon: '📷' });
-    if (!onMap(p)) issues.push({ title: nm, issue: 'Not on a map yet', icon: '📍' });
-    if (!hasSector(p)) issues.push({ title: nm, issue: 'Needs sector proof', icon: '🛡' });
+    if (!hasPhoto(p)) issues.push({ title: nm, issue: 'Needs a photo', icon: 'ph-camera' });
+    if (!onMap(p)) issues.push({ title: nm, issue: 'Not on a map yet', icon: 'ph-map-pin' });
+    if (!hasSector(p)) issues.push({ title: nm, issue: 'Needs sector proof', icon: 'ph-shield-check' });
   });
+
   if (issues.length === 0) {
-    issuesEl.innerHTML = '<div class="pm-empty"><div class="title">All good</div><div class="desc">No inventory issues found.</div></div>';
+    issuesEl.innerHTML = '<div class="pm-empty" style="padding:24px;"><div class="pm-empty-title">All listings complete</div><div class="pm-empty-desc">No quality issues found across your portfolio.</div></div>';
   } else {
-    issuesEl.innerHTML = issues.slice(0, 5).map(i => `
-      <div style="padding:11px 0;border-top:1px solid var(--pm-border-subtle);display:flex;align-items:center;gap:12px;">
-        <span style="font-size:18px;">${i.icon}</span>
+    issuesEl.innerHTML = issues.slice(0, 6).map(i => `
+      <div class="pi-item">
+        <div style="width:36px;height:36px;border-radius:10px;background:var(--pm-surface-gold);color:var(--pm-gold-dark);display:flex;align-items:center;justify-content:center;font-size:18px;flex:none;">
+          <i class="${i.icon}"></i>
+        </div>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:14px;font-weight:700;">${i.title}</div>
-          <div style="font-size:12px;color:var(--pm-orange);font-weight:600;">${i.issue}</div>
+          <div style="font-size:14.5px;font-weight:700;color:var(--pm-ink);">${esc(i.title)}</div>
+          <div style="font-size:12.5px;color:var(--pm-orange);font-weight:600;">${esc(i.issue)}</div>
         </div>
       </div>
     `).join('');
   }
 
-  // Area distribution
+  // --- Render Area Distribution ---
+  const areaDistEl = document.getElementById('pi-area-dist');
   const areas = {};
   props.forEach(p => { if (p.area) areas[p.area] = (areas[p.area] || 0) + 1; });
   const sortedAreas = Object.entries(areas).sort((a, b) => b[1] - a[1]);
   const maxArea = sortedAreas.length ? sortedAreas[0][1] : 1;
-  const aColors = ['var(--pm-emerald)', 'var(--pm-gold)', 'var(--pm-blue)', '#A6A199', '#7C8076'];
-  document.getElementById('area-dist').innerHTML = sortedAreas.length === 0
-    ? '<div class="pm-empty"><div class="desc">No area data.</div></div>'
-    : sortedAreas.slice(0, 6).map(([name, count], i) => {
+
+  areaDistEl.innerHTML = sortedAreas.length === 0
+    ? '<div class="pm-empty" style="padding:20px;"><div class="pm-empty-desc">No area data available.</div></div>'
+    : sortedAreas.slice(0, 6).map(([name, count]) => {
         const pct = Math.round((count / maxArea) * 100);
-        return `<div style="margin-bottom:13px;">
-          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-            <span style="font-size:14px;font-weight:700;">${name}</span>
-            <span style="font-size:13px;font-weight:700;color:${aColors[i % aColors.length]};">${count}</span>
-          </div>
-          <div class="pm-progress slim"><div class="bar" style="width:${pct}%;background:${aColors[i % aColors.length]};"></div></div>
-        </div>`;
+        return `
+          <div style="margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+              <span style="font-size:14px;font-weight:700;color:var(--pm-ink);">${esc(name)}</span>
+              <span style="font-size:13px;font-weight:700;color:var(--pm-violet-deep);">${count}</span>
+            </div>
+            <div style="height:6px;background:var(--pm-surface-alt);border-radius:999px;overflow:hidden;">
+              <div style="width:${pct}%;height:100%;background:var(--pm-violet-deep);border-radius:999px;"></div>
+            </div>
+          </div>`;
       }).join('');
 
-  // Type distribution
+  // --- Render Type Distribution ---
+  const typeDistEl = document.getElementById('pi-type-dist');
   const types = {};
   props.forEach(p => { const t = p.propertyType || p.type || 'Other'; types[t] = (types[t] || 0) + 1; });
   const sortedTypes = Object.entries(types).sort((a, b) => b[1] - a[1]);
   const maxType = sortedTypes.length ? sortedTypes[0][1] : 1;
-  document.getElementById('type-dist').innerHTML = sortedTypes.length === 0
-    ? '<div class="pm-empty"><div class="desc">No type data.</div></div>'
-    : sortedTypes.map(([name, count], i) => {
-        const pct = Math.round((count / maxType) * 100);
-        return `<div style="margin-bottom:13px;">
-          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-            <span style="font-size:14px;font-weight:700;">${name}</span>
-            <span style="font-size:13px;font-weight:700;">${count}</span>
-          </div>
-          <div class="pm-progress slim"><div class="bar" style="width:${pct}%;background:var(--pm-emerald);"></div></div>
-        </div>`;
-      }).join('');
 
-  // Pulse
-  const pulseMessages = [];
-  if (available.length === 0 && props.length > 0) pulseMessages.push('All properties are off-market.');
-  if (issues.length > 3) pulseMessages.push(issues.length + ' properties need photos or map pins.');
-  if (sortedAreas.length > 0) pulseMessages.push('Highest inventory in ' + sortedAreas[0][0] + '.');
-  if (onHold.length > available.length) pulseMessages.push('More properties on hold than available — review holds.');
-  document.getElementById('inv-pulse').textContent = pulseMessages.length ? pulseMessages.join(' ') : 'Inventory looks healthy. ' + available.length + ' properties available across ' + sortedAreas.length + ' areas.';
+  typeDistEl.innerHTML = sortedTypes.length === 0
+    ? '<div class="pm-empty" style="padding:20px;"><div class="pm-empty-desc">No property type data.</div></div>'
+    : sortedTypes.map(([name, count]) => {
+        const pct = Math.round((count / maxType) * 100);
+        return `
+          <div style="margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+              <span style="font-size:14px;font-weight:700;color:var(--pm-ink);">${esc(name)}</span>
+              <span style="font-size:13px;font-weight:700;color:var(--pm-emerald);">${count}</span>
+            </div>
+            <div style="height:6px;background:var(--pm-surface-alt);border-radius:999px;overflow:hidden;">
+              <div style="width:${pct}%;height:100%;background:var(--pm-emerald);border-radius:999px;"></div>
+            </div>
+          </div>`;
+      }).join('');
 });
 </script>
 </body>
