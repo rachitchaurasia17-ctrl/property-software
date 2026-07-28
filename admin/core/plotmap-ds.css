@@ -451,3 +451,132 @@
   .pm-content { padding: 20px 16px 40px; }
   .pm-card { padding: 20px; }
 }
+
+/* =============================================================================
+   DEALER APPLICATION SHELL  ·  rendered by admin/core/plotmap-shell.js
+   The canonical owner/team chrome: sidebar + header + scroll region. Every
+   migrated dealer route mounts this; do not hand-roll a shell per page.
+   ========================================================================== */
+.pm-app-bg {
+  background: var(--pm-base);
+  background-image:
+    radial-gradient(62% 50% at -2% -4%,  rgba(139,96,232,.50), transparent 62%),
+    radial-gradient(54% 44% at 101% 4%,  rgba(56,138,186,.40), transparent 62%),
+    radial-gradient(66% 48% at 46% 108%, rgba(255,190,48,.44), transparent 64%),
+    radial-gradient(40% 34% at 86% 66%,  rgba(236,120,168,.22), transparent 68%);
+  background-attachment: fixed;
+}
+.pm-shell { display: flex; height: 100vh; min-height: 0; width: 100%; overflow: hidden; }
+
+/* Sidebar */
+.pm-shell-aside {
+  width: 270px; flex: none; height: 100%; min-height: 0; overflow: hidden;
+  background: rgba(252,250,255,.82);
+  background-image: linear-gradient(180deg, rgba(253,251,255,.95), rgba(243,236,255,.76) 55%, rgba(236,227,255,.66));
+  backdrop-filter: blur(16px);
+  box-shadow: inset -1px 0 0 rgba(88,52,168,.14);
+  display: flex; flex-direction: column; border-right: 1px solid var(--pm-hairline);
+}
+.pm-shell-brand { display: flex; align-items: center; gap: 12px; padding: 26px 24px 18px; }
+.pm-shell-brand svg { width: 40px; height: 40px; flex: none; display: block; }
+.pm-shell-brand .pm-wm { font-weight: 800; font-size: 22px; letter-spacing: -.02em; color: #1f1a12; }
+.pm-shell-brand .pm-wm span { color: #c2622a; }
+.pm-shell-nav { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; gap: 4px; padding: 6px 16px 8px; }
+.pm-shell-nav a {
+  display: flex; align-items: center; gap: 13px; padding: 14px 16px; border-radius: var(--pm-r-input);
+  color: var(--pm-ink-2); font-weight: 700; letter-spacing: -.01em; text-decoration: none;
+  transition: background var(--pm-hover-ms) ease, color var(--pm-hover-ms) ease;
+}
+.pm-shell-nav a i { font-size: 23px; line-height: 1; width: 26px; text-align: center; flex: none; }
+.pm-shell-nav a span.pm-nl { font-size: 16.5px; flex: 1; min-width: 0; }
+.pm-shell-nav a:hover { background: #fdefc9; color: #1f1a12; }
+.pm-shell-nav a.is-active { background: var(--pm-gold); color: #1f1a12; box-shadow: inset 0 1px 0 rgba(255,255,255,.5), inset 0 0 0 1px rgba(180,130,10,.22); }
+.pm-shell-nav a .pm-nb { min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px; background: var(--pm-violet); color: #fff; font-size: 12px; font-weight: 800; display: none; place-items: center; }
+.pm-shell-nav a .pm-nb.on { display: grid; }
+.pm-shell-nav a.is-active .pm-nb { background: var(--pm-forest-deep-2); color: var(--pm-gold-bright); }
+.pm-shell-cta-wrap { flex: none; padding: 14px 18px 10px; }
+.pm-shell-cta-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: .14em; color: #9a8f7c; text-transform: uppercase; padding: 0 4px 9px; }
+.pm-shell-cta {
+  width: 100%; display: flex; align-items: center; gap: 13px; padding: 16px; border-radius: var(--pm-r-tile-sm);
+  background: #f0a83c; color: #3a2410; text-align: left; text-decoration: none;
+  box-shadow: 0 10px 26px -12px rgba(0,0,0,.6);
+}
+.pm-shell-cta:hover { background: #ffb84a; color: #3a2410; }
+.pm-shell-cta i { font-size: 26px; }
+.pm-shell-cta .t { display: block; font-size: 15.5px; font-weight: 800; letter-spacing: -.01em; }
+.pm-shell-cta .s { display: block; font-size: 12.5px; font-weight: 700; color: #8a5a12; }
+.pm-shell-user { flex: none; display: flex; align-items: center; gap: 12px; padding: 12px 20px 16px; border-top: 1px solid var(--pm-hairline); }
+.pm-shell-user .av { width: 40px; height: 40px; border-radius: 50%; background: #f0a83c; color: #3a2410; display: grid; place-items: center; font-weight: 800; font-size: 15px; flex: none; }
+.pm-shell-user .who { min-width: 0; flex: 1; }
+.pm-shell-user .who .n { font-size: 14.5px; font-weight: 700; color: #1f1a12; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pm-shell-user .who .b { font-size: 12.5px; color: #9a8f7c; font-weight: 600; }
+.pm-shell-user .gear { background: none; color: #9a8f7c; font-size: 20px; }
+
+/* Main + header */
+.pm-shell-main { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.pm-shell-header {
+  display: flex; align-items: center; gap: 14px; padding: 16px 40px; border-bottom: 1px solid var(--pm-hairline);
+  background: rgba(247,243,234,.86); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 30;
+}
+.pm-shell-header .hi { font-size: 21px; color: #d95d1e; }
+.pm-shell-header .hn { font-size: 17px; font-weight: 800; letter-spacing: -.01em; color: #2f2a2d; }
+.pm-shell-header .hd { display: flex; align-items: center; gap: 8px; color: var(--pm-ink-muted); font-size: 14.5px; font-weight: 600; }
+.pm-shell-header .hsep { width: 1px; height: 22px; background: #e6cf9a; }
+.pm-shell-header .spacer { flex: 1; }
+.pm-shell-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
+.pm-shell-page { max-width: 1120px; margin: 0 auto; padding: 30px 40px 70px; }
+
+/* Live / trial header pills */
+.pm-hpill { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 800; }
+.pm-hpill-live { background: #e2f2e6; color: #186c3c; }
+.pm-hpill-live .d { width: 9px; height: 9px; border-radius: 50%; background: var(--pm-green-bright); }
+.pm-hpill-trial { background: #f3eeff; color: #a86a08; font-weight: 700; }
+
+/* Tablet + mobile: sidebar becomes a horizontal rail */
+@media (max-width: 1024px) {
+  .pm-shell-header { padding: 14px 24px; }
+  .pm-shell-page { padding: 24px 24px 60px; }
+}
+@media (max-width: 900px) {
+  .pm-shell { flex-direction: column; height: auto; min-height: 100vh; overflow: visible; }
+  .pm-shell-aside { width: 100%; height: auto; flex-direction: row; align-items: center; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--pm-hairline); position: sticky; top: 0; z-index: 40; }
+  .pm-shell-brand { padding: 12px 16px; }
+  .pm-shell-nav { flex-direction: row; padding: 8px 12px; gap: 6px; }
+  .pm-shell-nav a { padding: 10px 12px; white-space: nowrap; }
+  .pm-shell-nav a span.pm-nl { font-size: 14.5px; }
+  .pm-shell-cta-wrap, .pm-shell-user { display: none; }
+  .pm-shell-main { min-height: 0; }
+  .pm-shell-scroll { overflow: visible; }
+}
+
+/* =============================================================================
+   Tables  ·  .pm-table
+   ========================================================================== */
+.pm-table-wrap { overflow-x: auto; border-radius: var(--pm-r-card); border: 1.5px solid var(--pm-hairline-2); background: var(--pm-surface); }
+.pm-table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+.pm-table thead th { text-align: left; padding: 13px 16px; font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--pm-ink-soft); background: var(--pm-surface-alt); border-bottom: 1px solid var(--pm-hairline); white-space: nowrap; }
+.pm-table tbody td { padding: 13px 16px; border-top: 1px solid var(--pm-hairline); color: var(--pm-ink-2); vertical-align: middle; }
+.pm-table tbody tr:hover { background: #fbf8ff; }
+.pm-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* =============================================================================
+   Toasts / notifications  ·  window.PMShell.toast()
+   ========================================================================== */
+.pm-toast-host { position: fixed; right: 20px; bottom: 20px; z-index: 80; display: flex; flex-direction: column; gap: 10px; max-width: 360px; }
+.pm-toast {
+  display: flex; align-items: flex-start; gap: 10px; padding: 13px 15px; border-radius: var(--pm-r-pill);
+  background: var(--pm-surface); border: 1.5px solid var(--pm-hairline-2); box-shadow: var(--pm-shadow-pop);
+  font-size: 14px; color: var(--pm-ink-2); animation: pm-rise .28s var(--pm-ease) both;
+}
+.pm-toast i { font-size: 19px; flex: none; margin-top: 1px; }
+.pm-toast.ok i { color: var(--pm-green-bright); }
+.pm-toast.warn i { color: var(--pm-gold-deep); }
+.pm-toast.err i { color: #d0402e; }
+.pm-toast.leaving { animation: pm-fade .2s ease both reverse; }
+
+/* =============================================================================
+   Segmented city/type filter dropdown trigger  ·  reusable pill
+   ========================================================================== */
+.pm-filter-pill { display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 15px; border-radius: var(--pm-r-input); border: 1px solid var(--pm-hairline); background: var(--pm-surface); font-size: 14.5px; font-weight: 800; color: var(--pm-ink-2); }
+.pm-filter-pill:hover { border-color: var(--pm-gold); }
+.pm-filter-pill i { font-size: 16px; color: var(--pm-ink-soft); }
