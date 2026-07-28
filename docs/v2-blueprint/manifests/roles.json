@@ -1,0 +1,32 @@
+{
+  "$comment": "Role model verified from admin/core/access-control.js and admin/core/auth.js.",
+  "referenceCommit": "b894245",
+  "normalization": { "dealer": "owner", "staff": "team" },
+  "roleRank": { "viewer": 1, "team": 2, "manager": 2, "map_editor": 2, "property_editor": 2, "owner": 3 },
+  "scopeCatalog": [
+    "presentation.view", "properties.manage", "mapstudio.manage", "mapstudio.publish",
+    "clients.view", "deals.view", "insights.view", "exports.manage", "audit.view",
+    "dealerSettings.manage", "team.manage", "billing.manage"
+  ],
+  "roleScopes": {
+    "owner": ["ALL"],
+    "manager": ["presentation.view", "properties.manage", "mapstudio.manage", "mapstudio.publish", "clients.view", "deals.view", "insights.view", "exports.manage", "audit.view", "team.manage"],
+    "team": ["presentation.view", "properties.manage", "mapstudio.manage", "mapstudio.publish", "clients.view", "deals.view", "exports.manage", "audit.view"],
+    "map_editor": ["presentation.view", "mapstudio.manage", "mapstudio.publish"],
+    "property_editor": ["presentation.view", "properties.manage"],
+    "viewer": ["presentation.view"]
+  },
+  "routeScopes": {
+    "/admin/map-studio.html": "mapstudio.manage",
+    "/admin/properties.html": "properties.manage",
+    "/admin/clients.html": "clients.view",
+    "/admin/deals.html": "deals.view",
+    "/admin/area-intelligence.html": "insights.view",
+    "/admin/property-insights.html": "insights.view"
+  },
+  "ownerOnlyRoutes": ["/admin/owner.html", "/admin/area-intelligence.html", "/admin/property-insights.html"],
+  "teamRoutes": ["/admin/team.html", "/admin/clients.html", "/admin/properties.html", "/admin/deals.html", "/admin/map-studio.html"],
+  "landing": { "owner": "/admin/owner.html", "team": "/admin/team.html", "viewer": "/app/plotmap/" },
+  "platformAdmin": { "check": "plotmap_is_platform_admin", "clientFlag": false, "evidence": "VERIFIED-CODE" },
+  "explicitPermissionsOverride": "profiles.permissions array overrides preset except owner (always all)"
+}

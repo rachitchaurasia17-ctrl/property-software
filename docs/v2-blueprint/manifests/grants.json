@@ -1,0 +1,22 @@
+{
+  "$comment": "Grants verified from migration SQL at b894245 (esp. grant hardening).",
+  "referenceCommit": "b894245",
+  "principle": "revoke all from public/anon/authenticated, then grant narrowly; anon has NO direct table privileges on link tables.",
+  "tableGrants": [
+    { "table": "share_links", "anon": "none", "authenticated": "select,insert,update,delete", "source": "20260728000200_private_client_links_grant_hardening.sql", "evidence": "VERIFIED-SQL" },
+    { "table": "client_link_events", "anon": "none", "authenticated": "select", "source": "20260728000200", "evidence": "VERIFIED-SQL" },
+    { "table": "client_link_access_windows", "anon": "none", "authenticated": "none", "source": "20260728000200", "evidence": "VERIFIED-SQL" }
+  ],
+  "functionGrants": [
+    { "fn": "plotmap_create_client_link(jsonb)", "grantedTo": ["authenticated"], "evidence": "VERIFIED-SQL" },
+    { "fn": "plotmap_list_client_links(text)", "grantedTo": ["authenticated"], "evidence": "VERIFIED-SQL" },
+    { "fn": "plotmap_revoke_client_link(uuid)", "grantedTo": ["authenticated"], "evidence": "VERIFIED-SQL" },
+    { "fn": "plotmap_extend_client_link(uuid,integer)", "grantedTo": ["authenticated"], "evidence": "VERIFIED-SQL" },
+    { "fn": "plotmap_resolve_client_link(text)", "grantedTo": ["anon", "authenticated"], "evidence": "VERIFIED-SQL" },
+    { "fn": "plotmap_resolve_client_link_media(text)", "grantedTo": ["service_role"], "evidence": "VERIFIED-SQL" },
+    { "fn": "plotmap_record_client_link_event(text,text,text,text,jsonb)", "grantedTo": ["anon", "authenticated"], "evidence": "VERIFIED-SQL" },
+    { "fn": "plotmap_client_link_can_manage()", "grantedTo": ["authenticated"], "evidence": "VERIFIED-SQL" },
+    { "fn": "plotmap_client_link_audio_path_is_valid(text)", "grantedTo": ["authenticated"], "evidence": "VERIFIED-SQL" }
+  ],
+  "verification": "tools/verify-private-client-links.sql asserts anon has no SELECT on share_links and no SELECT/INSERT on client_link_events, and authenticated has no INSERT on client_link_events."
+}

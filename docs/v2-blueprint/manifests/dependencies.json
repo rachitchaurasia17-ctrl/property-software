@@ -1,0 +1,43 @@
+{
+  "$comment": "Module load order + dependency edges verified from script include order at b894245.",
+  "referenceCommit": "b894245",
+  "adminPageLoadOrder": [
+    "config/runtime-env.js",
+    "config/supabase-config.js",
+    "admin/core/auth.js",
+    "admin/crm-data.js",
+    "admin/core/data-adapter.js",
+    "admin/core/sync-queue.js",
+    "admin/core/event-tracker.js",
+    "admin/core/access-control.js",
+    "admin/crm-store.js",
+    "admin/core/overlay-store.js",
+    "admin/core/saas-foundation.js",
+    "admin/core/supabase-sync.js",
+    "admin/core/plotmap-shell.js",
+    "admin/core/plotmap-client-links.js (properties.html only)",
+    "app/plotmap/map-registry.js"
+  ],
+  "presentationPageLoadOrder": [
+    "config/runtime-env.js", "config/supabase-config.js",
+    "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2 (EXTERNAL CDN — drop in V2)",
+    "app/plotmap/map-registry.js", "app/plotmap/datasets/map-config.js", "app/plotmap/data.js",
+    "app/plotmap/datasets/tricity.dataset.js", "app/plotmap/datasets/sector-pins.js",
+    "app/plotmap/datasets/overlays.js", "admin/crm-store.js", "admin/core/sync-queue.js",
+    "admin/core/event-tracker.js", "admin/core/device-access.js", "admin/core/overlay-store.js",
+    "admin/core/supabase-sync.js", "app/plotmap/overlay-engine.js", "app/plotmap/overlay-capture.js",
+    "app/plotmap/app.js"
+  ],
+  "clientPageLoadOrder": ["config/runtime-env.js", "config/supabase-config.js", "client/app.js"],
+  "criticalEdges": [
+    "auth.js -> data-adapter.js (dealer_id mirror must exist before scoping)",
+    "access-control.js -> auth.js + device-access.js (guard before render)",
+    "plotmap-shell.js -> PMFoundation + CRM (identity/badges)",
+    "data-adapter.js -> localStorage plotmap_dealer_id (implicit global coupling)"
+  ],
+  "externalRuntimeDependencies": [
+    { "name": "@supabase/supabase-js@2", "via": "jsDelivr CDN", "usedOn": "/app/plotmap/", "v2": "PROHIBIT — self-host or drop", "risk": "CSP/offline" }
+  ],
+  "npmRuntimeDepsOnAdminOrClient": "none",
+  "v2Requirement": "make graph explicit (ES module imports); no positional <script> ordering"
+}

@@ -1,0 +1,32 @@
+{
+  "$comment": "Map registry verified from app/plotmap/map-registry.js (generated) at b894245.",
+  "referenceCommit": "b894245",
+  "registryGlobal": "window.PM_MAP_REGISTRY",
+  "generator": "tools/generate-map-registry.js",
+  "generated": true,
+  "mapCount": 170,
+  "sourceFolders": { "easy": "/maps/", "original": "/normal%20maps/" },
+  "assetRoots": ["/maps/", "/normal maps/", "/public/plotmap-assets/"],
+  "entrySchema": {
+    "id": "stable map id",
+    "title/displayName": "label",
+    "type/mapType": "masterplan | sector/block",
+    "area/city/sectorOrBlockName": "location taxonomy",
+    "easyMapSrc/originalMapSrc": "url-encoded asset path (nullable)",
+    "hasEasyMap/hasOriginalMap": "bool",
+    "overlays/overlayCount": "overlay descriptors",
+    "dimensions/easyDimensions/originalDimensions": "pixel sizes for aspect-safe scaling",
+    "matchKey/asset/easyFileName/originalFileName": "linking + filenames",
+    "status": "active"
+  },
+  "datasets": [
+    "app/plotmap/datasets/map-config.js",
+    "app/plotmap/datasets/tricity.dataset.js",
+    "app/plotmap/datasets/sector-pins.js",
+    "app/plotmap/datasets/overlays.js"
+  ],
+  "engine": ["app/plotmap/app.js", "app/plotmap/overlay-engine.js", "app/plotmap/overlay-capture.js", "admin/core/overlay-store.js"],
+  "manifests": ["app/plotmap/map-assets.manifest.json", "app/plotmap/map-assets.grouped.json", "app/plotmap/geo.json"],
+  "v2": "REUSE (port wholesale; keep generated discipline; self-host assets)",
+  "risk": "map cropping/distortion — preserve per-rendering dimensions and aspect ratio"
+}

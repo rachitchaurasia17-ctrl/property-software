@@ -1,0 +1,56 @@
+{
+  "$comment": "Reuse/adapt/rewrite/prohibit classification. See doc 21.",
+  "referenceCommit": "b894245",
+  "reuse": [
+    "supabase/migrations/* (enforced set, in order)",
+    "supabase/functions/resolve-client-link",
+    "supabase/functions/provision-dealer",
+    "supabase/functions/delete-dealer",
+    "tools/verify-isolation.js",
+    "tools/verify-private-client-links.sql",
+    "tools/generate-map-registry.js",
+    "app/plotmap/map-registry.js",
+    "app/plotmap/datasets/*",
+    "app/plotmap/overlay-engine.js",
+    "app/plotmap/overlay-capture.js",
+    "map assets (/maps, /normal maps, /public/plotmap-assets)"
+  ],
+  "adapt": [
+    "admin/core/auth.js",
+    "admin/core/device-access.js",
+    "admin/core/data-adapter.js",
+    "admin/core/sync-queue.js",
+    "admin/core/supabase-sync.js",
+    "admin/core/event-tracker.js",
+    "admin/core/access-control.js",
+    "admin/core/saas-foundation.js",
+    "admin/core/plotmap-client-links.js",
+    "app/plotmap/app.js",
+    "client/app.js",
+    "config/supabase-config.js",
+    "tools/build-dist.js",
+    "tools/generate-runtime-env.js"
+  ],
+  "rewrite": [
+    "admin/owner.html", "admin/properties.html", "admin/deals.html", "admin/clients.html",
+    "admin/team.html", "admin/area-intelligence.html", "admin/property-insights.html",
+    "admin/map-studio.html", "admin/developer.html (UI only, keep RPC calls)",
+    "admin/core/plotmap-shell.js (markup; keep NAV data)",
+    "admin/core/plotmap-ds.css", "app/plotmap/styles/violet-dusk-foundation.css",
+    "app/plotmap/index.html", "client/index.html", "client/styles.css"
+  ],
+  "prohibit": [
+    "admin/crm-ui.css",
+    "admin/core/nav.js (legacy)",
+    "duplicate shell systems",
+    "duplicate navigation definitions",
+    "legacy sage/emerald styles",
+    "page-specific global handler patches",
+    "fabricated dashboard data / demo activity",
+    "dist/",
+    "secrets / .env* / .vercel/",
+    "CDN @supabase/supabase-js@2 runtime dependency",
+    "admin/crm-data.js CRM_DEMO as production data",
+    "admin/maps.html, admin/editor.html, admin/finance.html, admin/reports.html, admin/access.html (unless V2 need confirmed)"
+  ]
+}

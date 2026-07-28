@@ -1,0 +1,46 @@
+{
+  "$comment": "Key end-to-end data flows verified from code at b894245.",
+  "referenceCommit": "b894245",
+  "flows": [
+    {
+      "id": "dealer-signin",
+      "steps": ["signIn(email,pw) POST /auth/v1/token", "writeSession", "fetchProfile /rest/v1/profiles", "mirror plotmap_dealer_id/user_id/admin_role"],
+      "files": ["admin/core/auth.js"], "evidence": "VERIFIED-CODE"
+    },
+    {
+      "id": "device-activation",
+      "steps": ["getToken()", "isApproved via plotmap_device_is_approved (read-only)", "if unapproved: getAccessReason + renderBlocked", "user enters code -> plotmap_submit_activation_request", "admin/auto approve"],
+      "files": ["admin/core/device-access.js"], "evidence": "VERIFIED-CODE"
+    },
+    {
+      "id": "crm-write",
+      "steps": ["PMDataAdapter.upsert -> stamp dealerId (fail-closed __unresolved__)", "write localStorage plotmap_crm_v1", "PMSyncQueue.enqueueSyncAction", "PMSupaSync drain -> crm_records"],
+      "files": ["admin/core/data-adapter.js", "admin/core/sync-queue.js", "admin/core/supabase-sync.js"], "evidence": "VERIFIED-CODE"
+    },
+    {
+      "id": "presentation-event",
+      "steps": ["trackPresentationEvent (app_open first)", "append to presentationEvents", "enqueue + drain -> presentation_events (INSERT only, never upsert)"],
+      "files": ["admin/core/event-tracker.js", "admin/core/supabase-sync.js"], "evidence": "VERIFIED-CODE"
+    },
+    {
+      "id": "create-client-link",
+      "steps": ["PMClientLinks.uploadAudio -> storage", "PMClientLinks.create -> plotmap_create_client_link", "server freezes client-safe snapshot + client_media", "raw token returned once; sha256 hash stored", "audit_logs client_link_created"],
+      "files": ["admin/core/plotmap-client-links.js", "supabase/migrations/20260728000100_private_client_links.sql"], "evidence": "VERIFIED-SQL"
+    },
+    {
+      "id": "resolve-client-link",
+      "steps": ["/client/ reads ?token, replaceState('/client/')", "POST edge resolve-client-link", "edge: plotmap_resolve_client_link (anon snapshot)", "edge: plotmap_resolve_client_link_media (service)", "sign property-photos + client-link-audio 15min", "render; fire opened/audio/CTA events (idempotent)"],
+      "files": ["client/app.js", "supabase/functions/resolve-client-link/index.ts"], "evidence": "VERIFIED-CODE"
+    },
+    {
+      "id": "provision-dealer",
+      "steps": ["Developer Control POST provision-dealer + admin JWT", "plotmap_is_platform_admin", "begin (idempotency+fingerprint)", "GoTrue create user (service)", "mark + finalize RPC", "NDJSON one-time credentials; rollback on error"],
+      "files": ["supabase/functions/provision-dealer/index.ts"], "evidence": "VERIFIED-CODE"
+    },
+    {
+      "id": "delete-dealer",
+      "steps": ["confirm==dealer_id", "plotmap_is_platform_admin", "plotmap_admin_delete_dealer purge + tombstone", "sweep both buckets via Storage API", "delete owner Auth users", "retryable on partial"],
+      "files": ["supabase/functions/delete-dealer/index.ts"], "evidence": "VERIFIED-CODE"
+    }
+  ]
+}

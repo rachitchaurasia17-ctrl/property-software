@@ -1,0 +1,75 @@
+{
+  "$comment": "Acceptance/regression tests. See doc 24.",
+  "referenceCommit": "b894245",
+  "viewports": ["1440x900", "1366x768", "1024x768", "430x932", "390x844"],
+  "suites": [
+    {
+      "id": "sql-security",
+      "runFirst": true,
+      "tests": [
+        { "id": "verify-private-client-links", "source": "tools/verify-private-client-links.sql", "asserts": ["token 256-bit hex", "never plaintext token", "no seller/commission/notes leak", "hidden price hidden", "area-only vs exact", "anon no media", "events idempotent", "invalid token rejected", "cross-dealer manage blocked", "expired->expired", "revoked->revoked", "delete cascades events", "no direct anon/auth table grants", "client-link-audio not public"] },
+        { "id": "verify-isolation", "source": "tools/verify-isolation.js", "asserts": ["dealer isolation holds"] }
+      ]
+    },
+    {
+      "id": "auth-device",
+      "tests": [
+        { "id": "signin", "expect": "session+profile+role mirror" },
+        { "id": "refresh-skew", "expect": "silent refresh <60s; failure logs out" },
+        { "id": "profile-column-fallback", "expect": "login works pre-migration" },
+        { "id": "open-redirect", "expect": "next=external never navigates off-origin" },
+        { "id": "read-only-gate", "expect": "unapproved device blocked; no device row inserted" },
+        { "id": "activation", "expect": "code -> pending -> approve opens route" },
+        { "id": "reason-states", "expect": "revoked/limit/trial/suspended correct copy" }
+      ]
+    },
+    {
+      "id": "crm-data",
+      "tests": [
+        { "id": "unresolved-fail-closed", "expect": "prod-admin no-dealer stamps __unresolved__ and RLS rejects" },
+        { "id": "append-only-events", "expect": "presentation_events never upserted" },
+        { "id": "app-open-ordering", "expect": "app_open saved before other events" },
+        { "id": "dashboard-empty", "expect": "empty events array does not crash; no fabricated data" }
+      ]
+    },
+    {
+      "id": "client-links",
+      "tests": [
+        { "id": "create", "expect": "1-4 plots, <=8 photos, returns /client/?token=<64hex> once" },
+        { "id": "open", "expect": "token stripped from history; snapshot; 15-min signed media" },
+        { "id": "no-leak", "expect": "seller/commission/notes never visible; hidden price/exact honored" },
+        { "id": "events", "expect": "opened/audio/call/whatsapp/visit idempotent" },
+        { "id": "extend-revoke", "expect": "expiry updates; revoked/expired stop opening" },
+        { "id": "cross-dealer", "expect": "dealer B cannot see/manage dealer A link" }
+      ]
+    },
+    {
+      "id": "maps-presentation",
+      "tests": [
+        { "id": "load", "expect": "masterplan + sector map, correct assets" },
+        { "id": "toggle", "expect": "Original/Easy at correct aspect ratio, no crop/distortion" },
+        { "id": "zoom-fit", "expect": "overlays/pins aligned" },
+        { "id": "photo-rail", "expect": "no clipping" }
+      ]
+    },
+    {
+      "id": "onboarding-deletion",
+      "tests": [
+        { "id": "provision", "expect": "NDJSON saga; one-time credentials; idempotent retry" },
+        { "id": "duplicate-email", "expect": "AUTH_EMAIL_ALREADY_EXISTS; no partial dealer" },
+        { "id": "delete-confirm-mismatch", "expect": "400; nothing deleted" },
+        { "id": "delete-confirmed", "expect": "rows purged, both buckets swept, Auth removed; retryable partial" }
+      ]
+    },
+    {
+      "id": "build-deploy",
+      "tests": [
+        { "id": "build", "expect": "allowlist copy + runtime-env generated + secret scan clean" },
+        { "id": "secret-injection", "expect": "service-role key in source -> build fails" },
+        { "id": "diff-check", "expect": "git diff --check clean" },
+        { "id": "config-cache", "expect": "/config/runtime-env.js no-store" },
+        { "id": "client-headers", "expect": "/client/ strict CSP + noindex + no-referrer" }
+      ]
+    }
+  ]
+}

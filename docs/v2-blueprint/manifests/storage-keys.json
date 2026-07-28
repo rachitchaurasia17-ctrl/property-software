@@ -1,0 +1,25 @@
+{
+  "$comment": "Browser storage keys verified by grep across *.js/*.html at commit b894245.",
+  "referenceCommit": "b894245",
+  "localStorage": [
+    { "key": "plotmap_crm_v1", "writtenBy": "admin/core/data-adapter.js", "holds": "entire local CRM store", "evidence": "VERIFIED-CODE" },
+    { "key": "plotmap_supabase_session_v1", "writtenBy": "admin/core/auth.js", "holds": "Supabase session {access_token,refresh_token,expires_at,user}", "evidence": "VERIFIED-CODE" },
+    { "key": "plotmap_supabase_profile_v1", "writtenBy": "admin/core/auth.js", "holds": "profile row", "evidence": "VERIFIED-CODE" },
+    { "key": "plotmap_dealer_id", "writtenBy": "admin/core/auth.js", "holds": "tenant id mirror (adapter/device/sync)", "evidence": "VERIFIED-CODE" },
+    { "key": "plotmap_user_id", "writtenBy": "admin/core/auth.js", "holds": "profile id mirror", "evidence": "VERIFIED-CODE" },
+    { "key": "plotmap_admin_role", "writtenBy": "admin/core/auth.js", "holds": "coarse role dealer|team|viewer", "evidence": "VERIFIED-CODE" },
+    { "key": "plotmap_device_token_v1", "writtenBy": "admin/core/device-access.js", "holds": "opaque 64-hex per-browser device token", "evidence": "VERIFIED-CODE" },
+    { "key": "plotmap_deal_followups_v1", "writtenBy": "admin/deals.html:65", "holds": "deal follow-ups", "evidence": "VERIFIED-CODE" }
+  ],
+  "sessionStorage": [
+    { "key": "plotmap_presentation_session", "writtenBy": "admin/core/event-tracker.js", "holds": "presentation session id", "evidence": "VERIFIED-CODE" },
+    { "key": "plotmap_admin_session", "writtenBy": "admin/core/event-tracker.js", "holds": "admin usage session id", "evidence": "VERIFIED-CODE" },
+    { "key": "plotmap_login_audited", "writtenBy": "admin/core/access-control.js", "holds": "login-audit dedupe flag", "evidence": "VERIFIED-CODE" }
+  ],
+  "queryParams": [
+    { "key": "token", "route": "/client/", "note": "64-hex bearer; stripped from history via replaceState on load", "evidence": "VERIFIED-CODE" },
+    { "key": "next", "route": "/", "note": "login redirect target; same-origin only", "evidence": "VERIFIED-CODE" },
+    { "key": "reason", "route": "/", "note": "login block reason", "evidence": "VERIFIED-CODE" },
+    { "key": "dealerId|dealer|dealerSlug", "route": "admin", "note": "LOCAL dealer selection only; never authoritative for writes", "evidence": "VERIFIED-CODE" }
+  ]
+}

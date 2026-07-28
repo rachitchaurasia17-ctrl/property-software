@@ -1,0 +1,24 @@
+{
+  "$comment": "Problem->cause->fix history. See doc 19. Evidence labels per entry.",
+  "referenceCommit": "b894245",
+  "problems": [
+    { "id": "P1", "title": "Legacy broad table grants masked by RLS", "affected": "share_links, client_link_events", "cause": "legacy broad grants", "fix": "20260728000200 grant hardening (revoke all; grant narrowly)", "test": "verify-private-client-links.sql:140-145", "evidence": "VERIFIED-SQL" },
+    { "id": "P2", "title": "runtime-env.js 404 in production", "affected": "runtime config", "cause": "tools/ excluded from Vercel upload + stale committed runtime-env", "fix": ".vercelignore keeps tools/; build regenerates; no-store header", "test": "dist/config/runtime-env.js exists", "evidence": "VERIFIED-CODE" },
+    { "id": "P3", "title": "Mis-scoped write to demo tenant", "affected": "data adapter", "cause": "unresolved dealer defaulting to dealer-demo", "fix": "__unresolved__ fail-closed in prod-admin", "test": "unit + RLS reject", "evidence": "VERIFIED-CODE" },
+    { "id": "P4", "title": "Media-path / seller-data exposure risk", "affected": "client links", "cause": "raw paths/seller data leakage", "fix": "public snapshot returns public ids only; service-only media RPC; 15-min signed URLs; drop non-https", "test": "verify:89-98", "evidence": "VERIFIED-SQL" },
+    { "id": "P5", "title": "Draft migrations superseded by enforced", "affected": "RLS/helpers", "cause": "iterative drafts left in place", "fix": "prefer enforced version when porting", "test": "verify-* after port", "evidence": "INFERENCE/VERIFIED-SQL" },
+    { "id": "P6", "title": "Open-redirect on login", "affected": "auth", "cause": "next param off-origin", "fix": "buildLoginRedirect same-origin only", "test": "external next never navigates off-origin", "evidence": "VERIFIED-CODE" },
+    { "id": "P7", "title": "Presentation-events clobber / upsert", "affected": "analytics", "cause": "read-modify-write clobber; upsert of append-only log", "fix": "app_open first; INSERT-only", "test": "never upsert presentation_events", "evidence": "VERIFIED-CODE" },
+    { "id": "R1", "title": "Conflicting old/new CSS", "affected": "design", "guard": "prohibit crm-ui.css; one design system", "evidence": "REPORT-CLAIM" },
+    { "id": "R2", "title": "Duplicate shell/nav", "affected": "frontend", "guard": "one shell, one nav", "evidence": "REPORT-CLAIM" },
+    { "id": "R3", "title": "Dashboard empty-array crash", "affected": "analytics", "guard": "defensive derivation + empty-input tests", "evidence": "REPORT-CLAIM/HISTORICAL" },
+    { "id": "R4", "title": "Fabricated dashboard data", "affected": "analytics", "guard": "derive-only", "evidence": "REPORT-CLAIM" },
+    { "id": "R5", "title": "Map cropping/distortion", "affected": "maps", "guard": "per-rendering dimensions; aspect-ratio test", "evidence": "REPORT-CLAIM/HISTORICAL" },
+    { "id": "R6", "title": "Wrong Vercel project / prod-staging confusion", "affected": "deploy", "guard": "explicit project + env checks", "evidence": "REPORT-CLAIM" },
+    { "id": "R7", "title": "Unauthenticated Supabase CLI", "affected": "deploy", "guard": "authenticate before migrate/deploy", "evidence": "REPORT-CLAIM" },
+    { "id": "R8", "title": "Oversized AI prompts / repeated failures", "affected": "process", "guard": "this blueprint prevents re-reading legacy", "evidence": "REPORT-CLAIM" },
+    { "id": "R9", "title": "Incomplete one-go migrations", "affected": "process", "guard": "staged V2 build sequence", "evidence": "REPORT-CLAIM" },
+    { "id": "R10", "title": "Frontend mixed with backend-security work", "affected": "process", "guard": "separate passes", "evidence": "REPORT-CLAIM" },
+    { "id": "R11", "title": "Temporary test-data cleanup", "affected": "data", "guard": "no fixtures in dist; verify cleanup", "evidence": "REPORT-CLAIM" }
+  ]
+}

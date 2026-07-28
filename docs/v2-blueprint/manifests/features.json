@@ -1,0 +1,25 @@
+{
+  "$comment": "Feature registry with code + server anchors. Verified at b894245.",
+  "referenceCommit": "b894245",
+  "features": [
+    { "id": "runtime-config", "files": ["config/runtime-env.js", "config/supabase-config.js"], "server": [], "doc": "02,17", "v2": "adapt" },
+    { "id": "auth-session", "files": ["admin/core/auth.js"], "server": ["GoTrue /auth/v1/*", "profiles"], "doc": "05", "v2": "adapt" },
+    { "id": "device-activation", "files": ["admin/core/device-access.js", "index.html", "admin/access-expired.html"], "server": ["plotmap_device_is_approved", "plotmap_device_status", "plotmap_device_access_reason", "plotmap_submit_activation_request"], "doc": "06", "v2": "adapt" },
+    { "id": "route-role-guard", "files": ["admin/core/access-control.js"], "server": ["plotmap_is_platform_admin"], "doc": "03", "v2": "adapt" },
+    { "id": "local-first-crm", "files": ["admin/core/data-adapter.js", "admin/crm-store.js", "admin/crm-data.js"], "server": ["crm_records"], "doc": "08", "v2": "adapt" },
+    { "id": "background-sync", "files": ["admin/core/sync-queue.js", "admin/core/supabase-sync.js"], "server": ["crm_records", "presentation_events"], "doc": "08", "v2": "adapt" },
+    { "id": "dealer-settings-gate", "files": ["admin/core/saas-foundation.js"], "server": ["dealer_settings"], "doc": "10", "v2": "adapt" },
+    { "id": "app-shell", "files": ["admin/core/plotmap-shell.js", "admin/core/plotmap-ds.css"], "server": [], "doc": "02", "v2": "rewrite" },
+    { "id": "properties", "files": ["admin/properties.html"], "server": ["crm_records:properties", "property-photos"], "doc": "09,14", "v2": "rewrite-ui" },
+    { "id": "customers", "files": ["admin/clients.html"], "server": ["crm_records:clients"], "doc": "09", "v2": "rewrite-ui" },
+    { "id": "deals", "files": ["admin/deals.html"], "server": ["crm_records:deals"], "doc": "09", "v2": "rewrite-ui" },
+    { "id": "demand", "files": ["crm collections"], "server": ["crm_records"], "doc": "09", "v2": "rewrite-ui" },
+    { "id": "dashboard-analytics", "files": ["admin/owner.html", "admin/core/command-engine.js", "admin/core/report-engine.js", "admin/core/finance-engine.js", "admin/core/dev360.js"], "server": ["presentation_events"], "doc": "10", "v2": "adapt-logic" },
+    { "id": "map-engine", "files": ["app/plotmap/app.js", "app/plotmap/map-registry.js", "app/plotmap/overlay-engine.js", "app/plotmap/datasets/*"], "server": ["/maps", "/normal maps"], "doc": "11", "v2": "reuse" },
+    { "id": "client-presentation", "files": ["app/plotmap/index.html", "app/plotmap/app.js"], "server": ["presentation_events"], "doc": "12", "v2": "adapt" },
+    { "id": "private-client-links", "files": ["admin/core/plotmap-client-links.js", "client/app.js", "supabase/functions/resolve-client-link/index.ts"], "server": ["share_links", "client_link_events", "client-link-audio", "client-link RPCs"], "doc": "13", "v2": "reuse-backend-rewrite-ui" },
+    { "id": "dealer-provisioning", "files": ["admin/developer.html", "supabase/functions/provision-dealer/index.ts"], "server": ["provisioning RPC saga"], "doc": "07,16", "v2": "reuse-backend" },
+    { "id": "dealer-deletion", "files": ["admin/developer.html", "supabase/functions/delete-dealer/index.ts"], "server": ["plotmap_admin_delete_dealer"], "doc": "18", "v2": "reuse" },
+    { "id": "build-deploy", "files": ["tools/build-dist.js", "tools/generate-runtime-env.js", "vercel.json", ".vercelignore"], "server": [], "doc": "17", "v2": "adapt" }
+  ]
+}

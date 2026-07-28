@@ -1,0 +1,16 @@
+{
+  "$comment": "RLS policies verified from migration SQL at b894245. Live state UNVERIFIED-LIVE.",
+  "referenceCommit": "b894245",
+  "anchorRule": "dealer_id = plotmap_current_dealer_id() AND scope-check AND account-state-check",
+  "policies": [
+    { "table": "share_links", "op": "insert", "roles": ["authenticated"], "predicate": "target_type<>'client_link' AND plotmap_can_edit_crm() AND dealer_id=plotmap_current_dealer_id() AND plotmap_dealer_can_write(dealer_id)", "definedIn": "20260728000100", "evidence": "VERIFIED-SQL" },
+    { "table": "share_links", "op": "update", "roles": ["authenticated"], "predicate": "same as insert (using+with check)", "definedIn": "20260728000100", "evidence": "VERIFIED-SQL" },
+    { "table": "share_links", "op": "delete", "roles": ["authenticated"], "predicate": "same as insert (using)", "definedIn": "20260728000100", "evidence": "VERIFIED-SQL" },
+    { "table": "client_link_events", "op": "select", "roles": ["authenticated"], "predicate": "plotmap_is_active_member() AND dealer_id=plotmap_current_dealer_id()", "definedIn": "20260728000100", "evidence": "VERIFIED-SQL", "note": "no insert policy; writes only via RPC" },
+    { "table": "storage.objects (client-link-audio)", "op": "select", "roles": ["authenticated"], "predicate": "bucket_id='client-link-audio' AND plotmap_is_active_member() AND plotmap_client_link_audio_path_is_valid(name)", "definedIn": "20260728000100", "evidence": "VERIFIED-SQL", "note": "NO anonymous read policy" },
+    { "table": "storage.objects (client-link-audio)", "op": "insert/update/delete", "roles": ["authenticated"], "predicate": "bucket_id='client-link-audio' AND plotmap_client_link_can_manage() AND path valid", "definedIn": "20260728000100", "evidence": "VERIFIED-SQL" },
+    { "table": "storage.objects (property-photos)", "op": "select/insert/update/delete", "roles": ["authenticated"], "predicate": "bucket_id='property-photos' AND dealer-scoped path validators", "definedIn": "20260708_phase5_property_photo_storage_policies.sql", "evidence": "VERIFIED-SQL" },
+    { "table": "crm_records", "op": "all", "roles": ["authenticated"], "predicate": "dealer-scoped via plotmap_current_dealer_id + scope helpers", "definedIn": "20260708_team_role_rls_enforcement.sql (+drafts)", "evidence": "VERIFIED-SQL (helper functions); exact per-op predicate to confirm when porting" },
+    { "table": "presentation_events", "op": "insert", "roles": ["anon"], "predicate": "append-only", "evidence": "VERIFIED-CODE (supabase-sync append-only path)" }
+  ]
+}

@@ -1,0 +1,78 @@
+-- ============================================================
+-- PlotMap · Property Photo Storage — DRAFT
+-- ⚠️  DRAFT ONLY — MUST BE REVIEWED BY CODEX BEFORE APPLYING. ⚠️
+--
+-- Prepared by Claude (Phase 5 PREP). NOT applied to Supabase.
+-- Bucket + per-dealer folder RLS for property photos.
+--
+-- Folder pattern (from PMFoundation.buildPhotoObjectPath):
+--   dealers/<dealer_id>/properties/<property_id>/<file>.jpg
+-- storage.foldername(name) => ['dealers', <dealer_id>, 'properties', <property_id>]
+-- so element [2] (1-indexed) is the dealer_id.
+--
+-- Safety contract:
+--   • Private bucket. No public/anon object read (photos are served via a
+--     signed-URL RPC that checks client-visibility — see PROPOSED block).
+--   • Staff may write ONLY inside their own dealer's folder.
+--   • No using(true)/with check(true). No destructive ops.
+--   • The ACTIVE section only creates the (private) bucket, which is safe and
+--     idempotent. All policies are in the COMMENTED "PROPOSED" block so an
+--     accidental run cannot open storage access.
+-- ============================================================
+
+-- ---------- ACTIVE · create the private bucket (idempotent, no access granted) ----------
+insert into storage.buckets (id, name, public)
+values ('property-photos', 'property-photos', false)
+on conflict (id) do nothing;
+
+-- ============================================================
+-- PROPOSED · DO NOT APPLY UNTIL CODEX REVIEW
+-- (commented so this file is safe to run by accident)
+-- ============================================================
+--
+-- -- Staff write (insert/update/delete) confined to their own dealer folder.
+-- -- create policy "plotmap photos staff write"
+-- -- on storage.objects for all to authenticated
+-- -- using (
+-- --   bucket_id = 'property-photos'
+-- --   and public.plotmap_is_staff()
+-- --   and (storage.foldername(name))[2] = public.plotmap_current_dealer_id()
+-- -- )
+-- -- with check (
+-- --   bucket_id = 'property-photos'
+-- --   and public.plotmap_is_staff()
+-- --   and (storage.foldername(name))[2] = public.plotmap_current_dealer_id()
+-- -- );
+-- --
+-- -- Staff read of their own dealer's objects (admin/properties preview).
+-- -- create policy "plotmap photos staff read"
+-- -- on storage.objects for select to authenticated
+-- -- using (
+-- --   bucket_id = 'property-photos'
+-- --   and public.plotmap_is_staff()
+-- --   and (storage.foldername(name))[2] = public.plotmap_current_dealer_id()
+-- -- );
+-- --
+-- -- Client Presentation read: DO NOT grant anon direct object read. Instead a
+-- -- security-definer RPC returns a short-lived signed URL only when the photo's
+-- -- property is client-visible + published + not deleted for that dealer:
+-- --
+-- -- create or replace function public.plotmap_client_photo_url(p_object_path text)
+-- -- returns text language plpgsql security definer set search_path = public, storage as $$
+-- -- declare v_dealer text; v_prop text; begin
+-- --   v_dealer := (storage.foldername(p_object_path))[2];
+-- --   v_prop   := (storage.foldername(p_object_path))[4];
+-- --   if not exists (
+-- --     select 1 from public.crm_records r
+-- --     where r.dealer_id = v_dealer and r.id = v_prop and r.entity_type = 'properties'
+-- --       and r.deleted = false
+-- --       and coalesce((r.payload->>'clientVisible')::boolean, true) = true
+-- --   ) then return null; end if;
+-- --   -- return storage.create_signed_url(...) equivalent; Codex to implement with
+-- --   -- the supported signing mechanism / edge function.
+-- --   return null;
+-- -- end; $$;
+-- -- grant execute on function public.plotmap_client_photo_url(text) to anon, authenticated;
+-- ============================================================
+-- END PROPOSED BLOCK
+-- ============================================================

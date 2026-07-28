@@ -1,0 +1,35 @@
+{
+  "$comment": "DB objects verified from migration SQL on disk. Live DB state UNVERIFIED-LIVE (Supabase MCP unauthenticated this session).",
+  "referenceCommit": "b894245",
+  "supabaseProjectRef": "czmkfmkmgqlienmdihul (from config fallback; REPORT-CLAIM as production)",
+  "migrations": [
+    "20260706_saas_foundation_scaffold.sql",
+    "20260707_multi_dealer_isolation_draft.sql",
+    "20260707_storage_photo_policies_draft.sql",
+    "20260707_team_permissions_rls_draft.sql",
+    "20260707a_multi_dealer_rpc_setup.sql",
+    "20260707b_multi_dealer_anon_lockdown.sql",
+    "20260708_phase4_account_gating_enforcement.sql",
+    "20260708_phase5_property_photo_storage_policies.sql",
+    "20260708_team_role_rls_enforcement.sql",
+    "20260710_developer_control_and_trial_analytics_draft.sql",
+    "20260719_dealer360_analytics_draft.sql",
+    "20260722_one_click_dealer_provisioning.sql",
+    "20260723_auto_approve_device_activation.sql",
+    "20260724000100_onboarding_access_and_dealer_deletion.sql",
+    "20260728000100_private_client_links.sql",
+    "20260728000200_private_client_links_grant_hardening.sql"
+  ],
+  "tables": [
+    { "name": "profiles", "keyColumns": ["id", "email", "role", "dealer_id", "status", "permissions", "display_name"], "evidence": "VERIFIED-CODE (auth.js select)" },
+    { "name": "crm_records", "keyColumns": ["id", "dealer_id", "entity_type", "payload(jsonb)", "deleted", "updated_at"], "note": "polymorphic CRM backbone; entity_type in clients/properties/deals/...", "evidence": "VERIFIED-SQL" },
+    { "name": "presentation_events", "note": "append-only; anon INSERT-only via RLS; never upsert", "evidence": "VERIFIED-CODE" },
+    { "name": "share_links", "note": "extended for client links: client_id, property_ids, token_hash, token_hint, snapshot_version, opened_at, last_opened_at", "evidence": "VERIFIED-SQL" },
+    { "name": "client_link_events", "keyColumns": ["id", "link_id(fk cascade)", "dealer_id", "event_type", "session_hash", "idempotency_hash", "property_public_id", "metadata", "created_at"], "eventTypes": ["opened", "audio_played", "call_clicked", "whatsapp_clicked", "visit_requested"], "evidence": "VERIFIED-SQL" },
+    { "name": "client_link_access_windows", "keyColumns": ["link_id(fk cascade)", "window_start", "request_count"], "note": "resolver rate-limit counters", "evidence": "VERIFIED-SQL" },
+    { "name": "dealer_settings", "keyColumns": ["dealer_id", "brand_name", "brand_tagline", "presentation_tagline", "logo_url", "support_phone", "whatsapp_number"], "evidence": "VERIFIED-SQL" },
+    { "name": "audit_logs", "keyColumns": ["dealer_id", "actor_profile_id", "actor_role", "action_type", "entity_type", "entity_id", "metadata"], "evidence": "VERIFIED-SQL" },
+    { "name": "dealer_provisioning_attempt (name inferred)", "note": "provisioning saga durable record + tombstone", "evidence": "INFERENCE from provision/delete edge functions" }
+  ],
+  "extensions": ["pgcrypto (gen_random_bytes, digest via extensions schema)"]
+}

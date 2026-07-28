@@ -1,0 +1,48 @@
+{
+  "$comment": "Edge functions verified from supabase/functions/*/index.ts at b894245.",
+  "referenceCommit": "b894245",
+  "functions": [
+    {
+      "name": "resolve-client-link",
+      "file": "supabase/functions/resolve-client-link/index.ts",
+      "lines": 115,
+      "public": true,
+      "usesServiceRole": true,
+      "env": ["SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY", "PLOTMAP_CLIENT_LINK_ALLOWED_ORIGINS"],
+      "callsRpc": ["plotmap_resolve_client_link", "plotmap_resolve_client_link_media"],
+      "signsBuckets": ["property-photos", "client-link-audio"],
+      "signedUrlSeconds": 900,
+      "purpose": "resolve client-link snapshot + mint signed media; https-only; drops non-https photos",
+      "v2": "REUSE",
+      "evidence": "VERIFIED-CODE"
+    },
+    {
+      "name": "provision-dealer",
+      "file": "supabase/functions/provision-dealer/index.ts",
+      "lines": 566,
+      "public": false,
+      "usesServiceRole": true,
+      "env": ["SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY", "PLOTMAP_ALLOWED_ORIGINS"],
+      "callsRpc": ["plotmap_is_platform_admin", "plotmap_admin_begin_dealer_provisioning", "plotmap_service_auth_user_by_email", "plotmap_admin_mark_dealer_provisioning_auth", "plotmap_admin_finalize_dealer_provisioning", "plotmap_admin_fail_dealer_provisioning", "plotmap_admin_get_dealer_provisioning_attempt"],
+      "responseFormat": "NDJSON stream (stage/result/error)",
+      "purpose": "one-click dealer onboarding saga; idempotent; Auth-user rollback",
+      "deploy": "--verify-jwt",
+      "v2": "REUSE/ADAPT",
+      "evidence": "VERIFIED-CODE"
+    },
+    {
+      "name": "delete-dealer",
+      "file": "supabase/functions/delete-dealer/index.ts",
+      "lines": 258,
+      "public": false,
+      "usesServiceRole": true,
+      "env": ["SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY", "PLOTMAP_ALLOWED_ORIGINS"],
+      "callsRpc": ["plotmap_is_platform_admin", "plotmap_admin_delete_dealer"],
+      "storageBuckets": ["property-photos", "client-link-audio"],
+      "purpose": "permanent dealer deletion; confirmation-guarded; tombstone-idempotent; retryable partial failures",
+      "requiresMigration": "20260724000100_onboarding_access_and_dealer_deletion.sql",
+      "v2": "REUSE",
+      "evidence": "VERIFIED-CODE"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "$comment": "PlotMap V1 routes verified against repo at commit b894245.",
+  "referenceCommit": "b894245",
+  "routes": [
+    { "path": "/", "file": "index.html", "surface": "landing_device_activation", "roles": ["anonymous"], "guard": "activation-code", "evidence": "VERIFIED-CODE" },
+    { "path": "/admin/owner.html", "file": "admin/owner.html", "surface": "dealer_home", "roles": ["owner"], "guard": "guardPage owner + device + account", "evidence": "VERIFIED-CODE" },
+    { "path": "/admin/area-intelligence.html", "file": "admin/area-intelligence.html", "surface": "area_intelligence", "roles": ["owner"], "guard": "owner + insights.view", "evidence": "VERIFIED-CODE" },
+    { "path": "/admin/property-insights.html", "file": "admin/property-insights.html", "surface": "property_insights", "roles": ["owner"], "guard": "owner + insights.view", "evidence": "VERIFIED-CODE" },
+    { "path": "/admin/team.html", "file": "admin/team.html", "surface": "team_workspace", "roles": ["owner", "manager", "team", "map_editor", "property_editor"], "guard": "team rank", "evidence": "VERIFIED-CODE" },
+    { "path": "/admin/properties.html", "file": "admin/properties.html", "surface": "my_plots_and_client_links", "roles": ["owner", "property_editor", "manager", "team"], "guard": "team + properties.manage", "evidence": "VERIFIED-CODE" },
+    { "path": "/admin/clients.html", "file": "admin/clients.html", "surface": "my_customers", "roles": ["owner", "manager", "team"], "guard": "team + clients.view", "evidence": "VERIFIED-CODE" },
+    { "path": "/admin/deals.html", "file": "admin/deals.html", "surface": "my_deals", "roles": ["owner", "manager", "team"], "guard": "team + deals.view", "evidence": "VERIFIED-CODE" },
+    { "path": "/admin/map-studio.html", "file": "admin/map-studio.html", "surface": "map_studio", "roles": ["owner", "manager", "team", "map_editor"], "guard": "team + mapstudio.manage", "evidence": "VERIFIED-CODE" },
+    { "path": "/admin/developer.html", "file": "admin/developer.html", "surface": "developer_control", "roles": ["platform_admin"], "guard": "session + plotmap_is_platform_admin", "evidence": "VERIFIED-CODE" },
+    { "path": "/admin/access-expired.html", "file": "admin/access-expired.html", "surface": "access_blocked", "roles": ["anonymous"], "guard": "reason-aware block copy", "evidence": "VERIFIED-CODE" },
+    { "path": "/admin/maps.html", "file": "admin/maps.html", "surface": "maps_aux", "roles": ["team"], "guard": "team", "evidence": "VERIFIED-CODE", "v2": "rewrite-or-prohibit" },
+    { "path": "/admin/editor.html", "file": "admin/editor.html", "surface": "editor_aux", "roles": ["team"], "guard": "team", "evidence": "VERIFIED-CODE", "v2": "rewrite-or-prohibit" },
+    { "path": "/admin/finance.html", "file": "admin/finance.html", "surface": "finance_aux", "roles": ["owner"], "guard": "owner", "evidence": "VERIFIED-CODE", "v2": "rewrite-or-prohibit" },
+    { "path": "/admin/reports.html", "file": "admin/reports.html", "surface": "reports_aux", "roles": ["owner"], "guard": "owner", "evidence": "VERIFIED-CODE", "v2": "rewrite-or-prohibit" },
+    { "path": "/admin/access.html", "file": "admin/access.html", "surface": "access_helper", "roles": ["varies"], "guard": "varies", "evidence": "VERIFIED-CODE", "v2": "rewrite-or-prohibit" },
+    { "path": "/admin/index.html", "file": "admin/index.html", "surface": "admin_index", "roles": ["varies"], "guard": "redirect", "evidence": "VERIFIED-CODE" },
+    { "path": "/app/plotmap/", "file": "app/plotmap/index.html", "surface": "client_presentation", "roles": ["owner", "manager", "team", "map_editor", "property_editor", "viewer"], "guard": "PMDeviceAccess", "evidence": "VERIFIED-CODE" },
+    { "path": "/client/", "file": "client/index.html", "surface": "client_link_buyer", "roles": ["anonymous_with_token"], "guard": "opaque bearer token", "evidence": "VERIFIED-CODE" }
+  ]
+}

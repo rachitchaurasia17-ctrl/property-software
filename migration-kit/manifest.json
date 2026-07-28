@@ -1,0 +1,152 @@
+{
+  "$comment": "Migration kit manifest. Sanitized copies of proven PlotMap V1 systems at commit b894245. No secrets included.",
+  "referenceCommit": "b894245",
+  "secretsIncluded": false,
+  "entries": [
+    {
+      "path": "supabase/migrations/",
+      "originalPath": "supabase/migrations/",
+      "fileCount": 16,
+      "purpose": "Full proven backend: profiles, crm_records, isolation RLS, team scopes, account gating, photo storage, provisioning, device activation, deletion, private client links + grant hardening",
+      "dependencies": ["pgcrypto (extensions schema)", "Supabase Auth", "storage schema"],
+      "publicApi": "RPCs + RLS documented in docs/v2-blueprint/15 + manifests/rpcs.json",
+      "env": ["Supabase project + migration tooling"],
+      "classification": "reuse",
+      "securityAssumptions": ["RLS is the boundary", "SECURITY DEFINER re-checks auth.uid/role/dealer", "anon has no direct table grants"],
+      "v2Destination": "supabase/migrations/",
+      "portingSteps": ["apply in filename order", "prefer enforced over draft when same object", "run verification before trusting"],
+      "tests": ["verification/verify-private-client-links.sql", "verification/verify-isolation.js"]
+    },
+    {
+      "path": "edge-functions/resolve-client-link/index.ts",
+      "originalPath": "supabase/functions/resolve-client-link/index.ts",
+      "purpose": "Public client-link resolver + signed media broker (service role in Edge only)",
+      "dependencies": ["plotmap_resolve_client_link", "plotmap_resolve_client_link_media", "Storage sign API"],
+      "publicApi": "POST {token} -> {ok, link}",
+      "env": ["SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY", "PLOTMAP_CLIENT_LINK_ALLOWED_ORIGINS"],
+      "classification": "reuse",
+      "securityAssumptions": ["service-role key never leaves Edge", "CORS allowlist", "default-src none CSP", "no logging", "https-only media, 15-min signed"],
+      "v2Destination": "supabase/functions/resolve-client-link/",
+      "portingSteps": ["deploy after migrations", "set env + allowed origins"],
+      "tests": ["verify-private-client-links.sql (resolve path)", "docs/24 suite D"]
+    },
+    {
+      "path": "edge-functions/provision-dealer/index.ts",
+      "originalPath": "supabase/functions/provision-dealer/index.ts",
+      "purpose": "One-click dealer onboarding saga (idempotent, streaming, rollback)",
+      "dependencies": ["provisioning RPC saga", "GoTrue Admin API"],
+      "publicApi": "POST {dealer input, idempotencyKey} + admin JWT -> NDJSON stages+result",
+      "env": ["SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY", "PLOTMAP_ALLOWED_ORIGINS"],
+      "classification": "reuse-adapt",
+      "securityAssumptions": ["platform-admin gate", "idempotency + fingerprint", "auth-user rollback on failure", "no logging"],
+      "v2Destination": "supabase/functions/provision-dealer/",
+      "portingSteps": ["deploy with --verify-jwt", "set env + origins", "test on staging"],
+      "tests": ["docs/24 suite F (provision, duplicate-email)"]
+    },
+    {
+      "path": "edge-functions/delete-dealer/index.ts",
+      "originalPath": "supabase/functions/delete-dealer/index.ts",
+      "purpose": "Permanent dealer deletion + storage/auth cleanup (confirmation-guarded, retryable)",
+      "dependencies": ["plotmap_admin_delete_dealer", "Storage API", "GoTrue Admin API"],
+      "publicApi": "POST {dealer_id, confirm} + admin JWT -> {ok, removed, ...}",
+      "env": ["SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY", "PLOTMAP_ALLOWED_ORIGINS"],
+      "classification": "reuse",
+      "securityAssumptions": ["confirm===dealer_id", "platform-admin gate", "tombstone idempotency", "retryable partial failures"],
+      "v2Destination": "supabase/functions/delete-dealer/",
+      "portingSteps": ["apply 20260724000100 migration first", "deploy with --verify-jwt"],
+      "tests": ["docs/24 suite F (delete-confirm-mismatch, delete-confirmed)"]
+    },
+    {
+      "path": "auth/auth.js",
+      "originalPath": "admin/core/auth.js",
+      "purpose": "Supabase GoTrue session/profile handling + storage-key contract",
+      "dependencies": ["PMRuntimeConfig", "GoTrue REST", "profiles"],
+      "publicApi": "window.PMAuth (see docs/05)",
+      "env": ["public Supabase URL + anon key at runtime"],
+      "classification": "adapt",
+      "securityAssumptions": ["open-redirect-safe redirect", "server-only platform-admin", "lazy refresh 60s skew", "profile column fallback"],
+      "v2Destination": "packages/auth",
+      "portingSteps": ["typed module", "explicit dealerId accessor", "gate local-dev auto-mock behind dev flag"],
+      "tests": ["docs/24 suite B"]
+    },
+    {
+      "path": "auth/access-control.js",
+      "originalPath": "admin/core/access-control.js",
+      "purpose": "Route guard + role/scope model (single source of truth)",
+      "dependencies": ["PMAuth", "PMDeviceAccess", "plotmap_is_platform_admin"],
+      "publicApi": "guardPage, resolveScopes, hasScope, ROLE_SCOPES, ROUTE_SCOPES",
+      "classification": "adapt",
+      "securityAssumptions": ["client guard is honesty-only; RLS is real"],
+      "v2Destination": "packages/auth",
+      "portingSteps": ["keep role model as data; re-house guard"],
+      "tests": ["docs/24 suite B + H (nav visibility)"]
+    },
+    {
+      "path": "device-access/device-access.js",
+      "originalPath": "admin/core/device-access.js",
+      "purpose": "Approved-device gate (opaque local token; server hash compare)",
+      "dependencies": ["PMRuntimeConfig", "device RPCs"],
+      "publicApi": "window.PMDeviceAccess (see docs/06)",
+      "classification": "adapt",
+      "securityAssumptions": ["opaque local token", "dealer binding never from URL", "read-only gate never inserts"],
+      "v2Destination": "packages/device-access",
+      "portingSteps": ["keep security exactly", "block screen into component system"],
+      "tests": ["docs/24 suite B"]
+    },
+    {
+      "path": "client-links/plotmap-client-links.js",
+      "originalPath": "admin/core/plotmap-client-links.js",
+      "purpose": "Dealer-side client-links client (create/list/revoke/extend/audio)",
+      "dependencies": ["PMAuth", "Storage", "client-link RPCs", "PM_CLIENT_LINKS_ENABLED"],
+      "publicApi": "window.PMClientLinks (see docs/13)",
+      "classification": "adapt",
+      "securityAssumptions": ["validation mirrors server", "audio path dealer-scoped"],
+      "v2Destination": "packages/client-links",
+      "portingSteps": ["keep API + validation; typed module"],
+      "tests": ["verify-private-client-links.sql", "docs/24 suite D"]
+    },
+    {
+      "path": "client-links/client-app.js",
+      "originalPath": "client/app.js",
+      "purpose": "Buyer page logic (resolve, token-strip, event tracking)",
+      "dependencies": ["PMRuntimeConfig", "resolve-client-link Edge", "plotmap_resolve_client_link", "plotmap_record_client_link_event"],
+      "classification": "adapt",
+      "securityAssumptions": ["token stripped from history", "https-only media render", "idempotent events"],
+      "v2Destination": "apps/client",
+      "portingSteps": ["keep logic contract; rebuild visuals in V2 system"],
+      "tests": ["docs/24 suite D"]
+    },
+    {
+      "path": "data-contracts/data-adapter.js",
+      "originalPath": "admin/core/data-adapter.js",
+      "purpose": "Local-first CRM store contract + dealer scoping",
+      "dependencies": ["PMAuth dealer mirror", "crm_records"],
+      "publicApi": "window.PMDataAdapter (see docs/08)",
+      "classification": "adapt",
+      "securityAssumptions": ["__unresolved__ fail-closed in prod-admin"],
+      "v2Destination": "packages/data",
+      "portingSteps": ["typed data layer; keep crm_records/entity_type + fail-closed stamping"],
+      "tests": ["docs/24 suite C"]
+    },
+    {
+      "path": "verification/verify-isolation.js",
+      "originalPath": "tools/verify-isolation.js",
+      "purpose": "Dealer isolation probes",
+      "env": ["PLOTMAP_SUPABASE_URL etc (placeholders only)"],
+      "classification": "reuse",
+      "v2Destination": "supabase/verification/",
+      "portingSteps": ["run against new dev project after port"],
+      "tests": ["self"]
+    },
+    {
+      "path": "verification/verify-private-client-links.sql",
+      "originalPath": "tools/verify-private-client-links.sql",
+      "purpose": "Client-link security acceptance test (rollback-wrapped)",
+      "env": ["two active dealer profiles"],
+      "classification": "reuse",
+      "v2Destination": "supabase/verification/",
+      "portingSteps": ["run after client-link migration ported"],
+      "tests": ["self — all assertions must pass"]
+    }
+  ]
+}
