@@ -26,6 +26,7 @@
 <script src="/admin/core/saas-foundation.js"></script>
 <script src="/admin/core/supabase-sync.js"></script>
 <script src="/admin/core/plotmap-shell.js"></script>
+<script>window.PM_CLIENT_LINKS_ENABLED = true;</script>
 <script src="/admin/core/plotmap-client-links.js"></script>
 <script src="/app/plotmap/map-registry.js" defer></script>
 <script>
@@ -83,6 +84,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const pinIndex = () => { const map = new Map(); if (!window.PMOverlayStore) return map; window.PMOverlayStore.customItems().forEach(it => { if (it && it.kind === 'pin' && it.propertyId && !it.deleted && !map.has(it.propertyId)) map.set(it.propertyId, it); }); return map; };
   const money = n => { n = Number(n||0); if(!n) return 'Set price'; if(n>=1e7) return '₹'+(n/1e7).toFixed(n%1e7?2:0)+' Cr'; if(n>=1e5) return '₹'+(n/1e5).toFixed(n%1e5?1:0)+' L'; return '₹'+n.toLocaleString('en-IN'); };
   const photosOf = (p) => window.PMFoundation ? window.PMFoundation.hydratePropertyPhotos(p) : (Array.isArray(p.photos) ? p.photos : []);
+  const clientPhotoChoices = (p) => {
+    const choices = [];
+    (Array.isArray(p.photos) ? p.photos : []).slice(0, 8).forEach((url, index) => {
+      if (/^https:\/\//i.test(String(url || ''))) choices.push({ ref:'external:' + index, label:'Photo ' + (choices.length + 1) });
+    });
+    (Array.isArray(p.photoStorage) ? p.photoStorage : []).slice(0, 8).forEach((item, index) => {
+      if (item && item.kind === 'storage' && item.path) choices.push({ ref:'storage:' + index, label:'Stored photo ' + (choices.length + 1) });
+    });
+    return choices.slice(0, 8);
+  };
   const isReady = (p) => { const ph = photosOf(p); return p.clientVisible !== false && ph.length > 0 && (pinIndex().has(p.id) || !!sectorMapForProperty(p)); };
 
   // ---------- window-scoped actions preserved ----------
@@ -349,56 +360,131 @@ document.addEventListener('DOMContentLoaded', () => {
   // ---------- Private Client Link drawer (entry point + UI states) ----------
   function openClientLink(propertyId) {
     const p = liveProps().find(x => x.id === propertyId); if (!p) return;
-    const ph = photosOf(p); const cs = clients();
+    const ph = clientPhotoChoices(p); const cs = clients();
+    let audioUpload = null; let audioCommitted = false; let drawerClosed = false; let recorder = null; let recordingStartedAt = 0; let stream = null; let chunks = [];
     document.getElementById('cl-plot').textContent = 'Private link · ' + (p.title || 'Plot');
     const settings = (window.PMFoundation && PMFoundation.getDealerSettings) ? PMFoundation.getDealerSettings() : {};
     const brandLabel = settings.brandName ? esc(settings.brandName) + ' branding' : 'your branding';
     document.getElementById('cl-body').innerHTML = `
       <div class="pm-field"><label class="pm-label">Customer</label>
-        ${cs.length ? `<select class="pm-select" id="cl-client">${cs.map(c => `<option value="${esc(c.id)}">${esc(c.name || 'Customer')}${c.phone?' · '+esc(c.phone):''}</option>`).join('')}</select>`
-          : `<div class="pm-alert pm-alert-info"><i class="ph-fill ph-user-plus"></i><span>Add a customer first (My Customers) to send them a private link.</span></div>`}
+        <select class="pm-select" id="cl-client"><option value="">No customer selected</option>${cs.map(c => `<option value="${esc(c.id)}">${esc(c.name || 'Customer')}${c.phone?' · '+esc(c.phone):''}</option>`).join('')}</select>
       </div>
       <div class="pm-field" style="margin-top:14px"><label class="pm-label">Plots in this link (max 4)</label>
-        <div class="pm-row" style="gap:8px;flex-wrap:wrap"><span class="pm-badge pm-badge-gold"><i class="ph-fill ph-map-pin-area"></i>${esc(p.title || 'This plot')}</span><span class="pm-meta">More plots can be added when the feature is live.</span></div>
+        <div class="pm-row" style="gap:8px;flex-wrap:wrap"><span class="pm-badge pm-badge-gold"><i class="ph-fill ph-map-pin-area"></i>${esc(p.title || 'This plot')}</span></div>
       </div>
       <div class="pm-field" style="margin-top:14px"><label class="pm-label">Photos to include (${ph.length})</label>
-        <div class="pm-row" style="gap:8px;flex-wrap:wrap" id="cl-photos">${ph.length ? ph.map((u, i) => `<label class="pm-row" style="gap:6px;border:1px solid var(--pm-hairline);border-radius:10px;padding:6px 10px;cursor:pointer"><input type="checkbox" checked data-photo="${i}">Photo ${i + 1}</label>`).join('') : '<span class="pm-meta">This plot has no photos yet — add some in Edit.</span>'}</div>
+        <div class="pm-row" style="gap:8px;flex-wrap:wrap" id="cl-photos">${ph.length ? ph.map(item => `<label class="pm-row" style="gap:6px;border:1px solid var(--pm-hairline);border-radius:10px;padding:6px 10px;cursor:pointer"><input type="checkbox" checked data-photo="${esc(item.ref)}">${esc(item.label)}</label>`).join('') : '<span class="pm-meta">This plot has no approved photos yet — add some in Edit.</span>'}</div>
       </div>
       <div class="pm-grid pm-grid-2" style="gap:12px;margin-top:14px">
         <div class="pm-field"><label class="pm-label">Show price?</label><select class="pm-select" id="cl-price"><option value="hidden">Hidden (default)</option><option value="shown">Shown to this client</option></select></div>
         <div class="pm-field"><label class="pm-label">Location detail</label><select class="pm-select" id="cl-loc"><option value="area">Area only (default)</option><option value="exact">Exact plot</option><option value="hidden">Hidden</option></select></div>
         <div class="pm-field"><label class="pm-label">Link expires</label><select class="pm-select" id="cl-expiry"><option value="7">In 7 days (default)</option><option value="3">In 3 days</option><option value="14">In 14 days</option><option value="30">In 30 days</option></select></div>
-        <div class="pm-field"><label class="pm-label">Dealer voice note</label><button type="button" class="pm-btn pm-btn-ghost" id="cl-audio" disabled><i class="ph-fill ph-microphone"></i>Record (with backend)</button></div>
+        <div class="pm-field"><label class="pm-label">Dealer voice note</label><button type="button" class="pm-btn pm-btn-ghost" id="cl-audio"><i class="ph-fill ph-microphone"></i><span>Record</span></button><div class="pm-meta" id="cl-audio-status" style="margin-top:6px">Optional, up to 2 minutes.</div></div>
       </div>
       <div class="pm-alert pm-alert-info" style="margin-top:16px"><i class="ph-fill ph-shield-check"></i><span>The client page shows only your chosen photos, ${brandLabel}, and — only if you allow it — the price and exact location. Seller, commission, source and internal notes are never sent.</span></div>
       <div id="cl-status" class="pm-meta" style="margin-top:14px"></div>
-      <div class="pm-row" style="gap:10px;margin-top:16px"><button class="pm-btn pm-btn-primary pm-btn-block" id="cl-create" ${cs.length?'':'disabled'}><i class="ph-fill ph-paper-plane-tilt"></i>Create private link</button></div>`;
+      <div class="pm-row" style="gap:10px;margin-top:16px"><button class="pm-btn pm-btn-primary pm-btn-block" id="cl-create" ${ph.length?'':'disabled'}><i class="ph-fill ph-paper-plane-tilt"></i>Create private link</button></div>
+      <div id="cl-existing" style="margin-top:20px"></div>`;
     document.getElementById('cl-drawer').classList.add('is-open');
     document.getElementById('cl-scrim').classList.add('is-open');
+    const renderExisting = async () => {
+      const host = document.getElementById('cl-existing'); const result = await window.PMClientLinks.list(p.id);
+      const links = result && Array.isArray(result.links) ? result.links : [];
+      if (!links.length) { host.innerHTML = ''; return; }
+      host.innerHTML = '<div class="pm-label" style="margin-bottom:8px">Recent links</div>' + links.slice(0, 8).map(link => `<div class="pm-spread" style="gap:10px;padding:10px 0;border-top:1px solid var(--pm-hairline)"><div><strong style="font-size:13px">${esc(link.status || 'active')}</strong><div class="pm-meta">Expires ${esc(window.PMShell.dateStr(link.expiresAt))} · ${Number((link.events || {}).opens || 0)} opens · ${Number((link.events || {}).visits || 0)} visits</div></div><div class="pm-row" style="gap:6px">${link.status !== 'revoked' ? `<button class="pm-btn pm-btn-ghost pm-btn-sm" data-extend="${esc(link.id)}">+7 days</button>` : ''}${link.status === 'active' ? `<button class="pm-btn pm-btn-ghost pm-btn-sm" data-revoke="${esc(link.id)}">Revoke</button>` : ''}</div></div>`).join('');
+      host.querySelectorAll('[data-revoke]').forEach(btn => btn.addEventListener('click', async () => {
+        if (!(await window.PMShell.confirm({ title:'Revoke this private link?', body:'The client will lose access immediately.', okText:'Revoke', danger:true }))) return;
+        const revoked = await window.PMClientLinks.revoke(btn.getAttribute('data-revoke'));
+        if (revoked && revoked.ok) { window.PMShell.toast('Private link revoked', 'ok'); renderExisting(); }
+        else window.PMShell.toast('Could not revoke this link', 'err');
+      }));
+      host.querySelectorAll('[data-extend]').forEach(btn => btn.addEventListener('click', async () => {
+        const extended = await window.PMClientLinks.extend(btn.getAttribute('data-extend'), 7);
+        if (extended && extended.ok) { window.PMShell.toast('Private link extended by 7 days', 'ok'); renderExisting(); }
+        else window.PMShell.toast('Could not extend this link', 'err');
+      }));
+    };
+    renderExisting();
+    window.__pmClientLinkCleanup = () => {
+      drawerClosed = true;
+      if (recorder && recorder.state === 'recording') recorder.stop();
+      else if (stream) stream.getTracks().forEach(track => track.stop());
+      if (audioUpload && audioUpload.ok && !audioCommitted) window.PMClientLinks.removeAudio(audioUpload.objectPath);
+    };
+
+    const audioBtn = document.getElementById('cl-audio'); const audioStatus = document.getElementById('cl-audio-status');
+    if (!window.MediaRecorder || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      audioBtn.disabled = true; audioStatus.textContent = 'Voice recording is not supported in this browser.';
+    } else audioBtn.addEventListener('click', async () => {
+      if (recorder && recorder.state === 'recording') { recorder.stop(); return; }
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio:true }); chunks = [];
+        const preferred = ['audio/webm', 'audio/mp4', 'audio/ogg'].find(type => MediaRecorder.isTypeSupported(type));
+        recorder = preferred ? new MediaRecorder(stream, { mimeType:preferred }) : new MediaRecorder(stream);
+        recordingStartedAt = Date.now();
+        recorder.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+        recorder.onstop = async () => {
+          stream.getTracks().forEach(track => track.stop());
+          if (drawerClosed) return;
+          const seconds = Math.min(120, Math.max(1, Math.ceil((Date.now() - recordingStartedAt) / 1000)));
+          const type = recorder.mimeType || 'audio/webm'; const blob = new Blob(chunks, { type });
+          audioBtn.disabled = true; audioBtn.querySelector('span').textContent = 'Uploading'; audioStatus.textContent = 'Securing your voice note…';
+          if (audioUpload && audioUpload.ok) await window.PMClientLinks.removeAudio(audioUpload.objectPath);
+          audioUpload = await window.PMClientLinks.uploadAudio(blob, seconds);
+          audioBtn.disabled = false; audioBtn.querySelector('span').textContent = audioUpload && audioUpload.ok ? 'Record again' : 'Record';
+          audioStatus.innerHTML = audioUpload && audioUpload.ok ? `Voice note ready · ${seconds} seconds · <button type="button" id="cl-audio-remove" style="color:var(--pm-violet);font-weight:800">Remove</button>` : esc((audioUpload.errors || [])[0] || 'Voice note could not be uploaded.');
+          const remove = document.getElementById('cl-audio-remove'); if (remove) remove.addEventListener('click', async () => { await window.PMClientLinks.removeAudio(audioUpload.objectPath); audioUpload = null; audioBtn.querySelector('span').textContent = 'Record'; audioStatus.textContent = 'Optional, up to 2 minutes.'; });
+        };
+        recorder.start(); audioBtn.querySelector('span').textContent = 'Stop'; audioStatus.textContent = 'Recording… tap Stop when finished.';
+        setTimeout(() => { if (recorder && recorder.state === 'recording') recorder.stop(); }, 120000);
+      } catch (_) { audioStatus.textContent = 'Microphone access was not available.'; }
+    });
+
     const createBtn = document.getElementById('cl-create');
     if (createBtn) createBtn.addEventListener('click', async () => {
+      createBtn.disabled = true;
       const payload = {
         clientId: (document.getElementById('cl-client') || {}).value || null,
         propertyIds: [p.id],
-        photoSelections: { [p.id]: [...document.querySelectorAll('#cl-photos input:checked')].map(c => Number(c.getAttribute('data-photo'))) },
+        photoSelections: { [p.id]: [...document.querySelectorAll('#cl-photos input:checked')].map(c => c.getAttribute('data-photo')) },
         priceVisibility: document.getElementById('cl-price').value,
         locationVisibility: document.getElementById('cl-loc').value,
         expiresInDays: Number(document.getElementById('cl-expiry').value),
-        branding: { brandName: settings.brandName, logoUrl: settings.logoUrl, phone: settings.supportPhone, whatsapp: settings.whatsappNumber }
+        audio: audioUpload && audioUpload.ok ? { objectPath:audioUpload.objectPath, seconds:audioUpload.seconds } : null
       };
       const res = await window.PMClientLinks.create(payload);
       const status = document.getElementById('cl-status');
-      if (res.ok) { status.style.color = 'var(--pm-green)'; status.textContent = 'Private link ready.'; window.PMShell.toast('Private link created', 'ok'); }
+      createBtn.disabled = false;
+      if (res.ok) {
+        audioCommitted = true;
+        const waUrl = 'https://wa.me/?text=' + encodeURIComponent('Here is your private property selection: ' + res.url);
+        status.style.color = 'var(--pm-green)'; status.innerHTML = `<div style="font-weight:800;margin-bottom:8px">Private link ready.</div><div class="pm-row" style="gap:8px;flex-wrap:wrap"><button class="pm-btn pm-btn-forest pm-btn-sm" id="cl-copy"><i class="ph-bold ph-copy"></i>Copy link</button><a class="pm-btn pm-btn-ghost pm-btn-sm" href="${esc(waUrl)}" target="_blank" rel="noopener noreferrer"><i class="ph-fill ph-whatsapp-logo"></i>WhatsApp</a><a class="pm-btn pm-btn-ghost pm-btn-sm" href="${esc(res.url)}" target="_blank" rel="noopener noreferrer">Preview</a></div>`;
+        document.getElementById('cl-copy').addEventListener('click', async () => { await navigator.clipboard.writeText(res.url); window.PMShell.toast('Private link copied', 'ok'); });
+        window.PMShell.toast('Private link created', 'ok'); renderExisting();
+      }
       else if (res.pending) { status.style.color = 'var(--pm-gold-ink)'; status.textContent = res.message || window.PMClientLinks.PENDING.message; window.PMShell.toast('Client Links backend not enabled yet', 'warn'); }
-      else { status.style.color = '#b5322a'; status.textContent = (res.errors && res.errors[0]) || 'Could not create the link.'; }
+      else { if (audioUpload && audioUpload.ok) { window.PMClientLinks.removeAudio(audioUpload.objectPath); audioUpload = null; } status.style.color = '#b5322a'; status.textContent = (res.errors && res.errors[0]) || 'Could not create the link.'; }
     });
   }
-  function closeClientLink() { document.getElementById('cl-drawer').classList.remove('is-open'); document.getElementById('cl-scrim').classList.remove('is-open'); }
+  function closeClientLink() { if (window.__pmClientLinkCleanup) window.__pmClientLinkCleanup(); window.__pmClientLinkCleanup = null; document.getElementById('cl-drawer').classList.remove('is-open'); document.getElementById('cl-scrim').classList.remove('is-open'); }
   document.getElementById('cl-close').addEventListener('click', closeClientLink);
   document.getElementById('cl-scrim').addEventListener('click', closeClientLink);
 
+  async function openClientLinksManager() {
+    document.getElementById('cl-plot').textContent = 'Private Shares';
+    document.getElementById('cl-body').innerHTML = '<div class="pm-skeleton" style="height:76px"></div><div class="pm-skeleton" style="height:76px;margin-top:10px"></div>';
+    document.getElementById('cl-drawer').classList.add('is-open'); document.getElementById('cl-scrim').classList.add('is-open');
+    const result = await window.PMClientLinks.list(); const links = result && Array.isArray(result.links) ? result.links : [];
+    const host = document.getElementById('cl-body');
+    if (!links.length) { host.innerHTML = '<div class="pm-empty"><h3>No private shares yet</h3><p>Create one from a ready plot in My Plots.</p></div>'; return; }
+    host.innerHTML = '<div class="pm-meta" style="margin-bottom:12px">Links are bearer credentials. For security, an old link can be revoked or extended here, but its token is never stored for re-copying.</div>' + links.map(link => `<div style="padding:14px 0;border-top:1px solid var(--pm-hairline)"><div class="pm-spread" style="gap:12px"><div><strong>${esc(link.label || 'Private client link')}</strong><div class="pm-meta" style="margin-top:3px">${esc(link.status || 'active')} · expires ${esc(window.PMShell.dateStr(link.expiresAt))} · token …${esc(link.tokenHint || '')}</div></div><div class="pm-row" style="gap:6px">${link.status !== 'revoked' ? `<button class="pm-btn pm-btn-ghost pm-btn-sm" data-all-extend="${esc(link.id)}">+7 days</button>` : ''}${link.status === 'active' ? `<button class="pm-btn pm-btn-ghost pm-btn-sm" data-all-revoke="${esc(link.id)}">Revoke</button>` : ''}</div></div><div class="pm-row" style="gap:8px;flex-wrap:wrap;margin-top:10px"><span class="pm-badge pm-badge-neutral">${Number((link.events || {}).opens || 0)} opens</span><span class="pm-badge pm-badge-neutral">${Number((link.events || {}).audioPlays || 0)} plays</span><span class="pm-badge pm-badge-neutral">${Number((link.events || {}).calls || 0)} calls</span><span class="pm-badge pm-badge-neutral">${Number((link.events || {}).whatsapp || 0)} WhatsApp</span><span class="pm-badge pm-badge-neutral">${Number((link.events || {}).visits || 0)} visits</span></div></div>`).join('');
+    host.querySelectorAll('[data-all-extend]').forEach(btn => btn.addEventListener('click', async () => { const res = await window.PMClientLinks.extend(btn.getAttribute('data-all-extend'), 7); if (res && res.ok) { window.PMShell.toast('Private link extended', 'ok'); openClientLinksManager(); } else window.PMShell.toast('Could not extend this link', 'err'); }));
+    host.querySelectorAll('[data-all-revoke]').forEach(btn => btn.addEventListener('click', async () => { if (!(await window.PMShell.confirm({ title:'Revoke this private link?', body:'The client will lose access immediately.', okText:'Revoke', danger:true }))) return; const res = await window.PMClientLinks.revoke(btn.getAttribute('data-all-revoke')); if (res && res.ok) { window.PMShell.toast('Private link revoked', 'ok'); openClientLinksManager(); } else window.PMShell.toast('Could not revoke this link', 'err'); }));
+  }
+
   render();
   if (window.location.hash === '#add') { setTimeout(() => { document.getElementById('btn-toggle-add').click(); history.replaceState(null, '', 'properties.html'); }, 50); }
+  if (window.location.hash === '#client-links') { setTimeout(openClientLinksManager, 50); }
 });
 
 // ── Property photo workflow (URL links + gated Storage upload) — preserved. ──

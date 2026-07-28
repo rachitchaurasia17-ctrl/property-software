@@ -27,7 +27,7 @@ const ALLOWED_ORIGINS = new Set(
     .split(',').map((v) => v.trim().replace(/\/$/, '')).filter(Boolean),
 );
 const MAX_REQUEST_BYTES = 4 * 1024;
-const PHOTO_BUCKET = 'property-photos';
+const DEALER_STORAGE_BUCKETS = ['property-photos', 'client-link-audio'];
 const MAX_STORAGE_OBJECTS = 10000;
 
 function corsHeaders(origin: string | null): HeadersInit {
@@ -80,7 +80,7 @@ function storageBucketMissing(response: Response, data: unknown): boolean {
   return response.status === 400 && /bucket[^a-z]+not[^a-z]+found/i.test(message);
 }
 
-async function deleteDealerPhotoObjects(dealerId: string): Promise<number> {
+async function deleteDealerStorageObjects(dealerId: string, bucket: string): Promise<number> {
   const root = `dealers/${dealerId}`;
   const directories = [root];
   const visited = new Set<string>();
@@ -93,7 +93,7 @@ async function deleteDealerPhotoObjects(dealerId: string): Promise<number> {
     let offset = 0;
 
     while (true) {
-      const listed = await fetchJson(`${SUPABASE_URL}/storage/v1/object/list/${PHOTO_BUCKET}`, {
+      const listed = await fetchJson(`${SUPABASE_URL}/storage/v1/object/list/${bucket}`, {
         method: 'POST',
         headers: {
           apikey: SUPABASE_SERVICE_ROLE_KEY,
@@ -124,7 +124,7 @@ async function deleteDealerPhotoObjects(dealerId: string): Promise<number> {
   }
 
   for (let i = 0; i < objects.length; i += 100) {
-    const response = await fetch(`${SUPABASE_URL}/storage/v1/object/${PHOTO_BUCKET}`, {
+    const response = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}`, {
       method: 'DELETE',
       headers: {
         apikey: SUPABASE_SERVICE_ROLE_KEY,
@@ -186,9 +186,11 @@ Deno.serve(async (request: Request): Promise<Response> => {
   // Storage is intentionally removed through the Storage API. Supabase
   // forbids direct SQL deletion from storage.objects. On failure, the durable
   // SQL tombstone makes this whole external cleanup path safely retryable.
-  let photoObjectsDeleted = 0;
+  const storageObjectsDeleted: Record<string, number> = {};
   try {
-    photoObjectsDeleted = await deleteDealerPhotoObjects(dealerId);
+    for (const bucket of DEALER_STORAGE_BUCKETS) {
+      storageObjectsDeleted[bucket] = await deleteDealerStorageObjects(dealerId, bucket);
+    }
   } catch (_) {
     return json(origin, {
       ok: false,
@@ -248,7 +250,8 @@ Deno.serve(async (request: Request): Promise<Response> => {
     already_deleted: summary.already_deleted === true,
     operation_id: summary.operation_id || null,
     removed: summary.deleted || {},
-    property_photo_objects_deleted: photoObjectsDeleted,
+    property_photo_objects_deleted: storageObjectsDeleted['property-photos'] || 0,
+    client_link_audio_objects_deleted: storageObjectsDeleted['client-link-audio'] || 0,
     auth_users_deleted: authDeleted,
     auth_users_pending: 0,
   }, 200);

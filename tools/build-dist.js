@@ -31,6 +31,7 @@ const INCLUDE = [
   'index.html',
   'app',
   'admin',
+  'client',
   'config',
   'maps',
   'normal maps',
@@ -86,7 +87,7 @@ fs.mkdirSync(DIST, { recursive: true });
 for (const entry of INCLUDE) {
   const src = path.join(ROOT, entry);
   if (!fs.existsSync(src)) {
-    if (entry === 'index.html' || entry === 'app' || entry === 'admin' || entry === 'config') {
+    if (entry === 'index.html' || entry === 'app' || entry === 'admin' || entry === 'client' || entry === 'config') {
       fail(`required entry missing: ${entry}`);
     }
     console.warn(`build-dist: optional entry missing, skipped: ${entry}`);

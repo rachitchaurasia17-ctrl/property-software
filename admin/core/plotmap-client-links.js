@@ -1,77 +1,30 @@
-/* =============================================================================
-   PlotMap — Private Client Links  ·  FRONTEND CONTRACT (window.PMClientLinks)
-   -----------------------------------------------------------------------------
-   Private Client Links is the approved NEW feature: a dealer sends one customer
-   a private, mobile-first page showing a small, client-safe snapshot of selected
-   plots (chosen photos only, controlled price + location visibility, optional
-   dealer audio, dealer branding), with expiry, revocation and genuine open/reply
-   tracking. It EXTENDS the existing share_links infrastructure — it is NOT a
-   second sharing system.
-
-   THIS PHASE ships the frontend contract + UI states ONLY. The secure backend
-   (share_links columns/metadata, a client-safe resolver RPC, RLS, an events
-   table, the audio storage bucket + policies + signed delivery, and the Edge
-   Function) is NOT built here. Until it is, create()/list()/revoke() report
-   { ok:false, pending:true } so the dealer UI shows an honest "not enabled yet"
-   state and NEVER fabricates a working link or a success.
-
-   ── BACKEND CONTRACT the later phase must implement (kept here so the UI and
-      the server agree exactly) ──────────────────────────────────────────────
-
-   create(payload) → POST authenticated RPC `plotmap_create_client_link`
-     payload (dealer-scoped, owner/team-authorized server-side):
-       { clientId:            string,             // existing customer id
-         propertyIds:         string[<=4],        // existing plot ids, max 4
-         photoSelections:     { [propertyId]: string[] },  // chosen client-safe photo refs
-         priceVisibility:     'hidden' | 'shown', // DEFAULT 'hidden'
-         locationVisibility:  'area' | 'exact' | 'hidden',  // DEFAULT 'area'
-         audio:               null | { objectPath, seconds }, // dealer voice note
-         expiresInDays:       3 | 7 | 14 | 30 | null,
-         branding:            { brandName, logoUrl, phone, whatsapp } }
-     returns { ok:true, id, slug, url } | { ok:false, reason }
-     server: mint an UNGUESSABLE slug (>=128-bit), write a share_links row with
-     target_type='client_link', a frozen client-safe SNAPSHOT in metadata (so
-     later inventory edits never leak), expires_at, status='active'.
-
-   resolve(slug) → anon RPC `plotmap_resolve_client_link(slug)` (security definer)
-     returns ONLY client-safe fields, honoring the visibility flags; NEVER seller
-     contact, commission, source, internal price, negotiation/staff notes,
-     internal ids, full inventory, or exact location when locationVisibility!='exact'.
-     Rejects expired / revoked / unknown slugs.
-
-   list(propertyId?) → authenticated `plotmap_list_client_links` (dealer-scoped)
-   revoke(id)        → authenticated `plotmap_revoke_client_link` (immediate)
-   events            → append-only `client_link_events` (opens, audio played,
-                       call, whatsapp, visit) surfaced back to the dealer.
-   audio             → private per-dealer bucket, MIME + size validation, signed
-                       delivery only, cleaned on dealer deletion.
-   ========================================================================== */
+/* PlotMap Private Client Links - authenticated dealer client. */
 (function (global) {
   'use strict';
 
-  // Enabled only when the secure backend + a runtime flag are live. The build's
-  // runtime-env may set window.PM_CLIENT_LINKS_ENABLED = true once deployed.
-  function isEnabled() {
-    return global.PM_CLIENT_LINKS_ENABLED === true;
-  }
+  var AUDIO_BUCKET = 'client-link-audio';
+  var MAX_AUDIO_BYTES = 5 * 1024 * 1024;
+  var AUDIO_TYPES = ['audio/webm', 'audio/mpeg', 'audio/mp4', 'audio/ogg', 'audio/wav'];
 
   var PENDING = Object.freeze({
     ok: false,
     pending: true,
     reason: 'backend_not_enabled',
-    message: 'Private Client Links is being finished — the secure link, photos and audio go live once its backend is enabled. Nothing is sent yet.'
+    message: 'Private Client Links are not enabled for this environment yet.'
   });
 
-  // Validate a create payload against the contract BEFORE it ever reaches a
-  // server, so the UI can surface field errors immediately.
+  function isEnabled() {
+    return global.PM_CLIENT_LINKS_ENABLED === true;
+  }
+
   function validate(payload) {
     var errors = [];
     payload = payload || {};
-    if (!payload.clientId) errors.push('Choose a customer for this link.');
     if (!Array.isArray(payload.propertyIds) || payload.propertyIds.length < 1) errors.push('Add at least one plot.');
     if (Array.isArray(payload.propertyIds) && payload.propertyIds.length > 4) errors.push('A client link can hold at most 4 plots.');
     if (payload.priceVisibility && ['hidden', 'shown'].indexOf(payload.priceVisibility) < 0) errors.push('Invalid price visibility.');
     if (payload.locationVisibility && ['area', 'exact', 'hidden'].indexOf(payload.locationVisibility) < 0) errors.push('Invalid location visibility.');
+    if ([3, 7, 14, 30].indexOf(Number(payload.expiresInDays || 7)) < 0) errors.push('Invalid expiry.');
     return { ok: errors.length === 0, errors: errors };
   }
 
@@ -81,38 +34,135 @@
       clientId: payload.clientId || null,
       propertyIds: (payload.propertyIds || []).slice(0, 4),
       photoSelections: payload.photoSelections || {},
-      priceVisibility: payload.priceVisibility || 'hidden',       // safe default
-      locationVisibility: payload.locationVisibility || 'area',   // safe default
+      priceVisibility: payload.priceVisibility || 'hidden',
+      locationVisibility: payload.locationVisibility || 'area',
       audio: payload.audio || null,
-      expiresInDays: payload.expiresInDays == null ? 7 : payload.expiresInDays,
-      branding: payload.branding || null
+      expiresInDays: payload.expiresInDays == null ? 7 : Number(payload.expiresInDays)
     };
   }
 
-  // create — real call when enabled; honest pending state otherwise.
-  function create(payload) {
-    var full = withDefaults(payload);
-    var v = validate(full);
-    if (!v.ok) return Promise.resolve({ ok: false, reason: 'invalid', errors: v.errors });
-    if (!isEnabled()) return Promise.resolve(PENDING);
-    // When enabled, call the authenticated RPC (contract above). Implemented in
-    // the backend phase; guarded here so the stub never pretends to succeed.
-    if (typeof global.__pmCreateClientLink === 'function') {
-      return Promise.resolve(global.__pmCreateClientLink(full));
+  async function authContext() {
+    if (!global.PMAuth) return null;
+    var token = await global.PMAuth.getAccessToken().catch(function () { return null; });
+    if (!token) return null;
+    return {
+      url: global.PMAuth.SUPABASE_URL,
+      key: global.PMAuth.SUPABASE_KEY,
+      token: token
+    };
+  }
+
+  function safeFailure(status) {
+    if (status === 401) return { ok: false, reason: 'session_expired', errors: ['Your session expired. Sign in again.'] };
+    if (status === 403) return { ok: false, reason: 'not_allowed', errors: ['Your role cannot manage private links.'] };
+    if (status === 404) return PENDING;
+    return { ok: false, reason: 'request_failed', errors: ['Private link could not be completed.'] };
+  }
+
+  async function rpc(name, payload) {
+    var ctx = await authContext();
+    if (!ctx) return safeFailure(401);
+    var response;
+    try {
+      response = await fetch(ctx.url + '/rest/v1/rpc/' + encodeURIComponent(name), {
+        method: 'POST',
+        headers: {
+          apikey: ctx.key,
+          Authorization: 'Bearer ' + ctx.token,
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store'
+        },
+        body: JSON.stringify(payload || {})
+      });
+    } catch (_) {
+      return { ok: false, reason: 'network', errors: ['Check your connection and try again.'] };
     }
-    return Promise.resolve(PENDING);
+    if (!response.ok) return safeFailure(response.status);
+    return response.json().catch(function () { return safeFailure(500); });
   }
 
-  function list(propertyId) {
-    if (!isEnabled()) return Promise.resolve({ ok: false, pending: true, links: [] });
-    if (typeof global.__pmListClientLinks === 'function') return Promise.resolve(global.__pmListClientLinks(propertyId));
-    return Promise.resolve({ ok: false, pending: true, links: [] });
+  async function create(payload) {
+    var full = withDefaults(payload);
+    var checked = validate(full);
+    if (!checked.ok) return { ok: false, reason: 'invalid', errors: checked.errors };
+    if (!isEnabled()) return PENDING;
+    var result = await rpc('plotmap_create_client_link', { p_payload: full });
+    if (result && result.ok && result.url) {
+      result.url = new URL(result.url, global.location.origin).toString();
+    }
+    return result;
   }
 
-  function revoke(id) {
-    if (!isEnabled()) return Promise.resolve(PENDING);
-    if (typeof global.__pmRevokeClientLink === 'function') return Promise.resolve(global.__pmRevokeClientLink(id));
-    return Promise.resolve(PENDING);
+  async function list(propertyId) {
+    if (!isEnabled()) return { ok: false, pending: true, links: [] };
+    var rows = await rpc('plotmap_list_client_links', { p_property_id: propertyId || null });
+    if (Array.isArray(rows)) return { ok: true, links: rows };
+    return rows && rows.ok === false ? rows : { ok: true, links: [] };
+  }
+
+  async function revoke(id) {
+    if (!isEnabled()) return PENDING;
+    return rpc('plotmap_revoke_client_link', { p_link_id: id });
+  }
+
+  async function extend(id, days) {
+    if (!isEnabled()) return PENDING;
+    return rpc('plotmap_extend_client_link', { p_link_id: id, p_expires_in_days: Number(days || 7) });
+  }
+
+  function extensionFor(type) {
+    return ({
+      'audio/webm': 'webm',
+      'audio/mpeg': 'mp3',
+      'audio/mp4': 'mp4',
+      'audio/ogg': 'ogg',
+      'audio/wav': 'wav'
+    })[type] || '';
+  }
+
+  async function uploadAudio(blob, seconds) {
+    if (!isEnabled()) return PENDING;
+    var mimeType = String(blob && blob.type || '').split(';')[0].toLowerCase();
+    if (!blob || blob.size < 1 || blob.size > MAX_AUDIO_BYTES || AUDIO_TYPES.indexOf(mimeType) < 0) {
+      return { ok: false, reason: 'invalid_audio', errors: ['Voice note must be under 5 MB and no longer than 2 minutes.'] };
+    }
+    seconds = Math.max(1, Math.min(120, Math.ceil(Number(seconds) || 0)));
+    var ctx = await authContext();
+    if (!ctx) return safeFailure(401);
+    var profile = await global.PMAuth.getCurrentProfile().catch(function () { return null; });
+    var dealerId = profile && profile.dealer_id;
+    if (!dealerId || !/^[a-zA-Z0-9._-]{1,120}$/.test(dealerId)) return safeFailure(403);
+    var randomId = global.crypto && global.crypto.randomUUID
+      ? global.crypto.randomUUID()
+      : Date.now().toString(36) + Math.random().toString(36).slice(2);
+    var path = 'dealers/' + dealerId + '/client-links/' + randomId + '.' + extensionFor(mimeType);
+    var response;
+    try {
+      response = await fetch(ctx.url + '/storage/v1/object/' + AUDIO_BUCKET + '/' + path, {
+        method: 'POST',
+        headers: {
+          apikey: ctx.key,
+          Authorization: 'Bearer ' + ctx.token,
+          'Content-Type': mimeType,
+          'x-upsert': 'false'
+        },
+        body: blob
+      });
+    } catch (_) {
+      return { ok: false, reason: 'network', errors: ['Voice note upload failed. Check your connection.'] };
+    }
+    if (!response.ok) return safeFailure(response.status);
+    return { ok: true, objectPath: path, seconds: seconds };
+  }
+
+  async function removeAudio(path) {
+    if (!path) return;
+    var ctx = await authContext();
+    if (!ctx) return;
+    await fetch(ctx.url + '/storage/v1/object/' + AUDIO_BUCKET + '/' + path, {
+      method: 'DELETE',
+      headers: { apikey: ctx.key, Authorization: 'Bearer ' + ctx.token }
+    }).catch(function () {});
   }
 
   global.PMClientLinks = {
@@ -122,6 +172,9 @@
     create: create,
     list: list,
     revoke: revoke,
+    extend: extend,
+    uploadAudio: uploadAudio,
+    removeAudio: removeAudio,
     PENDING: PENDING
   };
 })(typeof window !== 'undefined' ? window : this);
