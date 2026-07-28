@@ -4,8 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Properties — PlotMap</title>
-<link rel="stylesheet" href="/admin/crm-ui.css">
+<title>My Plots — PlotMap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<link rel="stylesheet" href="/admin/core/plotmap-ds.css">
+<!-- Data + platform contracts preserved exactly. -->
 <script src="/config/runtime-env.js"></script>
 <script src="/config/supabase-config.js"></script>
 <script src="/admin/core/auth.js"></script>
@@ -18,561 +25,429 @@
 <script src="/admin/core/overlay-store.js"></script>
 <script src="/admin/core/saas-foundation.js"></script>
 <script src="/admin/core/supabase-sync.js"></script>
-<script src="/admin/core/nav.js"></script>
+<script src="/admin/core/plotmap-shell.js"></script>
+<script src="/admin/core/plotmap-client-links.js"></script>
 <script src="/app/plotmap/map-registry.js" defer></script>
 <script>
 if (window.PMAccess) window.PMAccess.guardPage({ roleRequired: 'team' });
 </script>
+<style>
+  .mp-stat { border-radius:20px; padding:24px 26px; }
+  .mp-stat .k { font-size:14px; font-weight:700; }
+  .mp-stat .v { font-family:var(--pm-font-display); font-weight:500; font-size:44px; line-height:1; margin-top:8px; }
+  .mp-card { background:var(--pm-surface-alt); border:1px solid var(--pm-hairline-2); border-radius:18px; overflow:hidden; box-shadow:0 1px 2px rgba(30,28,22,.03),0 14px 34px -26px rgba(30,28,22,.6); transition:border-color var(--pm-hover-ms) ease; }
+  .mp-card:hover { border-color:#ecd0bf; }
+  .mp-photo { height:150px; position:relative; background:#e7e0d2; }
+  .mp-photo .ph { position:absolute; inset:0; background-size:cover; background-position:center; }
+  .mp-chip { font-size:13px; font-weight:600; color:#4c463d; background:#f7e7c6; border-radius:9px; padding:5px 11px; display:inline-flex; align-items:center; gap:5px; }
+  .mp-tag { display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:800; padding:5px 11px; border-radius:999px; }
+  .mp-need { display:flex; align-items:center; gap:16px; padding:18px 22px; border:1px solid #f2ddd2; background:#fdf3ee; border-radius:16px; }
+  .mp-menu-btn { display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:800; padding:8px 12px; border-radius:10px; background:var(--pm-surface-violet); color:var(--pm-ink-2); }
+  .mp-menu-btn:hover { background:#e7defc; }
+  /* Add/edit form dialog + client-link drawer reuse DS .pm-overlay/.pm-drawer */
+  .mp-form-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  @media (max-width:900px){ .mp-form-grid{ grid-template-columns:1fr; } }
+</style>
 </head>
-<body class="pm-shell">
-
-<header id="pm-topbar"></header>
-
-<main class="pm-main">
-  <div class="pm-page-header">
-    <div>
-      <h1>Properties</h1>
-      <div class="sub" id="prop-count">Everything you have to sell, in one place.</div>
-    </div>
-    <button class="pm-btn pm-btn-primary" id="btn-toggle-add">+ Add Property</button>
-  </div>
-
-  <!-- Add / Edit property form -->
-  <div class="pm-card-xl" id="add-prop" style="display:none;margin-bottom:18px;">
-    <div class="pm-card-h" id="form-title">Add New Property</div>
-    <form class="pm-form" id="add-prop-form">
-      <input type="hidden" id="p-editing" value="">
-      <div class="pm-grid cols-3">
-        <div class="fld"><label>Title</label><input type="text" id="p-title" required placeholder="Property name"></div>
-        <div class="fld"><label>Area (masterplan)</label><input type="text" id="p-area" required placeholder="e.g. Aerocity" list="area-options"><datalist id="area-options"></datalist></div>
-        <div class="fld"><label>Sector / Block</label><input type="text" id="p-sector" placeholder="e.g. Sector 82"></div>
-        <div class="fld"><label>Plot Number</label><input type="text" id="p-plot" placeholder="e.g. 128"></div>
-        <div class="fld"><label>Type</label><select id="p-type"><option>Plot</option><option>Flat</option><option>Floor</option><option>SCO</option><option>Villa</option><option>Booth</option><option>Other</option></select></div>
-        <div class="fld"><label>Size</label><input type="text" id="p-size" placeholder="e.g. 200 sq.yd."></div>
-        <div class="fld"><label>Facing</label><input type="text" id="p-facing" placeholder="e.g. Park facing"></div>
-        <div class="fld"><label>Status</label><select id="p-status"><option>Available</option><option>On Hold</option><option>Internal Only</option></select></div>
-        <div class="fld"><label>Detailed Map</label><select id="p-sectormap"><option value="">— none —</option></select></div>
-        <div style="grid-column:1/-1;display:flex;align-items:center;gap:10px;background:#FBF6EC;border:1px solid #EADFC6;border-radius:12px;padding:11px 14px;margin-top:4px;">
-          <span style="font-size:16px;">🔒</span>
-          <span style="font-size:13px;color:#6B5A30;font-weight:600;">Only client-safe information should be shown. Price, seller and internal notes never appear in the Client Presentation.</span>
-        </div>
-        <div class="fld" style="grid-column:1/-1;"><label>Short Description (shown to clients)</label><input type="text" id="p-desc" maxlength="240" placeholder="e.g. Corner plot near main market"></div>
-        <div class="fld" style="grid-column:1/-1;">
-          <label>Photo links (comma separated, optional)</label>
-          <input type="text" id="p-photos" placeholder="https://…jpg, https://…jpg">
-          <div style="font-size:12px;color:var(--pm-text-mut);margin-top:6px;" id="p-photo-storage-note">Paste image links (Google Drive, website, etc.) — they show in the presentation right away. Device uploads turn on once your storage is enabled.</div>
-          <!-- Photo manager: shows current photos (URL + uploaded) with remove. Always available. -->
-          <div id="p-photo-manager" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;"></div>
-          <!-- Upload UI: hidden unless dealer storage is enabled (Phase 5). Inert by default. -->
-          <div id="p-photo-upload" style="display:none;margin-top:10px;">
-            <input type="file" id="p-photo-file" accept="image/jpeg,image/png,image/webp" multiple>
-            <button type="button" class="pm-btn pm-btn-secondary sm" id="p-photo-upload-btn" style="margin-left:8px;">Upload to storage</button>
-            <div id="p-photo-selected" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;"></div>
-            <div id="p-photo-upload-status" style="font-size:12px;color:var(--pm-text-mut);margin-top:6px;"></div>
-          </div>
-        </div>
-      </div>
-      <label style="display:flex;align-items:center;gap:12px;margin-top:16px;padding:13px 15px;border:1px solid var(--pm-border);border-radius:12px;background:#fff;font-size:14px;cursor:pointer;">
-        <input type="checkbox" id="p-visible" checked style="width:18px;height:18px;flex:none;">
-        <span><strong style="display:block;">Show this property to clients</strong><span style="font-size:12.5px;color:var(--pm-text-mut);">On = visible in the Client Presentation. Off = kept private to your team.</span></span>
-      </label>
-      <div style="margin-top:16px;display:flex;gap:10px;">
-        <button type="submit" class="pm-btn pm-btn-primary" id="form-submit">Save Property</button>
-        <button type="button" class="pm-btn pm-btn-secondary" id="form-cancel">Cancel</button>
-      </div>
-    </form>
-  </div>
-
-  <!-- Search + Filters -->
-  <div class="pm-search" style="margin-bottom:12px;">
-    <span class="icon">○</span>
-    <input type="text" placeholder="Search properties by name, area, sector, or plot number..." id="search-input">
-  </div>
-  <div class="pm-filters" id="status-filters">
-    <!-- JS -->
-  </div>
-
-  <!-- Property Cards Grid -->
-  <div class="pm-grid cols-3" id="prop-grid">
-    <!-- JS rendered -->
-  </div>
-</main>
-
+<body class="pm-body pm-app-bg">
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  if (window.location.hash === '#add') {
-    setTimeout(() => {
-      const btn = document.getElementById('btn-toggle-add');
-      if (btn) btn.click();
-      window.history.replaceState(null, '', 'properties.html');
-    }, 50);
-  }
-
-  // Force the Team Workspace nav so opening Properties stays inside the workspace
-  // context (Workspace / Properties / Map Studio) — never flips to the dealer bar.
-  window.PMNav.render('properties', 'team');
   const crm = window.CRM;
+  const esc = window.PMShell.esc;
+  // Properties is a Team Workspace tool (role split preserved) — team nav.
+  const mount = window.PMShell.mount({ variant:'team', active:'plots', section:{ icon:'ph-buildings', name:'My Plots' } });
 
-  function esc(v) {
-    return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({
-      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-    })[c]);
-  }
-
+  // ---------- helpers preserved from prior implementation ----------
   const liveProps = () => (crm.getScopedCRM ? crm.getScopedCRM() : crm.getCRM()).properties.filter(p => p.internalStatus !== 'Archived');
+  const scoped = () => (crm.getScopedCRM ? crm.getScopedCRM() : crm.getCRM());
   const registryMaps = () => (window.PM_MAP_REGISTRY && Array.isArray(window.PM_MAP_REGISTRY.maps)) ? window.PM_MAP_REGISTRY.maps : [];
   const normalize = (v) => String(v || '').trim().toLowerCase();
   const masterMapForArea = (area) => registryMaps().find(m => m.type === 'masterplan' && normalize(m.area) === normalize(area) && m.status === 'active') || null;
   const sectorMapForProperty = (prop) => {
     if (!prop) return null;
-    if (prop.sectorMapId) {
-      const explicit = registryMaps().find(m => m.id === prop.sectorMapId);
-      if (explicit) return explicit;
-    }
+    if (prop.sectorMapId) { const explicit = registryMaps().find(m => m.id === prop.sectorMapId); if (explicit) return explicit; }
     const sectorText = normalize(prop.sector || prop.block);
-    return registryMaps().find(m =>
-      m.type === 'sector' &&
-      m.status === 'active' &&
-      (
-        normalize(m.area) === normalize(prop.area) ||
-        normalize(m.title) === sectorText ||
-        normalize(m.block) === sectorText ||
-        normalize(m.sectorOrBlockName) === sectorText ||
-        normalize(m.matchKey) === sectorText.replace(/\s+/g, '-')
-      )
-    ) || null;
+    return registryMaps().find(m => m.type === 'sector' && m.status === 'active' && (
+      normalize(m.area) === normalize(prop.area) || normalize(m.title) === sectorText || normalize(m.block) === sectorText ||
+      normalize(m.sectorOrBlockName) === sectorText || normalize(m.matchKey) === sectorText.replace(/\s+/g, '-')
+    )) || null;
   };
   const clientHrefForProperty = (id, view) => {
-    if (window.PMFoundation && typeof window.PMFoundation.buildPresentationShareUrl === 'function') {
-      return window.PMFoundation.buildPresentationShareUrl({ propertyId: id, view: view || 'detail' });
-    }
-    const href = new URL('/app/plotmap/', window.location.origin);
-    href.searchParams.set('property', id);
-    if (view) href.searchParams.set('view', view);
-    return href.toString();
+    if (window.PMFoundation && typeof window.PMFoundation.buildPresentationShareUrl === 'function') return window.PMFoundation.buildPresentationShareUrl({ propertyId: id, view: view || 'detail' });
+    const href = new URL('/app/plotmap/', window.location.origin); href.searchParams.set('property', id); if (view) href.searchParams.set('view', view); return href.toString();
   };
   const mapStudioHrefForProperty = (prop) => {
-    const href = new URL('/admin/map-studio.html', window.location.origin);
-    const sectorMap = sectorMapForProperty(prop);
-    if (sectorMap) href.searchParams.set('map', sectorMap.id);
-    href.searchParams.set('tool', 'pin');
-    href.searchParams.set('property', prop.id);
-    return href.toString();
+    const href = new URL('/admin/map-studio.html', window.location.origin); const sectorMap = sectorMapForProperty(prop);
+    if (sectorMap) href.searchParams.set('map', sectorMap.id); href.searchParams.set('tool', 'pin'); href.searchParams.set('property', prop.id); return href.toString();
   };
-  const pinIndex = () => {
-    const map = new Map();
-    if (!window.PMOverlayStore) return map;
-    window.PMOverlayStore.customItems().forEach(it => {
-      if (it && it.kind === 'pin' && it.propertyId && !it.deleted && !map.has(it.propertyId)) {
-        map.set(it.propertyId, it);
-      }
-    });
-    return map;
-  };
+  const pinIndex = () => { const map = new Map(); if (!window.PMOverlayStore) return map; window.PMOverlayStore.customItems().forEach(it => { if (it && it.kind === 'pin' && it.propertyId && !it.deleted && !map.has(it.propertyId)) map.set(it.propertyId, it); }); return map; };
+  const money = n => { n = Number(n||0); if(!n) return 'Set price'; if(n>=1e7) return '₹'+(n/1e7).toFixed(n%1e7?2:0)+' Cr'; if(n>=1e5) return '₹'+(n/1e5).toFixed(n%1e5?1:0)+' L'; return '₹'+n.toLocaleString('en-IN'); };
+  const photosOf = (p) => window.PMFoundation ? window.PMFoundation.hydratePropertyPhotos(p) : (Array.isArray(p.photos) ? p.photos : []);
+  const isReady = (p) => { const ph = photosOf(p); return p.clientVisible !== false && ph.length > 0 && (pinIndex().has(p.id) || !!sectorMapForProperty(p)); };
 
-  // Property pins drawn in Map Studio (overlay store) — pin.propertyId links them.
-  function pinForProperty(id) {
-    if (!window.PMOverlayStore) return null;
-    return window.PMOverlayStore.customItems().find(it => it.kind === 'pin' && it.propertyId === id && !it.deleted) || null;
-  }
-  function mapTitle(mapId) {
-    const reg = window.PM_MAP_REGISTRY;
-    const m = reg && reg.maps ? reg.maps.find(x => x.id === mapId) : null;
-    return m ? (m.displayName || m.title || mapId) : mapId;
-  }
+  // ---------- window-scoped actions preserved ----------
+  window.editProp = (id) => { const p = liveProps().find(x => x.id === id); if (p) openForm(p); };
+  window.archiveProp = async (id) => { if (!(await window.PMShell.confirm({ title:'Archive this plot?', body:'It disappears from the client presentation and this list, but is not deleted.', okText:'Archive', danger:true }))) return; crm.archiveProperty(id); render(); };
+  window.markSold = (id) => { crm.updateProperty(id, { internalStatus: 'Sold' }); render(); window.PMShell.toast('Marked sold', 'ok'); };
+  window.toggleVisible = (id) => { const p = liveProps().find(x => x.id === id); if (!p) return; crm.updateProperty(id, { clientVisible: p.clientVisible === false }); render(); };
+  window.unpinProp = async (id) => { const pin = pinIndex().get(id); if (!pin) return; if (!(await window.PMShell.confirm({ title:'Remove from map?', body:"The property's marker is removed; the property itself stays in your inventory.", okText:'Remove', danger:true }))) return; window.PMOverlayStore.remove(pin.id); render(); };
+  window.placeProp = (id) => { const prop = liveProps().find(x => x.id === id); if (prop) window.location.href = mapStudioHrefForProperty(prop); };
+  window.viewPropOnMap = (id) => window.open(clientHrefForProperty(id, 'map'), '_blank', 'noopener');
+  window.editPrice = (id) => { const p = liveProps().find(x => x.id === id); if (!p) return; const cur = p.price ? String(p.price) : ''; const v = window.prompt('Price for "' + (p.title || 'plot') + '" (₹, numbers only):', cur); if (v === null) return; const n = Number(String(v).replace(/[^\d.]/g, '')); crm.updateProperty(id, { price: isFinite(n) ? n : null }); render(); window.PMShell.toast('Price updated', 'ok'); };
 
-  // Map registry → area datalist + sector map select (registry loads deferred)
+  // ---------- page markup (design My Plots), injected into the shell ----------
+  const clients = () => (scoped().clients || []);
+  mount.innerHTML = `
+  <div class="pm-shell-page" style="max-width:1120px">
+    <div class="pm-spread" style="align-items:flex-end;flex-wrap:wrap;gap:20px" class="pm-anim-rise">
+      <div><h1 class="pm-h1" style="font-size:34px">My Plots</h1><p class="pm-lead" style="margin-top:8px">Everything you have to sell — and what's ready to show a customer.</p></div>
+      <button class="pm-btn pm-btn-primary pm-btn-lg" id="btn-toggle-add"><i class="ph-bold ph-plus"></i>Add a plot</button>
+    </div>
+
+    <div class="pm-row" style="gap:14px;margin-top:22px;position:relative;z-index:20">
+      <div style="position:relative">
+        <button class="pm-filter-pill" id="city-filter-btn" style="height:auto;padding:10px 16px">
+          <i class="ph-fill ph-map-pin" style="color:#d95d1e"></i>
+          <span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.1"><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--pm-ink-soft)">Showing</span><span style="font-size:16.5px;font-weight:800;color:var(--pm-ink)" id="city-filter-label">All cities</span></span>
+          <i class="ph ph-caret-down" style="color:var(--pm-ink-soft)"></i>
+        </button>
+        <div id="city-menu" style="display:none;position:absolute;top:calc(100% + 10px);left:0;width:440px;max-width:80vw;background:var(--pm-surface-alt);border:1px solid var(--pm-hairline-2);border-radius:18px;box-shadow:var(--pm-shadow-pop);padding:12px;z-index:40"></div>
+      </div>
+    </div>
+
+    <div class="pm-grid" style="grid-template-columns:1.2fr 1fr 1fr;margin-top:20px">
+      <div class="mp-stat" style="background:#ffc93c;background-image:linear-gradient(135deg,#ffdc7a,#f4ae14);color:#1f1a12"><div class="k" style="color:#8a6a14">Value of stock</div><div class="v" id="mp-value">—</div></div>
+      <div class="mp-stat" style="background:#ffe6cf;border:1px solid #f8cba6"><div class="k" style="color:var(--pm-ink-muted)">Ready to show</div><div class="v" id="mp-ready" style="color:#d95d1e">0</div></div>
+      <div class="mp-stat pm-card-violet"><div class="k" style="color:var(--pm-ink-muted)">Need a photo</div><div class="v" id="mp-need" style="color:#b5322a">0</div></div>
+    </div>
+
+    <div class="pm-eyebrow" style="color:var(--pm-ink-soft);margin:30px 0 14px">Ready to show</div>
+    <div id="mp-ready-grid" class="pm-grid" style="grid-template-columns:repeat(auto-fill,minmax(310px,1fr))"></div>
+    <div id="mp-needwork-wrap" style="display:none">
+      <div class="pm-eyebrow" style="color:var(--pm-ink-soft);margin:34px 0 14px">Need work before you can show them</div>
+      <div id="mp-needwork" class="pm-stack" style="gap:12px"></div>
+    </div>
+  </div>
+
+  <!-- Add / edit plot — DS dialog. INPUT IDS PRESERVED for PMPhotoManager + submit. -->
+  <div class="pm-overlay" id="add-prop">
+    <div class="pm-dialog" style="max-width:760px;max-height:90vh;overflow:auto" role="dialog" aria-modal="true">
+      <div class="pm-dialog-head"><h3 class="pm-sheet-title" id="form-title">Add a plot</h3><button class="pm-dialog-close" type="button" id="form-cancel">✕</button></div>
+      <form id="add-prop-form">
+        <input type="hidden" id="p-editing" value="">
+        <div class="mp-form-grid">
+          <div class="pm-field"><label class="pm-label">Title</label><input class="pm-input" type="text" id="p-title" required placeholder="Property name"></div>
+          <div class="pm-field"><label class="pm-label">Area (masterplan)</label><input class="pm-input" type="text" id="p-area" required placeholder="e.g. Aerocity" list="area-options"><datalist id="area-options"></datalist></div>
+          <div class="pm-field"><label class="pm-label">Sector / Block</label><input class="pm-input" type="text" id="p-sector" placeholder="e.g. Sector 82"></div>
+          <div class="pm-field"><label class="pm-label">Plot Number</label><input class="pm-input" type="text" id="p-plot" placeholder="e.g. 128"></div>
+          <div class="pm-field"><label class="pm-label">Type</label><select class="pm-select" id="p-type"><option>Plot</option><option>Flat</option><option>Floor</option><option>SCO</option><option>Villa</option><option>Booth</option><option>Other</option></select></div>
+          <div class="pm-field"><label class="pm-label">Size</label><input class="pm-input" type="text" id="p-size" placeholder="e.g. 200 sq.yd."></div>
+          <div class="pm-field"><label class="pm-label">Facing</label><input class="pm-input" type="text" id="p-facing" placeholder="e.g. Park facing"></div>
+          <div class="pm-field"><label class="pm-label">Status</label><select class="pm-select" id="p-status"><option>Available</option><option>On Hold</option><option>Internal Only</option></select></div>
+          <div class="pm-field"><label class="pm-label">Detailed Map</label><select class="pm-select" id="p-sectormap"><option value="">— none —</option></select></div>
+          <div class="pm-field"><label class="pm-label">Price (₹, internal)</label><input class="pm-input" type="text" id="p-price" inputmode="numeric" placeholder="e.g. 4500000"></div>
+        </div>
+        <div class="pm-alert pm-alert-warn" style="margin-top:14px"><i class="ph-fill ph-lock-simple"></i><span>Only client-safe information is shown to clients. Price, seller and internal notes never appear in the Client Presentation.</span></div>
+        <div class="pm-field" style="margin-top:12px"><label class="pm-label">Short description (shown to clients)</label><input class="pm-input" type="text" id="p-desc" maxlength="240" placeholder="e.g. Corner plot near main market"></div>
+        <div class="pm-field" style="margin-top:12px">
+          <label class="pm-label">Photo links (comma separated)</label>
+          <input class="pm-input" type="text" id="p-photos" placeholder="https://…jpg, https://…jpg">
+          <div class="pm-meta" style="margin-top:6px" id="p-photo-storage-note">Paste image links — they show in the presentation right away. Device uploads turn on once your storage is enabled.</div>
+          <div id="p-photo-manager" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px"></div>
+          <div id="p-photo-upload" style="display:none;margin-top:10px">
+            <input type="file" id="p-photo-file" accept="image/jpeg,image/png,image/webp" multiple>
+            <button type="button" class="pm-btn pm-btn-ghost pm-btn-sm" id="p-photo-upload-btn" style="margin-left:8px">Upload to storage</button>
+            <div id="p-photo-selected" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
+            <div id="p-photo-upload-status" class="pm-meta" style="margin-top:6px"></div>
+          </div>
+        </div>
+        <label class="pm-row" style="gap:12px;margin-top:14px;padding:13px 15px;border:1px solid var(--pm-hairline);border-radius:14px;background:var(--pm-surface);cursor:pointer">
+          <input type="checkbox" id="p-visible" checked style="width:18px;height:18px;flex:none">
+          <span><strong style="display:block">Show this property to clients</strong><span class="pm-meta">On = visible in the Client Presentation. Off = kept private to your team.</span></span>
+        </label>
+        <div class="pm-row" style="gap:10px;margin-top:16px">
+          <button type="submit" class="pm-btn pm-btn-primary" id="form-submit">Save plot</button>
+          <button type="button" class="pm-btn pm-btn-ghost" id="form-cancel-2">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Private Client Link drawer (entry points + UI states; backend pending). -->
+  <div class="pm-drawer" id="cl-drawer" aria-hidden="true">
+    <div class="pm-row" style="justify-content:space-between;padding:20px 22px;border-bottom:1px solid var(--pm-hairline)">
+      <div><div class="pm-eyebrow pm-eyebrow-violet">Private client link</div><div class="pm-sheet-title" id="cl-plot" style="margin-top:4px">Send a private link</div></div>
+      <button class="pm-dialog-close" id="cl-close" type="button">✕</button>
+    </div>
+    <div class="pm-scroll" style="flex:1;min-height:0;overflow-y:auto;padding:22px" id="cl-body"></div>
+  </div>
+  <div class="pm-overlay" id="cl-scrim" style="z-index:59"></div>
+  <div id="client-links" style="position:absolute"></div>`;
+
+  // ---------- map options (area datalist + sector select) ----------
   function fillMapOptions() {
     const reg = window.PM_MAP_REGISTRY;
     if (!reg || !Array.isArray(reg.maps)) { setTimeout(fillMapOptions, 300); return; }
     const areas = [...new Set(reg.maps.filter(m => m.type === 'masterplan' && m.area).map(m => m.area))];
     document.getElementById('area-options').innerHTML = areas.map(a => '<option value="' + esc(a) + '">').join('');
     const sectors = reg.maps.filter(m => m.type === 'sector' && m.hasOriginalMap);
-    document.getElementById('p-sectormap').innerHTML = '<option value="">— none —</option>' +
-      sectors.map(m => '<option value="' + esc(m.id) + '">' + esc(m.displayName || m.title) + '</option>').join('');
+    document.getElementById('p-sectormap').innerHTML = '<option value="">— none —</option>' + sectors.map(m => '<option value="' + esc(m.id) + '">' + esc(m.displayName || m.title) + '</option>').join('');
   }
   fillMapOptions();
 
-  document.getElementById('prop-count').textContent = liveProps().length + ' properties listed.';
-
-  // ---- form open/close + edit mode ----
+  // ---------- add / edit form (dialog) ----------
   const formCard = document.getElementById('add-prop');
   function openForm(prop) {
     document.getElementById('p-editing').value = prop ? prop.id : '';
-    document.getElementById('form-title').textContent = prop ? 'Edit Property' : 'Add New Property';
-    document.getElementById('form-submit').textContent = prop ? 'Save Changes' : 'Save Property';
-    document.getElementById('p-title').value = prop ? (prop.title || '') : '';
-    document.getElementById('p-area').value = prop ? (prop.area || '') : '';
-    document.getElementById('p-sector').value = prop ? (prop.sector || prop.block || '') : '';
-    document.getElementById('p-plot').value = prop ? (prop.plotNumber || '') : '';
-    document.getElementById('p-type').value = prop ? (prop.type || 'Plot') : 'Plot';
-    document.getElementById('p-size').value = prop ? (prop.size || '') : '';
-    document.getElementById('p-facing').value = prop ? (prop.facing || '') : '';
-    document.getElementById('p-status').value = prop && ['Available', 'On Hold', 'Internal Only'].includes(prop.internalStatus) ? prop.internalStatus : 'Available';
-    document.getElementById('p-sectormap').value = prop ? (prop.sectorMapId || '') : '';
-    document.getElementById('p-desc').value = prop ? (prop.description || '') : '';
-    document.getElementById('p-photos').value = prop && Array.isArray(prop.photos) ? prop.photos.join(', ') : '';
+    document.getElementById('form-title').textContent = prop ? 'Edit plot' : 'Add a plot';
+    document.getElementById('form-submit').textContent = prop ? 'Save changes' : 'Save plot';
+    const set = (id, v) => { document.getElementById(id).value = v == null ? '' : v; };
+    set('p-title', prop && prop.title); set('p-area', prop && prop.area); set('p-sector', prop && (prop.sector || prop.block));
+    set('p-plot', prop && prop.plotNumber); document.getElementById('p-type').value = prop ? (prop.type || 'Plot') : 'Plot';
+    set('p-size', prop && prop.size); set('p-facing', prop && prop.facing);
+    document.getElementById('p-status').value = prop && ['Available','On Hold','Internal Only'].includes(prop.internalStatus) ? prop.internalStatus : 'Available';
+    set('p-sectormap', prop && prop.sectorMapId); set('p-desc', prop && prop.description); set('p-price', prop && prop.price);
+    set('p-photos', prop && Array.isArray(prop.photos) ? prop.photos.join(', ') : '');
     document.getElementById('p-visible').checked = prop ? prop.clientVisible !== false : true;
     if (window.PMPhotoManager) window.PMPhotoManager.reset(prop);
-    formCard.style.display = 'block';
-    formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    formCard.classList.add('is-open');
   }
-  function closeForm() {
-    formCard.style.display = 'none';
-    document.getElementById('add-prop-form').reset();
-    document.getElementById('p-editing').value = '';
-  }
-  document.getElementById('btn-toggle-add').addEventListener('click', () => {
-    if (formCard.style.display === 'none') {
-      openForm(null);
-      if (window.PMEventTracker) window.PMEventTracker.trackProductEvent('property_add_clicked', {});
-    } else closeForm();
-  });
+  function closeForm() { formCard.classList.remove('is-open'); document.getElementById('add-prop-form').reset(); document.getElementById('p-editing').value = ''; }
+  document.getElementById('btn-toggle-add').addEventListener('click', () => { openForm(null); if (window.PMEventTracker) window.PMEventTracker.trackProductEvent('property_add_clicked', {}); });
   document.getElementById('form-cancel').addEventListener('click', closeForm);
+  document.getElementById('form-cancel-2').addEventListener('click', closeForm);
+  formCard.addEventListener('click', (e) => { if (e.target === formCard) closeForm(); });
 
-  window.editProp = function(id) {
-    const p = liveProps().find(x => x.id === id);
-    if (p) openForm(p);
-  };
-
-  window.archiveProp = function(id) {
-    if (!confirm('Archive this property? It disappears from the client presentation and this list, but is not deleted.')) return;
-    crm.archiveProperty(id);
-    renderProps();
-  };
-
-  window.markSold = function(id) {
-    crm.updateProperty(id, { internalStatus: 'Sold' });
-    renderProps();
-  };
-
-  window.toggleVisible = function(id) {
-    const p = liveProps().find(x => x.id === id);
-    if (!p) return;
-    crm.updateProperty(id, { clientVisible: p.clientVisible === false });
-    renderProps();
-  };
-
-  window.unpinProp = function(id) {
-    const pin = pinForProperty(id);
-    if (!pin) return;
-    if (!confirm('Remove this property\'s marker from the map? The property itself stays in your inventory.')) return;
-    window.PMOverlayStore.remove(pin.id);
-    renderProps();
-  };
-  window.placeProp = function(id) {
-    const prop = liveProps().find(x => x.id === id);
-    if (!prop) return;
-    window.location.href = mapStudioHrefForProperty(prop);
-  };
-  window.viewPropOnMap = function(id) {
-    window.open(clientHrefForProperty(id, 'map'), '_blank', 'noopener');
-  };
-  window.sharePropWhatsapp = function(id) {
-    const prop = liveProps().find(x => x.id === id);
-    if (!prop) return;
-    // Property facts only — never a live PlotMap link. Buyers see the map in
-    // person on the dealer's approved device; PlotMap is not a buyer app.
-    const safeBits = [
-      prop.title || 'Property',
-      [prop.area, prop.sector || prop.block].filter(Boolean).join(' · '),
-      prop.size || '',
-      prop.description || ''
-    ].filter(Boolean);
-    const msg = safeBits.join('\n');
-    window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank', 'noopener');
-  };
-
-  // Gradient backgrounds for property cards
-  const gradients = [
-    'linear-gradient(135deg,#E7F0EB 0%,#D4E5DB 100%)',
-    'linear-gradient(135deg,#F3EAD8 0%,#E8D9BE 100%)',
-    'linear-gradient(135deg,#E9EFF4 0%,#D6E3EE 100%)',
-    'linear-gradient(135deg,#EDEAF2 0%,#DDD8E8 100%)',
-    'linear-gradient(135deg,#F7E7E0 0%,#EFD6CA 100%)'
-  ];
-
-  function statusBadge(s) {
-    if (s === 'Available') return { cls: 'available', bg: 'rgba(234,243,238,.95)', color: '#1F5E47' };
-    if (s === 'On Hold') return { cls: 'on-hold', bg: 'rgba(243,234,216,.95)', color: '#8A6224' };
-    if (s === 'Internal Only') return { cls: 'internal', bg: 'rgba(237,234,242,.95)', color: '#5F5A78' };
-    if (s === 'Sold') return { cls: 'closed', bg: 'rgba(239,235,226,.95)', color: '#7C8076' };
-    return { cls: 'neutral', bg: '#F4F2EA', color: '#56544A' };
-  }
-
-  // Filter chips
-  const statuses = ['All', 'Available', 'On Hold', 'Internal Only', 'Sold', 'Hidden from client'];
-  let activeFilter = 'All';
-  const filtersEl = document.getElementById('status-filters');
-
-  function renderFilters() {
-    filtersEl.innerHTML = statuses.map(s => `<span class="pm-chip ${activeFilter === s ? 'active' : ''}" data-status="${esc(s)}">${esc(s)}</span>`).join('');
-    filtersEl.querySelectorAll('.pm-chip').forEach(chip => {
-      chip.addEventListener('click', () => {
-        activeFilter = chip.dataset.status;
-        renderFilters();
-        renderProps();
-      });
-    });
-  }
-
-  function renderProps() {
-    const props = liveProps();
-    const pins = pinIndex();
-    document.getElementById('prop-count').textContent = props.length + ' properties listed.';
-    const searchTerm = (document.getElementById('search-input').value || '').toLowerCase();
-    const filtered = props.filter(p => {
-      const matchSearch = !searchTerm ||
-        (p.title || '').toLowerCase().includes(searchTerm) ||
-        (p.area || '').toLowerCase().includes(searchTerm) ||
-        (p.sector || '').toLowerCase().includes(searchTerm) ||
-        (p.plotNumber || '').toLowerCase().includes(searchTerm);
-      const matchStatus = activeFilter === 'All'
-        || (activeFilter === 'Hidden from client' ? p.clientVisible === false : p.internalStatus === activeFilter);
-      return matchSearch && matchStatus;
-    });
-
-    const grid = document.getElementById('prop-grid');
-    if (filtered.length === 0) {
-      grid.innerHTML = props.length === 0
-        ? '<div class="pm-empty" style="grid-column:1/-1;"><div class="title">Add your first property</div><div class="desc">Build your inventory so you have something beautiful to show a client. Click “+ Add Property” to start.</div><button class="pm-btn pm-btn-primary" style="margin-top:14px;" onclick="document.getElementById(\'btn-toggle-add\').click()">+ Add Property</button></div>'
-        : '<div class="pm-empty" style="grid-column:1/-1;"><div class="title">No properties match</div><div class="desc">Try a different search or clear the status filter to see everything.</div></div>';
-      return;
-    }
-
-    grid.innerHTML = filtered.map((p, i) => {
-      const badge = statusBadge(p.internalStatus);
-      const pin = pins.get(p.id) || null;
-      const hidden = p.clientVisible === false;
-      const sectorMap = sectorMapForProperty(p);
-      const masterMap = masterMapForArea(p.area);
-
-      const hydratedPhotos = window.PMFoundation ? window.PMFoundation.hydratePropertyPhotos(p) : (Array.isArray(p.photos) ? p.photos : []);
-      // Readiness hints — honest + client-safe. "Ready to show" only when it is.
-      const hasPhoto = Array.isArray(hydratedPhotos) && hydratedPhotos.length > 0;
-      const onMap = !!pin;
-      const hasSector = !!sectorMap;
-      const ready = !hidden && hasPhoto && (onMap || hasSector);
-      const hints = [];
-      if (ready) hints.push({ t: 'Ready to show', bg: '#E7F0EB', c: '#1F5E47' });
-      if (hidden) hints.push({ t: 'Hidden from client', bg: '#EFEBE3', c: '#6B6456' });
-      if (!hasPhoto) hints.push({ t: 'Needs photo', bg: '#FBF3E4', c: '#8A6224' });
-      if (!onMap) hints.push({ t: 'Not on map yet', bg: '#E8EEF5', c: '#2C5A86' });
-      if (!hasSector) hints.push({ t: 'Needs sector proof', bg: '#EDEAF2', c: '#5B3E86' });
-      const flags = hints.map(h => h.t);
-      const photo = hydratedPhotos[0]
-        ? `background:url('${esc(hydratedPhotos[0])}') center/cover, ${gradients[i % gradients.length]};`
-        : `background:${gradients[i % gradients.length]};`;
-
-      const mapLine = pin
-        ? `<div class="size" style="color:#1F5E47;">On map: ${esc(mapTitle(pin.mapId))}</div>`
-        : `<div class="size" style="color:#8A6224;">Not placed on a map yet — add it in Map Studio.</div>`;
-
-      return `<div class="pm-prop-card">
-        <div class="hero" style="${photo}">
-          <span class="badge" style="background:${badge.bg};color:${badge.color};">${esc(p.internalStatus)}</span>
-          ${flags.length ? `<span class="flag">${esc(flags[0])}</span>` : ''}
-        </div>
-        <div class="body">
-          <div class="area">${esc(p.area || '-')} ${p.sector ? '· ' + esc(p.sector) : ''} ${p.plotNumber ? '· Plot ' + esc(p.plotNumber) : ''}</div>
-          <div class="name">${esc(p.title || 'Unnamed')}</div>
-          <div class="size">${esc(p.type || '-')} · ${esc(p.size || p.plotSize || '-')}${p.facing ? ' · ' + esc(p.facing) : ''}</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;">${hints.map(h => `<span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:${h.bg};color:${h.c};">${esc(h.t)}</span>`).join('')}</div>
-          ${mapLine}
-          ${p.description ? `<div class="size" style="margin-top:8px;color:#4E4A40;">${esc(p.description)}</div>` : ''}
-          <div class="actions">
-            <button onclick="editProp('${esc(p.id)}')">Edit</button>
-            <button onclick="toggleVisible('${esc(p.id)}')">${hidden ? 'Show to clients' : 'Hide from clients'}</button>
-            <button onclick="viewPropOnMap('${esc(p.id)}')">View on map</button>
-            <button onclick="sharePropWhatsapp('${esc(p.id)}')">WhatsApp</button>
-            ${pin ? `<button onclick="unpinProp('${esc(p.id)}')" class="warn">Remove from map</button>` : `<button onclick="placeProp('${esc(p.id)}')">Place on map</button>`}
-            ${p.internalStatus === 'Available' ? `<button onclick="markSold('${esc(p.id)}')">Mark Sold</button>` : ''}
-            <button onclick="archiveProp('${esc(p.id)}')" class="warn">Archive</button>
-          </div>
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  document.getElementById('search-input').addEventListener('input', renderProps);
-
-  // Add / edit submit
   document.getElementById('add-prop-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const editingId = document.getElementById('p-editing').value;
-    // Photos come from the photo manager (URL links + gated storage uploads).
-    const photoData = window.PMPhotoManager
-      ? window.PMPhotoManager.collect()
-      : (function () {
-          const urls = document.getElementById('p-photos').value.split(',').map(s => s.trim()).filter(s => /^https?:\/\//i.test(s)).slice(0, 8);
-          return { photos: urls, photoStorage: urls.map((url, i) => ({ id: 'photo-' + i, kind: 'external', publicUrl: url })) };
-        })();
+    const photoData = window.PMPhotoManager ? window.PMPhotoManager.collect()
+      : (function () { const urls = document.getElementById('p-photos').value.split(',').map(s => s.trim()).filter(s => /^https?:\/\//i.test(s)).slice(0, 8); return { photos: urls, photoStorage: urls.map((url, i) => ({ id:'photo-'+i, kind:'external', publicUrl:url })) }; })();
+    const priceRaw = document.getElementById('p-price').value.replace(/[^\d.]/g, '');
     const fields = {
-      title: document.getElementById('p-title').value.trim(),
-      area: document.getElementById('p-area').value.trim(),
-      sector: document.getElementById('p-sector').value.trim(),
-      block: document.getElementById('p-sector').value.trim(),
-      plotNumber: document.getElementById('p-plot').value.trim(),
-      type: document.getElementById('p-type').value,
-      propertyType: document.getElementById('p-type').value,
-      size: document.getElementById('p-size').value.trim(),
-      facing: document.getElementById('p-facing').value.trim(),
-      internalStatus: document.getElementById('p-status').value,
+      title: v('p-title'), area: v('p-area'), sector: v('p-sector'), block: v('p-sector'), plotNumber: v('p-plot'),
+      type: document.getElementById('p-type').value, propertyType: document.getElementById('p-type').value,
+      size: v('p-size'), facing: v('p-facing'), internalStatus: document.getElementById('p-status').value,
       sectorMapId: document.getElementById('p-sectormap').value || null,
-      masterMapId: (masterMapForArea(document.getElementById('p-area').value.trim()) || {}).id || null,
-      description: document.getElementById('p-desc').value.trim(),
-      photos: photoData.photos,
-      photoStorage: photoData.photoStorage,
-      clientVisible: document.getElementById('p-visible').checked
+      masterMapId: (masterMapForArea(v('p-area')) || {}).id || null,
+      description: v('p-desc'), price: priceRaw ? Number(priceRaw) : null,
+      photos: photoData.photos, photoStorage: photoData.photoStorage, clientVisible: document.getElementById('p-visible').checked
     };
     if (editingId) crm.updateProperty(editingId, fields);
     else {
-      if (window.PMFoundation) {
-        const limit = window.PMFoundation.checkPlanLimit('properties', liveProps().length);
-        if (!limit.ok) { alert(limit.message); return; }
-      }
-      crm.addProperty(fields);
-      if (window.PMEventTracker) window.PMEventTracker.trackProductEvent('property_added', {});
+      if (window.PMFoundation) { const limit = window.PMFoundation.checkPlanLimit('properties', liveProps().length); if (!limit.ok) { window.PMShell.toast(limit.message, 'warn'); return; } }
+      crm.addProperty(fields); if (window.PMEventTracker) window.PMEventTracker.trackProductEvent('property_added', {});
     }
-    closeForm();
-    renderProps();
+    closeForm(); render(); window.PMShell.toast('Plot saved', 'ok');
   });
+  function v(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
 
-  renderFilters();
-  renderProps();
+  // ---------- city filter ----------
+  let cityFilter = 'All';
+  function cityCounts() { const m = {}; liveProps().forEach(p => { const c = p.area || p.city || 'Unassigned'; m[c] = (m[c] || 0) + 1; }); return m; }
+  function renderCityMenu() {
+    const counts = cityCounts(); const menu = document.getElementById('city-menu');
+    const entries = [['All', liveProps().length]].concat(Object.keys(counts).sort().map(c => [c, counts[c]]));
+    menu.innerHTML = '<div class="pm-grid" style="grid-template-columns:1fr 1fr;gap:6px">' + entries.map(([c, n]) =>
+      `<button class="pm-spread" data-city="${esc(c)}" style="padding:10px 12px;border-radius:11px;${c===cityFilter?'background:#f4ecdd':''}">
+        <span class="pm-row" style="gap:9px"><i class="ph-fill ph-map-pin-area" style="font-size:16px;color:#d95d1e"></i>${esc(c === 'All' ? 'All cities' : c)}</span>
+        <span class="pm-badge pm-badge-neutral">${n}</span></button>`).join('') + '</div>';
+    menu.querySelectorAll('[data-city]').forEach(b => b.addEventListener('click', () => { cityFilter = b.getAttribute('data-city'); document.getElementById('city-filter-label').textContent = cityFilter === 'All' ? 'All cities' : cityFilter; menu.style.display = 'none'; render(); }));
+  }
+  document.getElementById('city-filter-btn').addEventListener('click', (e) => { e.stopPropagation(); const m = document.getElementById('city-menu'); m.style.display = m.style.display === 'none' ? 'block' : 'none'; renderCityMenu(); });
+  document.addEventListener('click', (e) => { const m = document.getElementById('city-menu'); if (m && !m.contains(e.target) && e.target.id !== 'city-filter-btn') m.style.display = 'none'; });
+
+  // ---------- render My Plots ----------
+  function inCity(p) { return cityFilter === 'All' || (p.area || p.city) === cityFilter; }
+  function render() {
+    const all = liveProps().filter(inCity);
+    const ready = all.filter(isReady);
+    const needWork = all.filter(p => !isReady(p) && p.internalStatus !== 'Sold');
+    const value = all.reduce((n, p) => n + (Number(p.price) || 0), 0);
+    document.getElementById('mp-value').textContent = value ? money(value) : '—';
+    document.getElementById('mp-ready').textContent = ready.length;
+    document.getElementById('mp-need').textContent = all.filter(p => photosOf(p).length === 0).length;
+
+    const grid = document.getElementById('mp-ready-grid');
+    if (!all.length) {
+      grid.innerHTML = `<div class="pm-empty" style="grid-column:1/-1"><div class="pm-empty-ic"><i class="ph ph-buildings"></i></div><h3>Add your first plot</h3><p>Build your inventory so you have something to show a customer.</p><button class="pm-btn pm-btn-primary" onclick="document.getElementById('btn-toggle-add').click()"><i class="ph-bold ph-plus"></i>Add a plot</button></div>`;
+      document.getElementById('mp-needwork-wrap').style.display = 'none'; return;
+    }
+    grid.innerHTML = ready.length ? ready.map(p => cardHtml(p)).join('')
+      : `<div style="grid-column:1/-1;padding:30px;text-align:center;color:var(--pm-ink-soft);font-size:15px;background:var(--pm-surface-alt);border:1px dashed #e6cf9a;border-radius:18px">No ready-to-show plots in ${esc(cityFilter==='All'?'your inventory':cityFilter)} yet.</div>`;
+    wireCards();
+
+    const nw = document.getElementById('mp-needwork');
+    if (needWork.length) {
+      document.getElementById('mp-needwork-wrap').style.display = '';
+      nw.innerHTML = needWork.map(p => { const ph = photosOf(p); const gap = ph.length === 0 ? 'Needs a photo' : (p.clientVisible === false ? 'Hidden from clients' : 'Not placed on a map yet'); const loc = [p.area, p.sector || p.block].filter(Boolean).join(' · ');
+        return `<div class="mp-need"><i class="ph-fill ph-warning-circle" style="font-size:26px;color:#b5322a;flex:none"></i><div style="flex:1;min-width:0"><div style="font-size:16.5px;font-weight:700;color:#2f2a2d">${esc(p.title || 'Plot')}${loc?' · '+esc(loc):''}</div><div style="font-size:14px;color:#b5322a;font-weight:600">${esc(gap)}</div></div><button class="pm-btn pm-btn-ghost pm-btn-sm" onclick="editProp('${esc(p.id)}')">Fix</button></div>`; }).join('');
+    } else document.getElementById('mp-needwork-wrap').style.display = 'none';
+  }
+
+  function cardHtml(p) {
+    const ph = photosOf(p); const pin = pinIndex().get(p.id); const hidden = p.clientVisible === false;
+    const loc = [p.area, p.sector || p.block, p.plotNumber ? 'Plot ' + p.plotNumber : ''].filter(Boolean).join(' · ');
+    const pubStyle = hidden ? 'background:var(--pm-surface-violet);color:var(--pm-ink-soft)' : 'background:var(--pm-green-bed);color:var(--pm-green)';
+    const pubIcon = hidden ? 'ph-fill ph-eye-slash' : 'ph-fill ph-broadcast';
+    const pubText = hidden ? 'Not published' : 'On presentation';
+    const mapStyle = pin ? 'background:var(--pm-gold-bed);color:var(--pm-gold-ink)' : 'background:#fdf0e8;color:#b5673a';
+    const mapText = pin ? 'On the map' : 'Not on map';
+    return `<div class="mp-card" data-id="${esc(p.id)}">
+      <div class="mp-photo"><button data-act="view" title="Open this plot" style="position:absolute;inset:0;cursor:pointer;background:none;padding:0"><span class="ph" style="${ph[0]?`background-image:url('${esc(ph[0])}')`:''}"></span></button>
+        <span class="mp-tag" style="position:absolute;top:12px;right:12px;${pubStyle}"><i class="${pubIcon}" style="font-size:13px"></i>${pubText}</span></div>
+      <div style="padding:18px 20px">
+        <div style="font-size:17.5px;font-weight:800;color:var(--pm-ink)">${esc(p.title || 'Unnamed plot')}</div>
+        <div style="font-size:14px;color:var(--pm-ink-muted);margin-top:2px">${esc(loc || '—')}</div>
+        <div class="pm-row" style="gap:8px;flex-wrap:wrap;margin-top:13px">
+          ${p.size?`<span class="mp-chip">${esc(p.size)}</span>`:''}${p.facing?`<span class="mp-chip"><i class="ph ph-compass"></i>${esc(p.facing)}</span>`:''}
+        </div>
+        <div class="pm-row" style="flex-wrap:wrap;gap:7px;margin-top:12px">
+          <span class="mp-tag" style="${pubStyle}"><i class="${pubIcon}" style="font-size:14px"></i>${pubText}</span>
+          <span class="mp-tag" style="${mapStyle}"><i class="ph-fill ph-map-pin-line" style="font-size:14px"></i>${mapText}</span>
+          <span class="mp-tag" style="background:var(--pm-gold-bed);color:var(--pm-gold-ink)"><i class="ph-fill ph-images" style="font-size:14px"></i>${ph.length} photo${ph.length===1?'':'s'}</span>
+        </div>
+        <div class="pm-spread" style="margin-top:14px;padding-top:14px;border-top:1px solid #f6e8c8">
+          <button data-act="price" style="display:flex;align-items:center;gap:8px;font-family:var(--pm-font-display);font-weight:600;font-size:22px;color:#c85a1a">${esc(money(p.price))}<i class="ph-fill ph-pencil-simple" style="font-size:15px"></i></button>
+          <button data-act="menu" title="More" style="width:36px;height:36px;border-radius:11px;background:var(--pm-surface-violet);color:#8a7a52;display:grid;place-items:center"><i class="ph-bold ph-dots-three" style="font-size:18px"></i></button>
+        </div>
+        <div class="pm-grid pm-grid-2" style="gap:8px;margin-top:12px">
+          <button class="pm-btn" data-act="place" style="background:var(--pm-gold-bed);color:var(--pm-gold-ink);min-height:46px"><i class="ph-fill ph-map-pin-line"></i>Show on map</button>
+          <button class="pm-btn" data-act="present" style="background:var(--pm-green-bed);color:var(--pm-green);min-height:46px"><i class="ph-fill ph-presentation-chart"></i>Presentation</button>
+          <button class="pm-btn pm-btn-primary" data-act="link" style="grid-column:1/-1;min-height:48px"><i class="ph-fill ph-paper-plane-tilt"></i>Send private link</button>
+        </div>
+        <div class="pm-row" data-menu style="display:none;flex-wrap:wrap;gap:7px;margin-top:10px;padding-top:12px;border-top:1px dashed #eed9a8">
+          <button class="mp-menu-btn" data-act="toggle"><i class="${hidden?'ph-fill ph-eye':'ph-fill ph-eye-slash'}"></i>${hidden?'Publish':'Unpublish'}</button>
+          <button class="mp-menu-btn" data-act="sold"><i class="ph-fill ph-seal-check"></i>Mark sold</button>
+          <button class="mp-menu-btn" data-act="edit"><i class="ph-fill ph-pencil-simple"></i>Edit</button>
+          <button class="mp-menu-btn" data-act="wa"><i class="ph-fill ph-whatsapp-logo"></i>WhatsApp facts</button>
+          <button class="mp-menu-btn" data-act="archive"><i class="ph-fill ph-archive"></i>Archive</button>
+        </div>
+      </div></div>`;
+  }
+
+  function wireCards() {
+    document.querySelectorAll('.mp-card').forEach(card => {
+      const id = card.getAttribute('data-id');
+      card.querySelectorAll('[data-act]').forEach(btn => btn.addEventListener('click', (e) => {
+        e.stopPropagation(); const act = btn.getAttribute('data-act');
+        if (act === 'view' || act === 'present') return window.viewPropOnMap(id);
+        if (act === 'price') return window.editPrice(id);
+        if (act === 'menu') { const m = card.querySelector('[data-menu]'); m.style.display = m.style.display === 'none' ? 'flex' : 'none'; return; }
+        if (act === 'place') return window.placeProp(id);
+        if (act === 'link') return openClientLink(id);
+        if (act === 'toggle') return window.toggleVisible(id);
+        if (act === 'sold') return window.markSold(id);
+        if (act === 'edit') return window.editProp(id);
+        if (act === 'wa') return shareWhatsapp(id);
+        if (act === 'archive') return window.archiveProp(id);
+      }));
+    });
+  }
+  function shareWhatsapp(id) { const p = liveProps().find(x => x.id === id); if (!p) return; const bits = [p.title || 'Property', [p.area, p.sector || p.block].filter(Boolean).join(' · '), p.size || '', p.description || ''].filter(Boolean); window.open('https://wa.me/?text=' + encodeURIComponent(bits.join('\n')), '_blank', 'noopener'); }
+
+  // ---------- Private Client Link drawer (entry point + UI states) ----------
+  function openClientLink(propertyId) {
+    const p = liveProps().find(x => x.id === propertyId); if (!p) return;
+    const ph = photosOf(p); const cs = clients();
+    document.getElementById('cl-plot').textContent = 'Private link · ' + (p.title || 'Plot');
+    const settings = (window.PMFoundation && PMFoundation.getDealerSettings) ? PMFoundation.getDealerSettings() : {};
+    const brandLabel = settings.brandName ? esc(settings.brandName) + ' branding' : 'your branding';
+    document.getElementById('cl-body').innerHTML = `
+      <div class="pm-field"><label class="pm-label">Customer</label>
+        ${cs.length ? `<select class="pm-select" id="cl-client">${cs.map(c => `<option value="${esc(c.id)}">${esc(c.name || 'Customer')}${c.phone?' · '+esc(c.phone):''}</option>`).join('')}</select>`
+          : `<div class="pm-alert pm-alert-info"><i class="ph-fill ph-user-plus"></i><span>Add a customer first (My Customers) to send them a private link.</span></div>`}
+      </div>
+      <div class="pm-field" style="margin-top:14px"><label class="pm-label">Plots in this link (max 4)</label>
+        <div class="pm-row" style="gap:8px;flex-wrap:wrap"><span class="pm-badge pm-badge-gold"><i class="ph-fill ph-map-pin-area"></i>${esc(p.title || 'This plot')}</span><span class="pm-meta">More plots can be added when the feature is live.</span></div>
+      </div>
+      <div class="pm-field" style="margin-top:14px"><label class="pm-label">Photos to include (${ph.length})</label>
+        <div class="pm-row" style="gap:8px;flex-wrap:wrap" id="cl-photos">${ph.length ? ph.map((u, i) => `<label class="pm-row" style="gap:6px;border:1px solid var(--pm-hairline);border-radius:10px;padding:6px 10px;cursor:pointer"><input type="checkbox" checked data-photo="${i}">Photo ${i + 1}</label>`).join('') : '<span class="pm-meta">This plot has no photos yet — add some in Edit.</span>'}</div>
+      </div>
+      <div class="pm-grid pm-grid-2" style="gap:12px;margin-top:14px">
+        <div class="pm-field"><label class="pm-label">Show price?</label><select class="pm-select" id="cl-price"><option value="hidden">Hidden (default)</option><option value="shown">Shown to this client</option></select></div>
+        <div class="pm-field"><label class="pm-label">Location detail</label><select class="pm-select" id="cl-loc"><option value="area">Area only (default)</option><option value="exact">Exact plot</option><option value="hidden">Hidden</option></select></div>
+        <div class="pm-field"><label class="pm-label">Link expires</label><select class="pm-select" id="cl-expiry"><option value="7">In 7 days (default)</option><option value="3">In 3 days</option><option value="14">In 14 days</option><option value="30">In 30 days</option></select></div>
+        <div class="pm-field"><label class="pm-label">Dealer voice note</label><button type="button" class="pm-btn pm-btn-ghost" id="cl-audio" disabled><i class="ph-fill ph-microphone"></i>Record (with backend)</button></div>
+      </div>
+      <div class="pm-alert pm-alert-info" style="margin-top:16px"><i class="ph-fill ph-shield-check"></i><span>The client page shows only your chosen photos, ${brandLabel}, and — only if you allow it — the price and exact location. Seller, commission, source and internal notes are never sent.</span></div>
+      <div id="cl-status" class="pm-meta" style="margin-top:14px"></div>
+      <div class="pm-row" style="gap:10px;margin-top:16px"><button class="pm-btn pm-btn-primary pm-btn-block" id="cl-create" ${cs.length?'':'disabled'}><i class="ph-fill ph-paper-plane-tilt"></i>Create private link</button></div>`;
+    document.getElementById('cl-drawer').classList.add('is-open');
+    document.getElementById('cl-scrim').classList.add('is-open');
+    const createBtn = document.getElementById('cl-create');
+    if (createBtn) createBtn.addEventListener('click', async () => {
+      const payload = {
+        clientId: (document.getElementById('cl-client') || {}).value || null,
+        propertyIds: [p.id],
+        photoSelections: { [p.id]: [...document.querySelectorAll('#cl-photos input:checked')].map(c => Number(c.getAttribute('data-photo'))) },
+        priceVisibility: document.getElementById('cl-price').value,
+        locationVisibility: document.getElementById('cl-loc').value,
+        expiresInDays: Number(document.getElementById('cl-expiry').value),
+        branding: { brandName: settings.brandName, logoUrl: settings.logoUrl, phone: settings.supportPhone, whatsapp: settings.whatsappNumber }
+      };
+      const res = await window.PMClientLinks.create(payload);
+      const status = document.getElementById('cl-status');
+      if (res.ok) { status.style.color = 'var(--pm-green)'; status.textContent = 'Private link ready.'; window.PMShell.toast('Private link created', 'ok'); }
+      else if (res.pending) { status.style.color = 'var(--pm-gold-ink)'; status.textContent = res.message || window.PMClientLinks.PENDING.message; window.PMShell.toast('Client Links backend not enabled yet', 'warn'); }
+      else { status.style.color = '#b5322a'; status.textContent = (res.errors && res.errors[0]) || 'Could not create the link.'; }
+    });
+  }
+  function closeClientLink() { document.getElementById('cl-drawer').classList.remove('is-open'); document.getElementById('cl-scrim').classList.remove('is-open'); }
+  document.getElementById('cl-close').addEventListener('click', closeClientLink);
+  document.getElementById('cl-scrim').addEventListener('click', closeClientLink);
+
+  render();
+  if (window.location.hash === '#add') { setTimeout(() => { document.getElementById('btn-toggle-add').click(); history.replaceState(null, '', 'properties.html'); }, 50); }
 });
 
-// ── Phase 5: property photo workflow (URL links + gated Storage upload) ──
-// PMPhotoManager tracks two photo kinds for the open form:
-//   • URL photos   → the comma-separated https links in #p-photos
-//   • storage photos → objects uploaded to the per-dealer Storage folder
-//     (only when the dealer has storageEnabled=true; needs the bucket + RLS
-//     from the Codex-gated draft migration). Both survive save via photoStorage.
-// Serving Storage photos to Client Presentation needs signed URLs — until that
-// lands, storage photos are recorded but shown as "pending" here, and never
-// leak to clients (private bucket, no anon read).
+// ── Property photo workflow (URL links + gated Storage upload) — preserved. ──
 window.PMPhotoManager = (function () {
   const MAX_BYTES = 5 * 1024 * 1024;
   const OK_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-  let storagePaths = [];           // uploaded object paths for the open form
+  let storagePaths = [];
   const $ = (id) => document.getElementById(id);
   const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]);
-
-  function urlPhotos() {
-    return ($('p-photos').value || '').split(',').map(s => s.trim()).filter(s => /^https?:\/\//i.test(s));
-  }
+  function urlPhotos() { return ($('p-photos').value || '').split(',').map(s => s.trim()).filter(s => /^https?:\/\//i.test(s)); }
   function fileLabel(path) { return String(path).split('/').pop(); }
-
   function renderManager() {
-    const host = $('p-photo-manager');
-    if (!host) return;
-    const chips = [];
-    urlPhotos().forEach((url, i) => chips.push(
-      '<span class="pm-chip" style="display:inline-flex;align-items:center;gap:8px;">' +
-        '<span style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(fileLabel(url)) + '</span>' +
-        '<button type="button" data-rm-url="' + i + '" title="Remove" style="border:none;background:transparent;cursor:pointer;color:#b0532c;font-weight:800;">✕</button>' +
-      '</span>'));
-    storagePaths.forEach((p, i) => chips.push(
-      '<span class="pm-chip" style="display:inline-flex;align-items:center;gap:8px;background:#E9EFF4;">' +
-        '<span style="font-size:11px;color:#3E6E96;font-weight:700;">stored</span>' +
-        '<span style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(fileLabel(p)) + '</span>' +
-        '<button type="button" data-rm-store="' + i + '" title="Remove" style="border:none;background:transparent;cursor:pointer;color:#b0532c;font-weight:800;">✕</button>' +
-      '</span>'));
-    host.innerHTML = chips.length ? chips.join('') : '<span style="font-size:12px;color:var(--pm-text-mut);">No photos yet.</span>';
-    host.querySelectorAll('[data-rm-url]').forEach(btn => btn.addEventListener('click', () => {
-      const list = urlPhotos(); list.splice(Number(btn.getAttribute('data-rm-url')), 1);
-      $('p-photos').value = list.join(', '); renderManager();
-    }));
-    host.querySelectorAll('[data-rm-store]').forEach(btn => btn.addEventListener('click', () => {
-      storagePaths.splice(Number(btn.getAttribute('data-rm-store')), 1); renderManager();
-    }));
+    const host = $('p-photo-manager'); if (!host) return; const chips = [];
+    urlPhotos().forEach((url, i) => chips.push('<span class="pm-badge pm-badge-neutral" style="gap:8px">' + '<span style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(fileLabel(url)) + '</span>' + '<button type="button" data-rm-url="' + i + '" title="Remove" style="border:none;background:transparent;cursor:pointer;color:#b0532c;font-weight:800">✕</button></span>'));
+    storagePaths.forEach((p, i) => chips.push('<span class="pm-badge pm-badge-violet" style="gap:8px"><span style="font-size:11px;font-weight:700">stored</span>' + '<span style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(fileLabel(p)) + '</span>' + '<button type="button" data-rm-store="' + i + '" title="Remove" style="border:none;background:transparent;cursor:pointer;color:#b0532c;font-weight:800">✕</button></span>'));
+    host.innerHTML = chips.length ? chips.join('') : '<span class="pm-meta">No photos yet.</span>';
+    host.querySelectorAll('[data-rm-url]').forEach(btn => btn.addEventListener('click', () => { const list = urlPhotos(); list.splice(Number(btn.getAttribute('data-rm-url')), 1); $('p-photos').value = list.join(', '); renderManager(); }));
+    host.querySelectorAll('[data-rm-store]').forEach(btn => btn.addEventListener('click', () => { storagePaths.splice(Number(btn.getAttribute('data-rm-store')), 1); renderManager(); }));
   }
-
-  function reset(prop) {
-    storagePaths = (prop && Array.isArray(prop.photoStorage))
-      ? prop.photoStorage.filter(e => e && e.kind === 'storage' && e.path).map(e => e.path) : [];
-    const sel = $('p-photo-selected'); if (sel) sel.innerHTML = '';
-    const st = $('p-photo-upload-status'); if (st) st.textContent = '';
-    renderManager();
-  }
-
-  // Returns { photos, photoStorage } for the property record on submit.
-  function collect() {
-    const urls = urlPhotos().slice(0, 8);
-    const photoStorage = [
-      ...urls.map((url, i) => ({ id: 'photo-ext-' + i, kind: 'external', publicUrl: url })),
-      ...storagePaths.map((path, i) => ({ id: 'photo-st-' + i, kind: 'storage', path: path, publicUrl: null }))
-    ];
-    return { photos: urls, photoStorage: photoStorage };
-  }
-
-  // Keep the manager in sync when URL links are typed/pasted (always active).
+  function reset(prop) { storagePaths = (prop && Array.isArray(prop.photoStorage)) ? prop.photoStorage.filter(e => e && e.kind === 'storage' && e.path).map(e => e.path) : []; const sel = $('p-photo-selected'); if (sel) sel.innerHTML = ''; const st = $('p-photo-upload-status'); if (st) st.textContent = ''; renderManager(); }
+  function collect() { const urls = urlPhotos().slice(0, 8); const photoStorage = [...urls.map((url, i) => ({ id:'photo-ext-'+i, kind:'external', publicUrl:url })), ...storagePaths.map((path, i) => ({ id:'photo-st-'+i, kind:'storage', path:path, publicUrl:null }))]; return { photos: urls, photoStorage: photoStorage }; }
+  document.addEventListener('DOMContentLoaded', () => { const links = $('p-photos'); if (links) links.addEventListener('input', renderManager); renderManager(); });
   document.addEventListener('DOMContentLoaded', () => {
-    const links = $('p-photos');
-    if (links) links.addEventListener('input', renderManager);
-    renderManager();
-  });
-
-  // Wire the gated uploader (only visible when storage is enabled).
-  document.addEventListener('DOMContentLoaded', () => {
-    const wrap = $('p-photo-upload');
-    if (!wrap || !window.PMFoundation) return;
+    const wrap = $('p-photo-upload'); if (!wrap || !window.PMFoundation) return;
     let settings; try { settings = window.PMFoundation.getDealerSettings(); } catch (e) { return; }
-    if (!settings || settings.storageEnabled !== true) return; // stays hidden until backend is live
+    if (!settings || settings.storageEnabled !== true) return;
     wrap.style.display = 'block';
     const setStatus = (m) => { const el = $('p-photo-upload-status'); if (el) el.textContent = m; };
     const fileInput = $('p-photo-file');
-
-    fileInput.addEventListener('change', () => {
-      const sel = $('p-photo-selected'); sel.innerHTML = '';
-      [...(fileInput.files || [])].forEach(f => {
-        const ok = OK_TYPES.includes(f.type) && f.size <= MAX_BYTES;
-        const tag = document.createElement('span');
-        tag.className = 'pm-chip';
-        tag.style.cssText = 'font-size:11px;' + (ok ? '' : 'background:#F7E7E0;color:#b0532c;');
-        tag.textContent = f.name + (ok ? '' : ' — rejected');
-        sel.appendChild(tag);
-      });
-    });
-
+    fileInput.addEventListener('change', () => { const sel = $('p-photo-selected'); sel.innerHTML = ''; [...(fileInput.files || [])].forEach(f => { const ok = OK_TYPES.includes(f.type) && f.size <= MAX_BYTES; const tag = document.createElement('span'); tag.className = 'pm-badge ' + (ok ? 'pm-badge-neutral' : 'pm-badge-rose'); tag.textContent = f.name + (ok ? '' : ' — rejected'); sel.appendChild(tag); }); });
     $('p-photo-upload-btn').addEventListener('click', async () => {
-      const files = [...(fileInput.files || [])];
-      if (!files.length) { setStatus('Choose one or more image files first.'); return; }
-      if (files.some(f => !OK_TYPES.includes(f.type) || f.size > MAX_BYTES)) {
-        setStatus('Only JPG/PNG/WebP up to 5 MB each are allowed.'); return;
-      }
+      const files = [...(fileInput.files || [])]; if (!files.length) { setStatus('Choose one or more image files first.'); return; }
+      if (files.some(f => !OK_TYPES.includes(f.type) || f.size > MAX_BYTES)) { setStatus('Only JPG/PNG/WebP up to 5 MB each are allowed.'); return; }
       if (!window.PMAuth) { setStatus('Not signed in.'); return; }
-      const token = await window.PMAuth.getAccessToken().catch(() => null);
-      if (!token) { setStatus('Session expired — sign in again.'); return; }
-      const bucket = settings.photoBucket || 'property-photos';
-      const propId = $('p-editing').value || 'draft';
-      let done = 0;
+      const token = await window.PMAuth.getAccessToken().catch(() => null); if (!token) { setStatus('Session expired — sign in again.'); return; }
+      const bucket = settings.photoBucket || 'property-photos'; const propId = $('p-editing').value || 'draft'; let done = 0;
       for (const file of files) {
         const base = file.name.replace(/\.[^.]+$/, '') + '-' + (storagePaths.length + done + 1);
         const path = window.PMFoundation.buildPhotoObjectPath(propId, base);
         setStatus('Uploading ' + (done + 1) + '/' + files.length + ' — ' + file.name + '…');
         try {
-          const res = await fetch(window.PMAuth.SUPABASE_URL + '/storage/v1/object/' + bucket + '/' + path, {
-            method: 'POST',
-            headers: { apikey: window.PMAuth.SUPABASE_KEY, Authorization: 'Bearer ' + token, 'x-upsert': 'true' },
-            body: file
-          });
-          if (!res.ok) {
-            const hint = (res.status === 400 || res.status === 404) ? ' Photo upload isn’t switched on for your account yet.'
-              : (res.status === 401 || res.status === 403) ? ' You don’t have permission to upload here.' : '';
-            setStatus('Upload failed for ' + file.name + '.' + hint + ' Your other photos are unaffected.');
-            renderManager(); return;
-          }
+          const res = await fetch(window.PMAuth.SUPABASE_URL + '/storage/v1/object/' + bucket + '/' + path, { method:'POST', headers:{ apikey: window.PMAuth.SUPABASE_KEY, Authorization:'Bearer '+token, 'x-upsert':'true' }, body:file });
+          if (!res.ok) { const hint = (res.status === 400 || res.status === 404) ? ' Photo upload isn’t switched on for your account yet.' : (res.status === 401 || res.status === 403) ? ' You don’t have permission to upload here.' : ''; setStatus('Upload failed for ' + file.name + '.' + hint); renderManager(); return; }
           storagePaths.push(path); done++;
-        } catch (err) {
-          setStatus('Upload error (network). Your saved photos are unaffected.'); renderManager(); return;
-        }
+        } catch (err) { setStatus('Upload error (network). Your saved photos are unaffected.'); renderManager(); return; }
       }
-      setStatus('Uploaded ' + done + ' photo(s) and saved them with this property.');
-      fileInput.value = ''; $('p-photo-selected').innerHTML = ''; renderManager();
+      setStatus('Uploaded ' + done + ' photo(s) and saved them with this property.'); fileInput.value = ''; $('p-photo-selected').innerHTML = ''; renderManager();
     });
   });
-
   return { reset: reset, collect: collect, render: renderManager };
 })();
 </script>
